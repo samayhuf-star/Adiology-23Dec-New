@@ -1,0 +1,541 @@
+import React, { useState } from 'react';
+import { Eye, EyeOff, AlertCircle, ArrowLeft, Sparkle } from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { Alert, AlertDescription } from './ui/alert';
+import { signUpWithEmail, signInWithEmail, resetPassword } from '../utils/auth';
+import { supabase } from '../utils/supabase/client';
+import { notifications } from '../utils/notifications';
+
+interface AuthProps {
+  onLoginSuccess: () => void;
+  onBackToHome: () => void;
+  initialMode?: 'login' | 'signup';
+}
+
+export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onBackToHome, initialMode = 'login' }) => {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [showSignupSuccess, setShowSignupSuccess] = useState(false);
+  
+  // Signup is fully enabled
+  const SIGNUP_DISABLED = false;
+
+  // Sync isLogin state when initialMode prop changes
+  React.useEffect(() => {
+    setIsLogin(initialMode === 'login');
+    setError(''); // Clear any errors when mode changes
+  }, [initialMode]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const trimmedEmail = email.trim().toLowerCase();
+      const trimmedPassword = password.trim();
+
+      if (isForgotPassword) {
+        // Handle password reset
+        if (!trimmedEmail) {
+          setError('Please enter your email address');
+          setIsLoading(false);
+          return;
+        }
+
+        await resetPassword(trimmedEmail);
+        notifications.success('Password reset email sent!', {
+          title: 'Check Your Email',
+          description: 'We\'ve sent a password reset link to your email address. Please check your inbox and spam folder.',
+        });
+        setIsForgotPassword(false);
+        setIsLoading(false);
+        return;
+      }
+
+      if (isLogin) {
+        // Check for test admin credentials first
+        const isTestAdmin = (
+          (trimmedEmail === 'admin@admin.com' || trimmedEmail === 'admin') && 
+          trimmedPassword === 'admin'
+        );
+        
+        if (isTestAdmin) {
+          // Grant instant access without Supabase auth
+          sessionStorage.setItem('test_admin_mode', 'true');
+          sessionStorage.setItem('test_admin_email', trimmedEmail);
+          
+          notifications.success('Welcome, Super Admin!', {
+            title: 'Admin Access Granted',
+            description: `Logged in as ${trimmedEmail}`
+          });
+          
+          setIsLoading(false);
+          onLoginSuccess();
+          return;
+        }
+        
+        // Bug_61, Bug_71: Optimize login - reduce wait time and improve session handling
+        try {
+          const result = await signInWithEmail(trimmedEmail, trimmedPassword);
+          
+          // Bug_61: Reduce wait time for faster login
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
+          notifications.success('Welcome back!', {
+            title: 'Login Successful',
+          });
+          
+          // Clear loading state first so UI doesn't hang
+          setIsLoading(false);
+          
+          // Bug_71: Ensure session is properly set before navigation
+          // Verify session exists before proceeding
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            throw new Error('Session not established after login');
+          }
+          
+          // Call onLoginSuccess but don't block on it - let it handle navigation
+          // Use Promise.race to ensure we don't hang if it takes too long
+          Promise.race([
+            onLoginSuccess(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Navigation timeout')), 5000)
+            )
+          ]).catch((error) => {
+            console.error('Error during navigation after login:', error);
+            // Navigation might have still succeeded, just log the error
+          });
+        } catch (err: any) {
+          let errorMessage = 'Invalid email or password. Please try again.';
+          
+          if (err?.message?.includes('Invalid login credentials') || err?.message?.includes('invalid_credentials')) {
+            errorMessage = 'Invalid email or password. Please try again.';
+          } else if (err?.message?.includes('Email not confirmed') || err?.message?.includes('email_not_confirmed')) {
+            errorMessage = 'Please verify your email before signing in. Check your inbox for the verification link.';
+          } else if (err?.message) {
+            errorMessage = err.message;
+          }
+          
+          console.error('Login error:', err);
+          setError(errorMessage);
+          setIsLoading(false);
+        }
+      } else {
+        // Signup logic - create real Supabase account
+        const trimmedName = name.trim();
+        if (!trimmedName || trimmedName.length === 0) {
+          setError('Please enter your full name');
+          setIsLoading(false);
+          return;
+        }
+
+        if (trimmedPassword.length < 6) {
+          setError('Password must be at least 6 characters');
+          setIsLoading(false);
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setIsLoading(false);
+          return;
+        }
+
+        // Create actual Supabase account
+        const { data, error: signupError } = await signUpWithEmail(trimmedEmail, trimmedPassword, trimmedName);
+        
+        if (signupError) {
+          let errorMessage = signupError.message || 'Signup failed. Please try again.';
+          
+          if (errorMessage.includes('User already registered') || errorMessage.includes('already exists')) {
+            errorMessage = 'An account with this email already exists. Please sign in instead.';
+          }
+          
+          setError(errorMessage);
+          setIsLoading(false);
+          return;
+        }
+
+        // Store email and show success message
+        setSignupEmail(trimmedEmail);
+        setShowSignupSuccess(true);
+        setIsLoading(false);
+        
+        // Show success notification
+        notifications.success('Account created successfully!', {
+          title: 'Check Your Email',
+          description: 'Please verify your email address to activate your account.',
+        });
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800 p-4">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
+        {/* ADIOLOGY Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-6xl font-bold text-white mb-2 tracking-tight">ADIOLOGY</h1>
+          <p className="text-2xl text-indigo-200 font-medium">Google Ads Made Easy</p>
+        </div>
+        
+        <Card className="border border-slate-200 shadow-2xl bg-white backdrop-blur-xl relative overflow-visible p-8">
+          <CardHeader className="space-y-1 pb-6 px-0">
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onBackToHome}
+                className="text-slate-700 hover:text-indigo-600 font-medium"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </div>
+            <div className="flex flex-col items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg mb-3">
+                <Sparkle className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900">Adiology</h2>
+              <p className="text-xs text-slate-500 -mt-0.5">~ Samay</p>
+            </div>
+            <CardTitle className="text-xl font-bold text-center text-slate-900">
+              {isForgotPassword 
+                ? 'Reset Password' 
+                : isLogin 
+                  ? 'Welcome Back' 
+                  : SIGNUP_DISABLED 
+                    ? 'Sign Up Disabled' 
+                    : 'Create Account'}
+            </CardTitle>
+            <CardDescription className="text-center text-slate-600">
+              {isForgotPassword
+                ? 'Enter your email to receive a password reset link'
+                : isLogin 
+                ? 'Sign in to your Adiology account' 
+                : SIGNUP_DISABLED 
+                  ? 'New signups are currently disabled until production launch'
+                : 'Start building winning campaigns today'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="relative px-0">
+            {showSignupSuccess ? (
+              <div className="space-y-6 py-8 text-center">
+                <div className="flex justify-center mb-6">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg">
+                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-bold text-slate-900">Account Created!</h3>
+                  <p className="text-lg text-slate-700 font-medium">Check your email to verify</p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 my-6">
+                  <p className="text-slate-700 text-base leading-relaxed">
+                    We've sent a verification link to your email. Click the link to activate your account and start building campaigns!
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 rounded-lg p-4 my-6">
+                  <p className="text-sm text-slate-600 mb-2">Verification email sent to:</p>
+                  <p className="text-base font-semibold text-slate-900 break-all">{signupEmail}</p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowSignupSuccess(false);
+                    setIsLogin(true);
+                    setEmail('');
+                    setPassword('');
+                    setConfirmPassword('');
+                    setName('');
+                    setSignupEmail('');
+                    setError('');
+                  }}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 h-12 text-base font-semibold rounded-lg transition-all"
+                >
+                  Back to Login
+                </button>
+
+                <p className="text-xs text-slate-500 italic">
+                  Welcome to Adiology!
+                </p>
+              </div>
+            ) : (
+            <form onSubmit={handleSubmit} className="space-y-6 relative">
+              {error && (
+                <Alert variant="destructive" className="border-red-500 bg-red-50">
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                  <AlertDescription className="text-red-700 font-medium">{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {!isLogin && !SIGNUP_DISABLED && (
+                <div className="space-y-3">
+                  <Label htmlFor="name" className="text-slate-900 font-semibold text-sm mb-2">Full Name</Label>
+                  <div className="relative">
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="pl-4 pr-4 py-3 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 h-12"
+                      required={!isLogin}
+                      disabled={SIGNUP_DISABLED}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-slate-900 font-semibold text-sm mb-2">Email</Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-4 pr-4 py-3 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 h-12"
+                    required
+                  />
+                </div>
+              </div>
+
+              {!isForgotPassword && (
+                <>
+              <div className="space-y-3">
+                <Label htmlFor="password" className="text-slate-900 font-semibold text-sm mb-2">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={isLogin ? 'Enter your password' : 'Create a password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-4 pr-12 py-3 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 h-12"
+                        required={!isForgotPassword}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 p-1"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+                </>
+              )}
+
+              {!isLogin && !SIGNUP_DISABLED && !isForgotPassword && (
+                <div className="space-y-3">
+                  <Label htmlFor="confirmPassword" className="text-slate-900 font-semibold text-sm mb-2">Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-4 pr-12 py-3 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 h-12"
+                      required={!isLogin}
+                      disabled={SIGNUP_DISABLED}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 p-1"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isLogin && !isForgotPassword && (
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" className="rounded border-slate-300" />
+                    <span className="text-slate-700 font-medium">Remember me</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError('');
+                      setIsForgotPassword(true);
+                    }}
+                    className="text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {isLogin && !isForgotPassword && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-slate-500">Or continue with</span>
+                  </div>
+                </div>
+              )}
+
+              {isLogin && !isForgotPassword && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    setError('');
+                    try {
+                      const { data, error } = await supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: {
+                          redirectTo: window.location.origin
+                        }
+                      });
+                      if (error) {
+                        setError(error.message || 'Failed to sign in with Google');
+                        setIsLoading(false);
+                      }
+                    } catch (err: any) {
+                      setError(err.message || 'Failed to sign in with Google');
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-all"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <image href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234285F4' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/%3E%3Cpath fill='%2334A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/%3E%3Cpath fill='%23FBBC05' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'/%3E%3Cpath fill='%23EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/%3E%3C/svg%3E" x="0" y="0" width="24" height="24" />
+                    <span className="text-slate-700 font-medium">Google</span>
+                  </svg>
+                </button>
+              )}
+
+              {isForgotPassword && (
+                <div className="p-5 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800 mb-3">
+                    Enter your email address and we'll send you a link to reset your password.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError('');
+                      setIsForgotPassword(false);
+                      setEmail('');
+                    }}
+                    className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    ← Back to login
+                  </button>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 h-12 text-base font-semibold mt-2"
+                disabled={isLoading || (!isLogin && SIGNUP_DISABLED)}
+              >
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {isForgotPassword 
+                      ? 'Sending reset link...' 
+                      : isLogin 
+                        ? 'Signing in...' 
+                        : 'Creating account...'}
+                  </span>
+                ) : (
+                  isForgotPassword 
+                    ? 'Send Reset Link' 
+                    : isLogin 
+                      ? 'Sign In' 
+                      : (SIGNUP_DISABLED ? 'Sign Up Disabled' : 'Create Account')
+                )}
+              </Button>
+
+              {SIGNUP_DISABLED ? (
+                <div className="text-center text-sm text-slate-500 italic">
+                  Sign up is currently disabled. Please contact support for access.
+                </div>
+              ) : (
+                !isForgotPassword && (
+              <div className="text-center text-sm text-slate-700">
+                {isLogin ? (
+                  <>
+                    Don't have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLogin(false);
+                        setError('');
+                            setIsForgotPassword(false);
+                      }}
+                      className="text-indigo-600 hover:text-indigo-700 font-semibold"
+                      disabled={SIGNUP_DISABLED}
+                    >
+                      Sign up
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLogin(true);
+                        setError('');
+                            setIsForgotPassword(false);
+                      }}
+                      className="text-indigo-600 hover:text-indigo-700 font-semibold"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                )}
+              </div>
+                )
+              )}
+            </form>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+

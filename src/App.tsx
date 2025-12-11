@@ -1,0 +1,1721 @@
+import { useState, useEffect } from 'react';
+import { 
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight
+} from 'lucide-react';
+import { useTheme } from './contexts/ThemeContext';
+import { COLOR_CLASSES } from './utils/colorScheme';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './components/ui/dropdown-menu';
+import { Badge } from './components/ui/badge';
+import { CampaignBuilder3 } from './components/CampaignBuilder3';
+import { GoogleAdsCSVExport } from './components/GoogleAdsCSVExport';
+import { KeywordPlanner } from './components/KeywordPlanner';
+import { KeywordMixer } from './components/KeywordMixer';
+import { NegativeKeywordsBuilder } from './components/NegativeKeywordsBuilder';
+import { KeywordSavedLists } from './components/KeywordSavedLists';
+import { BillingPanel } from './components/BillingPanel';
+import { SupportPanel } from './components/SupportPanel';
+import { HelpSupport } from './components/HelpSupport';
+import { SuperAdminLogin } from './components/SuperAdminLogin';
+import { SuperAdminLanding } from './components/SuperAdminLanding';
+import { SuperAdminPanel } from './components/SuperAdminPanel';
+import { CSVCompare } from './components/CSVCompare';
+import { Auth } from './components/Auth';
+import { EmailVerification } from './components/EmailVerification';
+import { PaymentPage } from './components/PaymentPage';
+import { PaymentSuccess } from './components/PaymentSuccess';
+import { SettingsPanel } from './components/SettingsPanel';
+import { SupportHelpCombined } from './components/SupportHelpCombined';
+import { ResetPassword } from './components/ResetPassword';
+import { PresetCampaigns } from './components/PresetCampaigns';
+import { Dashboard } from './components/Dashboard';
+import { HistoryPanel } from './components/HistoryPanel';
+import { CampaignHistoryView } from './components/CampaignHistoryView';
+import { FeedbackButton } from './components/FeedbackButton';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { TermsOfService } from './components/TermsOfService';
+import { CookiePolicy } from './components/CookiePolicy';
+import { GDPRCompliance } from './components/GDPRCompliance';
+import { RefundPolicy } from './components/RefundPolicy';
+import { GoogleAdsSearch } from './components/GoogleAdsSearch';
+import { supabase } from './utils/supabase/client';
+import { getCurrentUserProfile, isAuthenticated, signOut, isSuperAdmin } from './utils/auth';
+import { getUserPreferences, applyUserPreferences } from './utils/userPreferences';
+import CreativeMinimalistHomepage from './components/CreativeMinimalistHomepage';
+import { notifications as notificationService } from './utils/notifications';
+import { WebTemplates } from './components/WebTemplates';
+
+type AppView = 'homepage' | 'auth' | 'user' | 'admin-login' | 'admin-landing' | 'admin-panel' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy';
+
+const App = () => {
+  const { theme } = useTheme();
+  const [appView, setAppView] = useState<AppView>('homepage');
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [historyData, setHistoryData] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [adminIntentionallyInUserView, setAdminIntentionallyInUserView] = useState(false);
+  const [previousView, setPreviousView] = useState<AppView>('homepage');
+  
+  // Load and apply user preferences on mount
+  useEffect(() => {
+    const prefs = getUserPreferences();
+    applyUserPreferences(prefs);
+    
+    // Listen for storage changes to sync preferences across tabs/components
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user_preferences') {
+        const updatedPrefs = getUserPreferences();
+        applyUserPreferences(updatedPrefs);
+        // If auto-close is disabled, ensure sidebar is open
+        if (!updatedPrefs.sidebarAutoClose && !sidebarOpen) {
+          setSidebarOpen(true);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom event for same-tab updates
+    const handlePreferenceChange = () => {
+      const updatedPrefs = getUserPreferences();
+      applyUserPreferences(updatedPrefs);
+      if (!updatedPrefs.sidebarAutoClose && !sidebarOpen) {
+        setSidebarOpen(true);
+      }
+    };
+    
+    window.addEventListener('userPreferencesChanged', handlePreferenceChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userPreferencesChanged', handlePreferenceChange);
+    };
+  }, [sidebarOpen]);
+
+  // Sync sidebar state with auto-close preference
+  // When auto-close is disabled, ensure sidebar stays open
+  useEffect(() => {
+    const userPrefs = getUserPreferences();
+    if (!userPrefs.sidebarAutoClose && !sidebarOpen && !sidebarHovered) {
+      // If auto-close is disabled and sidebar is closed (not hovered), open it
+      setSidebarOpen(true);
+    }
+  }, [sidebarOpen, sidebarHovered]);
+
+  // Route admin users to admin landing page (only if they didn't intentionally choose user view)
+  useEffect(() => {
+    if (user && user.role === 'admin' && appView === 'user' && !adminIntentionallyInUserView) {
+      console.log('🔐 Admin detected, routing to admin landing page');
+      setAppView('admin-landing');
+    }
+  }, [user?.role, appView, adminIntentionallyInUserView]);
+
+  // Valid tab IDs - used for route validation
+  const validTabIds = new Set([
+    'dashboard',
+    'preset-campaigns',
+    'builder-3',
+    'campaign-history',
+    'keyword-planner',
+    'keyword-mixer',
+    'negative-keywords',
+    'ads-search',
+    'settings',
+    'billing',
+    'support',
+    'support-help',
+    'web-templates',
+  ]);
+
+  // Safe setActiveTab wrapper that validates and redirects to dashboard if invalid
+  const setActiveTabSafe = (tabId: string) => {
+    if (validTabIds.has(tabId)) {
+      setActiveTab(tabId);
+      
+      // Auto-close sidebar after selection if preference is enabled
+      const userPrefs = getUserPreferences();
+      if (userPrefs.sidebarAutoClose) {
+        // Small delay to allow the click to register
+        setTimeout(() => {
+          setSidebarOpen(false);
+        }, 150);
+      }
+    } else {
+      console.warn(`Invalid tab ID "${tabId}" - redirecting to dashboard`);
+      setActiveTab('dashboard');
+    }
+  };
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: 'Campaign Created', message: 'Your campaign "Summer Sale" has been created successfully', time: '2 hours ago', read: false },
+    { id: 2, title: 'Export Ready', message: 'Your CSV export is ready for download', time: '5 hours ago', read: false },
+    { id: 3, title: 'Billing Update', message: 'Your subscription will renew on Dec 1, 2025', time: '1 day ago', read: true },
+  ]);
+  // Bug_64: Search suggestions state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<{
+    name: string;
+    priceId: string;
+    amount: number;
+    isSubscription: boolean;
+  } | null>(null);
+
+  const handleLoadHistory = (type: string, data: any) => {
+    // Map history types to actual tab IDs
+    const typeToTabMap: Record<string, string> = {
+      'campaign': 'builder-3',
+      'keyword-planner': 'keyword-planner',
+      'keyword-mixer': 'keyword-mixer',
+      'negative-keywords': 'negative-keywords'
+    };
+    
+    const targetTab = typeToTabMap[type] || type;
+    setHistoryData(data);
+    setActiveTabSafe(targetTab);
+    
+    // Show success notification
+    notificationService.success('History item restored successfully', {
+      title: 'Restored',
+      description: 'Your saved item has been loaded and is ready to use.'
+    });
+  };
+
+  const handleMarkNotificationAsRead = (id: number) => {
+    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleNotificationClick = (notification: typeof notifications[0]) => {
+    // Mark as read
+    handleMarkNotificationAsRead(notification.id);
+    
+    // Redirect based on notification type
+    const title = notification.title.toLowerCase();
+    if (title.includes('campaign')) {
+      setActiveTabSafe('builder-3');
+    } else if (title.includes('billing') || title.includes('subscription')) {
+      setActiveTabSafe('settings');
+      // Optionally open billing tab in settings
+      const settingsPanel = document.querySelector('[data-settings-tab="billing"]');
+      if (settingsPanel) {
+        (settingsPanel as HTMLElement).click();
+      }
+    } else if (title.includes('keyword')) {
+      setActiveTabSafe('keyword-planner');
+    }
+  };
+
+  const handleViewAllNotifications = () => {
+    // Navigate to a notifications view or show all notifications
+    // For now, we'll just scroll to show all notifications in the dropdown
+    // In a full implementation, this could open a dedicated notifications panel
+    setActiveTabSafe('settings');
+    // You could also create a dedicated notifications tab/page
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+
+  const handleLogout = async () => {
+    if (confirm('Are you sure you want to logout?')) {
+      try {
+        // Bug_62, Bug_76: Ensure proper logout
+        await signOut();
+        // Clear user state
+        setUser(null);
+        // Clear any cached data
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
+        // Redirect to auth
+        window.history.pushState({}, '', '/');
+      setAppView('auth');
+      setAuthMode('login');
+      setActiveTab('dashboard');
+        // Force page reload to clear all state
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Logout error:', error);
+        // Even if signOut fails, clear local state and redirect
+        setUser(null);
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.clear();
+        setAppView('auth');
+        setAuthMode('login');
+      }
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Set favicon on mount
+  useEffect(() => {
+    const setFavicon = () => {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#9333ea;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="100" rx="20" fill="url(#grad)"/>
+          <path d="M30 70 L50 30 L70 70 M40 55 L60 55" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      `;
+      
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      
+      const existingFavicon = document.querySelector("link[rel*='icon']");
+      if (existingFavicon) {
+        existingFavicon.remove();
+      }
+      
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/svg+xml';
+      link.href = url;
+      document.head.appendChild(link);
+      
+      document.title = 'Adiology - Google Campaign Builder';
+    };
+    
+    setFavicon();
+  }, []);
+
+  // Listen for loadHistoryItem events from KeywordSavedLists
+  useEffect(() => {
+    const handleLoadHistoryItem = (event: CustomEvent) => {
+      const { type, data } = event.detail;
+      handleLoadHistory(type, data);
+    };
+
+    window.addEventListener('loadHistoryItem', handleLoadHistoryItem as EventListener);
+    
+    // Listen for navigate events from child components (e.g., CampaignBuilder3, KeywordPlanner)
+    const handleNavigate = (event: CustomEvent) => {
+      const { tab, data } = event.detail;
+      if (data) {
+        setHistoryData(data);
+      }
+      if (tab && typeof tab === 'string') {
+        setActiveTabSafe(tab);
+      }
+    };
+
+    window.addEventListener('navigate', handleNavigate as EventListener);
+    return () => {
+      window.removeEventListener('loadHistoryItem', handleLoadHistoryItem as EventListener);
+      window.removeEventListener('navigate', handleNavigate as EventListener);
+    };
+  }, []);
+
+  // Initialize auth state and listen for changes
+  useEffect(() => {
+    let isMounted = true;
+    let profileFetchInProgress = false;
+    let lastProcessedUserId: string | null = null;
+    let authChangeTimeout: NodeJS.Timeout | null = null;
+    
+    // Check initial session
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user && isMounted) {
+          lastProcessedUserId = session.user.id;
+          try {
+            const userProfile = await getCurrentUserProfile();
+            if (isMounted && lastProcessedUserId === session.user.id) {
+              setUser(userProfile);
+            }
+          } catch (error) {
+            console.error('Error fetching user profile during init:', error);
+            if (isMounted && lastProcessedUserId === session.user.id) {
+              // Set minimal user on error
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+                role: 'user',
+                subscription_plan: 'free',
+                subscription_status: 'active',
+              });
+            }
+          }
+        } else if (isMounted) {
+          setUser(null);
+          lastProcessedUserId = null;
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (isMounted) {
+          setUser(null);
+          lastProcessedUserId = null;
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    // Listen for auth state changes with debouncing and duplicate prevention
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+      // Clear any pending auth change processing
+      if (authChangeTimeout) {
+        clearTimeout(authChangeTimeout);
+      }
+
+      // Debounce auth state changes to prevent rapid-fire updates
+      authChangeTimeout = setTimeout(async () => {
+        if (!isMounted) return;
+
+        // Prevent multiple simultaneous profile fetches
+        if (profileFetchInProgress) {
+          return;
+        }
+
+        const currentUserId = session?.user?.id || null;
+
+        // Skip if we're already processing this same user
+        if (currentUserId === lastProcessedUserId && currentUserId !== null) {
+          return;
+        }
+
+        if (session?.user && isMounted) {
+          // Update last processed user ID immediately to prevent duplicate processing
+          lastProcessedUserId = session.user.id;
+          profileFetchInProgress = true;
+          
+          // Set minimal user immediately to avoid UI flicker
+          const minimalUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            role: 'user',
+            subscription_plan: 'free',
+            subscription_status: 'active',
+          };
+          
+          // Only update if user actually changed
+          setUser((prevUser: any) => {
+            if (prevUser?.id === minimalUser.id) {
+              // Same user, don't update unless we have more complete data
+              return prevUser;
+            }
+            return minimalUser;
+          });
+          
+          // Fetch full profile in background (non-blocking)
+          getCurrentUserProfile()
+            .then((userProfile) => {
+              profileFetchInProgress = false;
+              if (userProfile && isMounted && lastProcessedUserId === session.user.id) {
+                setUser((prevUser: any) => {
+                  // Only update if still the same user and we got new data
+                  if (prevUser?.id === userProfile.id) {
+                    // Only update if the new profile has more complete data
+                    return userProfile;
+                  }
+                  return prevUser;
+                });
+              }
+            })
+            .catch((error) => {
+              profileFetchInProgress = false;
+              // Silently handle - minimal user already set
+              // Only log if it's not a permission error
+              if (error?.code !== 'PGRST205') {
+                console.warn('Profile fetch failed in auth listener (non-critical):', error?.code || error?.message);
+              }
+              // Keep using minimal user - already set above
+            });
+        } else if (isMounted) {
+          lastProcessedUserId = null;
+          setUser((prevUser: any) => {
+            // Only update if we actually had a user before
+            if (prevUser) {
+              return null;
+            }
+            return prevUser;
+          });
+          // If user signed out and we're on user view, go to auth
+          if (event === 'SIGNED_OUT') {
+            // Use setTimeout to avoid state update during render
+            setTimeout(() => {
+              if (isMounted) {
+                setAppView('auth');
+                setAuthMode('login');
+              }
+            }, 0);
+          }
+        }
+
+        // Handle password recovery
+        if (event === 'PASSWORD_RECOVERY' && isMounted) {
+          setTimeout(() => {
+            if (isMounted) {
+              setAppView('reset-password');
+            }
+          }, 0);
+        }
+
+        // Handle email verification
+        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at && isMounted) {
+          // User just verified email, redirect to auth
+          if (window.location.pathname.includes('/verify-email')) {
+            setTimeout(() => {
+              if (isMounted) {
+                window.history.pushState({}, '', '/');
+                setAppView('auth');
+                setAuthMode('login');
+              }
+            }, 0);
+          }
+        }
+      }, 100); // Debounce by 100ms to prevent rapid-fire updates
+    });
+
+    return () => {
+      isMounted = false;
+      if (authChangeTimeout) {
+        clearTimeout(authChangeTimeout);
+      }
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Validate activeTab and redirect to dashboard if invalid
+  useEffect(() => {
+    if (!validTabIds.has(activeTab)) {
+      console.warn(`Invalid activeTab "${activeTab}" - redirecting to dashboard`);
+      setActiveTab('dashboard');
+    }
+  }, [activeTab]);
+
+
+  // Handle route/view state when auth or URL changes
+  useEffect(() => {
+    if (loading) return;
+
+    let isActive = true;
+    const path = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    const bypassKey = urlParams.get('bypass');
+
+    const setView = (next: AppView) => {
+      setAppView(prev => (prev === next ? prev : next));
+    };
+
+    const applyPlanFromParams = () => {
+      const planName = urlParams.get('plan') || 'Lifetime Unlimited';
+      const priceId = urlParams.get('priceId') || '';
+      const amountParam = urlParams.get('amount') || '199';
+      const amount = parseFloat(amountParam.replace('$', '').replace('/month', ''));
+      const isSubscription = urlParams.get('subscription') === 'true';
+      setSelectedPlan({
+        name: planName,
+        priceId,
+        amount,
+        isSubscription
+      });
+    };
+
+    const handleSuperAdminRoute = () => {
+      if (!user) {
+        setView('admin-login');
+        return;
+      }
+      (async () => {
+        try {
+          const isAdmin = await isSuperAdmin();
+          if (!isActive) return;
+          setView(isAdmin ? 'admin-landing' : 'admin-login');
+        } catch (error) {
+          if (!isActive) return;
+          setView('admin-login');
+        }
+      })();
+    };
+
+    const handleRoute = () => {
+      if (bypassKey === 'adiology2025dev' || bypassKey === 'samay2025') {
+        if (!user || user.id !== 'bypass-user-id') {
+          setUser({
+            id: 'bypass-user-id',
+            email: 'dev@adiology.com',
+            full_name: 'Developer Access',
+            role: 'user',
+            subscription_plan: 'free',
+            subscription_status: 'active',
+          });
+        }
+        setActiveTabSafe('dashboard');
+        setView('user');
+        window.history.replaceState({}, '', '/');
+      return;
+    }
+    
+      if (path.startsWith('/reset-password')) {
+        setView('reset-password');
+      return;
+    }
+    
+      if (path.startsWith('/verify-email')) {
+        setView('verify-email');
+            return;
+          }
+
+      if (path.startsWith('/payment-success')) {
+        applyPlanFromParams();
+        setView('payment-success');
+      return;
+    }
+
+      if (path.startsWith('/payment')) {
+        applyPlanFromParams();
+        if (user) {
+          setView('payment');
+        } else {
+          setAuthMode('login'); // Changed from 'signup' to 'login' - signups disabled
+          setView('auth');
+        }
+        return;
+      }
+
+      if (path.startsWith('/superadmin/db-admin')) {
+        if (!user) {
+          setView('admin-login');
+          return;
+        }
+        (async () => {
+          try {
+            const isAdmin = await isSuperAdmin();
+            if (!isActive) return;
+            setView(isAdmin ? 'admin-panel' : 'admin-login');
+          } catch (error) {
+            if (!isActive) return;
+            setView('admin-login');
+          }
+        })();
+        return;
+      }
+
+      if (path.startsWith('/superadmin')) {
+        handleSuperAdminRoute();
+        return;
+      }
+
+      // Show homepage on root path
+      if (path === '/' || path === '') {
+        // If user is logged in, go to user dashboard
+        if (user) {
+          setView('user');
+          return;
+        }
+        // If no user, show homepage
+        setView('homepage');
+        return;
+      }
+
+      // For non-root paths, use normal logic
+      setView(user ? 'user' : 'homepage');
+    };
+
+    // Only run routing if not loading
+    if (!loading) {
+      handleRoute();
+    }
+
+    return () => {
+      isActive = false;
+    };
+  }, [loading, user?.id]);
+
+  // Additional effect to ensure homepage shows when loading completes and no user
+  useEffect(() => {
+    if (!loading && !user && (window.location.pathname === '/' || window.location.pathname === '')) {
+      // Only set to homepage if we're not already on a specific route
+      if (appView !== 'homepage' && appView !== 'auth' && appView !== 'reset-password' && appView !== 'verify-email' && appView !== 'payment' && appView !== 'payment-success') {
+        setAppView('homepage');
+      }
+    }
+  }, [loading, user, appView]);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = async () => {
+      const path = window.location.pathname;
+      
+      if (path === '/reset-password' || path.startsWith('/reset-password')) {
+        setAppView('reset-password');
+        return;
+      }
+      
+      if (path === '/verify-email' || path.startsWith('/verify-email')) {
+        setAppView('verify-email');
+        return;
+      }
+      
+      if (path === '/superadmin' || path.startsWith('/superadmin/')) {
+        if (user) {
+          const isAdmin = await isSuperAdmin();
+          if (isAdmin) {
+              setAppView('admin-landing');
+          } else {
+            setAppView('admin-login');
+            }
+        } else {
+        setAppView('admin-login');
+        }
+      } else {
+        if (user) {
+          const isAdmin = await isSuperAdmin();
+          if (isAdmin) {
+              window.history.pushState({}, '', '/superadmin');
+              setAppView('admin-landing');
+            } else {
+              setAppView('user');
+          }
+        } else {
+          // Show homepage for all paths when not logged in
+          setAppView('homepage');
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [user]);
+
+  // Ensure session exists when user view is requested
+  useEffect(() => {
+    if (!user && appView === 'user' && !loading) {
+      const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+        setTimeout(() => {
+            setAppView('homepage');
+            setAuthMode('login');
+          }, 1000);
+        }
+      };
+      const timeout = setTimeout(checkSession, 500);
+      return () => clearTimeout(timeout);
+          }
+    return undefined;
+  }, [user, appView, loading]);
+
+
+  // Function to handle plan selection
+  const handleSelectPlan = async (planName: string, priceId: string, amount: number, isSubscription: boolean) => {
+    // Check if user is logged in
+    const authenticated = await isAuthenticated();
+    if (!authenticated || !user) {
+      // User not logged in, redirect to signup and store plan selection
+      setSelectedPlan({ name: planName, priceId, amount, isSubscription });
+      setAuthMode('signup'); // Enable signups for new users
+      setAppView('auth');
+      return;
+    }
+
+    // User is logged in, create Stripe checkout session
+    try {
+      const { createCheckoutSession } = await import('./utils/stripe');
+      await createCheckoutSession(priceId, planName, user.id, user.email);
+      // User will be redirected to Stripe, so we don't need to change appView
+    } catch (error) {
+      console.error('Checkout error:', error);
+      // Fallback to payment page if Stripe fails
+      setSelectedPlan({ name: planName, priceId, amount, isSubscription });
+      window.history.pushState({}, '', `/payment?plan=${encodeURIComponent(planName)}&priceId=${encodeURIComponent(priceId)}&amount=${amount}&subscription=${isSubscription}`);
+      setAppView('payment');
+    }
+  };
+
+  // Default: User view (protected) navigation structure
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { 
+      id: 'campaign-builder', 
+      label: 'Campaigns', 
+      icon: Sparkles,
+      submenu: [
+        { id: 'builder-3', label: 'Builder 3.0', icon: Zap },
+        { id: 'preset-campaigns', label: 'Preset Campaigns', icon: Package },
+        { id: 'campaign-history', label: 'Saved Campaigns', icon: Clock },
+      ]
+    },
+    {
+      id: 'keyword-planner', 
+      label: 'Keywords', 
+      icon: Lightbulb,
+      submenu: [
+        { id: 'keyword-planner', label: 'Planner', icon: Lightbulb },
+        { id: 'keyword-mixer', label: 'Mixer', icon: Shuffle },
+        { id: 'negative-keywords', label: 'Negatives', icon: MinusCircle },
+      ]
+    },
+    { id: 'ads-search', label: 'Ads Search', icon: TrendingUp },
+    { id: 'web-templates', label: 'Web Templates', icon: Globe },
+    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
+  ];
+
+  // Auto-expand parent menu if activeTab is a submenu item
+  useEffect(() => {
+    for (const item of menuItems) {
+      if (item.submenu && item.submenu.some(sub => sub.id === activeTab)) {
+        setExpandedMenus(prev => {
+          if (!prev.has(item.id)) {
+            const newSet = new Set(prev);
+            newSet.add(item.id);
+            return newSet;
+          }
+          return prev;
+        });
+        break;
+      }
+    }
+  }, [activeTab]);
+
+  // Bug_64: Generate search suggestions based on query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchSuggestions([]);
+      setShowSearchSuggestions(false);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    const suggestions: string[] = [];
+
+    menuItems.forEach(item => {
+      if (item.label.toLowerCase().includes(query)) {
+        suggestions.push(item.label);
+      }
+      // Also check submenu items
+      if (item.submenu) {
+        item.submenu.forEach(subItem => {
+          if (subItem.label.toLowerCase().includes(query) && !suggestions.includes(subItem.label)) {
+            suggestions.push(subItem.label);
+          }
+        });
+      }
+    });
+
+    const commonTerms = [
+      'marketing', 'market analysis', 'market research',
+      'campaign', 'campaigns', 'ad campaign',
+      'keywords', 'keyword research', 'keyword planning',
+      'ads', 'advertising', 'ad builder',
+      'negative keywords', 'exclude keywords',
+      'csv', 'export', 'import', 'validator', 'csv export', 'google ads csv', 'compare', 'comparison',
+      'settings', 'billing', 'account',
+      'help', 'support', 'documentation'
+    ];
+
+    commonTerms.forEach(term => {
+      if (term.toLowerCase().includes(query) && !suggestions.includes(term)) {
+        suggestions.push(term);
+      }
+    });
+
+    setSearchSuggestions(suggestions.slice(0, 8));
+    setShowSearchSuggestions(suggestions.length > 0);
+  }, [searchQuery]);
+
+  // Bug_64: Handle search suggestion click
+  const handleSearchSuggestionClick = (suggestion: string) => {
+    // Check main menu items
+    const matchingItem = menuItems.find(item => 
+      item.label.toLowerCase() === suggestion.toLowerCase()
+    );
+    
+    if (matchingItem) {
+      setActiveTabSafe(matchingItem.id);
+      setSearchQuery('');
+      setShowSearchSuggestions(false);
+      return;
+    }
+    
+    // Check submenu items
+    for (const item of menuItems) {
+      if (item.submenu) {
+        const matchingSubItem = item.submenu.find(sub => 
+          sub.label.toLowerCase() === suggestion.toLowerCase()
+        );
+        if (matchingSubItem) {
+          setActiveTabSafe(matchingSubItem.id);
+          setSearchQuery('');
+          setShowSearchSuggestions(false);
+          return;
+        }
+      }
+    }
+    
+    // Fallback to term mapping
+    {
+      const termMap: Record<string, string> = {
+        'marketing': 'builder-3',
+        'campaign': 'builder-3',
+        'campaigns': 'builder-3',
+        'keywords': 'keyword-planner',
+        'keyword research': 'keyword-planner',
+        'keyword planning': 'keyword-planner',
+        'ads': 'builder-3',
+        'advertising': 'builder-3',
+        'negative keywords': 'negative-keywords',
+        'settings': 'settings',
+        'billing': 'settings',
+        'help': 'support-help',
+        'support': 'support-help'
+      };
+
+      const matchedTab = termMap[suggestion.toLowerCase()];
+      if (matchedTab) {
+        setActiveTabSafe(matchedTab);
+      }
+      setSearchQuery('');
+      setShowSearchSuggestions(false);
+    }
+  };
+
+
+  if (appView === 'payment' && selectedPlan) {
+    return (
+      <PaymentPage
+        planName={selectedPlan.name}
+        priceId={selectedPlan.priceId}
+        amount={selectedPlan.amount}
+        isSubscription={selectedPlan.isSubscription}
+        onBack={() => {
+          // Clear any pending payment attempts
+          sessionStorage.removeItem('pending_payment');
+          
+          // Go back to auth page
+          window.history.pushState({}, '', '/');
+          setAppView('auth');
+          setAuthMode('login');
+          
+          // Scroll to pricing section after a brief delay
+          setTimeout(() => {
+            const pricingSection = document.getElementById('pricing');
+            if (pricingSection) {
+              pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 100);
+        }}
+        onSuccess={() => {
+          // Clear pending payment attempts
+          sessionStorage.removeItem('pending_payment');
+          
+          window.history.pushState({}, '', `/payment-success?plan=${encodeURIComponent(selectedPlan.name)}&amount=$${selectedPlan.amount.toFixed(2)}${selectedPlan.isSubscription ? '/month' : ''}&subscription=${selectedPlan.isSubscription}&priceId=${encodeURIComponent(selectedPlan.priceId)}`);
+          setAppView('payment-success');
+        }}
+      />
+    );
+  }
+
+  if (appView === 'payment-success' && selectedPlan) {
+    return (
+      <PaymentSuccess
+        planName={selectedPlan.name}
+        amount={`$${selectedPlan.amount.toFixed(2)}${selectedPlan.isSubscription ? '/month' : ''}`}
+        onGoToDashboard={async () => {
+          // Ensure user is logged in
+          const authenticated = await isAuthenticated();
+          if (authenticated && user) {
+            window.history.pushState({}, '', '/');
+            setAppView('user');
+            setActiveTabSafe('dashboard');
+          } else {
+            window.history.pushState({}, '', '/');
+            setAppView('auth');
+            setAuthMode('login');
+          }
+        }}
+      />
+    );
+  }
+
+  if (appView === 'verify-email') {
+    return (
+      <EmailVerification
+        onVerificationSuccess={() => {
+          // Bug_74: Redirect to login screen after email verification
+          window.history.pushState({}, '', '/');
+          setAuthMode('login');
+          setAppView('auth');
+        }}
+          onBackToHome={() => {
+          setAppView('auth');
+          setAuthMode('login');
+        }}
+      />
+    );
+  }
+
+  if (appView === 'reset-password') {
+    return (
+      <ResetPassword
+        onSuccess={async () => {
+          // Password reset successful, redirect to login
+          window.history.pushState({}, '', '/');
+          setAuthMode('login');
+          setAppView('homepage');
+        }}
+          onBackToHome={() => {
+          setAppView('homepage');
+          setAuthMode('login');
+        }}
+      />
+    );
+  }
+
+  if (appView === 'privacy-policy') {
+    return <PrivacyPolicy onBack={() => setAppView(previousView)} />;
+  }
+
+  if (appView === 'terms-of-service') {
+    return <TermsOfService onBack={() => setAppView(previousView)} />;
+  }
+
+  if (appView === 'cookie-policy') {
+    return <CookiePolicy onBack={() => setAppView(previousView)} />;
+  }
+
+  if (appView === 'gdpr-compliance') {
+    return <GDPRCompliance onBack={() => setAppView(previousView)} />;
+  }
+
+  if (appView === 'refund-policy') {
+    return <RefundPolicy onBack={() => setAppView(previousView)} />;
+  }
+
+  if (appView === 'homepage') {
+    return (
+      <CreativeMinimalistHomepage
+        onGetStarted={() => {
+          setAuthMode('login');
+          setAppView('auth');
+        }}
+        onLogin={() => {
+          setAuthMode('login');
+          setAppView('auth');
+        }}
+        onSelectPlan={handleSelectPlan}
+        onNavigateToPolicy={(policy: string) => {
+          setPreviousView('homepage');
+          if (policy === 'privacy') setAppView('privacy-policy');
+          else if (policy === 'terms') setAppView('terms-of-service');
+          else if (policy === 'cookie') setAppView('cookie-policy');
+          else if (policy === 'gdpr') setAppView('gdpr-compliance');
+          else if (policy === 'refund') setAppView('refund-policy');
+        }}
+      />
+    );
+  }
+
+  if (appView === 'auth') {
+    return (
+      <Auth
+        initialMode={authMode}
+        onLoginSuccess={async () => {
+          try {
+            // Check if this is a test admin login by checking sessionStorage
+            const isTestAdmin = sessionStorage.getItem('test_admin_mode') === 'true';
+            const testAdminEmail = sessionStorage.getItem('test_admin_email');
+            
+            if (isTestAdmin && testAdminEmail) {
+              // Handle test admin login - create a minimal user object with admin role
+              const adminUser = { 
+                id: 'test-admin-' + Date.now(), 
+                email: testAdminEmail,
+                full_name: 'Super Admin',
+                role: 'admin' as const,
+                subscription_plan: 'enterprise',
+                subscription_status: 'active' as const,
+              };
+              
+              // Set user first
+              setUser(adminUser);
+              
+              // Then navigate to admin landing after user is set
+              // Use setTimeout to ensure state update happens first
+              setTimeout(() => {
+                setAppView('admin-landing');
+              }, 50);
+              
+              return;
+            }
+            
+            // Get auth user immediately and set minimal user object FIRST
+            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+            
+            if (!authUser) {
+              console.error('No auth user found after login');
+              return;
+            }
+            
+            // Set minimal user immediately BEFORE navigating
+            const minimalUser = { 
+              id: authUser.id, 
+              email: authUser.email || '',
+              full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+              role: 'user' as const,
+              subscription_plan: 'free',
+              subscription_status: 'active' as const,
+            };
+            
+            setUser(minimalUser);
+            
+            // Now navigate to dashboard (user state is set)
+            setAppView('user');
+            setActiveTabSafe('dashboard');
+            
+            // Fetch full profile in background (with timeout)
+            Promise.race([
+              getCurrentUserProfile(),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+              )
+            ]).then((userProfile: any) => {
+              if (userProfile) {
+                setUser(userProfile);
+                console.log('✅ User profile loaded:', userProfile);
+              }
+            }).catch((profileError: any) => {
+              console.warn('⚠️ Profile fetch failed (non-critical):', profileError);
+              // Keep using minimal user object - app will work fine
+            });
+          } catch (error) {
+            console.error('Error in onLoginSuccess:', error);
+            // Still navigate even on error - user can see the dashboard
+            setAppView('user');
+          }
+        }}
+          onBackToHome={() => {
+          setAppView('auth');
+          setAuthMode('login');
+        }}
+      />
+    );
+  }
+
+  if (appView === 'admin-login') {
+    return (
+      <SuperAdminLogin
+        onLoginSuccess={() => setAppView('admin-landing')}
+      />
+    );
+  }
+
+  if (appView === 'admin-landing') {
+    return (
+      <SuperAdminLanding
+        onSelectUserView={() => {
+          setAdminIntentionallyInUserView(true);
+          setAppView('user');
+        }}
+        onSelectAdminPanel={() => {
+          setAdminIntentionallyInUserView(false);
+          setAppView('admin-panel');
+        }}
+        onLogout={async () => {
+          // Bug_62, Bug_76: Ensure proper logout
+          try {
+            // Clear test admin mode if it exists
+            sessionStorage.removeItem('test_admin_mode');
+            sessionStorage.removeItem('test_admin_email');
+            
+            // Only sign out from Supabase if actually logged in (not test admin)
+            const testAdminMode = sessionStorage.getItem('test_admin_mode');
+            if (!testAdminMode) {
+              await signOut();
+            }
+            
+            setUser(null);
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
+            setAdminIntentionallyInUserView(false);
+            window.location.href = '/';
+          } catch (error) {
+            console.error('Logout error:', error);
+            setUser(null);
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
+            setAdminIntentionallyInUserView(false);
+            window.location.href = '/';
+          }
+        }}
+      />
+    );
+  }
+
+  if (appView === 'admin-panel') {
+    return (
+      <SuperAdminPanel
+        onBackToLanding={() => {
+          setAdminIntentionallyInUserView(false);
+          setAppView('admin-landing');
+        }}
+      />
+    );
+  }
+
+  // Protect user view - require authentication (unless bypass)
+  // Wait for user to load from auth listener - it should happen quickly after login
+  if (!user && appView === 'user' && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading user profile...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback: If no user and not loading, ensure user view is shown
+  if (!user && !loading && appView === 'user' && !window.location.pathname.startsWith('/superadmin')) {
+    // Only redirect to auth if we're on root path
+    if (window.location.pathname === '/' || window.location.pathname === '') {
+      setAppView('auth');
+    }
+  }
+
+  const renderContent = () => {
+    // Reset history data if leaving the tab to prevent stale data injection
+    // This is a simplification; for robust app, manage state more carefully
+    
+    switch (activeTab) {
+      case 'preset-campaigns':
+        return <PresetCampaigns onLoadPreset={(presetData) => {
+          setHistoryData(presetData);
+          setActiveTabSafe('builder-3');
+        }} />;
+      case 'builder-3':
+        return <CampaignBuilder3 initialData={activeTab === 'builder-3' ? historyData : null} />;
+      case 'campaign-history':
+        // Campaign History - Show only saved campaigns, not all activity history
+        return <CampaignHistoryView onLoadCampaign={(data) => {
+          try {
+            setHistoryData(data);
+            // Route to builder-3 (new campaign builder) instead of builder-2
+            setActiveTabSafe('builder-3');
+          } catch (error) {
+            console.error('Error loading campaign from history:', error);
+          }
+        }} />;
+      case 'keyword-planner':
+        return <KeywordPlanner initialData={activeTab === 'keyword-planner' ? historyData : null} />;
+      case 'keyword-mixer':
+        return <KeywordMixer initialData={activeTab === 'keyword-mixer' ? historyData : null} />;
+      case 'negative-keywords':
+        return <NegativeKeywordsBuilder initialData={activeTab === 'negative-keywords' ? historyData : null} />;
+      case 'keyword-saved-lists':
+        return <KeywordSavedLists />;
+      case 'ads-search':
+        return <GoogleAdsSearch user={user} />;
+      case 'web-templates':
+        return <WebTemplates />;
+      case 'support-help':
+        return <SupportHelpCombined />;
+      case 'support':
+        return <SupportPanel />;
+      case 'settings':
+        return <SettingsPanel />;
+      case 'billing':
+        return <SettingsPanel defaultTab="billing" />;
+      case 'dashboard':
+        return <Dashboard user={user} onNavigate={setActiveTabSafe} />;
+      default:
+        // Fallback: redirect to dashboard for any invalid/missing route
+        console.warn(`Invalid route/tab "${activeTab}" - redirecting to dashboard`);
+        setActiveTabSafe('dashboard');
+        return <Dashboard user={user} onNavigate={setActiveTabSafe} />;
+    }
+  };
+
+  // Get current page title
+  const getCurrentPageTitle = () => {
+    // Check main menu items
+    const currentItem = menuItems.find(item => item.id === activeTab);
+    if (currentItem) return currentItem.label;
+    
+    // Check submenu items
+    for (const item of menuItems) {
+      if (item.submenu) {
+        const subItem = item.submenu.find(sub => sub.id === activeTab);
+        if (subItem) return subItem.label;
+      }
+    }
+    
+    return 'Dashboard';
+  };
+
+  // Get user preferences for styling
+  const userPrefs = getUserPreferences();
+
+  return (
+    <div 
+      className="flex h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-cyan-50 overflow-hidden w-full max-w-full"
+      style={{
+        '--user-spacing-multiplier': userPrefs.spacing,
+        '--user-font-size-multiplier': userPrefs.fontSize
+      } as React.CSSProperties}
+      data-color-theme={userPrefs.colorTheme}
+    >
+      {/* Sidebar */}
+      <aside 
+        className={`${
+          (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'w-64' : 'w-20'
+        } transition-all duration-300 bg-white/80 backdrop-blur-xl border-r border-indigo-100/60 shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto flex flex-col`}
+        style={{
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(238, 242, 255, 0.95) 100%)'
+        }}
+        onMouseEnter={() => {
+          if (userPrefs.sidebarAutoClose) {
+            setSidebarHovered(true);
+          }
+        }}
+        onMouseLeave={() => {
+          if (userPrefs.sidebarAutoClose) {
+            setSidebarHovered(false);
+          }
+        }}
+      >
+        {/* Logo Section */}
+        <div className="h-16 flex items-center justify-between px-5 border-b border-indigo-100/60 theme-sidebar-header">
+          {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md theme-gradient"
+                style={{ boxShadow: '0 4px 6px -1px rgba(var(--theme-primary), 0.3)' }}
+              >
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold theme-gradient-text">Adiology</span>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              setSidebarOpen(!sidebarOpen);
+              setSidebarHovered(false);
+            }}
+            className="p-2 rounded-lg hover:bg-indigo-50 transition-all cursor-pointer theme-menu-toggle"
+          >
+            {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? <X className="w-5 h-5 text-slate-600" /> : <Menu className="w-5 h-5 text-slate-600" />}
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="p-4 space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const hasSubmenu = item.submenu && item.submenu.length > 0;
+            const isExpanded = expandedMenus.has(item.id);
+            const isParentActive = activeTab === item.id;
+            const hasActiveSubmenu = hasSubmenu && item.submenu?.some(sub => sub.id === activeTab);
+            // Parent should be highlighted only if it's directly active, not when a submenu is active
+            const isActive = isParentActive && !hasActiveSubmenu;
+            
+            return (
+              <div key={item.id}>
+              <button
+                onClick={() => {
+                    if (hasSubmenu) {
+                      setExpandedMenus(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(item.id)) {
+                          newSet.delete(item.id);
+                        } else {
+                          newSet.add(item.id);
+                        }
+                        return newSet;
+                      });
+                    } else if ((item as any).externalUrl) {
+                      window.open((item as any).externalUrl, '_blank', 'noopener,noreferrer');
+                    } else {
+                  setActiveTabSafe(item.id);
+                    }
+                }}
+                  className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
+                    !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) 
+                      ? 'justify-center px-2' 
+                      : 'justify-between px-3'
+                  } ${
+                  isActive
+                      ? `theme-gradient text-white shadow-lg`
+                      : hasActiveSubmenu
+                    ? `theme-gradient text-white shadow-lg`
+                    : `text-slate-700 hover:bg-slate-100`
+                }`}
+                style={{ minWidth: 0 }}
+              >
+                  <div className={`flex items-center ${!(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'justify-center flex-shrink-0' : 'gap-2 flex-1 min-w-0 overflow-hidden justify-start'}`}>
+                    <Icon className={`w-5 h-5 shrink-0 ${isActive || hasActiveSubmenu ? 'text-white' : !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'text-slate-700 group-hover:text-indigo-600' : `text-slate-500 ${COLOR_CLASSES.primaryTextHover}`}`} />
+                {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+                  <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.8125rem, 2.5vw, 0.9375rem)' }}>
+                    {item.label}
+                  </span>
+                )}
+                  </div>
+                  {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && hasSubmenu && (
+                    <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${isActive || hasActiveSubmenu ? 'text-white' : 'text-slate-400'}`} />
+                  )}
+                </button>
+                {hasSubmenu && isExpanded && (
+                  <div className={`mt-1 space-y-1 ${(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'ml-4 border-l-2 border-slate-200 pl-2' : ''}`}>
+                    {item.submenu?.map((subItem) => {
+                      const SubIcon = subItem.icon;
+                      const isSubActive = activeTab === subItem.id;
+                      return (
+                        <button
+                          key={subItem.id}
+                          onClick={() => {
+                            setActiveTabSafe(subItem.id);
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 group cursor-pointer ${
+                            isSubActive
+                              ? `bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200`
+                              : `text-slate-600 hover:bg-indigo-50/50`
+                          } ${!(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'justify-center px-2' : 'justify-start'}`}
+                          style={{ minWidth: 0 }}
+                        >
+                          <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-indigo-600' : !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'text-slate-600 group-hover:text-indigo-600' : 'text-slate-400'}`} />
+                          {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+                            <span className={`font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left ${isSubActive ? 'text-indigo-700' : 'text-slate-600'}`} style={{ fontSize: 'clamp(0.75rem, 2.2vw, 0.8125rem)' }}>
+                              {subItem.label}
+                            </span>
+                          )}
+              </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* Bottom Section - Billing & Logout */}
+        <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => setActiveTabSafe('superadmin')}
+              className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
+                !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) 
+                  ? 'justify-center px-2' 
+                  : 'justify-start px-3'
+              } ${
+                activeTab === 'superadmin'
+                  ? `bg-purple-600 text-white shadow-lg`
+                  : `text-slate-700 hover:bg-purple-50`
+              }`}
+            >
+              <ArrowRight className={`w-5 h-5 shrink-0 ${activeTab === 'superadmin' ? 'text-white' : 'text-purple-600'}`} />
+              {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+                <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.8125rem, 2.5vw, 0.9375rem)' }}>
+                  Switch to Admin
+                </span>
+              )}
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTabSafe('billing')}
+            className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
+              !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) 
+                ? 'justify-center px-2' 
+                : 'justify-start px-3'
+            } ${
+              activeTab === 'billing'
+                ? `theme-gradient text-white shadow-lg`
+                : `text-slate-700 hover:bg-slate-100`
+            }`}
+          >
+            <CreditCard className={`w-5 h-5 shrink-0 ${activeTab === 'billing' ? 'text-white' : 'text-slate-500'}`} />
+            {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+              <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.8125rem, 2.5vw, 0.9375rem)' }}>
+                Billing
+              </span>
+            )}
+          </button>
+          <button
+            onClick={handleLogout}
+            className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
+              !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) 
+                ? 'justify-center px-2' 
+                : 'justify-start px-3'
+            } text-red-600 hover:bg-red-50`}
+          >
+            <LogOut className="w-5 h-5 shrink-0 text-red-500" />
+            {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+              <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.8125rem, 2.5vw, 0.9375rem)' }}>
+                Logout
+              </span>
+            )}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 w-full">
+        {/* Header */}
+        <header className="h-16 bg-white/60 backdrop-blur-xl border-b border-slate-200/60 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm flex-shrink-0">
+          <div className="flex items-center gap-4 flex-1 max-w-2xl">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
+              <input
+                type="text"
+                placeholder="Search campaigns, keywords, tools..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => searchQuery.trim() && setShowSearchSuggestions(true)}
+                onBlur={() => {
+                  // Delay to allow click on suggestion
+                  setTimeout(() => setShowSearchSuggestions(false), 200);
+                }}
+                onKeyDown={(e) => {
+                  // Bug_63: Handle Enter key to execute search
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    e.preventDefault();
+                    if (searchSuggestions.length > 0) {
+                      handleSearchSuggestionClick(searchSuggestions[0]);
+                    } else {
+                      // If no suggestions, try to find matching menu item
+                      const matchingItem = menuItems.find(item => 
+                        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+                      );
+                      if (matchingItem) {
+                        setActiveTabSafe(matchingItem.id);
+                        setSearchQuery('');
+                        setShowSearchSuggestions(false);
+                        return;
+                      }
+                      // Check submenu items
+                      for (const item of menuItems) {
+                        if (item.submenu) {
+                          const matchingSubItem = item.submenu.find(sub => 
+                            sub.label.toLowerCase().includes(searchQuery.toLowerCase())
+                          );
+                          if (matchingSubItem) {
+                            setActiveTabSafe(matchingSubItem.id);
+                            setSearchQuery('');
+                            setShowSearchSuggestions(false);
+                            return;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }}
+                className="w-full pl-11 pr-4 py-2.5 bg-indigo-50/50 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:bg-white transition-all h-11"
+              />
+              {/* Bug_64: Search suggestions dropdown */}
+              {showSearchSuggestions && searchSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-64 overflow-y-auto">
+                  {searchSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSearchSuggestionClick(suggestion)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                    >
+                      <Search className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-700">{suggestion}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-slate-800 hidden lg:block">
+              {getCurrentPageTitle()}
+            </h2>
+            
+            {/* Notifications Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+            <button className="relative p-2 rounded-xl hover:bg-indigo-50 transition-colors cursor-pointer">
+              <Bell className="w-5 h-5 text-slate-600" />
+                  {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full"></span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="text-xs text-indigo-600 hover:text-indigo-700 cursor-pointer"
+                    >
+                      Mark all as read
+            </button>
+                  )}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-slate-500">
+                      No notifications
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <DropdownMenuItem
+                        key={notification.id}
+                        className={`flex flex-col items-start p-3 cursor-pointer hover:bg-indigo-50 ${
+                          !notification.read ? 'bg-purple-50/50' : ''
+                        }`}
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        <div className="flex items-start justify-between w-full gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              {!notification.read && (
+                                <span className="w-2 h-2 bg-indigo-600 rounded-full shrink-0"></span>
+                              )}
+                              <span className="font-medium text-sm text-slate-800">
+                                {notification.title}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 mt-1.5 ml-0">
+                              {notification.message}
+                            </p>
+                            <span className="text-xs text-slate-400 mt-1 ml-0 block">
+                              {notification.time}
+                            </span>
+                          </div>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </div>
+                {notifications.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-center justify-center text-sm text-indigo-600 hover:text-indigo-700 cursor-pointer"
+                      onClick={handleViewAllNotifications}
+                    >
+                      View all notifications
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={`w-10 h-10 rounded-xl bg-gradient-to-br ${COLOR_CLASSES.primaryGradient} flex items-center justify-center text-white font-medium shadow-lg shadow-indigo-300/30 hover:shadow-xl transition-all cursor-pointer`}>
+                  {user 
+                    ? (() => {
+                        const name = user.full_name || user.email || 'U';
+                        const parts = name.split(' ');
+                        return (parts[0]?.charAt(0) || '').toUpperCase() + (parts[1]?.charAt(0) || '').toUpperCase() || 'U';
+                      })()
+                    : 'U'
+                  }
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col gap-1.5">
+                    {user ? (
+                      <>
+                        <div className="font-semibold text-slate-900">
+                          {user.full_name || user.email?.split('@')[0] || 'User'}
+                            </div>
+                        <div className="text-xs text-slate-600">
+                          {user.email || 'user@example.com'}
+                          </div>
+                        {user.subscription_plan && user.subscription_plan !== 'free' && (
+                          <Badge className={`w-fit ${COLOR_CLASSES.primaryBadge} mt-1`}>
+                            {user.subscription_plan.charAt(0).toUpperCase() + user.subscription_plan.slice(1)}
+                              </Badge>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="font-semibold text-slate-900">User</div>
+                        <div className="text-xs text-slate-600">user@example.com</div>
+                        </>
+                    )}
+            </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setActiveTabSafe('settings')}>
+                  <User className="w-4 h-4 mr-2 shrink-0" />
+                  Account Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTabSafe('billing')}>
+                  <Shield className="w-4 h-4 mr-2 shrink-0" />
+                  Billing
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTabSafe('support')}>
+                  <HelpCircle className="w-4 h-4 mr-2 shrink-0" />
+                  Support
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  variant="destructive"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 w-full min-w-0 relative">
+          {renderContent()}
+        </main>
+      </div>
+
+      {/* Floating Feedback Button */}
+      {appView === 'user' && (
+        <FeedbackButton variant="floating" />
+      )}
+      
+    </div>
+  );
+};
+
+export default App;

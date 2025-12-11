@@ -1,0 +1,427 @@
+import { useState, useEffect } from 'react';
+import { Search, Clock, CheckCircle, AlertCircle, RefreshCw, History } from 'lucide-react';
+
+interface GoogleAdsSearchProps {
+  user: any;
+}
+
+interface SearchRequest {
+  id: number;
+  keywords: string[];
+  status: string;
+  created_at: string;
+  processed_at: string | null;
+  result_count: number;
+}
+
+export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
+  const [keywords, setKeywords] = useState<string[]>(['']);
+  const [dateRange, setDateRange] = useState('30');
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [error, setError] = useState('');
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'pending' | 'processing' | 'completed' | 'failed'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [requestId, setRequestId] = useState<number | null>(null);
+  const [previousRequests, setPreviousRequests] = useState<SearchRequest[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    fetchPreviousRequests();
+  }, []);
+
+  const fetchPreviousRequests = async () => {
+    try {
+      const response = await fetch('/api/google-ads/requests');
+      const data = await response.json();
+      setPreviousRequests(data.requests || []);
+    } catch (err) {
+      console.error('Failed to fetch previous requests:', err);
+    }
+  };
+
+  const addKeyword = () => {
+    if (keywords.length < 5) {
+      setKeywords([...keywords, '']);
+    }
+  };
+
+  const removeKeyword = (index: number) => {
+    if (keywords.length > 1) {
+      setKeywords(keywords.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateKeyword = (index: number, value: string) => {
+    const updated = [...keywords];
+    updated[index] = value;
+    setKeywords(updated);
+  };
+
+  const searchKeywords = async () => {
+    const validKeywords = keywords.filter(k => k.trim().length > 0);
+    if (validKeywords.length === 0) {
+      setError('Please enter at least one keyword');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setResults([]);
+    setSearchStatus('idle');
+    setStatusMessage('');
+
+    try {
+      const response = await fetch('/api/google-ads/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          keywords: validKeywords, 
+          dateRange,
+          userId: user?.id 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error && !data.status) {
+        setError(data.error);
+        setSearchStatus('failed');
+      } else {
+        setSearchStatus(data.status || 'pending');
+        setStatusMessage(data.message || '');
+        setRequestId(data.requestId || null);
+
+        if (data.status === 'completed' && data.results) {
+          setResults(data.results);
+        }
+      }
+
+      fetchPreviousRequests();
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit search request');
+      setSearchStatus('failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkRequestStatus = async (id: number) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/google-ads/search/${id}`);
+      const data = await response.json();
+
+      setSearchStatus(data.status || 'pending');
+      setStatusMessage(data.errorMessage || '');
+      setRequestId(id);
+
+      if (data.status === 'completed' && data.results) {
+        setResults(data.results);
+        setKeywords(data.keywords || ['']);
+      } else if (data.status === 'failed') {
+        setError(data.errorMessage || 'Search failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to check status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusIcon = () => {
+    switch (searchStatus) {
+      case 'pending':
+        return <Clock className="w-6 h-6 text-yellow-500" />;
+      case 'processing':
+        return <RefreshCw className="w-6 h-6 text-blue-500 animate-spin" />;
+      case 'completed':
+        return <CheckCircle className="w-6 h-6 text-green-500" />;
+      case 'failed':
+        return <AlertCircle className="w-6 h-6 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Search className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Google Ads Search</h2>
+            <p className="text-sm text-gray-600">Research competitor ads from Google Ads Transparency Center</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Form */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h3 className="font-semibold mb-4">Search Keywords</h3>
+        
+        <div className="space-y-4">
+          {keywords.map((keyword, index) => (
+            <div key={index} className="flex items-center gap-3">
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => updateKeyword(index, e.target.value)}
+                placeholder={`Keyword ${index + 1}`}
+                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              {keywords.length > 1 && (
+                <button
+                  onClick={() => removeKeyword(index)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          ))}
+
+          {keywords.length < 5 && (
+            <button
+              onClick={addKeyword}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add another keyword
+            </button>
+          )}
+        </div>
+
+        <div className="mt-6 flex items-center gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="px-4 py-2 border rounded-lg"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="14">Last 14 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="60">Last 60 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </div>
+
+          <div className="flex-1"></div>
+
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50 flex items-center gap-2"
+          >
+            <History className="w-4 h-4" />
+            History
+          </button>
+
+          <button
+            onClick={searchKeywords}
+            disabled={loading}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5" />
+                Search
+              </>
+            )}
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+      </div>
+
+      {/* Status Message */}
+      {searchStatus !== 'idle' && searchStatus !== 'completed' && (
+        <div className={`p-6 rounded-lg border ${
+          searchStatus === 'pending' ? 'bg-yellow-50 border-yellow-200' :
+          searchStatus === 'processing' ? 'bg-blue-50 border-blue-200' :
+          'bg-red-50 border-red-200'
+        }`}>
+          <div className="flex items-start gap-4">
+            {getStatusIcon()}
+            <div>
+              <h3 className={`font-semibold ${
+                searchStatus === 'pending' ? 'text-yellow-800' :
+                searchStatus === 'processing' ? 'text-blue-800' :
+                'text-red-800'
+              }`}>
+                {searchStatus === 'pending' && 'Search Request Queued'}
+                {searchStatus === 'processing' && 'Processing Your Search'}
+                {searchStatus === 'failed' && 'Search Failed'}
+              </h3>
+              <p className={`mt-1 text-sm ${
+                searchStatus === 'pending' ? 'text-yellow-700' :
+                searchStatus === 'processing' ? 'text-blue-700' :
+                'text-red-700'
+              }`}>
+                {statusMessage || (
+                  searchStatus === 'pending' 
+                    ? 'Your search is queued for processing. Check back in about 1 hour for results.'
+                    : searchStatus === 'processing'
+                    ? 'Your search is currently being processed. Results will be available shortly.'
+                    : 'There was an error processing your search.'
+                )}
+              </p>
+              {requestId && searchStatus !== 'failed' && (
+                <button
+                  onClick={() => checkRequestStatus(requestId)}
+                  className="mt-3 px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Check Status
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Previous Requests History */}
+      {showHistory && previousRequests.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h3 className="font-semibold mb-4">Previous Searches</h3>
+          <div className="space-y-3">
+            {previousRequests.map((req) => (
+              <div
+                key={req.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
+                onClick={() => checkRequestStatus(req.id)}
+              >
+                <div>
+                  <p className="font-medium text-gray-900">{req.keywords.join(', ')}</p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(req.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    req.status === 'completed' ? 'bg-green-100 text-green-700' :
+                    req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                    req.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {req.status}
+                  </span>
+                  {req.status === 'completed' && (
+                    <span className="text-sm text-gray-600">{req.result_count} results</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Results - Ads by Advertiser */}
+      {results.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Competitor Ads ({results.length})</h3>
+            <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Live Data from Google Ads Transparency
+            </span>
+          </div>
+
+          {/* Group ads by advertiser */}
+          {Object.entries(
+            results.reduce((acc: { [key: string]: any[] }, result) => {
+              const advertiser = result.advertiser || 'Unknown Advertiser';
+              if (!acc[advertiser]) acc[advertiser] = [];
+              acc[advertiser].push(result);
+              return acc;
+            }, {})
+          ).map(([advertiser, ads]) => (
+            <div key={advertiser} className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="mb-4 pb-4 border-b">
+                <h4 className="text-lg font-semibold text-gray-900">{advertiser}</h4>
+                <p className="text-sm text-gray-600">{ads.length} ad{ads.length > 1 ? 's' : ''}</p>
+              </div>
+
+              <div className="space-y-4">
+                {ads.map((ad, idx) => (
+                  <div key={idx} className="p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors border border-gray-200">
+                    <div className="grid gap-3">
+                      {ad.headline && (
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Headline</p>
+                          <p className="text-base font-medium text-gray-900">{ad.headline}</p>
+                        </div>
+                      )}
+                      {ad.description && (
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Description</p>
+                          <p className="text-sm text-gray-700">{ad.description}</p>
+                        </div>
+                      )}
+                      {ad.destination_url && (
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Landing URL</p>
+                          <a href={ad.destination_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 hover:underline text-sm break-all">
+                            {ad.destination_url}
+                          </a>
+                        </div>
+                      )}
+                      <div className="flex gap-4 mt-2">
+                        {ad.platform && (
+                          <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded">
+                            {ad.platform}
+                          </span>
+                        )}
+                        {ad.ad_format && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                            {ad.ad_format}
+                          </span>
+                        )}
+                        {ad.region && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                            {ad.region}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Info Box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-medium text-blue-800 mb-2">How it works</h4>
+        <ul className="text-sm text-blue-700 space-y-1">
+          <li>• Enter up to 5 keywords you want to research</li>
+          <li>• Your search is queued and processed in the background</li>
+          <li>• Results are scraped from Google Ads Transparency Center</li>
+          <li>• Check back in about 1 hour for your results</li>
+          <li>• Results are cached for 24 hours for instant access</li>
+        </ul>
+      </div>
+    </div>
+  );
+}

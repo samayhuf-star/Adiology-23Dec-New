@@ -1,0 +1,4191 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  ArrowRight, ArrowLeft, Check, Globe, Link2, Sparkles, Brain, 
+  Hash, MapPin, FileText, Download, AlertCircle, CheckCircle2,
+  Loader2, Search, Filter, X, Plus, Edit3, Trash2, Save,
+  Target, Zap, Layers, TrendingUp, Building2, ShoppingBag,
+  Phone, Mail, Calendar, Clock, Eye, FileSpreadsheet, Copy,
+  MessageSquare, Gift, Image as ImageIcon, DollarSign, MapPin as MapPinIcon,
+  Star, RefreshCw, Smartphone, Megaphone, FolderOpen
+} from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { Badge } from './ui/badge';
+import { Checkbox } from './ui/checkbox';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/textarea';
+import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { notifications } from '../utils/notifications';
+import { extractLandingPageContent, type LandingPageExtractionResult } from '../utils/campaignIntelligence/landingPageExtractor';
+import { mapGoalToIntent } from '../utils/campaignIntelligence/intentClassifier';
+import { type IntentResult, IntentId } from '../utils/campaignIntelligence/schemas';
+import { generateCampaignStructure, type StructureSettings } from '../utils/campaignStructureGenerator';
+import { generateKeywords as generateKeywordsUtil } from '../utils/keywordGenerator';
+import {
+  generateAds as generateAdsUtility, 
+  detectUserIntent,
+  type AdGenerationInput,
+  type ResponsiveSearchAd,
+  type ExpandedTextAd,
+  type CallOnlyAd
+} from '../utils/googleAdGenerator';
+import { exportCampaignToCSVV3, validateCSVBeforeExport } from '../utils/csvGeneratorV3';
+import { exportCampaignToGoogleAdsEditorCSV, campaignStructureToCSVRows, GOOGLE_ADS_EDITOR_HEADERS } from '../utils/googleAdsEditorCSVExporter';
+import { validateAndFixAds, formatValidationReport } from '../utils/adValidationUtils';
+import Papa from 'papaparse';
+import { historyService } from '../utils/historyService';
+import { generateCSVWithBackend } from '../utils/csvExportBackend';
+import { convertBuilderDataToEditorFormat, downloadGoogleAdsEditorCSV } from '../utils/googleAdsEditorCSV';
+import type { CampaignStructure } from '../utils/campaignStructureGenerator';
+import { api } from '../utils/api';
+import { analysisService } from '../utils/analysisService';
+import { 
+  generateURL, 
+  generateCampaignName, 
+  generateNegativeKeywords,
+  generateLocationInput 
+} from '../utils/autoFill';
+
+// Campaign Structure Types (14 structures)
+const CAMPAIGN_STRUCTURES = [
+  { id: 'skag', name: 'SKAG', description: 'Single Keyword Ad Group', icon: Target },
+  { id: 'stag', name: 'STAG', description: 'Single Theme Ad Group', icon: Layers },
+  { id: 'mix', name: 'Mix', description: 'Hybrid Structure', icon: TrendingUp },
+  { id: 'stag_plus', name: 'STAG+', description: 'Smart Grouping with ML', icon: Brain },
+  { id: 'intent', name: 'Intent-Based', description: 'Group by Intent', icon: Target },
+  { id: 'alpha_beta', name: 'Alpha-Beta', description: 'Winners & Discovery', icon: Zap },
+  { id: 'match_type', name: 'Match-Type Split', description: 'Separate by Match Type', icon: Filter },
+  { id: 'geo', name: 'GEO-Segmented', description: 'One Campaign per Geo', icon: MapPin },
+  { id: 'funnel', name: 'Funnel-Based', description: 'TOF/MOF/BOF', icon: TrendingUp },
+  { id: 'brand_split', name: 'Brand Split', description: 'Brand vs Non-Brand', icon: Building2 },
+  { id: 'competitor', name: 'Competitor', description: 'Competitor Campaigns', icon: Target },
+  { id: 'ngram', name: 'N-Gram Clusters', description: 'Smart Clustering', icon: Brain },
+  { id: 'long_tail', name: 'Long-Tail Master', description: '3+ Word Low-Competition Keywords', icon: Search },
+  { id: 'seasonal', name: 'Seasonal Sprint', description: 'Time-Based Campaigns', icon: Calendar },
+];
+
+// Match Types
+const MATCH_TYPES = [
+  { id: 'broad', label: 'Broad Match', example: 'keyword' },
+  { id: 'phrase', label: 'Phrase Match', example: '"keyword"' },
+  { id: 'exact', label: 'Exact Match', example: '[keyword]' },
+];
+
+// Keyword Types for filtering
+const KEYWORD_TYPES = [
+  { id: 'broad', label: 'Broad Match' },
+  { id: 'phrase', label: 'Phrase Match' },
+  { id: 'exact', label: 'Exact Match' },
+  { id: 'negative', label: 'Negative Keywords' },
+];
+
+// Default negative keywords (15-20 keywords as specified)
+const DEFAULT_NEGATIVE_KEYWORDS = [
+  'cheap',
+  'discount',
+  'cost',
+  'reviews',
+  'job',
+  'apply',
+  'information',
+  'company',
+  'free',
+  'best',
+  'providers',
+  'office',
+  'headquater',
+  'brand',
+];
+
+// Location Presets - Top locations
+const LOCATION_PRESETS = {
+  countries: [
+    'United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 'France',
+    'Italy', 'Spain', 'Netherlands', 'Belgium', 'Switzerland', 'Sweden', 'Norway',
+    'Denmark', 'Finland', 'Poland', 'Austria', 'Ireland', 'Portugal', 'Greece'
+  ],
+  states: [
+    'California', 'Texas', 'New York', 'Florida', 'Illinois', 'Pennsylvania',
+    'Ohio', 'Georgia', 'North Carolina', 'Michigan', 'New Jersey', 'Virginia',
+    'Washington', 'Arizona', 'Massachusetts', 'Tennessee', 'Indiana', 'Missouri',
+    'Maryland', 'Wisconsin', 'Colorado', 'Minnesota', 'South Carolina', 'Alabama',
+    'Louisiana', 'Kentucky', 'Oregon', 'Oklahoma', 'Connecticut', 'Utah'
+  ],
+  cities: [
+    'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia',
+    'San Antonio', 'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville',
+    'Fort Worth', 'Columbus', 'Charlotte', 'San Francisco', 'Indianapolis', 'Seattle',
+    'Denver', 'Washington', 'Boston', 'El Paso', 'Nashville', 'Detroit', 'Oklahoma City',
+    'Portland', 'Las Vegas', 'Memphis', 'Louisville', 'Baltimore', 'Milwaukee', 'Albuquerque',
+    'Tucson', 'Fresno', 'Sacramento', 'Kansas City', 'Mesa', 'Atlanta', 'Omaha', 'Raleigh',
+    'Miami', 'Long Beach', 'Virginia Beach', 'Oakland', 'Minneapolis', 'Tulsa', 'Tampa',
+    'Arlington', 'New Orleans', 'Wichita', 'Cleveland'
+  ],
+  zipCodes: (() => {
+    // Top 5000 most common US ZIP codes (major metropolitan areas)
+    const majorMetros = [
+      // NYC area
+      ...Array.from({ length: 200 }, (_, i) => String(10001 + i).padStart(5, '0')),
+      // LA area
+      ...Array.from({ length: 300 }, (_, i) => String(90001 + i).padStart(5, '0')),
+      // Chicago area
+      ...Array.from({ length: 250 }, (_, i) => String(60601 + i).padStart(5, '0')),
+      // Houston area
+      ...Array.from({ length: 200 }, (_, i) => String(77001 + i).padStart(5, '0')),
+      // Phoenix area
+      ...Array.from({ length: 150 }, (_, i) => String(85001 + i).padStart(5, '0')),
+      // Philadelphia area
+      ...Array.from({ length: 200 }, (_, i) => String(19101 + i).padStart(5, '0')),
+      // San Antonio
+      ...Array.from({ length: 100 }, (_, i) => String(78201 + i).padStart(5, '0')),
+      // San Diego
+      ...Array.from({ length: 150 }, (_, i) => String(92101 + i).padStart(5, '0')),
+      // Dallas
+      ...Array.from({ length: 150 }, (_, i) => String(75201 + i).padStart(5, '0')),
+      // San Jose
+      ...Array.from({ length: 100 }, (_, i) => String(95101 + i).padStart(5, '0')),
+      // Austin
+      ...Array.from({ length: 100 }, (_, i) => String(78701 + i).padStart(5, '0')),
+      // Jacksonville
+      ...Array.from({ length: 100 }, (_, i) => String(32201 + i).padStart(5, '0')),
+      // Fort Worth
+      ...Array.from({ length: 100 }, (_, i) => String(76101 + i).padStart(5, '0')),
+      // Columbus
+      ...Array.from({ length: 100 }, (_, i) => String(43201 + i).padStart(5, '0')),
+      // Charlotte
+      ...Array.from({ length: 100 }, (_, i) => String(28201 + i).padStart(5, '0')),
+      // San Francisco
+      ...Array.from({ length: 100 }, (_, i) => String(94101 + i).padStart(5, '0')),
+      // Indianapolis
+      ...Array.from({ length: 100 }, (_, i) => String(46201 + i).padStart(5, '0')),
+      // Seattle
+      ...Array.from({ length: 100 }, (_, i) => String(98101 + i).padStart(5, '0')),
+      // Denver
+      ...Array.from({ length: 100 }, (_, i) => String(80201 + i).padStart(5, '0')),
+      // Washington DC
+      ...Array.from({ length: 100 }, (_, i) => String(20001 + i).padStart(5, '0')),
+      // Boston
+      ...Array.from({ length: 100 }, (_, i) => String(2101 + i).padStart(5, '0')),
+      // El Paso
+      ...Array.from({ length: 50 }, (_, i) => String(79901 + i).padStart(5, '0')),
+      // Nashville
+      ...Array.from({ length: 50 }, (_, i) => String(37201 + i).padStart(5, '0')),
+      // Detroit
+      ...Array.from({ length: 100 }, (_, i) => String(48201 + i).padStart(5, '0')),
+      // Oklahoma City
+      ...Array.from({ length: 50 }, (_, i) => String(73101 + i).padStart(5, '0')),
+      // Portland
+      ...Array.from({ length: 50 }, (_, i) => String(97201 + i).padStart(5, '0')),
+      // Las Vegas
+      ...Array.from({ length: 100 }, (_, i) => String(89101 + i).padStart(5, '0')),
+      // Memphis
+      ...Array.from({ length: 50 }, (_, i) => String(38101 + i).padStart(5, '0')),
+      // Louisville
+      ...Array.from({ length: 50 }, (_, i) => String(40201 + i).padStart(5, '0')),
+      // Baltimore
+      ...Array.from({ length: 100 }, (_, i) => String(21201 + i).padStart(5, '0')),
+      // Milwaukee
+      ...Array.from({ length: 50 }, (_, i) => String(53201 + i).padStart(5, '0')),
+      // Albuquerque
+      ...Array.from({ length: 50 }, (_, i) => String(87101 + i).padStart(5, '0')),
+      // Tucson
+      ...Array.from({ length: 50 }, (_, i) => String(85701 + i).padStart(5, '0')),
+      // Fresno
+      ...Array.from({ length: 50 }, (_, i) => String(93701 + i).padStart(5, '0')),
+      // Sacramento
+      ...Array.from({ length: 50 }, (_, i) => String(95814 + i).padStart(5, '0')),
+      // Kansas City
+      ...Array.from({ length: 50 }, (_, i) => String(64101 + i).padStart(5, '0')),
+      // Mesa
+      ...Array.from({ length: 50 }, (_, i) => String(85201 + i).padStart(5, '0')),
+      // Atlanta
+      ...Array.from({ length: 100 }, (_, i) => String(30301 + i).padStart(5, '0')),
+      // Omaha
+      ...Array.from({ length: 50 }, (_, i) => String(68101 + i).padStart(5, '0')),
+      // Raleigh
+      ...Array.from({ length: 50 }, (_, i) => String(27601 + i).padStart(5, '0')),
+      // Miami
+      ...Array.from({ length: 100 }, (_, i) => String(33101 + i).padStart(5, '0')),
+      // Long Beach
+      ...Array.from({ length: 50 }, (_, i) => String(90801 + i).padStart(5, '0')),
+      // Virginia Beach
+      ...Array.from({ length: 50 }, (_, i) => String(23451 + i).padStart(5, '0')),
+      // Oakland
+      ...Array.from({ length: 50 }, (_, i) => String(94601 + i).padStart(5, '0')),
+      // Minneapolis
+      ...Array.from({ length: 50 }, (_, i) => String(55401 + i).padStart(5, '0')),
+      // Tulsa
+      ...Array.from({ length: 50 }, (_, i) => String(74101 + i).padStart(5, '0')),
+      // Tampa
+      ...Array.from({ length: 50 }, (_, i) => String(33601 + i).padStart(5, '0')),
+      // Arlington
+      ...Array.from({ length: 50 }, (_, i) => String(76001 + i).padStart(5, '0')),
+      // New Orleans
+      ...Array.from({ length: 50 }, (_, i) => String(70112 + i).padStart(5, '0')),
+      // Wichita
+      ...Array.from({ length: 50 }, (_, i) => String(67201 + i).padStart(5, '0')),
+      // Cleveland
+      ...Array.from({ length: 100 }, (_, i) => String(44101 + i).padStart(5, '0')),
+    ];
+    // Remove duplicates and limit to 5000
+    return [...new Set(majorMetros)].slice(0, 5000);
+  })(),
+};
+
+interface AdGroup {
+  id: string;
+  name: string;
+  keywords: string[];
+  negativeKeywords?: string[];
+}
+
+interface CampaignData {
+  url: string;
+  campaignName: string;
+  intent: IntentResult | null;
+  vertical: string | null;
+  cta: string | null;
+  selectedStructure: string | null;
+  structureRankings: { id: string; score: number }[];
+  seedKeywords: string[];
+  negativeKeywords: string[];
+  generatedKeywords: any[];
+  selectedKeywords: any[];
+  keywordTypes: { [key: string]: boolean };
+  ads: any[];
+  adTypes: string[];
+  extensions: any[];
+  adGroups: AdGroup[];
+  selectedAdGroup: string | null;
+  targetCountry: string;
+  locations: {
+    countries: string[];
+    states: string[];
+    cities: string[];
+    zipCodes: string[];
+  };
+  csvData: any;
+  csvErrors: any[];
+  startDate?: string;
+  endDate?: string;
+}
+
+interface CampaignBuilder3Props {
+  initialData?: any;
+}
+
+export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData }) => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [campaignSaved, setCampaignSaved] = useState(false);
+  const [showAnalysisResults, setShowAnalysisResults] = useState(false);
+  const [locationSearchTerm, setLocationSearchTerm] = useState({ countries: '', states: '', cities: '', zipCodes: '' });
+  const [editingAdId, setEditingAdId] = useState<string | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [seedKeywordsText, setSeedKeywordsText] = useState('');
+  const [campaignData, setCampaignData] = useState<CampaignData>({
+    url: '',
+    campaignName: '',
+    intent: null,
+    vertical: null,
+    cta: null,
+    selectedStructure: null,
+    structureRankings: [],
+    seedKeywords: [],
+    negativeKeywords: [...DEFAULT_NEGATIVE_KEYWORDS], // Initialize with default negative keywords
+    generatedKeywords: [],
+    selectedKeywords: [],
+    keywordTypes: { broad: true, phrase: true, exact: true, negative: true }, // Show negative keywords by default
+    ads: [],
+    adTypes: ['rsa', 'dki'],
+    extensions: [],
+    adGroups: [],
+    selectedAdGroup: 'ALL_AD_GROUPS',
+    targetCountry: 'United States',
+    locations: { countries: [], states: [], cities: [], zipCodes: [] },
+    csvData: null,
+    csvErrors: [],
+  });
+
+  // Handle initial data from Keyword Planner or saved campaigns
+  useEffect(() => {
+    if (!initialData) return;
+
+    try {
+      // Handle saved campaign data (from CampaignHistoryView)
+      if (initialData.campaignName || initialData.url || initialData.ads || initialData.adGroups) {
+        console.log('Loading saved campaign data:', initialData);
+        
+        // Safely extract and validate data
+        const safeData = {
+          url: initialData.url || '',
+          campaignName: initialData.campaignName || '',
+          intent: initialData.intent || null,
+          vertical: initialData.vertical || null,
+          cta: initialData.cta || null,
+          selectedStructure: initialData.selectedStructure || initialData.structureType || null,
+          structureRankings: initialData.structureRankings || [],
+          seedKeywords: Array.isArray(initialData.seedKeywords) 
+            ? initialData.seedKeywords 
+            : (typeof initialData.seedKeywords === 'string' 
+                ? initialData.seedKeywords.split(',').map((s: string) => s.trim()).filter(Boolean)
+                : []),
+          negativeKeywords: Array.isArray(initialData.negativeKeywords)
+            ? initialData.negativeKeywords
+            : (typeof initialData.negativeKeywords === 'string'
+                ? initialData.negativeKeywords.split('\n').map((s: string) => s.trim()).filter(Boolean)
+                : [...DEFAULT_NEGATIVE_KEYWORDS]),
+          generatedKeywords: Array.isArray(initialData.generatedKeywords) ? initialData.generatedKeywords : [],
+          selectedKeywords: Array.isArray(initialData.selectedKeywords) ? initialData.selectedKeywords : [],
+          ads: Array.isArray(initialData.ads) ? initialData.ads : [],
+          adGroups: Array.isArray(initialData.adGroups) ? initialData.adGroups : [],
+          locations: initialData.locations && typeof initialData.locations === 'object'
+            ? {
+                countries: Array.isArray(initialData.locations.countries) ? initialData.locations.countries : [],
+                states: Array.isArray(initialData.locations.states) ? initialData.locations.states : [],
+                cities: Array.isArray(initialData.locations.cities) ? initialData.locations.cities : [],
+                zipCodes: Array.isArray(initialData.locations.zipCodes) ? initialData.locations.zipCodes : [],
+              }
+            : { countries: [], states: [], cities: [], zipCodes: [] },
+          csvData: initialData.csvData || null,
+        };
+
+        // Determine which step to show based on data availability
+        let targetStep = 1;
+        if (safeData.url && safeData.selectedStructure) {
+          targetStep = 2;
+        }
+        if (safeData.selectedKeywords && safeData.selectedKeywords.length > 0) {
+          targetStep = 3;
+        }
+        if (safeData.ads && safeData.ads.length > 0) {
+          targetStep = 4;
+        }
+
+        setCampaignData(prev => ({
+          ...prev,
+          ...safeData,
+          // Ensure negative keywords always include defaults
+          negativeKeywords: [...new Set([...DEFAULT_NEGATIVE_KEYWORDS, ...safeData.negativeKeywords])],
+        }));
+
+        setCurrentStep(targetStep);
+
+        notifications.success('Campaign loaded successfully', {
+          title: 'Campaign Restored',
+          description: `Loaded campaign: ${safeData.campaignName || 'Unnamed Campaign'}`
+        });
+        return;
+      }
+
+      // Handle Keyword Planner data (legacy support)
+      if (initialData.selectedKeywords && Array.isArray(initialData.selectedKeywords) && initialData.selectedKeywords.length > 0) {
+        // Process keywords from Keyword Planner
+        const keywords = initialData.selectedKeywords.map((kw: any) => {
+          try {
+            // Handle both string and object formats
+            const kwText = typeof kw === 'string' ? kw : (kw?.text || kw?.keyword || String(kw || ''));
+            // Clean keyword text (remove match type formatting for storage)
+            let cleanKw = kwText.trim();
+            if (cleanKw.startsWith('[') && cleanKw.endsWith(']')) {
+              cleanKw = cleanKw.slice(1, -1);
+            } else if (cleanKw.startsWith('"') && cleanKw.endsWith('"')) {
+              cleanKw = cleanKw.slice(1, -1);
+            }
+            return {
+              text: cleanKw,
+              formatted: kwText, // Keep original format
+              matchType: kwText.startsWith('[') ? 'exact' : kwText.startsWith('"') ? 'phrase' : 'broad'
+            };
+          } catch (err) {
+            console.warn('Error processing keyword:', kw, err);
+            return null;
+          }
+        }).filter(Boolean);
+
+        // Extract seed keywords from the first few keywords if not provided
+        const seedKws = initialData.seedKeywords 
+          ? (typeof initialData.seedKeywords === 'string' 
+              ? initialData.seedKeywords.split(',').map((s: string) => s.trim()).filter(Boolean)
+              : Array.isArray(initialData.seedKeywords) ? initialData.seedKeywords : [])
+          : keywords.slice(0, 5).map((k: any) => k.text);
+
+        // Determine structure: use 'SKAG' as default for Keyword Planner imports, or from initialData
+        const campaignStructure = initialData.structure 
+          ? (typeof initialData.structure === 'string' ? initialData.structure.toLowerCase() : 'skag')
+          : 'skag';
+
+        setCampaignData(prev => ({
+          ...prev,
+          selectedKeywords: keywords,
+          generatedKeywords: keywords,
+          seedKeywords: seedKws,
+          negativeKeywords: initialData.negativeKeywords 
+            ? (typeof initialData.negativeKeywords === 'string' 
+                ? initialData.negativeKeywords.split('\n').map((s: string) => s.trim()).filter(Boolean)
+                : Array.isArray(initialData.negativeKeywords) ? initialData.negativeKeywords : [])
+            : prev.negativeKeywords,
+          // Set a default URL if not provided (required for campaign)
+          url: prev.url || 'https://example.com',
+          // Set the campaign structure (SKAG by default from Keyword Planner)
+          selectedStructure: campaignStructure,
+          // Generate campaign name from seed keywords if not set
+          campaignName: prev.campaignName || (seedKws.length > 0 
+            ? `${seedKws[0].replace(/[^a-z0-9]/gi, ' ').trim()} Campaign`
+            : 'Campaign')
+        }));
+        
+        // Sync the text state
+        setSeedKeywordsText(seedKws.join('\n'));
+
+        // Skip to step 3 (Ads Generation) since keywords are already provided
+        setCurrentStep(3);
+        
+        notifications.success('Keywords loaded from Keyword Planner', {
+          title: 'Keywords Ready',
+          description: `${keywords.length} keywords loaded. Proceeding to ads generation.`
+        });
+      }
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+      notifications.error('Failed to load campaign data', {
+        title: 'Load Error',
+        description: error instanceof Error ? error.message : 'Unknown error occurred. Please try again.'
+      });
+    }
+  }, [initialData]);
+
+  // Generate default campaign name: Search-date-time
+  useEffect(() => {
+    if (!campaignData.campaignName && campaignData.url) {
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '').substring(0, 4);
+      setCampaignData(prev => ({
+        ...prev,
+        campaignName: `Search-${dateStr}-${timeStr}`
+      }));
+    }
+  }, [campaignData.url]);
+
+
+  // Helper function to safely extract domain from URL
+  const extractDomain = (url: string): string => {
+    if (!url || typeof url !== 'string') return 'example.com';
+    try {
+      // Add protocol if missing
+      let fullUrl = url;
+      if (!url.match(/^https?:\/\//)) {
+        fullUrl = 'https://' + url;
+      }
+      const urlObj = new URL(fullUrl);
+      return urlObj.hostname.replace(/^www\./, '');
+    } catch {
+      return url.split('/')[0].replace(/^https?:\/\//, '').replace(/^www\./, '') || 'example.com';
+    }
+  };
+
+  // Helper function to format URL with protocol
+  const formatUrl = (url: string): string => {
+    if (!url) return '';
+    if (!url.match(/^https?:\/\//)) {
+      return 'https://' + url;
+    }
+    return url;
+  };
+
+  // Step 1: URL Input & AI Analysis
+  const handleUrlSubmit = async () => {
+    if (!campaignData.url || !campaignData.url.trim()) {
+      notifications.error('Please enter a valid URL', { title: 'URL Required' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Format URL properly
+      const formattedUrl = formatUrl(campaignData.url.trim());
+      
+      // Extract landing page content (may fail due to CSP - that's OK)
+      let landingData: LandingPageExtractionResult;
+      try {
+        landingData = await extractLandingPageContent(formattedUrl);
+      } catch (extractError: any) {
+        // If extraction fails (e.g., CSP violation), use fallback
+        console.warn('Landing page extraction failed, using fallback:', extractError);
+        landingData = {
+          domain: extractDomain(formattedUrl),
+          title: null,
+          h1: null,
+          metaDescription: null,
+          services: [],
+          phones: [],
+          emails: [],
+          hours: null,
+          addresses: [],
+          schemas: {},
+          page_text_tokens: [],
+          extractionMethod: 'fallback',
+          extractedAt: new Date().toISOString(),
+        };
+      }
+      
+      // Detect intent, CTA, and vertical (with null checks)
+      const intentResult = mapGoalToIntent(
+        (landingData?.title || landingData?.h1 || '').trim(),
+        landingData || {} as any,
+        landingData?.phones?.[0] || ''
+      );
+
+      // Determine vertical from content
+      const vertical = detectVertical(landingData);
+      
+      // Determine CTA using vertical for better context
+      const cta = detectCTA(landingData, vertical);
+
+      // Generate seed keywords (3-4 keywords)
+      const seedKeywords = await generateSeedKeywords(landingData, intentResult);
+
+      setCampaignData(prev => ({
+        ...prev,
+        intent: intentResult,
+        vertical,
+        cta,
+        seedKeywords,
+      }));
+      
+      // Sync the text state with the array
+      setSeedKeywordsText(seedKeywords.join('\n'));
+
+      // Auto-select best campaign structures
+      const rankings = rankCampaignStructures(intentResult, vertical);
+      setCampaignData(prev => ({
+        ...prev,
+        structureRankings: rankings,
+        selectedStructure: rankings[0]?.id || 'skag',
+      }));
+
+      // Save analysis to database
+      analysisService.saveAnalysis({
+        url: formattedUrl,
+        domain: extractDomain(formattedUrl),
+        intent: intentResult,
+        vertical: vertical || 'Unknown',
+        cta: cta || 'Unknown',
+        seedKeywords: seedKeywords,
+        contentSummary: `Website analyzed: ${formattedUrl}`,
+        detectedServices: landingData?.services || [],
+        detectedCTAs: landingData?.phones ? [`Phone: ${landingData.phones[0]}`] : [],
+      });
+
+      notifications.success('URL analyzed successfully', {
+        title: 'Analysis Complete',
+        description: `Detected: ${intentResult.intentLabel} intent, ${vertical} vertical`
+      });
+
+      // Show results on Step 1 for user to review before proceeding
+    } catch (error) {
+      console.error('URL analysis error:', error);
+      notifications.error('Failed to analyze URL', {
+        title: 'Analysis Error',
+        description: 'Please check the URL and try again'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Campaign Structure Selection
+  const handleStructureSelect = (structureId: string) => {
+    setCampaignData(prev => ({ ...prev, selectedStructure: structureId }));
+  };
+
+  const handleNextFromStructure = () => {
+    if (!campaignData.selectedStructure) {
+      notifications.error('Please select a campaign structure', { title: 'Structure Required' });
+      return;
+    }
+    setCurrentStep(3);
+  };
+
+  // Step 3: Keywords Generation
+  const handleGenerateKeywords = async () => {
+    if (campaignData.seedKeywords.length === 0) {
+      notifications.error('Please provide seed keywords', { title: 'Seed Keywords Required' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Use local autocomplete-based keyword generator directly
+      // This ensures we always use the new autocomplete patterns
+      console.log('Using autocomplete-based keyword generator');
+      console.log('Seed keywords:', campaignData.seedKeywords);
+      console.log('Negative keywords:', campaignData.negativeKeywords);
+      
+      const seedKeywordsString = campaignData.seedKeywords.join('\n');
+      const negativeKeywordsString = campaignData.negativeKeywords.join('\n');
+      
+      console.log('Calling generateKeywordsUtil with:', {
+        seedKeywords: seedKeywordsString,
+        negativeKeywords: negativeKeywordsString,
+        maxKeywords: 710,
+        minKeywords: 410
+      });
+      
+      const localKeywords = generateKeywordsUtil({
+        seedKeywords: seedKeywordsString,
+        negativeKeywords: negativeKeywordsString,
+        vertical: campaignData.vertical || 'Services',
+        intentResult: campaignData.intent,
+        maxKeywords: 710,
+        minKeywords: 410,
+      });
+
+      console.log('Generated keywords from utility:', localKeywords.length, localKeywords.slice(0, 10));
+
+      if (!localKeywords || localKeywords.length === 0) {
+        throw new Error('Keyword generator returned no keywords. Please check your seed keywords.');
+      }
+
+      // If we got very few keywords, something went wrong - generate more variations
+      if (localKeywords.length < 50) {
+        console.warn('Keyword generator returned only', localKeywords.length, 'keywords. Generating additional variations...');
+        
+        // Generate additional variations manually
+        const additionalKeywords: any[] = [];
+        // Ensure seeds are properly split by comma if they contain commas
+        const seedList = campaignData.seedKeywords
+          .flatMap(s => s.split(/[,]+/).map(k => k.trim()))
+          .filter(s => s.length >= 2);
+        const negativeList = campaignData.negativeKeywords.map(n => n.trim().toLowerCase()).filter(Boolean);
+        
+        seedList.forEach((seed, seedIdx) => {
+          const cleanSeed = seed.trim().toLowerCase();
+          if (negativeList.some(neg => cleanSeed.includes(neg))) return;
+          
+          // Generate many variations per seed
+          const variations = [
+            `${cleanSeed} near me`,
+            `best ${cleanSeed}`,
+            `top ${cleanSeed}`,
+            `cheap ${cleanSeed}`,
+            `24/7 ${cleanSeed}`,
+            `emergency ${cleanSeed}`,
+            `${cleanSeed} cost`,
+            `${cleanSeed} price`,
+            `${cleanSeed} services`,
+            `${cleanSeed} company`,
+            `professional ${cleanSeed}`,
+            `licensed ${cleanSeed}`,
+            `same day ${cleanSeed}`,
+            `${cleanSeed} repair`,
+            `${cleanSeed} replacement`,
+            `how to ${cleanSeed}`,
+            `what is ${cleanSeed}`,
+            `where to ${cleanSeed}`,
+            `best ${cleanSeed} near me`,
+            `top ${cleanSeed} near me`,
+            `24/7 ${cleanSeed} near me`,
+            `emergency ${cleanSeed} near me`,
+            `${cleanSeed} services near me`,
+            `${cleanSeed} cost near me`,
+            `${cleanSeed} price near me`,
+            `best ${cleanSeed} cost`,
+            `top ${cleanSeed} services`,
+            `same day ${cleanSeed} repair`,
+            `${cleanSeed} repair cost`,
+            `${cleanSeed} replacement cost`,
+          ];
+          
+          variations.forEach((variation, varIdx) => {
+            if (additionalKeywords.length >= 500) return;
+            if (negativeList.some(neg => variation.includes(neg))) return;
+            if (localKeywords.some(k => k.text.toLowerCase() === variation.toLowerCase())) return;
+            if (additionalKeywords.some(k => k.text.toLowerCase() === variation.toLowerCase())) return;
+            
+            additionalKeywords.push({
+              id: `kw-manual-${seedIdx}-${varIdx}`,
+              text: variation,
+              volume: 'Medium',
+              cpc: '$2.50',
+              type: 'Generated',
+              matchType: 'BROAD'
+            });
+          });
+        });
+        
+        console.log('Generated', additionalKeywords.length, 'additional keyword variations');
+        localKeywords.push(...additionalKeywords);
+      }
+
+      const generated = localKeywords.map((kw, index) => ({
+          id: kw.id || `kw-${Date.now()}-${index}`,
+          text: kw.text,
+          keyword: kw.text,
+        matchType: (kw.matchType || 'BROAD').toLowerCase(),
+          volume: kw.volume || 'Medium',
+          cpc: kw.cpc || '$2.50',
+          type: kw.type || 'Generated',
+        }));
+
+      console.log('Mapped keywords:', generated.length);
+
+      // Generate 410-710 keywords (random range as specified)
+      const targetCount = Math.floor(Math.random() * 300) + 410;
+      const finalKeywords = generated.slice(0, Math.min(generated.length, targetCount));
+      
+      console.log('Final keywords before filtering:', finalKeywords.length);
+
+      // Filter out keywords that match negative keywords
+      const negativeList = campaignData.negativeKeywords.map(n => n.trim().toLowerCase()).filter(Boolean);
+      console.log('Negative keywords list:', negativeList);
+      
+      const filteredByNegatives = finalKeywords.filter((kw: any) => {
+        const keywordText = (kw.text || kw.keyword || '').toLowerCase();
+        const shouldExclude = negativeList.some(neg => keywordText.includes(neg));
+        return !shouldExclude;
+      });
+      
+      console.log('Keywords after negative filtering:', filteredByNegatives.length);
+
+      // Apply match types based on selected keyword types
+      const formattedKeywords: any[] = [];
+      filteredByNegatives.forEach((kw: any) => {
+        // Extract base text (remove match type formatting if present)
+        let baseText = kw.text || kw.keyword || '';
+        baseText = baseText.replace(/^["\[\]]|["\[\]]$/g, '').trim();
+        
+        // Skip if base text contains negative keywords
+        const baseTextLower = baseText.toLowerCase();
+        if (negativeList.some(neg => baseTextLower.includes(neg))) {
+          return; // Skip this keyword
+        }
+        
+        if (campaignData.keywordTypes.broad) {
+          formattedKeywords.push({
+            ...kw,
+            id: `${kw.id}-broad`,
+            text: baseText,
+            keyword: baseText,
+            matchType: 'broad',
+          });
+        }
+        
+        if (campaignData.keywordTypes.phrase) {
+          formattedKeywords.push({
+            ...kw,
+            id: `${kw.id}-phrase`,
+            text: `"${baseText}"`,
+            keyword: `"${baseText}"`,
+            matchType: 'phrase',
+          });
+        }
+        
+        if (campaignData.keywordTypes.exact) {
+          formattedKeywords.push({
+            ...kw,
+            id: `${kw.id}-exact`,
+            text: `[${baseText}]`,
+            keyword: `[${baseText}]`,
+            matchType: 'exact',
+          });
+        }
+      });
+
+      // Shuffle for variety
+      const shuffled = [...formattedKeywords].sort(() => Math.random() - 0.5);
+      
+      console.log('Final formatted keywords count:', shuffled.length);
+      console.log('Sample keywords:', shuffled.slice(0, 10).map(k => k.text));
+
+      if (shuffled.length === 0) {
+        throw new Error('No keywords were generated after formatting. Please check your seed keywords and match type selections.');
+      }
+
+      // Generate ad groups based on campaign structure
+      const adGroups = generateAdGroupsFromKeywords(shuffled, campaignData.selectedStructure || 'skag');
+
+      setCampaignData(prev => ({
+        ...prev,
+        generatedKeywords: shuffled,
+        selectedKeywords: shuffled, // Auto-select all by default
+        adGroups: adGroups,
+      }));
+      
+      // Auto-save draft
+      await autoSaveDraft();
+
+      notifications.success(`Generated ${shuffled.length} keywords`, {
+        title: 'Keywords Generated',
+        description: `Successfully generated ${shuffled.length} keywords using autocomplete patterns`
+      });
+
+      // Scroll to generated keywords section
+      setTimeout(() => {
+        const keywordSection = document.querySelector('[data-keywords-section]');
+        if (keywordSection) {
+          keywordSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    } catch (error) {
+      console.error('Keyword generation error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Fallback: Use seed keywords as manual keywords
+      if (campaignData.seedKeywords.length > 0) {
+        const seedKeywordsAsKeywords = createKeywordsFromSeeds(campaignData.seedKeywords);
+        
+        setCampaignData(prev => ({
+          ...prev,
+          generatedKeywords: seedKeywordsAsKeywords,
+          selectedKeywords: seedKeywordsAsKeywords,
+        }));
+
+        notifications.warning('Using seed keywords as manual keywords', {
+          title: 'Generation Failed',
+          description: `Keyword generation failed. Using ${seedKeywordsAsKeywords.length} seed keywords instead. You can proceed to the next step.`
+        });
+      } else {
+        notifications.error('Failed to generate keywords', {
+          title: 'Generation Error',
+          description: errorMessage
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to create keywords from seed keywords
+  const createKeywordsFromSeeds = (seeds: string[]): any[] => {
+    const keywords: any[] = [];
+    const timestamp = Date.now();
+
+    seeds.forEach((seed, seedIndex) => {
+      const baseText = seed.trim();
+      if (!baseText || baseText.length < 3) return;
+
+      // Apply match types based on selected keyword types
+      if (campaignData.keywordTypes.broad) {
+        keywords.push({
+          id: `seed-${timestamp}-${seedIndex}-broad`,
+          text: baseText,
+          keyword: baseText,
+          matchType: 'broad',
+          volume: 'Medium',
+          cpc: '$2.50',
+          type: 'Seed Keyword',
+        });
+      }
+      
+      if (campaignData.keywordTypes.phrase) {
+        keywords.push({
+          id: `seed-${timestamp}-${seedIndex}-phrase`,
+          text: `"${baseText}"`,
+          keyword: `"${baseText}"`,
+          matchType: 'phrase',
+          volume: 'Medium',
+          cpc: '$2.50',
+          type: 'Seed Keyword',
+        });
+      }
+      
+      if (campaignData.keywordTypes.exact) {
+        keywords.push({
+          id: `seed-${timestamp}-${seedIndex}-exact`,
+          text: `[${baseText}]`,
+          keyword: `[${baseText}]`,
+          matchType: 'exact',
+          volume: 'Medium',
+          cpc: '$2.50',
+          type: 'Seed Keyword',
+        });
+      }
+    });
+
+    return keywords;
+  };
+
+  const handleKeywordTypeToggle = (type: string) => {
+    setCampaignData(prev => ({
+      ...prev,
+      keywordTypes: {
+        ...prev.keywordTypes,
+        [type]: !prev.keywordTypes[type],
+      }
+    }));
+  };
+
+  // Filter keywords based on selected types and negative keywords
+  const negativeList = campaignData.negativeKeywords.map(n => n.trim().toLowerCase()).filter(Boolean);
+  const filteredKeywords = campaignData.generatedKeywords.filter(kw => {
+    // Filter by match type
+    if (kw.matchType === 'broad' && !campaignData.keywordTypes.broad) return false;
+    if (kw.matchType === 'phrase' && !campaignData.keywordTypes.phrase) return false;
+    if (kw.matchType === 'exact' && !campaignData.keywordTypes.exact) return false;
+    if (kw.isNegative && !campaignData.keywordTypes.negative) return false;
+    
+    // Filter out keywords containing negative keywords
+    const keywordText = (kw.text || kw.keyword || '').toLowerCase();
+    if (negativeList.some(neg => keywordText.includes(neg))) return false;
+    
+    return true;
+  });
+
+  // Auto-fill functions for each step
+  const handleAutoFillStep1 = () => {
+    const randomUrl = generateURL();
+    const randomName = generateCampaignName();
+    setCampaignData(prev => ({
+      ...prev,
+      url: randomUrl,
+      campaignName: randomName,
+    }));
+    notifications.success('Step 1 auto-filled', { title: 'Auto Fill Complete' });
+  };
+
+  const handleAutoFillStep2 = () => {
+    const randomStructure = CAMPAIGN_STRUCTURES[Math.floor(Math.random() * CAMPAIGN_STRUCTURES.length)];
+    setCampaignData(prev => ({
+      ...prev,
+      selectedStructure: randomStructure.id,
+    }));
+    notifications.success('Step 2 auto-filled', { title: 'Auto Fill Complete' });
+  };
+
+  const handleAutoFillStep3 = () => {
+    // Generate relevant keywords based on detected data
+    let seedKeywords: string[] = [];
+    
+    // Try to use detected intent/vertical to generate relevant keywords
+    if (campaignData.vertical && campaignData.vertical !== 'General') {
+      const verticalExamples: { [key: string]: string[] } = {
+        'E-commerce': ['buy online', 'shop now', 'best deals', 'order now'],
+        'Services': ['near me', 'services', 'professional', 'call now'],
+        'Healthcare': ['healthcare', 'treatment', 'appointment', 'doctors near me'],
+        'Legal': ['attorney', 'legal help', 'consultation', 'law firm'],
+        'Real Estate': ['homes for sale', 'property', 'real estate', 'listings'],
+      };
+      seedKeywords = verticalExamples[campaignData.vertical] || [];
+    }
+    
+    // If still empty, fall back to intent-based keywords
+    if (seedKeywords.length === 0 && campaignData.intent) {
+      const intentId = campaignData.intent.intentId;
+      if (intentId === IntentId.CALL) {
+        seedKeywords = ['near me', 'phone', 'call', 'contact'];
+      } else if (intentId === IntentId.LEAD) {
+        seedKeywords = ['quote', 'estimate', 'contact', 'information'];
+      } else if (intentId === IntentId.PURCHASE) {
+        seedKeywords = ['buy', 'shop', 'order', 'price'];
+      } else {
+        seedKeywords = ['service', 'help', 'information', 'provider'];
+      }
+    }
+    
+    // Last resort: use generic examples
+    if (seedKeywords.length === 0) {
+      seedKeywords = ['service', 'help', 'information', 'provider'];
+    }
+    
+    setCampaignData(prev => ({
+      ...prev,
+      seedKeywords: seedKeywords.slice(0, 4),
+      negativeKeywords: DEFAULT_NEGATIVE_KEYWORDS,
+    }));
+    notifications.success('Step 3 auto-filled', { title: 'Auto Fill Complete' });
+  };
+
+  // Fill Info button handler - adds 3-4 keywords each time
+  const handleFillInfoKeywords = () => {
+    // Pool of diverse keywords to choose from
+    const keywordPool = [
+      'plumber near me', 'emergency plumbing', 'drain cleaning', 'water heater repair',
+      'airline number', 'contact airline', 'delta phone', 'united customer service',
+      'electrician', 'hvac repair', 'roofing services', 'landscaping',
+      'locksmith', 'appliance repair', 'handyman', 'carpet cleaning',
+      'pest control', 'tree service', 'window cleaning', 'moving company',
+      'auto repair', 'dentist', 'lawyer', 'accountant',
+      'web design', 'seo services', 'marketing agency', 'it support'
+    ];
+    
+    // Randomly select 3-4 keywords
+    const count = Math.floor(Math.random() * 2) + 3; // 3 or 4
+    const shuffled = [...keywordPool].sort(() => 0.5 - Math.random());
+    const newKeywords = shuffled.slice(0, count);
+    
+    // Add to existing keywords (avoid duplicates)
+    setCampaignData(prev => {
+      const existing = prev.seedKeywords || [];
+      const combined = [...existing, ...newKeywords];
+      // Remove duplicates
+      const unique = Array.from(new Set(combined.map(k => k.toLowerCase().trim())))
+        .map(lower => {
+          // Find original case from combined array
+          return combined.find(k => k.toLowerCase().trim() === lower) || lower;
+        });
+      
+      return {
+        ...prev,
+        seedKeywords: unique
+      };
+    });
+    
+    notifications.success(`Added ${count} keywords`, {
+      title: 'Keywords Added',
+      description: `Added: ${newKeywords.join(', ')}`
+    });
+  };
+
+  const handleAutoFillStep5 = () => {
+    const randomCountry = LOCATION_PRESETS.countries[Math.floor(Math.random() * LOCATION_PRESETS.countries.length)];
+    const randomCities = LOCATION_PRESETS.cities.slice(0, Math.floor(Math.random() * 20) + 5);
+    const randomZips = LOCATION_PRESETS.zipCodes.slice(0, Math.floor(Math.random() * 50) + 10);
+    
+    setCampaignData(prev => ({
+      ...prev,
+      targetCountry: randomCountry,
+      locations: {
+        ...prev.locations,
+        cities: randomCities,
+        zipCodes: randomZips,
+      },
+    }));
+    notifications.success('Step 5 auto-filled', { title: 'Auto Fill Complete' });
+  };
+
+  // Auto-save draft functionality
+  const autoSaveDraft = async () => {
+    try {
+      if (campaignData.campaignName || campaignData.url) {
+        await historyService.save('campaign', campaignData.campaignName || 'Draft Campaign', {
+          name: campaignData.campaignName || 'Draft Campaign',
+          url: campaignData.url,
+          structure: campaignData.selectedStructure || 'skag',
+          keywords: campaignData.selectedKeywords,
+          ads: campaignData.ads,
+          locations: campaignData.locations,
+          intent: campaignData.intent,
+          vertical: campaignData.vertical,
+          cta: campaignData.cta,
+          negativeKeywords: campaignData.negativeKeywords,
+          adGroups: campaignData.adGroups,
+          createdAt: new Date().toISOString(),
+        }, 'draft');
+      }
+    } catch (error) {
+      // Only log unexpected errors - "Item not found" is now handled gracefully
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (!errorMessage.includes('Item not found') && !errorMessage.includes('not found')) {
+        console.error('Auto-save failed:', error);
+      }
+      // Don't show error to user for auto-save failures
+    }
+  };
+
+  // Generate ad groups based on campaign structure
+  const generateAdGroupsFromKeywords = (keywords: any[], structureType: string): AdGroup[] => {
+    const groups: AdGroup[] = [];
+    
+    if (structureType === 'skag') {
+      // SKAG: One ad group per keyword (limit to 20)
+      keywords.slice(0, 20).forEach((kw, idx) => {
+        const baseText = (kw.text || kw.keyword || '').replace(/^["\[\]]|["\[\]]$/g, '').trim();
+        groups.push({
+          id: `ag-${idx + 1}`,
+          name: baseText.substring(0, 50) || `Ad Group ${idx + 1}`,
+          keywords: [kw], // Keep full keyword object with matchType
+        });
+      });
+    } else if (structureType === 'stag') {
+      // STAG: Group by theme (first word)
+      const themeGroups: { [key: string]: any[] } = {};
+      keywords.forEach(kw => {
+        const baseText = (kw.text || kw.keyword || '').replace(/^["\[\]]|["\[\]]$/g, '').trim();
+        const firstWord = baseText.split(' ')[0]?.toLowerCase() || 'general';
+        if (!themeGroups[firstWord]) {
+          themeGroups[firstWord] = [];
+        }
+        // Keep full keyword object to preserve matchType
+        if (!themeGroups[firstWord].find((k: any) => (k.text || k.keyword) === (kw.text || kw.keyword))) {
+          themeGroups[firstWord].push(kw);
+        }
+      });
+      
+      Object.entries(themeGroups).slice(0, 10).forEach(([theme, kwList], idx) => {
+        groups.push({
+          id: `ag-${idx + 1}`,
+          name: `Ad Group ${idx + 1} - ${theme.charAt(0).toUpperCase() + theme.slice(1)}`,
+          keywords: kwList.slice(0, 20), // Keep full keyword objects
+        });
+      });
+    } else {
+      // Default: Create 5-10 ad groups
+      const groupSize = Math.ceil(keywords.length / 8);
+      for (let i = 0; i < 8 && i * groupSize < keywords.length; i++) {
+        const groupKeywords = keywords.slice(i * groupSize, (i + 1) * groupSize)
+          .filter(Boolean);
+        if (groupKeywords.length > 0) {
+          groups.push({
+            id: `ag-${i + 1}`,
+            name: `Ad Group ${i + 1}`,
+            keywords: groupKeywords, // Keep full keyword objects with matchType
+          });
+        }
+      }
+    }
+    
+    return groups;
+  };
+
+  // Step 4: Ads Generation - Generate 3 ads (RSA, DKI, Call)
+  const handleGenerateAds = async () => {
+    if (campaignData.selectedKeywords.length === 0) {
+      notifications.error('Please select keywords first', { title: 'Keywords Required' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const keywordTexts = campaignData.selectedKeywords.map(k => k.text || k.keyword || k).slice(0, 10);
+      const ads: any[] = [];
+
+      // Extract business name from campaign name or URL
+      let businessName = campaignData.campaignName || 'Your Business';
+      if (businessName.length > 25) {
+        businessName = businessName.split(' ')[0] || businessName.substring(0, 25);
+      }
+      
+      // Extract domain name from URL for better business name
+      if (campaignData.url) {
+        try {
+          const urlObj = new URL(campaignData.url.startsWith('http') ? campaignData.url : `https://${campaignData.url}`);
+          const hostname = urlObj.hostname.replace('www.', '');
+          const domainName = hostname.split('.')[0];
+          if (domainName && domainName.length > 2 && domainName.length <= 25) {
+            businessName = domainName.charAt(0).toUpperCase() + domainName.slice(1);
+          }
+        } catch (e) {
+          // If URL parsing fails, use campaign name
+        }
+      }
+      
+      // Determine industry from keywords if vertical is not set
+      let industry = campaignData.vertical || 'general';
+      if (industry === 'general' && keywordTexts.length > 0) {
+        const firstKeyword = keywordTexts[0].toLowerCase();
+        if (firstKeyword.includes('plumb') || firstKeyword.includes('plumber')) industry = 'plumbing';
+        else if (firstKeyword.includes('electric') || firstKeyword.includes('electrician')) industry = 'electrical';
+        else if (firstKeyword.includes('hvac') || firstKeyword.includes('heating') || firstKeyword.includes('cooling')) industry = 'hvac';
+        else if (firstKeyword.includes('roof') || firstKeyword.includes('roofing')) industry = 'roofing';
+        else if (firstKeyword.includes('airline') || firstKeyword.includes('flight')) industry = 'travel';
+        else if (firstKeyword.includes('lawyer') || firstKeyword.includes('legal')) industry = 'legal';
+        else if (firstKeyword.includes('dentist') || firstKeyword.includes('dental')) industry = 'dental';
+        else if (firstKeyword.includes('doctor') || firstKeyword.includes('medical')) industry = 'medical';
+        else if (firstKeyword.includes('restaurant') || firstKeyword.includes('food')) industry = 'food';
+        else if (firstKeyword.includes('hotel') || firstKeyword.includes('travel')) industry = 'travel';
+        else {
+          industry = firstKeyword.split(' ')[0] || 'general';
+        }
+      }
+
+      // Always generate 3 ads: RSA, DKI, and Call
+      const adTypesToGenerate = ['rsa', 'dki', 'call'];
+      
+      for (const adType of adTypesToGenerate) {
+        try {
+          const adInput: AdGenerationInput = {
+            keywords: keywordTexts,
+            baseUrl: campaignData.url || undefined,
+            adType: adType === 'rsa' ? 'RSA' : adType === 'dki' ? 'ETA' : 'CALL_ONLY',
+            industry: industry,
+            businessName: businessName,
+            location: campaignData.locations?.cities?.[0] || campaignData.locations?.states?.[0] || undefined,
+            filters: {
+              matchType: campaignData.keywordTypes.phrase ? 'phrase' : campaignData.keywordTypes.exact ? 'exact' : 'broad',
+              campaignStructure: (campaignData.selectedStructure?.toUpperCase() || 'SKAG') as 'SKAG' | 'STAG' | 'IBAG' | 'Alpha-Beta',
+              uniqueSellingPoints: [],
+              callToAction: campaignData.cta || undefined,
+            },
+          };
+
+          const ad = generateAdsUtility(adInput);
+          
+          // Convert to our ad format
+          if (adType === 'rsa' && 'headlines' in ad) {
+            const rsa = ad as ResponsiveSearchAd;
+            ads.push({
+              id: `ad-${Date.now()}-${Math.random()}`,
+              type: 'rsa',
+              adType: 'RSA',
+              headlines: rsa.headlines || [],
+              descriptions: rsa.descriptions || [],
+              displayPath: rsa.displayPath || [],
+              finalUrl: rsa.finalUrl || campaignData.url || '',
+              selected: false,
+              extensions: [],
+            });
+          } else if (adType === 'dki' && 'headline1' in ad) {
+            const dki = ad as ExpandedTextAd;
+            ads.push({
+              id: `ad-${Date.now()}-${Math.random()}`,
+              type: 'dki',
+              adType: 'DKI',
+              headline1: dki.headline1 || '',
+              headline2: dki.headline2 || '',
+              headline3: dki.headline3 || '',
+              description1: dki.description1 || '',
+              description2: dki.description2 || '',
+              displayPath: dki.displayPath || [],
+              finalUrl: dki.finalUrl || campaignData.url || '',
+              selected: false,
+              extensions: [],
+            });
+          } else if (adType === 'call' && 'phoneNumber' in ad) {
+            const call = ad as CallOnlyAd;
+            ads.push({
+              id: `ad-${Date.now()}-${Math.random()}`,
+              type: 'call',
+              adType: 'CallOnly',
+              headline1: call.headline1 || '',
+              headline2: call.headline2 || '',
+              description1: call.description1 || '',
+              description2: call.description2 || '',
+              phoneNumber: call.phoneNumber || '',
+              businessName: call.businessName || businessName,
+              finalUrl: call.verificationUrl || campaignData.url || '',
+              selected: false,
+              extensions: [],
+            });
+          }
+        } catch (adError) {
+          console.error(`Error generating ${adType} ad:`, adError);
+          // Continue with other ad types
+        }
+      }
+      
+      setCampaignData(prev => ({
+        ...prev,
+        ads: ads,
+        adTypes: adTypesToGenerate, // Update ad types to match generated ads
+      }));
+
+      notifications.success(`Generated ${ads.length} ads successfully`, {
+        title: 'Ads Generated',
+        description: 'RSA, DKI, and Call ads have been created for all ad groups.'
+      });
+      
+      // Auto-save draft
+      await autoSaveDraft();
+    } catch (error) {
+      console.error('Ad generation error:', error);
+      notifications.error('Failed to generate ads', {
+        title: 'Generation Error',
+        description: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add a single ad of specified type (only if under 3 ads total)
+  const handleAddNewAd = async (adType: 'rsa' | 'dki' | 'call') => {
+    // Check if we already have 3 ads
+    if (campaignData.ads.length >= 3) {
+      notifications.warning('Maximum 3 ads allowed per ad group', {
+        title: 'Limit Reached',
+        description: 'You can only have 3 ads. Please delete an existing ad to add a new one.'
+      });
+      return;
+    }
+
+    // Check if this ad type already exists
+    const existingAdType = campaignData.ads.find(ad => 
+      (ad.type === adType) || 
+      (adType === 'rsa' && ad.adType === 'RSA') ||
+      (adType === 'dki' && ad.adType === 'DKI') ||
+      (adType === 'call' && (ad.adType === 'CallOnly' || ad.type === 'call'))
+    );
+
+    if (existingAdType) {
+      notifications.info(`A ${adType.toUpperCase()} ad already exists. Maximum 3 ads allowed.`, {
+        title: 'Ad Type Exists'
+      });
+      return;
+    }
+
+    if (campaignData.selectedKeywords.length === 0) {
+      notifications.error('Please select keywords first', { title: 'Keywords Required' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const keywordTexts = campaignData.selectedKeywords.map(k => k.text || k.keyword || k).slice(0, 10);
+      
+      // Extract business name from campaign name or URL
+      let businessName = campaignData.campaignName || 'Your Business';
+      // If campaign name is too long, extract first meaningful part
+      if (businessName.length > 25) {
+        businessName = businessName.split(' ')[0] || businessName.substring(0, 25);
+      }
+      
+      // Extract domain name from URL for better business name
+      if (campaignData.url) {
+        try {
+          const urlObj = new URL(campaignData.url.startsWith('http') ? campaignData.url : `https://${campaignData.url}`);
+          const hostname = urlObj.hostname.replace('www.', '');
+          const domainName = hostname.split('.')[0];
+          if (domainName && domainName.length > 2 && domainName.length <= 25) {
+            // Capitalize first letter
+            businessName = domainName.charAt(0).toUpperCase() + domainName.slice(1);
+          }
+        } catch (e) {
+          // If URL parsing fails, use campaign name
+        }
+      }
+      
+      // Determine industry from keywords if vertical is not set
+      let industry = campaignData.vertical || 'general';
+      if (industry === 'general' && keywordTexts.length > 0) {
+        // Try to extract industry from keywords
+        const firstKeyword = keywordTexts[0].toLowerCase();
+        if (firstKeyword.includes('plumb') || firstKeyword.includes('plumber')) industry = 'plumbing';
+        else if (firstKeyword.includes('electric') || firstKeyword.includes('electrician')) industry = 'electrical';
+        else if (firstKeyword.includes('hvac') || firstKeyword.includes('heating') || firstKeyword.includes('cooling')) industry = 'hvac';
+        else if (firstKeyword.includes('roof') || firstKeyword.includes('roofing')) industry = 'roofing';
+        else if (firstKeyword.includes('airline') || firstKeyword.includes('flight')) industry = 'travel';
+        else if (firstKeyword.includes('lawyer') || firstKeyword.includes('legal')) industry = 'legal';
+        else if (firstKeyword.includes('dentist') || firstKeyword.includes('dental')) industry = 'dental';
+        else if (firstKeyword.includes('doctor') || firstKeyword.includes('medical')) industry = 'medical';
+        else if (firstKeyword.includes('restaurant') || firstKeyword.includes('food')) industry = 'food';
+        else if (firstKeyword.includes('hotel') || firstKeyword.includes('travel')) industry = 'travel';
+        else {
+          // Use first keyword as industry hint
+          industry = firstKeyword.split(' ')[0] || 'general';
+        }
+      }
+      
+      const adInput: AdGenerationInput = {
+        keywords: keywordTexts,
+        baseUrl: campaignData.url || undefined, // Always use campaign URL
+        adType: adType === 'rsa' ? 'RSA' : adType === 'dki' ? 'ETA' : 'CALL_ONLY',
+        industry: industry,
+        businessName: businessName,
+        location: campaignData.locations?.cities?.[0] || campaignData.locations?.states?.[0] || undefined,
+        filters: {
+          matchType: campaignData.keywordTypes.phrase ? 'phrase' : campaignData.keywordTypes.exact ? 'exact' : 'broad',
+          campaignStructure: (campaignData.selectedStructure?.toUpperCase() || 'STAG') as 'SKAG' | 'STAG' | 'IBAG' | 'Alpha-Beta',
+          uniqueSellingPoints: [],
+          callToAction: campaignData.cta || undefined,
+        },
+      };
+
+      const ad = generateAdsUtility(adInput);
+      
+      // Convert to our ad format
+      let newAd: any = null;
+      
+      if (adType === 'rsa' && 'headlines' in ad) {
+        const rsa = ad as ResponsiveSearchAd;
+        newAd = {
+          id: `ad-${Date.now()}-${Math.random()}`,
+          type: 'rsa',
+          adType: 'RSA',
+          headlines: rsa.headlines || [],
+          descriptions: rsa.descriptions || [],
+          displayPath: rsa.displayPath || [],
+          finalUrl: rsa.finalUrl || campaignData.url || '',
+          selected: false,
+          extensions: [],
+        };
+      } else if (adType === 'dki' && 'headline1' in ad) {
+        const dki = ad as ExpandedTextAd;
+        newAd = {
+          id: `ad-${Date.now()}-${Math.random()}`,
+          type: 'dki',
+          adType: 'DKI',
+          headline1: dki.headline1 || '',
+          headline2: dki.headline2 || '',
+          headline3: dki.headline3 || '',
+          description1: dki.description1 || '',
+          description2: dki.description2 || '',
+          displayPath: dki.displayPath || [],
+          finalUrl: dki.finalUrl || campaignData.url,
+          selected: false,
+          extensions: [],
+        };
+      } else if (adType === 'call' && 'phoneNumber' in ad) {
+        const call = ad as CallOnlyAd;
+        newAd = {
+          id: `ad-${Date.now()}-${Math.random()}`,
+          type: 'call',
+          adType: 'CallOnly',
+          headline1: call.headline1 || '',
+          headline2: call.headline2 || '',
+          description1: call.description1 || '',
+          description2: call.description2 || '',
+          phoneNumber: call.phoneNumber || '',
+          businessName: call.businessName || businessName,
+          finalUrl: call.verificationUrl || campaignData.url || '',
+          selected: false,
+          extensions: [],
+        };
+      }
+
+      if (newAd) {
+        setCampaignData(prev => ({
+            ...prev,
+          ads: [...prev.ads, newAd],
+        }));
+
+        notifications.success(`${adType.toUpperCase()} ad added successfully`, {
+          title: 'Ad Added',
+          description: `${campaignData.ads.length + 1} / 3 ads created`
+        });
+        
+        // Auto-save draft
+        await autoSaveDraft();
+      } else {
+        throw new Error(`Failed to generate ${adType} ad`);
+      }
+    } catch (error) {
+      console.error(`Error generating ${adType} ad:`, error);
+      notifications.error(`Failed to generate ${adType.toUpperCase()} ad`, {
+        title: 'Generation Error',
+        description: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditAd = (adId: string) => {
+    // Toggle edit mode - if already editing this ad, cancel edit
+    if (editingAdId === adId) {
+      setEditingAdId(null);
+    } else {
+      setEditingAdId(adId);
+    }
+  };
+
+  const updateAdField = (adId: string, field: string, value: any) => {
+    // Apply Google Ads character limits
+    let processedValue = value;
+    if (field.startsWith('headline')) {
+      // Headlines: max 30 characters
+      if (typeof value === 'string' && value.length > 30) {
+        processedValue = value.substring(0, 30);
+        notifications.warning(`Headline truncated to 30 characters (Google Ads limit)`, {
+          title: 'Character Limit',
+          description: 'Headlines must be 30 characters or less.',
+          duration: 3000
+        });
+      }
+    } else if (field.startsWith('description')) {
+      // Descriptions: max 90 characters
+      if (typeof value === 'string' && value.length > 90) {
+        processedValue = value.substring(0, 90);
+        notifications.warning(`Description truncated to 90 characters (Google Ads limit)`, {
+          title: 'Character Limit',
+          description: 'Descriptions must be 90 characters or less.',
+          duration: 3000
+        });
+      }
+    } else if (field === 'path1' || field === 'path2' || (field === 'displayPath' && Array.isArray(value))) {
+      // Paths: max 15 characters
+      if (field === 'displayPath' && Array.isArray(value)) {
+        processedValue = value.map((path: string) => 
+          typeof path === 'string' && path.length > 15 ? path.substring(0, 15) : path
+        );
+      } else if (typeof value === 'string' && value.length > 15) {
+        processedValue = value.substring(0, 15);
+        notifications.warning(`Path truncated to 15 characters (Google Ads limit)`, {
+          title: 'Character Limit',
+          description: 'Display URL paths must be 15 characters or less.',
+          duration: 3000
+        });
+      }
+    } else if (field === 'headlines' && Array.isArray(value)) {
+      // RSA headlines array: each headline max 30 characters
+      processedValue = value.map((h: string) => 
+        typeof h === 'string' && h.length > 30 ? h.substring(0, 30) : h
+      );
+    } else if (field === 'descriptions' && Array.isArray(value)) {
+      // RSA descriptions array: each description max 90 characters
+      processedValue = value.map((d: string) => 
+        typeof d === 'string' && d.length > 90 ? d.substring(0, 90) : d
+      );
+    }
+    
+    setCampaignData(prev => ({
+      ...prev,
+      ads: prev.ads.map(ad => 
+        ad.id === adId ? { ...ad, [field]: processedValue } : ad
+      )
+    }));
+  };
+
+  const handleSaveAd = (adId: string) => {
+    const ad = campaignData.ads.find(a => a.id === adId);
+    if (!ad) {
+      notifications.error('Ad not found', {
+        title: 'Error',
+        description: 'The ad you are trying to save could not be found.',
+      });
+      return;
+    }
+
+    // Validate required fields and Google Ads character limits
+    const errors: string[] = [];
+    
+    if (ad.type === 'rsa' || ad.adType === 'RSA') {
+      // RSA validation
+      if (ad.headlines && Array.isArray(ad.headlines)) {
+        ad.headlines.forEach((headline: string, idx: number) => {
+          if (headline && headline.length > 30) {
+            errors.push(`Headline ${idx + 1} exceeds 30 characters (${headline.length}/30)`);
+          }
+        });
+      }
+      if (ad.descriptions && Array.isArray(ad.descriptions)) {
+        ad.descriptions.forEach((desc: string, idx: number) => {
+          if (desc && desc.length > 90) {
+            errors.push(`Description ${idx + 1} exceeds 90 characters (${desc.length}/90)`);
+          }
+        });
+      }
+    } else if (ad.type === 'dki' || ad.adType === 'DKI') {
+      // DKI validation
+      if (!ad.headline1 || ad.headline1.trim() === '') {
+        errors.push('Headline 1 is required');
+      } else if (ad.headline1.length > 30) {
+        errors.push(`Headline 1 exceeds 30 characters (${ad.headline1.length}/30)`);
+      }
+      if (!ad.headline2 || ad.headline2.trim() === '') {
+        errors.push('Headline 2 is required');
+      } else if (ad.headline2.length > 30) {
+        errors.push(`Headline 2 exceeds 30 characters (${ad.headline2.length}/30)`);
+      }
+      if (ad.headline3 && ad.headline3.length > 30) {
+        errors.push(`Headline 3 exceeds 30 characters (${ad.headline3.length}/30)`);
+      }
+      if (!ad.description1 || ad.description1.trim() === '') {
+        errors.push('Description 1 is required');
+      } else if (ad.description1.length > 90) {
+        errors.push(`Description 1 exceeds 90 characters (${ad.description1.length}/90)`);
+      }
+      if (ad.description2 && ad.description2.length > 90) {
+        errors.push(`Description 2 exceeds 90 characters (${ad.description2.length}/90)`);
+      }
+    } else if (ad.type === 'call' || ad.adType === 'CallOnly') {
+      // Call-Only validation
+      if (!ad.headline1 || ad.headline1.trim() === '') {
+        errors.push('Headline 1 is required');
+      } else if (ad.headline1.length > 30) {
+        errors.push(`Headline 1 exceeds 30 characters (${ad.headline1.length}/30)`);
+      }
+      if (!ad.headline2 || ad.headline2.trim() === '') {
+        errors.push('Headline 2 is required');
+      } else if (ad.headline2.length > 30) {
+        errors.push(`Headline 2 exceeds 30 characters (${ad.headline2.length}/30)`);
+      }
+      if (!ad.description1 || ad.description1.trim() === '') {
+        errors.push('Description 1 is required');
+      } else if (ad.description1.length > 90) {
+        errors.push(`Description 1 exceeds 90 characters (${ad.description1.length}/90)`);
+      }
+      if (!ad.description2 || ad.description2.trim() === '') {
+        errors.push('Description 2 is required');
+      } else if (ad.description2.length > 90) {
+        errors.push(`Description 2 exceeds 90 characters (${ad.description2.length}/90)`);
+      }
+      if (!ad.phoneNumber || ad.phoneNumber.trim() === '') {
+        errors.push('Phone number is required');
+      }
+      if (!ad.businessName || ad.businessName.trim() === '') {
+        errors.push('Business name is required');
+      }
+    }
+
+    if (errors.length > 0) {
+      notifications.error(`Please fix the following errors:\n\n${errors.join('\n')}`, {
+        title: 'Validation Error',
+        description: 'All fields must comply with Google Ads character limits.',
+        priority: 'high',
+      });
+      return;
+    }
+
+    setEditingAdId(null);
+    notifications.success('Changes saved successfully', {
+      title: 'Ad Updated',
+      description: 'Your ad changes have been saved.',
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAdId(null);
+  };
+
+  const handleDuplicateAd = (adId: string) => {
+    const adToDuplicate = campaignData.ads.find(ad => ad.id === adId);
+    if (!adToDuplicate) {
+      notifications.error('Ad not found', { title: 'Error' });
+      return;
+    }
+
+    if (campaignData.ads.length >= 3) {
+      notifications.warning('Maximum 3 ads allowed', { title: 'Limit Reached' });
+      return;
+    }
+
+    const duplicatedAd = {
+      ...adToDuplicate,
+      id: `ad-${Date.now()}-${Math.random()}`,
+      extensions: adToDuplicate.extensions ? [...adToDuplicate.extensions] : [],
+    };
+
+    setCampaignData(prev => ({
+      ...prev,
+      ads: [...prev.ads, duplicatedAd],
+    }));
+
+    notifications.success('Ad duplicated', { title: 'Duplicated' });
+  };
+
+  const handleDeleteAd = (adId: string) => {
+    setCampaignData(prev => ({
+      ...prev,
+      ads: prev.ads.filter(ad => ad.id !== adId),
+    }));
+    notifications.success('Ad deleted', { title: 'Deleted' });
+  };
+
+  const handleToggleAdSelection = (adId: string) => {
+    setCampaignData(prev => ({
+      ...prev,
+      ads: prev.ads.map(ad => 
+        ad.id === adId ? { ...ad, selected: !ad.selected } : ad
+      ),
+    }));
+  };
+
+  const handleAddExtension = async (adId: string, extensionType: string) => {
+    try {
+      setLoading(true);
+      
+      // Import extension generator
+      const { generateExtensionsWithAI } = await import('../utils/extensionGeneratorAI');
+      
+      // Generate AI-based extension
+      const extensionData = await generateExtensionsWithAI({
+        url: campaignData.url || '',
+        keywords: campaignData.seedKeywords || [],
+        vertical: campaignData.vertical || 'General',
+        intent: campaignData.intent?.intentLabel,
+        cta: campaignData.cta,
+        businessName: campaignData.campaignName || 'Business',
+        ads: campaignData.ads,
+      }, extensionType);
+      
+      setCampaignData(prev => ({
+        ...prev,
+        ads: prev.ads.map(ad => {
+          if (ad.id === adId) {
+            const currentExtensions = Array.isArray(ad.extensions) ? ad.extensions : [];
+            const extensionExists = currentExtensions.some((ext: any) => ext.type === extensionType);
+            if (extensionExists) {
+              return ad;
+            }
+            
+            const newExtension: any = {
+              id: `ext-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              type: extensionType,
+              extensionType: extensionType,
+              label: extensionType.charAt(0).toUpperCase() + extensionType.slice(1).replace(/([A-Z])/g, ' $1'),
+            };
+            
+            // Apply AI-generated data
+            if (extensionType === 'snippet' && extensionData.header) {
+              newExtension.header = extensionData.header;
+              newExtension.values = extensionData.values || [];
+              newExtension.text = `${newExtension.header}: ${newExtension.values.join(', ')}`;
+            } else if (extensionType === 'callout' && extensionData.callouts) {
+              newExtension.callouts = extensionData.callouts;
+              newExtension.text = newExtension.callouts.join(', ');
+            } else if (extensionType === 'sitelink' && extensionData.sitelinks) {
+              newExtension.sitelinks = extensionData.sitelinks.map((sl: any) => ({
+                text: sl.text || sl.linkText || 'Link',
+                description: sl.description || '',
+                url: campaignData.url || ''
+              }));
+              newExtension.text = newExtension.sitelinks.map((sl: any) => sl.text).join(', ');
+            } else if (extensionType === 'call' && extensionData.phone) {
+              newExtension.phone = extensionData.phone;
+              newExtension.phoneNumber = extensionData.phone;
+              newExtension.countryCode = 'US';
+              newExtension.text = newExtension.phone;
+            } else if (extensionType === 'message' && extensionData.message) {
+              newExtension.message = extensionData.message;
+              newExtension.text = newExtension.message;
+            } else if (extensionType === 'promotion' && extensionData.promotionText) {
+              newExtension.promotionText = extensionData.promotionText;
+              newExtension.text = newExtension.promotionText;
+            } else {
+              newExtension.text = extensionData.text || 'Extension';
+            }
+            
+            return {
+              ...ad,
+              extensions: [...currentExtensions, newExtension],
+            };
+          }
+          return ad;
+        }),
+      }));
+      
+      notifications.success('AI-generated extension added', { title: 'Extension Added' });
+    } catch (error) {
+      console.error('Error adding extension:', error);
+      notifications.error('Failed to generate extension', { title: 'Extension Error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveExtension = (adId: string, extensionId: string) => {
+    setCampaignData(prev => ({
+        ...prev,
+        ads: prev.ads.map(ad => {
+          if (ad.id === adId) {
+            return {
+              ...ad,
+            extensions: (ad.extensions || []).filter((ext: any) => ext.id !== extensionId),
+            };
+          }
+          return ad;
+        }),
+    }));
+    notifications.success('Extension removed', { title: 'Removed' });
+  };
+
+  const handleAddExtensionToAllAds = (extensionType: string) => {
+    if (campaignData.ads.length === 0) {
+      notifications.warning('Please create at least one ad before adding extensions', {
+        title: 'No Ads Found'
+      });
+      return;
+    }
+
+    setCampaignData(prev => {
+      const updatedAds = prev.ads.map((ad, index) => {
+        // Ensure extensions array exists
+        const currentExtensions = Array.isArray(ad.extensions) ? ad.extensions : [];
+        
+        // Check if this extension type already exists for this ad
+        const extensionExists = currentExtensions.some((ext: any) => ext.type === extensionType);
+        if (extensionExists) {
+          // Extension already exists, don't add duplicate
+          return ad;
+        }
+        
+        // Create unique extension ID
+        const extensionId = `ext-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Create extension with proper structure based on type
+        const newExtension: any = {
+          id: extensionId,
+          type: extensionType,
+          extensionType: extensionType,
+          label: extensionType.charAt(0).toUpperCase() + extensionType.slice(1).replace(/([A-Z])/g, ' $1'),
+        };
+        
+        // Add type-specific default values
+        switch (extensionType) {
+          case 'snippet':
+            newExtension.header = 'Types';
+            newExtension.values = ['Service 1', 'Service 2', 'Service 3'];
+            newExtension.text = `Types: ${newExtension.values.join(', ')}`;
+            break;
+          case 'callout':
+            newExtension.callouts = ['24/7 Support', 'Free Consultation', 'Expert Service'];
+            newExtension.text = newExtension.callouts.join(', ');
+            break;
+          case 'sitelink':
+            newExtension.sitelinks = [
+              { text: 'Contact Us', description: 'Get in touch', url: campaignData.url || '' },
+              { text: 'Services', description: 'Our services', url: campaignData.url || '' }
+            ];
+            newExtension.text = newExtension.sitelinks.map((sl: any) => sl.text).join(', ');
+            break;
+          case 'call':
+            newExtension.phone = '(555) 123-4567';
+            newExtension.phoneNumber = '(555) 123-4567';
+            newExtension.countryCode = 'US';
+            newExtension.text = newExtension.phone;
+            break;
+          case 'price':
+            newExtension.priceQualifier = 'From';
+            newExtension.price = '$99';
+            newExtension.currency = 'USD';
+            newExtension.unit = 'per service';
+            newExtension.text = `${newExtension.priceQualifier} ${newExtension.price} ${newExtension.unit}`;
+            break;
+          default:
+            newExtension.text = newExtension.label;
+        }
+        
+        return {
+          ...ad,
+          extensions: [...currentExtensions, newExtension],
+        };
+      });
+      
+        return {
+        ...prev,
+        ads: updatedAds,
+      };
+    });
+
+    // Get extension label for notification
+    const extensionLabel = extensionType.charAt(0).toUpperCase() + extensionType.slice(1).replace(/([A-Z])/g, ' $1');
+    notifications.success(`Added ${extensionLabel} extension to all ${campaignData.ads.length} ad(s)`, {
+      title: 'Extension Added'
+    });
+  };
+
+
+  // Step 6: CSV Generation & Validation
+  const handleGenerateCSV = async () => {
+    setLoading(true);
+    try {
+      const adGroups = campaignData.adGroups || [];
+      const campaignNameValue = campaignData.campaignName || 'Campaign 1';
+      
+      // Build location list
+      const locationList: string[] = [];
+      if (campaignData.locations.countries && campaignData.locations.countries.length > 0) {
+        locationList.push(...campaignData.locations.countries);
+      }
+      if (campaignData.locations.states && campaignData.locations.states.length > 0) {
+        locationList.push(...campaignData.locations.states);
+      }
+      if (campaignData.locations.cities && campaignData.locations.cities.length > 0) {
+        locationList.push(...campaignData.locations.cities);
+      }
+      if (campaignData.locations.zipCodes && campaignData.locations.zipCodes.length > 0) {
+        locationList.push(...campaignData.locations.zipCodes);
+      }
+      if (campaignData.targetCountry && locationList.length === 0) {
+        locationList.push(campaignData.targetCountry);
+      }
+      
+      // Collect all extensions from ads
+      const allExtensions: any[] = [];
+      (campaignData.ads || []).forEach((ad: any) => {
+        if (ad.extensions && Array.isArray(ad.extensions)) {
+          allExtensions.push(...ad.extensions);
+        }
+      });
+      
+      // Convert to Google Ads Editor format using new utility
+      const editorData = convertBuilderDataToEditorFormat(
+        campaignNameValue,
+        adGroups.map((group: any) => ({
+          name: group.name,
+          keywords: group.keywords || [],
+          negativeKeywords: group.negativeKeywords || []
+        })),
+        campaignData.ads || [],
+        locationList.length > 0 ? locationList : undefined,
+        allExtensions.length > 0 ? allExtensions : undefined,
+        {
+          dailyBudget: '100',
+          bidStrategyType: 'Maximize Conversions',
+          maxCpc: '2.00',
+          baseUrl: campaignData.url || 'https://www.example.com',
+          negativeKeywords: campaignData.negativeKeywords || [],
+          startDate: campaignData.startDate,
+          endDate: campaignData.endDate
+        }
+      );
+      
+      // Generate CSV content using the utility
+      const { generateGoogleAdsEditorCSV } = await import('../utils/googleAdsEditorCSV');
+      const csvContent = generateGoogleAdsEditorCSV(editorData);
+      
+      // Store CSV data in state with BOM for Excel compatibility
+      const csvWithBOM = '\uFEFF' + csvContent;
+      setCampaignData(prev => ({
+        ...prev,
+        csvData: csvWithBOM,
+        csvErrors: [],
+      }));
+      
+      notifications.success('CSV generated successfully!', {
+        title: 'CSV Ready',
+        description: `Your campaign "${campaignNameValue}" CSV is ready. Click "Download CSV" to export.`
+      });
+    } catch (error) {
+      console.error('CSV generation error:', error);
+      notifications.error('Failed to generate CSV', {
+        title: 'Generation Error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate export statistics from CSV rows
+  const getExportStatistics = () => {
+    if (!campaignData.csvData) return null;
+    
+    try {
+      // Parse the CSV data to get statistics
+      const csvText = campaignData.csvData.replace(/^\uFEFF/, ''); // Remove BOM
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+      
+      if (!parsed.data || parsed.data.length === 0) return null;
+
+      const rows = parsed.data as any[];
+      
+      // Detect row types based on which columns are populated (Google Ads Editor CSV format)
+      const stats = {
+        campaigns: new Set(rows.map(r => r['Campaign']).filter(Boolean)).size,
+        adGroups: new Set(rows.map(r => r['Ad Group']).filter(Boolean)).size,
+        // Keywords: rows with Keyword column populated and non-negative Criterion Type
+        keywords: rows.filter(r => 
+          r['Keyword'] && 
+          r['Criterion Type'] && 
+          !r['Criterion Type'].toLowerCase().includes('negative')
+        ).length,
+        // Negative Keywords: rows with Keyword column and negative Criterion Type
+        negativeKeywords: rows.filter(r => 
+          r['Keyword'] && 
+          r['Criterion Type'] && 
+          r['Criterion Type'].toLowerCase().includes('negative')
+        ).length,
+        // Ads: rows with Ad Type column populated
+        ads: rows.filter(r => r['Ad Type'] && r['Ad Type'].trim() !== '').length,
+        // Extensions: rows with sitelink, callout, snippet, image asset, or promotion columns populated
+        extensions: rows.filter(r => 
+          (r['Sitelink Text'] && r['Sitelink Text'].trim() !== '') ||
+          (r['Callout Text'] && r['Callout Text'].trim() !== '') ||
+          (r['Structured Snippet Header'] && r['Structured Snippet Header'].trim() !== '') ||
+          (r['Price Extension Item Header'] && r['Price Extension Item Header'].trim() !== '') ||
+          (r['Promotion Target'] && r['Promotion Target'].trim() !== '') ||
+          (r['Image Asset Name'] && r['Image Asset Name'].trim() !== '')
+        ).length,
+        // Locations: rows with Location column populated
+        locations: rows.filter(r => r['Location'] && r['Location'].trim() !== '').length,
+        totalRows: rows.length,
+      };
+      
+      return stats;
+    } catch (error) {
+      console.error('Error calculating export statistics:', error);
+      return null;
+    }
+  };
+
+  const handleDownloadCSV = () => {
+    if (!campaignData.csvData) {
+      notifications.warning('CSV not generated yet', {
+        title: 'No CSV Data',
+        description: 'Please generate CSV first before downloading.'
+      });
+        return;
+      }
+    
+    // Show export brief dialog
+    setShowExportDialog(true);
+  };
+
+  const confirmDownloadCSV = () => {
+    if (!campaignData.csvData) return;
+    
+    const filename = `${(campaignData.campaignName || 'campaign').replace(/[^a-z0-9]/gi, '_')}_google_ads_editor_${new Date().toISOString().split('T')[0]}.csv`;
+    const blob = new Blob([campaignData.csvData], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    setShowExportDialog(false);
+    
+    // Redirect to dashboard
+    setTimeout(() => {
+      const event = new CustomEvent('navigate', { detail: { tab: 'dashboard' } });
+      window.dispatchEvent(event);
+      if (window.location.hash) {
+        window.location.hash = '#dashboard';
+      }
+    }, 1000);
+  };
+
+  const handleSaveCampaign = async () => {
+    setLoading(true);
+    try {
+      // Generate CSV first
+      await handleGenerateCSV();
+
+      await historyService.save('campaign', campaignData.campaignName, {
+        name: campaignData.campaignName,
+        url: campaignData.url,
+        structure: campaignData.selectedStructure || 'stag',
+        keywords: campaignData.selectedKeywords,
+        ads: campaignData.ads,
+        locations: campaignData.locations,
+        intent: campaignData.intent,
+        vertical: campaignData.vertical,
+        cta: campaignData.cta,
+        negativeKeywords: campaignData.negativeKeywords,
+        adGroups: campaignData.adGroups,
+        csvData: campaignData.csvData,
+        createdAt: new Date().toISOString(),
+      }, 'completed');
+
+      setCampaignSaved(true);
+      setCurrentStep(8); // Show success screen
+    } catch (error) {
+      console.error('Save error:', error);
+      notifications.error('Failed to save campaign', {
+        title: 'Save Error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Render functions for each step
+  const renderStep1 = () => (
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">Enter Your Website URL</h2>
+        <p className="text-slate-600">AI will analyze your website to identify intent, CTA, and vertical</p>
+      </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Website URL</CardTitle>
+          <CardDescription>Enter the landing page URL for your campaign</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <Input
+              type="url"
+              placeholder="https://www.example.com"
+              value={campaignData.url}
+              onChange={(e) => setCampaignData(prev => ({ ...prev, url: e.target.value }))}
+              className="flex-1"
+            />
+            <Button onClick={handleUrlSubmit} disabled={loading}>
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+              Analyze
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Analysis Results - Show after analysis complete */}
+      {campaignData.intent && (
+        <Card className="mb-6 border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50">
+          <CardHeader>
+            <CardTitle className="text-lg">✓ Analysis Complete</CardTitle>
+            <CardDescription>Website analysis results saved to database</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-white rounded-lg p-4 border border-indigo-100">
+                <div className="font-semibold text-sm text-slate-600 mb-3">Analysis Details:</div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                    <span className="text-sm font-semibold text-slate-700">Detected Intent:</span>
+                    <span className="text-lg font-bold text-indigo-600">{campaignData.intent?.intentLabel}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                    <span className="text-sm font-semibold text-slate-700">Industry Vertical:</span>
+                    <span className="text-lg font-bold text-purple-600">{campaignData.vertical}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                    <span className="text-sm font-semibold text-slate-700">Call-To-Action:</span>
+                    <span className="text-lg font-bold text-green-600">{campaignData.cta}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-semibold text-slate-700">Seed Keywords:</span>
+                    <span className="text-sm text-slate-600">{campaignData.seedKeywords.length} keywords</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-indigo-100 border border-indigo-300 rounded-lg p-3">
+                <p className="text-sm text-indigo-800">
+                  <strong>✓ Saved:</strong> This analysis has been saved to your database. You can reuse these insights for future campaigns.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+          <div className="border-t border-indigo-200 pt-4 px-6 pb-4">
+            <Button 
+              onClick={() => setCurrentStep(2)}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+            >
+              Next: Select Campaign Structure →
+            </Button>
+          </div>
+        </Card>
+      )}
+
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">Select Campaign Structure</h2>
+        <p className="text-slate-600">AI has ranked the best structures for your vertical. Choose the one that fits your needs.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        {CAMPAIGN_STRUCTURES.map((structure, idx) => {
+          const ranking = campaignData.structureRankings.findIndex(r => r.id === structure.id);
+          const isRecommended = ranking === 0 || ranking === 1 || ranking === 2;
+          const rankLabel = ranking === 0 ? 'Best' : ranking === 1 ? '2nd Best' : ranking === 2 ? '3rd Best' : null;
+          const isSelected = campaignData.selectedStructure === structure.id;
+          const Icon = structure.icon;
+
+          return (
+            <Card
+              key={structure.id}
+              className={`cursor-pointer transition-all ${
+                isSelected
+                  ? 'ring-2 ring-indigo-500 bg-indigo-50'
+                  : 'hover:shadow-lg'
+              }`}
+              onClick={() => handleStructureSelect(structure.id)}
+            >
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-5 h-5 text-indigo-600" />
+                    <CardTitle className="text-lg">{structure.name}</CardTitle>
+                  </div>
+                  {isRecommended && rankLabel && (
+                    <Badge variant={ranking === 0 ? 'default' : 'secondary'}>
+                      {rankLabel}
+                    </Badge>
+                  )}
+                </div>
+                <CardDescription>{structure.description}</CardDescription>
+              </CardHeader>
+              {isSelected && (
+                <CardContent>
+                  <div className="flex items-center gap-2 text-indigo-600">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">Selected</span>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      {campaignData.selectedStructure === 'seasonal' && (
+        <Card className="mb-6 border-orange-200 bg-orange-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-orange-600" />
+              <CardTitle className="text-lg">Seasonal Campaign Dates</CardTitle>
+            </div>
+            <CardDescription>Set the start and end dates for your seasonal/promotional campaign</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">Start Date</Label>
+                <Input
+                  type="date"
+                  value={campaignData.startDate || ''}
+                  onChange={(e) => setCampaignData(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="bg-white"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">End Date</Label>
+                <Input
+                  type="date"
+                  value={campaignData.endDate || ''}
+                  onChange={(e) => setCampaignData(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+            <p className="text-sm text-orange-700 mt-3">
+              These dates will be included in your CSV export for Google Ads scheduling.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">Keywords Planner</h2>
+        <p className="text-slate-600">Generate 410-710 keywords based on your seed keywords and campaign structure</p>
+      </div>
+
+      <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Seed Keywords</CardTitle>
+              <CardDescription>AI-suggested seed keywords from your URL analysis - edit as needed</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Textarea
+                  placeholder="Enter seed keywords (one per line or comma-separated)"
+                  value={seedKeywordsText}
+                  onChange={(e) => setSeedKeywordsText(e.target.value)}
+                  onBlur={() => {
+                    const keywords = seedKeywordsText
+                      .split(/[\n,]+/)
+                      .map(k => k.trim())
+                      .filter(k => k.length > 0);
+                    setCampaignData(prev => ({ ...prev, seedKeywords: keywords }));
+                  }}
+                  rows={6}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-slate-500">
+                  💡 Press <kbd className="px-2 py-1 bg-slate-100 rounded">Enter</kbd> to go to next line. These {seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0).length} keywords will be used to generate 410-710 variations.
+                </p>
+              </div>
+          <Button 
+                onClick={() => {
+                  const keywords = seedKeywordsText
+                    .split(/[\n,]+/)
+                    .map(k => k.trim())
+                    .filter(k => k.length > 0);
+                  setCampaignData(prev => ({ ...prev, seedKeywords: keywords }));
+                  setTimeout(() => handleGenerateKeywords(), 50);
+                }} 
+                disabled={loading || seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0).length === 0} 
+                className="mt-6 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                Generate Keywords
+              </Button>
+            </CardContent>
+          </Card>
+
+      <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Negative Keywords</CardTitle>
+              <CardDescription>Exclude these keywords from your campaign. Remove defaults if needed or add more custom ones.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Negative Keywords List */}
+                <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+                  <p className="text-sm font-semibold text-slate-700 mb-3">14 Negative Keywords (click to remove custom ones)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {campaignData.negativeKeywords.map((neg, idx) => {
+                      const isDefault = DEFAULT_NEGATIVE_KEYWORDS.includes(neg);
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            isDefault
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : 'bg-orange-100 text-orange-700 border border-orange-200 cursor-pointer hover:bg-orange-200'
+                          }`}
+                          onClick={() => {
+                            // Only allow removal of non-default keywords
+                            if (!isDefault) {
+                              const updated = campaignData.negativeKeywords.filter((_, i) => i !== idx);
+                              setCampaignData(prev => ({
+                                ...prev,
+                                negativeKeywords: updated
+                              }));
+                            }
+                          }}
+                          title={isDefault ? "Default keyword - cannot remove" : "Click to remove"}
+                        >
+                          {neg}
+                          {!isDefault && <X className="w-4 h-4" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Add Custom Negative Keywords */}
+                <div>
+                  <label className="text-sm font-semibold text-slate-700 block mb-2">Add More Negative Keywords</label>
+                  <Textarea
+                    placeholder="Add custom negative keywords (one per line)"
+                    onChange={(e) => {
+                      const customNegatives = e.target.value
+                        .split('\n')
+                        .map(n => n.trim())
+                        .filter(n => n.length > 0 && !DEFAULT_NEGATIVE_KEYWORDS.includes(n));
+                      // Combine defaults with custom
+                      const combined = [...new Set([...DEFAULT_NEGATIVE_KEYWORDS, ...customNegatives])];
+                      setCampaignData(prev => ({
+                        ...prev,
+                        negativeKeywords: combined
+                      }));
+                    }}
+                    rows={3}
+                    className="font-mono text-sm"
+                  />
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  🔴 Red = 14 default negative keywords (always kept)  |  🟠 Orange = custom keywords (click to remove)  |  Total: {campaignData.negativeKeywords.length} keywords excluded
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {campaignData.generatedKeywords.length > 0 && (
+        <>
+          <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Keyword Type Filters</CardTitle>
+                <CardDescription>Toggle keyword types to filter the list</CardDescription>
+              </CardHeader>
+              <CardContent>
+              <div className="flex gap-4">
+                  {KEYWORD_TYPES.map(type => (
+                    <div key={type.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={type.id}
+                        checked={campaignData.keywordTypes[type.id] || false}
+                        onCheckedChange={() => handleKeywordTypeToggle(type.id)}
+                      />
+                      <Label htmlFor={type.id}>{type.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+          <Card className="mb-6" data-keywords-section>
+              <CardHeader>
+                <CardTitle>Generated Keywords & Negative Keywords ({filteredKeywords.length + campaignData.negativeKeywords.length})</CardTitle>
+                <CardDescription>Keywords organized by campaign structure: {campaignData.selectedStructure?.toUpperCase() || 'SKAG'}. Red keywords with × are negative keywords (excluded from campaigns).</CardDescription>
+              </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-96">
+                <div className="space-y-2">
+                    {filteredKeywords.length === 0 && campaignData.negativeKeywords.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500">
+                        <p>No keywords match your filters.</p>
+                        <p className="text-xs mt-2">Try adjusting keyword type filters or negative keywords.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Generated Keywords */}
+                        {filteredKeywords.map((kw, idx) => {
+                          const keywordText = typeof kw === 'string' ? kw : (kw?.text || kw?.keyword || String(kw || ''));
+                          return (
+                            <div key={kw?.id || idx} className="flex items-center justify-between p-2 border rounded bg-slate-50 hover:bg-slate-100">
+                              <span className="text-sm text-slate-700">{keywordText}</span>
+                              {kw?.matchType && (
+                          <Badge variant="outline" className="text-xs">{kw.matchType}</Badge>
+                            )}
+                          </div>
+                          );
+                        })}
+                        
+                        {/* Negative Keywords Section */}
+                        {campaignData.negativeKeywords.length > 0 && (
+                          <div className="mt-4 pt-4 border-t">
+                            <p className="text-xs font-semibold text-red-700 mb-2">Negative Keywords (Excluded)</p>
+                            <div className="space-y-1">
+                              {campaignData.negativeKeywords.map((neg, idx) => (
+                                <div key={`neg-${idx}`} className="flex items-center justify-between p-2 border rounded bg-red-50 hover:bg-red-100 border-red-200">
+                                  <span className="text-sm text-red-700">{neg}</span>
+                                  <X className="w-4 h-4 text-red-600" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+        </>
+      )}
+    </div>
+  );
+
+  const renderStep4 = () => {
+    const allAdGroups = ['ALL_AD_GROUPS', ...campaignData.adGroups.map(ag => ag.name)];
+    const displayAds = campaignData.ads.length > 0 ? campaignData.ads : [];
+    const extensionTypes = [
+      { id: 'snippet', label: 'SNIPPET EXTENSION', icon: FileText },
+      { id: 'callout', label: 'CALLOUT EXTENSION', icon: MessageSquare },
+      { id: 'sitelink', label: 'SITELINK EXTENSION', icon: Link2 },
+      { id: 'call', label: 'CALL EXTENSION', icon: Phone },
+      { id: 'price', label: 'PRICE EXTENSION', icon: DollarSign },
+      { id: 'app', label: 'APP EXTENSION', icon: Smartphone },
+      { id: 'location', label: 'LOCATION EXTENSION', icon: MapPinIcon },
+      { id: 'message', label: 'MESSAGE EXTENSION', icon: MessageSquare },
+      { id: 'leadform', label: 'LEAD FORM EXTENSION', icon: FileText },
+      { id: 'promotion', label: 'PROMOTION EXTENSION', icon: Gift },
+      { id: 'image', label: 'IMAGE EXTENSION', icon: ImageIcon },
+    ];
+
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-slate-800 mb-2">Ads & Extensions Wizard</h2>
+          <p className="text-slate-600">Generate ad copies and add extensions to your campaign</p>
+        </div>
+
+        {/* Campaign Info Card - URL (greyed out) and Keywords */}
+        <Card className="mb-6 bg-blue-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="text-blue-900">Campaign Information</CardTitle>
+            <CardDescription className="text-blue-700">Using information from earlier steps</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Landing Page URL - Greyed out */}
+              <div>
+                <Label className="text-sm font-semibold text-blue-800">Landing Page URL</Label>
+                <Input
+                  type="text"
+                  value={campaignData.url || 'Not set'}
+                  disabled
+                  readOnly
+                  className="mt-1 bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed opacity-70"
+                />
+              </div>
+              
+              {/* Keywords */}
+              <div>
+                <Label className="text-sm font-semibold text-blue-800">Keywords</Label>
+                <div className="mt-1 p-2 bg-white rounded border border-blue-200">
+                  <div className="flex flex-wrap gap-2">
+                    {campaignData.selectedKeywords.length > 0 ? (
+                      campaignData.selectedKeywords.slice(0, 5).map((kw, idx) => {
+                        const keywordText = typeof kw === 'string' ? kw : (kw?.text || kw?.keyword || String(kw || ''));
+                        return (
+                          <Badge key={kw?.id || idx} variant="outline" className="text-xs">
+                            {keywordText}
+                          </Badge>
+                        );
+                      })
+                    ) : (
+                      <span className="text-sm text-slate-500">No keywords selected</span>
+                    )}
+                    {campaignData.selectedKeywords.length > 5 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{campaignData.selectedKeywords.length - 5} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Create Ads & Extensions - Compact Inline */}
+              <div className="pt-2 space-y-1">
+                <div className="flex items-center flex-wrap gap-1.5">
+                  <span className="text-xs font-semibold text-blue-800 whitespace-nowrap">Create Ads (Max 3):</span>
+                  <Button 
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                    onClick={() => handleAddNewAd('rsa')}
+                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'rsa' || ad.adType === 'RSA')}
+                  >
+                    <Plus className="mr-1 w-3 h-3" /> RSA
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                    onClick={() => handleAddNewAd('dki')}
+                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'dki' || ad.adType === 'DKI')}
+                  >
+                    <Plus className="mr-1 w-3 h-3" /> DKI
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                    onClick={() => handleAddNewAd('call')}
+                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'call' || ad.adType === 'CallOnly')}
+                  >
+                    <Plus className="mr-1 w-3 h-3" /> CALL
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!campaignData.url || campaignData.url.trim() === '') {
+                        notifications.error('URL is required', { 
+                          title: 'Missing URL', 
+                          description: 'Please go back to Step 1 and enter a landing page URL.' 
+                        });
+                        return;
+                      }
+                      if (!campaignData.selectedKeywords || campaignData.selectedKeywords.length === 0) {
+                        notifications.error('Keywords are required', { 
+                          title: 'Missing Keywords', 
+                          description: 'Please go back to Step 3 and select keywords.' 
+                        });
+                        return;
+                      }
+                      if (campaignData.ads.length === 0) {
+                        notifications.error('Please add at least one ad first', { 
+                          title: 'No Ads Added', 
+                          description: 'Click on one of the ad type buttons to add an ad.' 
+                        });
+                        return;
+                      }
+                      handleGenerateAds();
+                    }}
+                    disabled={loading || !campaignData.url || !campaignData.selectedKeywords || campaignData.selectedKeywords.length === 0 || campaignData.ads.length === 0}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Generating
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        Generate
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <div className="flex items-center flex-wrap gap-1">
+                  <span className="text-xs font-semibold text-purple-800 whitespace-nowrap">Extensions:</span>
+                  {extensionTypes.map(ext => {
+                    const Icon = ext.icon;
+                    const shortLabel = ext.label.replace(' EXTENSION', '');
+                    return (
+                      <Button
+                        key={ext.id}
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-200 hover:bg-purple-50 text-xs px-1.5 py-0.5 h-6"
+                        onClick={() => handleAddExtensionToAllAds(ext.id)}
+                      >
+                        <Plus className="mr-0.5 w-2.5 h-2.5" />
+                        <Icon className="mr-0.5 w-2.5 h-2.5" />
+                        {shortLabel}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ad Group Selector and Ads Display */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Sidebar - Ad Group Selector Only */}
+          <div className="lg:col-span-1 space-y-4">
+            <Card>
+              <CardContent className="p-4">
+                <Label className="text-sm font-semibold mb-2 block">Ad Group</Label>
+                <Select 
+                  value={campaignData.selectedAdGroup || 'ALL_AD_GROUPS'} 
+                  onValueChange={(value: string) => setCampaignData(prev => ({ ...prev, selectedAdGroup: value }))}
+                >
+                  <SelectTrigger className="w-full bg-slate-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allAdGroups.map(group => (
+                      <SelectItem key={group} value={group}>
+                        {group === 'ALL_AD_GROUPS' ? 'ALL AD GROUPS' : group}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500 mt-2">
+                  Ads: {displayAds.length} / 3
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Content - Ads Display */}
+          <div className="lg:col-span-3 space-y-4">
+            {displayAds.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Sparkles className="w-12 h-12 mx-auto text-slate-400 mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-700 mb-2">No Ads Created Yet</h3>
+                  <p className="text-slate-500 mb-4">Click on an ad type button above to create an ad (Maximum 3 ads allowed)</p>
+                </CardContent>
+              </Card>
+            ) : (
+              displayAds.map((ad) => (
+                <Card key={ad.id} className="border-2">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <Badge variant="outline" className="text-xs">
+                        {ad.type?.toUpperCase() || ad.adType || 'RSA'}
+                      </Badge>
+                        <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditAd(ad.id)} className="text-purple-600 hover:text-purple-700">
+                          <Edit3 className="w-4 h-4 mr-1" />
+                          EDIT
+                          </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDuplicateAd(ad.id)} className="text-purple-600 hover:text-purple-700">
+                          <Copy className="w-4 h-4 mr-1" />
+                          DUPLICATE
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteAd(ad.id)} className="text-purple-600 hover:text-purple-700">
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          DELETE
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* RSA Ad Display */}
+                      {ad.type === 'rsa' && ad.headlines && (
+                      <div className="space-y-3">
+                          <div>
+                          <Label className="text-xs text-slate-500 mb-2 block">Headlines / Paths</Label>
+                          <div className="flex flex-wrap gap-2">
+                              {ad.headlines.slice(0, 5).map((h: string, i: number) => (
+                              <span key={i} className="text-sm text-slate-700">{h}</span>
+                              ))}
+                            {ad.displayPath && ad.displayPath.length > 0 && (
+                              <span className="text-sm text-slate-500">| {ad.displayPath.join(' | ')}</span>
+                              )}
+                            </div>
+                          </div>
+                        <div>
+                          <Label className="text-xs text-slate-500 mb-1 block">Display URL</Label>
+                          <p className="text-xs text-blue-600 break-all">{ad.finalUrl || campaignData.url}</p>
+                          </div>
+                          {ad.descriptions && ad.descriptions.length > 0 && (
+                            <div>
+                            <Label className="text-xs text-slate-500 mb-1 block">Descriptions</Label>
+                            {ad.descriptions.slice(0, 2).map((desc: string, i: number) => (
+                              <p key={i} className="text-sm text-slate-600 mb-1">{desc}</p>
+                            ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* DKI Ad Display */}
+                      {(ad.type === 'dki' || ad.adType === 'DKI') && (
+                      <div className="space-y-3">
+                          {ad.headline1 && <p className="font-semibold text-sm">{ad.headline1}</p>}
+                          {ad.headline2 && <p className="font-semibold text-sm">{ad.headline2}</p>}
+                        {ad.headline3 && <p className="font-semibold text-sm">{ad.headline3}</p>}
+                          {ad.description1 && <p className="text-sm text-slate-600">{ad.description1}</p>}
+                        {ad.description2 && <p className="text-sm text-slate-600">{ad.description2}</p>}
+                          {ad.finalUrl && (
+                            <p className="text-xs text-blue-600">{ad.finalUrl}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Call-Only Ad Display */}
+                      {(ad.type === 'call' || ad.adType === 'CallOnly') && (
+                      <div className="space-y-3">
+                          {ad.headline1 && <p className="font-semibold text-sm">{ad.headline1}</p>}
+                        {ad.headline2 && <p className="font-semibold text-sm">{ad.headline2}</p>}
+                          {ad.phoneNumber && (
+                            <div className="flex items-center gap-2">
+                            <Phone className="w-5 h-5 text-green-600" />
+                            <span className="text-lg font-medium">{ad.phoneNumber}</span>
+                            </div>
+                          )}
+                          {ad.description1 && <p className="text-sm text-slate-600">{ad.description1}</p>}
+                        {ad.description2 && <p className="text-sm text-slate-600">{ad.description2}</p>}
+                        </div>
+                      )}
+                      
+                    {/* Extensions Display */}
+                        {ad.extensions && ad.extensions.length > 0 && (
+                      <div className="mt-4 pt-4 border-t">
+                        <Label className="text-xs text-slate-500 mb-2 block">Extensions</Label>
+                        <div className="space-y-2">
+                            {ad.extensions.map((ext: any) => {
+                              // Get extension display text based on type
+                              let displayText = ext.text || ext.label || ext.type;
+                              
+                              if (ext.type === 'snippet' && ext.header && ext.values) {
+                                displayText = `${ext.header}: ${ext.values.join(', ')}`;
+                              } else if (ext.type === 'callout' && ext.callouts && Array.isArray(ext.callouts)) {
+                                displayText = ext.callouts.join(', ');
+                              } else if (ext.type === 'sitelink' && ext.sitelinks && Array.isArray(ext.sitelinks)) {
+                                displayText = ext.sitelinks.map((sl: any) => sl.text || sl.linkText || 'Sitelink').join(', ');
+                              } else if (ext.type === 'call' && (ext.phone || ext.phoneNumber)) {
+                                displayText = ext.phone || ext.phoneNumber;
+                              } else if (ext.type === 'price' && ext.price) {
+                                displayText = `${ext.priceQualifier || 'From'} ${ext.price} ${ext.unit || ''}`.trim();
+                              }
+                              
+                              return (
+                                <div key={ext.id} className="flex items-center justify-between p-3 bg-slate-50 rounded border border-slate-200">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    {ext.type === 'snippet' && <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />}
+                                    {ext.type === 'callout' && <MessageSquare className="w-4 h-4 text-purple-600 flex-shrink-0" />}
+                                    {ext.type === 'sitelink' && <Link2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
+                                    {ext.type === 'call' && <Phone className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                    {ext.type === 'price' && <DollarSign className="w-4 h-4 text-yellow-600 flex-shrink-0" />}
+                                    {ext.type === 'app' && <Smartphone className="w-4 h-4 text-cyan-600 flex-shrink-0" />}
+                                    {ext.type === 'location' && <MapPinIcon className="w-4 h-4 text-red-600 flex-shrink-0" />}
+                                    {ext.type === 'message' && <MessageSquare className="w-4 h-4 text-purple-600 flex-shrink-0" />}
+                                    {ext.type === 'leadform' && <FileText className="w-4 h-4 text-orange-600 flex-shrink-0" />}
+                                    {ext.type === 'promotion' && <Gift className="w-4 h-4 text-pink-600 flex-shrink-0" />}
+                                    {ext.type === 'image' && <ImageIcon className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
+                                    <div className="flex-1 min-w-0">
+                                      <span className="text-xs text-slate-500 uppercase font-semibold block mb-1">
+                                        {ext.label || ext.type.charAt(0).toUpperCase() + ext.type.slice(1).replace(/([A-Z])/g, ' $1')}
+                                      </span>
+                                      <span className="text-sm text-slate-700 font-medium block truncate">
+                                        {displayText}
+                                </span>
+                                    </div>
+                          </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveExtension(ad.id, ext.id)}
+                                    className="text-red-600 hover:text-red-700 flex-shrink-0"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                      </div>
+                              );
+                            })}
+              </div>
+                      </div>
+                    )}
+
+                    {/* Edit Form - shown when editing */}
+                    {editingAdId === ad.id && (
+                      <div className="mt-6 pt-6 border-t border-slate-200 space-y-4">
+                        {/* RSA Edit Form */}
+                        {(ad.type === 'rsa' || ad.adType === 'RSA') && (
+                          <>
+                            <div className="space-y-4">
+                              <div>
+                                <Label className="text-xs font-semibold text-slate-700 mb-2 block">Headlines (max 30 chars each)</Label>
+                                <div className="space-y-2">
+                                  {(ad.headlines || []).slice(0, 15).map((headline: string, idx: number) => (
+                                    <div key={idx}>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-xs text-slate-600">Headline {idx + 1}</Label>
+                                        <span className={`text-xs ${(headline?.length || 0) > 30 ? 'text-red-600 font-semibold' : (headline?.length || 0) > 25 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                          {(headline?.length || 0)}/30
+                                        </span>
+                                      </div>
+                                      <Input
+                                        value={headline || ''}
+                                        onChange={(e) => {
+                                          const newHeadlines = [...(ad.headlines || [])];
+                                          newHeadlines[idx] = e.target.value;
+                                          updateAdField(ad.id, 'headlines', newHeadlines);
+                                        }}
+                                        className={`${(headline?.length || 0) > 30 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                        maxLength={30}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-xs font-semibold text-slate-700 mb-2 block">Descriptions (max 90 chars each)</Label>
+                                <div className="space-y-2">
+                                  {(ad.descriptions || []).slice(0, 4).map((desc: string, idx: number) => (
+                                    <div key={idx}>
+                                      <div className="flex items-center justify-between mb-1">
+                                        <Label className="text-xs text-slate-600">Description {idx + 1}</Label>
+                                        <span className={`text-xs ${(desc?.length || 0) > 90 ? 'text-red-600 font-semibold' : (desc?.length || 0) > 80 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                          {(desc?.length || 0)}/90
+                                        </span>
+                                      </div>
+                                      <Textarea
+                                        value={desc || ''}
+                                        onChange={(e) => {
+                                          const newDescriptions = [...(ad.descriptions || [])];
+                                          newDescriptions[idx] = e.target.value;
+                                          updateAdField(ad.id, 'descriptions', newDescriptions);
+                                        }}
+                                        className={`${(desc?.length || 0) > 90 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                        rows={2}
+                                        maxLength={90}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-xs font-semibold text-slate-700 mb-2 block">Final URL</Label>
+                                <Input
+                                  value={ad.finalUrl || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'finalUrl', e.target.value)}
+                                  placeholder="https://www.example.com"
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {/* DKI Edit Form */}
+                        {(ad.type === 'dki' || ad.adType === 'DKI') && (
+                          <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Headline 1 *</Label>
+                                  <span className={`text-xs ${(ad.headline1?.length || 0) > 30 ? 'text-red-600 font-semibold' : (ad.headline1?.length || 0) > 25 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.headline1?.length || 0)}/30
+                                  </span>
+                                </div>
+                                <Input
+                                  value={ad.headline1 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'headline1', e.target.value)}
+                                  className={`${(ad.headline1?.length || 0) > 30 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter headline 1"
+                                  maxLength={30}
+                                />
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Headline 2 *</Label>
+                                  <span className={`text-xs ${(ad.headline2?.length || 0) > 30 ? 'text-red-600 font-semibold' : (ad.headline2?.length || 0) > 25 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.headline2?.length || 0)}/30
+                                  </span>
+                                </div>
+                                <Input
+                                  value={ad.headline2 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'headline2', e.target.value)}
+                                  className={`${(ad.headline2?.length || 0) > 30 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter headline 2"
+                                  maxLength={30}
+                                />
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Headline 3</Label>
+                                  <span className={`text-xs ${(ad.headline3?.length || 0) > 30 ? 'text-red-600 font-semibold' : (ad.headline3?.length || 0) > 25 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.headline3?.length || 0)}/30
+                                  </span>
+                                </div>
+                                <Input
+                                  value={ad.headline3 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'headline3', e.target.value)}
+                                  className={`${(ad.headline3?.length || 0) > 30 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter headline 3"
+                                  maxLength={30}
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Description 1 *</Label>
+                                  <span className={`text-xs ${(ad.description1?.length || 0) > 90 ? 'text-red-600 font-semibold' : (ad.description1?.length || 0) > 80 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.description1?.length || 0)}/90
+                                  </span>
+                                </div>
+                                <Textarea
+                                  value={ad.description1 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'description1', e.target.value)}
+                                  className={`${(ad.description1?.length || 0) > 90 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter description 1"
+                                  rows={2}
+                                  maxLength={90}
+                                />
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Description 2</Label>
+                                  <span className={`text-xs ${(ad.description2?.length || 0) > 90 ? 'text-red-600 font-semibold' : (ad.description2?.length || 0) > 80 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.description2?.length || 0)}/90
+                                  </span>
+                                </div>
+                                <Textarea
+                                  value={ad.description2 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'description2', e.target.value)}
+                                  className={`${(ad.description2?.length || 0) > 90 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter description 2"
+                                  rows={2}
+                                  maxLength={90}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Label className="text-xs font-semibold text-slate-700">Final URL *</Label>
+                              <Input
+                                value={ad.finalUrl || ''}
+                                onChange={(e) => updateAdField(ad.id, 'finalUrl', e.target.value)}
+                                placeholder="https://www.example.com"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* Call-Only Edit Form */}
+                        {(ad.type === 'call' || ad.adType === 'CallOnly') && (
+                          <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Headline 1 *</Label>
+                                  <span className={`text-xs ${(ad.headline1?.length || 0) > 30 ? 'text-red-600 font-semibold' : (ad.headline1?.length || 0) > 25 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.headline1?.length || 0)}/30
+                                  </span>
+                                </div>
+                                <Input
+                                  value={ad.headline1 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'headline1', e.target.value)}
+                                  className={`${(ad.headline1?.length || 0) > 30 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter headline 1"
+                                  maxLength={30}
+                                />
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Headline 2 *</Label>
+                                  <span className={`text-xs ${(ad.headline2?.length || 0) > 30 ? 'text-red-600 font-semibold' : (ad.headline2?.length || 0) > 25 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.headline2?.length || 0)}/30
+                                  </span>
+                                </div>
+                                <Input
+                                  value={ad.headline2 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'headline2', e.target.value)}
+                                  className={`${(ad.headline2?.length || 0) > 30 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter headline 2"
+                                  maxLength={30}
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Description 1 *</Label>
+                                  <span className={`text-xs ${(ad.description1?.length || 0) > 90 ? 'text-red-600 font-semibold' : (ad.description1?.length || 0) > 80 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.description1?.length || 0)}/90
+                                  </span>
+                                </div>
+                                <Textarea
+                                  value={ad.description1 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'description1', e.target.value)}
+                                  className={`${(ad.description1?.length || 0) > 90 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter description 1"
+                                  rows={2}
+                                  maxLength={90}
+                                />
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-xs font-semibold text-slate-700">Description 2 *</Label>
+                                  <span className={`text-xs ${(ad.description2?.length || 0) > 90 ? 'text-red-600 font-semibold' : (ad.description2?.length || 0) > 80 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                    {(ad.description2?.length || 0)}/90
+                                  </span>
+                                </div>
+                                <Textarea
+                                  value={ad.description2 || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'description2', e.target.value)}
+                                  className={`${(ad.description2?.length || 0) > 90 ? 'border-red-500 focus:border-red-500' : ''}`}
+                                  placeholder="Enter description 2"
+                                  rows={2}
+                                  maxLength={90}
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-xs font-semibold text-slate-700">Phone Number *</Label>
+                                <Input
+                                  value={ad.phoneNumber || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'phoneNumber', e.target.value)}
+                                  placeholder="(555) 123-4567"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-semibold text-slate-700">Business Name *</Label>
+                                <Input
+                                  value={ad.businessName || ''}
+                                  onChange={(e) => updateAdField(ad.id, 'businessName', e.target.value)}
+                                  placeholder="Your Business"
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="flex gap-2 pt-4 border-t border-slate-300">
+                          <Button
+                            onClick={() => handleSaveAd(ad.id)}
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                            size="sm"
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            Save Changes
+                          </Button>
+                          <Button
+                            onClick={handleCancelEdit}
+                            variant="outline"
+                            className="flex-1"
+                            size="sm"
+                          >
+                            Cancel
+                          </Button>
+              </div>
+                      </div>
+                    )}
+          </CardContent>
+        </Card>
+              ))
+      )}
+          </div>
+        </div>
+    </div>
+  );
+  };
+
+  const renderStep5 = () => {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-slate-800 mb-2">Geo Target</h2>
+          <p className="text-slate-600">Select the country where your ads will be shown.</p>
+        </div>
+
+        <div className="space-y-6">
+          {/* Target Country */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-indigo-600" />
+                <CardTitle>Target Country</CardTitle>
+              </div>
+              <CardDescription>
+                Select the country where you want your ads to be displayed. All users within this country will see your ads.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select 
+                value={campaignData.targetCountry} 
+                onValueChange={(value: string) => {
+                  setCampaignData(prev => ({ ...prev, targetCountry: value }));
+                  autoSaveDraft();
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOCATION_PRESETS.countries.map(country => (
+                    <SelectItem key={country} value={country}>{country}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  };
+  const renderStep6 = () => (
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="mb-8 flex items-center justify-end">
+        <div className="text-sm text-slate-500 mr-4">Review step - no inputs to fill</div>
+      </div>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">Review Campaign</h2>
+        <p className="text-slate-600">Review all ad groups, ads, keywords, and negative keywords before generating CSV</p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Ad Groups */}
+          <Card>
+            <CardHeader>
+            <CardTitle>Ad Groups ({campaignData.adGroups.length})</CardTitle>
+            <CardDescription>Ad groups organized by campaign structure: {campaignData.selectedStructure?.toUpperCase() || 'SKAG'}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-64">
+                <div className="space-y-2">
+                {campaignData.adGroups.map((group, idx) => (
+                  <div key={group.id} className="p-3 border rounded">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">{group.name}</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {group.keywords.length} keywords
+                        </p>
+                      </div>
+                      <Badge variant="outline">{idx + 1}</Badge>
+                    </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+        {/* Ads */}
+          <Card>
+            <CardHeader>
+            <CardTitle>Ads ({campaignData.ads.length})</CardTitle>
+            <CardDescription>All ads that will be used across ad groups</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-64">
+              <div className="space-y-3">
+                {campaignData.ads.map((ad) => (
+                  <div key={ad.id} className="p-3 border rounded">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge>{ad.type?.toUpperCase() || ad.adType || 'RSA'}</Badge>
+                      <span className="text-xs text-slate-500">
+                        {ad.extensions?.length || 0} extensions
+                      </span>
+                    </div>
+                    {ad.type === 'rsa' && ad.headlines && (
+                      <p className="text-sm text-slate-700 mt-2">
+                        {ad.headlines.slice(0, 3).join(' | ')}
+                      </p>
+                    )}
+                    {(ad.type === 'dki' || ad.adType === 'DKI') && ad.headline1 && (
+                      <p className="text-sm text-slate-700 mt-2">{ad.headline1}</p>
+                    )}
+                    {(ad.type === 'call' || ad.adType === 'CallOnly') && ad.headline1 && (
+                      <p className="text-sm text-slate-700 mt-2">{ad.headline1}</p>
+                    )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+        {/* Keywords */}
+          <Card>
+            <CardHeader>
+            <CardTitle>Keywords ({campaignData.selectedKeywords.length})</CardTitle>
+            <CardDescription>All keywords selected for the campaign</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-64">
+              <div className="flex flex-wrap gap-2">
+                {campaignData.selectedKeywords.slice(0, 100).map((kw, idx) => {
+                  const keywordText = typeof kw === 'string' ? kw : (kw?.text || kw?.keyword || String(kw || ''));
+                  return (
+                    <Badge key={kw?.id || idx} variant="outline" className="text-xs">
+                      {keywordText}
+                  </Badge>
+                  );
+                })}
+                {campaignData.selectedKeywords.length > 100 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{campaignData.selectedKeywords.length - 100} more
+                  </Badge>
+                  )}
+                </div>
+              </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Negative Keywords */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Negative Keywords ({campaignData.negativeKeywords.length})</CardTitle>
+            <CardDescription>Keywords that will be excluded from the campaign</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {campaignData.negativeKeywords.map((neg, idx) => (
+                <Badge 
+                  key={idx} 
+                  variant={DEFAULT_NEGATIVE_KEYWORDS.includes(neg) ? "destructive" : "secondary"}
+                  className="text-xs"
+                >
+                  {neg}
+                </Badge>
+              ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+
+  // Helper function to get location count and type
+  const getLocationCountAndType = () => {
+    const { cities, zipCodes, states, countries } = campaignData.locations;
+    
+    if (cities.length > 0) {
+      return { count: cities.length, type: 'Cities' };
+    } else if (zipCodes.length > 0) {
+      return { count: zipCodes.length, type: 'ZIP Codes' };
+    } else if (states.length > 0) {
+      return { count: states.length, type: 'States' };
+    } else if (countries.length > 0) {
+      return { count: countries.length, type: 'Countries' };
+    } else {
+      // Whole country targeting
+      return { count: 1, type: 'Country' };
+    }
+  };
+
+  const renderStep8 = () => {
+    const locationInfo = getLocationCountAndType();
+    const structureName = CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG';
+    const targetLocationText = locationInfo.count === 1 && locationInfo.type === 'Country'
+      ? `${campaignData.targetCountry} (Nationwide)`
+      : `${campaignData.targetCountry} (${locationInfo.type})`;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 shadow-lg shadow-green-200/50 mb-4 animate-in fade-in zoom-in duration-500">
+              <CheckCircle2 className="w-8 h-8 text-white" />
+          </div>
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              Campaign Created Successfully!
+            </h1>
+            <p className="text-sm text-slate-600 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-900">
+              Your campaign is ready to export and implement in Google Ads Editor
+            </p>
+        </div>
+
+          {/* Metrics Cards - Redesigned */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            {/* 1. Campaigns */}
+            <Card className="text-center border-2 border-indigo-100 bg-gradient-to-br from-white to-indigo-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <CardContent className="p-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+                  <Megaphone className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-0.5">1</div>
+                <div className="text-xs font-medium text-slate-700">Campaign</div>
+              </CardContent>
+            </Card>
+            {/* 2. Ad Groups */}
+            <Card className="text-center border-2 border-blue-100 bg-gradient-to-br from-white to-blue-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <CardContent className="p-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+                  <Layers className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-0.5">{campaignData.adGroups.length}</div>
+                <div className="text-xs font-medium text-slate-700">Ad Groups</div>
+              </CardContent>
+            </Card>
+            {/* 3. Ads */}
+            <Card className="text-center border-2 border-orange-100 bg-gradient-to-br from-white to-orange-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <CardContent className="p-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+                  <FileText className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-0.5">{campaignData.ads.length * Math.max(1, campaignData.adGroups.length)}</div>
+                <div className="text-xs font-medium text-slate-700">Ads</div>
+              </CardContent>
+            </Card>
+            {/* 4. Keywords */}
+            <Card className="text-center border-2 border-purple-100 bg-gradient-to-br from-white to-purple-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <CardContent className="p-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+                  <Hash className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-0.5">{campaignData.selectedKeywords.length}</div>
+                <div className="text-xs font-medium text-slate-700">Keywords</div>
+              </CardContent>
+            </Card>
+            {/* 5. Locations */}
+            <Card className="text-center border-2 border-green-100 bg-gradient-to-br from-white to-green-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <CardContent className="p-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+                  <MapPin className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-0.5">{locationInfo.count}</div>
+                <div className="text-xs font-medium text-slate-700">Locations</div>
+              </CardContent>
+            </Card>
+            {/* 6. Assets */}
+            <Card className="text-center border-2 border-teal-100 bg-gradient-to-br from-white to-teal-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <CardContent className="p-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+                  <Link2 className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-0.5">
+                  {campaignData.ads.reduce((total, ad) => total + (ad.extensions?.length || 0), 0)}
+                </div>
+                <div className="text-xs font-medium text-slate-700">Assets</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Campaign Summary - Redesigned */}
+          <Card className="mb-6 border-2 border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-slate-200 py-3 px-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-md">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                  <CardTitle className="text-lg text-slate-900">Campaign Summary</CardTitle>
+                  <CardDescription className="text-xs text-slate-600 mt-0.5">All checks passed - ready for export</CardDescription>
+              </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Campaign Name</Label>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-base font-semibold text-slate-900">{campaignData.campaignName}</p>
+            </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Structure</Label>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-base font-semibold text-slate-900">{structureName}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Target Location</Label>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-base font-semibold text-slate-900">{targetLocationText}</p>
+                  </div>
+                </div>
+              </div>
+              
+            {/* Cities Summary - Show if cities are selected */}
+            {campaignData.locations.cities.length > 0 && (() => {
+              const cityCount = campaignData.locations.cities.length;
+              const presetCounts = [20, 50, 100, 200, LOCATION_PRESETS.cities.length];
+              const isPreset = presetCounts.includes(cityCount);
+              const presetLabel = cityCount === 20 ? 'Top 20 Cities' :
+                                cityCount === 50 ? 'Top 50 Cities' :
+                                cityCount === 100 ? 'Top 100 Cities' :
+                                cityCount === 200 ? 'Top 200 Cities' :
+                                cityCount === LOCATION_PRESETS.cities.length ? 'All Cities' : null;
+              
+              return (
+                  <div className="pt-6 border-t border-slate-200">
+                    <div className="bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 border-2 border-blue-200/60 rounded-xl p-5 shadow-sm">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                          <Building2 className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <p className="text-base font-bold text-slate-900">
+                            {presetLabel || 'Custom Cities'}
+                          </p>
+                            <Badge className="text-xs bg-blue-100 text-blue-700 border-blue-300 font-semibold px-2.5 py-1">
+                            {cityCount} selected
+                          </Badge>
+                        </div>
+                          <div>
+                            <p className="text-xs font-medium text-slate-600 mb-2">Selected cities:</p>
+                            <div className="flex flex-wrap gap-2">
+                            {campaignData.locations.cities.slice(0, 10).map((city, idx) => (
+                                <Badge key={idx} className="text-xs bg-white text-slate-700 border-slate-300 shadow-sm font-medium">
+                                {city}
+                              </Badge>
+                            ))}
+                            {cityCount > 10 && (
+                                <Badge className="text-xs bg-slate-100 text-slate-600 border-slate-300 shadow-sm font-medium">
+                                +{cityCount - 10} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+          </CardContent>
+        </Card>
+
+          {/* Primary Action Section */}
+          <div className="mb-6">
+            <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            onClick={handleDownloadCSV}
+            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-200/50 h-14 text-lg font-semibold"
+          >
+            <Download className="w-5 h-5 mr-2" />
+            Download CSV for Google Ads Editor
+          </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Dispatch custom event for App.tsx to handle
+                  const event = new CustomEvent('navigate', { detail: { tab: 'campaign-history' } });
+                  window.dispatchEvent(event);
+                  
+                  // Fallback: Update URL hash
+                  if (window.location.hash !== '#campaign-history') {
+                    window.location.hash = '#campaign-history';
+                  }
+                }}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-200/50 h-14 text-lg font-semibold"
+          >
+                <FolderOpen className="w-5 h-5 mr-2" />
+                View Saved Campaigns
+              </Button>
+            </div>
+          </div>
+
+          {/* Secondary Actions */}
+          <div className="flex flex-wrap gap-3 justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentStep(6)}
+              className="border-slate-300 hover:bg-slate-50"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Review
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              // Reset and start new campaign
+              window.location.reload();
+            }}
+              className="border-slate-300 hover:bg-slate-50"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Another Campaign
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              // Dispatch custom event for App.tsx to handle
+              const event = new CustomEvent('navigate', { detail: { tab: 'dashboard' } });
+              window.dispatchEvent(event);
+              
+              // Fallback: Update URL hash
+              if (window.location.hash !== '#dashboard') {
+                window.location.hash = '#dashboard';
+              }
+              
+              // Additional fallback: Try direct navigation after a short delay
+              setTimeout(() => {
+                const event2 = new CustomEvent('navigate', { detail: { tab: 'dashboard' } });
+                window.dispatchEvent(event2);
+              }, 100);
+            }}
+              className="border-slate-300 hover:bg-slate-50"
+          >
+            Go to Dashboard
+          </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderStep7 = () => (
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="mb-8 flex items-center justify-end">
+        <div className="text-sm text-slate-500 mr-4">CSV generation step - no inputs to fill</div>
+      </div>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">CSV Generation</h2>
+        <p className="text-slate-600">Generate your campaign CSV for Google Ads Editor</p>
+      </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>CSV Headers</CardTitle>
+          <CardDescription>Brief overview of CSV structure</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {['Campaign', 'Ad Group', 'Row Type', 'Final URL', 'Headline 1', 'Description 1', 'Status'].map(header => (
+              <Badge key={header} variant="outline">{header}</Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Generate CSV</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleGenerateCSV} disabled={loading}>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
+            Generate CSV
+          </Button>
+        </CardContent>
+      </Card>
+
+      {campaignData.csvData && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <CardTitle className="text-green-600">CSV Ready</CardTitle>
+            </div>
+            <CardDescription>Your CSV is ready for export</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <Button onClick={handleSaveCampaign} className="w-full" size="lg">
+                <Star className="w-5 h-5 mr-2" />
+              Save Campaign & Go to Dashboard
+            </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleDownloadCSV}
+                className="w-full"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download CSV
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
+  // Progress bar
+  const steps = [
+    { id: 1, label: 'URL Input' },
+    { id: 2, label: 'Structure' },
+    { id: 3, label: 'Keywords' },
+    { id: 4, label: 'Ads & Extensions' },
+    { id: 5, label: 'Geo Target' },
+    { id: 6, label: 'Review' },
+    { id: 7, label: 'CSV' },
+  ];
+
+  // Reset campaign function
+  const handleResetCampaign = () => {
+    if (!confirm('Are you sure you want to reset the campaign? All progress will be lost.')) {
+      return;
+    }
+    
+    setCampaignData({
+      url: '',
+      campaignName: '',
+      intent: null,
+      vertical: null,
+      cta: null,
+      selectedStructure: 'skag',
+      structureRankings: [],
+      seedKeywords: [],
+      negativeKeywords: [...DEFAULT_NEGATIVE_KEYWORDS],
+      generatedKeywords: [],
+      selectedKeywords: [],
+      keywordTypes: { broad: true, phrase: true, exact: true, negative: true },
+      ads: [],
+      adTypes: ['rsa', 'dki'],
+      extensions: [],
+      adGroups: [],
+      selectedAdGroup: 'ALL_AD_GROUPS',
+      targetCountry: 'United States',
+      locations: { countries: [], states: [], cities: [], zipCodes: [] },
+      csvData: null,
+      csvErrors: [],
+    });
+    setCurrentStep(1);
+    setCampaignSaved(false);
+    
+    notifications.success('Campaign reset successfully', {
+      title: 'Reset Complete',
+      description: 'You can now start creating a new campaign from scratch.'
+    });
+  };
+
+  // Navigation handler for Next button
+  const handleNextStep = () => {
+    if (currentStep === 1) handleUrlSubmit();
+    else if (currentStep === 2) handleNextFromStructure();
+    else if (currentStep === 3) {
+      if (campaignData.generatedKeywords.length === 0 && campaignData.seedKeywords.length > 0) {
+        const seedKeywordsAsKeywords = createKeywordsFromSeeds(campaignData.seedKeywords);
+        setCampaignData(prev => ({
+          ...prev,
+          generatedKeywords: seedKeywordsAsKeywords,
+          selectedKeywords: seedKeywordsAsKeywords,
+          // Ensure SKAG structure is set when coming from keywords to ads wizard
+          selectedStructure: prev.selectedStructure || 'skag',
+        }));
+      } else {
+        // Ensure SKAG structure is set when coming from keywords to ads wizard
+        setCampaignData(prev => ({
+          ...prev,
+          selectedStructure: prev.selectedStructure || 'skag',
+        }));
+      }
+      setCurrentStep(4);
+    }
+    else if (currentStep === 4) {
+      if (campaignData.ads.length === 0) {
+        notifications.warning('Please generate ads first', { title: 'Ads Required' });
+        return;
+      }
+      setCurrentStep(5);
+    }
+    else if (currentStep === 5) {
+      setCurrentStep(6);
+      autoSaveDraft();
+    }
+    else if (currentStep === 6) {
+      setCurrentStep(7);
+      autoSaveDraft();
+    }
+    else if (currentStep === 7) {
+      handleSaveCampaign();
+    }
+    else if (currentStep === 8) {
+      // Success screen - no action needed
+    }
+  };
+
+  // Navigation handler for Back button
+  const handleBackStep = () => {
+    setCurrentStep(prev => Math.max(1, prev - 1));
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-cyan-50">
+      {/* Navigation Above Wizard */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              onClick={handleBackStep}
+              disabled={currentStep === 1}
+              size="sm"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={handleResetCampaign}
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Reset Campaign
+              </Button>
+              <Button
+                onClick={handleNextStep}
+                disabled={loading || currentStep === 8}
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                {currentStep === 7 ? 'Save & Finish' : currentStep === 8 ? 'Download CSV' : 'Next Step'}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="bg-white border-b border-slate-200 sticky top-[57px] z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 overflow-x-auto">
+          <div className="flex items-center justify-between min-w-max">
+            {steps.map((step, idx) => (
+              <React.Fragment key={step.id}>
+                <div className="flex items-center flex-shrink-0">
+                  <div
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base ${
+                      currentStep > step.id
+                        ? 'bg-green-500 text-white'
+                        : currentStep === step.id
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {currentStep > step.id ? (
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                    ) : (
+                      <span>{step.id}</span>
+                    )}
+                  </div>
+                  <span className={`ml-2 text-xs sm:text-sm font-medium whitespace-nowrap ${
+                    currentStep === step.id ? 'text-indigo-600' : 'text-slate-600'
+                  }`}>
+                    {step.label}
+                  </span>
+                </div>
+                {idx < steps.length - 1 && (
+                  <div className={`flex-1 h-1 mx-2 sm:mx-4 min-w-[20px] ${
+                    currentStep > step.id ? 'bg-green-500' : 'bg-slate-200'
+                  }`} />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Top Navigation (Legacy - keeping for compatibility) */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+            <Button
+              variant="outline"
+              onClick={handleBackStep}
+              disabled={currentStep === 1}
+            size="sm"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          <span className="text-sm text-slate-600">
+            Step {currentStep} of {steps.length}
+          </span>
+            <Button
+              onClick={handleNextStep}
+              disabled={loading || currentStep === 8}
+            size="sm"
+            >
+            {currentStep === 7 ? 'Save & Finish' : currentStep === 8 ? 'Download CSV' : 'Next Step'}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+
+      {/* Content */}
+      <div className="py-8">
+        {currentStep === 1 && renderStep1()}
+        {currentStep === 2 && renderStep2()}
+        {currentStep === 3 && renderStep3()}
+        {currentStep === 4 && renderStep4()}
+        {currentStep === 5 && renderStep5()}
+        {currentStep === 6 && renderStep6()}
+        {currentStep === 7 && renderStep7()}
+        {currentStep === 8 && renderStep8()}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4">
+        <div className="max-w-7xl mx-auto flex justify-between">
+            <Button
+              variant="outline"
+            onClick={handleBackStep}
+            disabled={currentStep === 1}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <Button
+              onClick={handleNextStep}
+            disabled={loading || currentStep === 8}
+          >
+            {currentStep === 7 ? 'Save & Finish' : currentStep === 8 ? 'Download CSV' : 'Next Step'}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Export Dialog */}
+        <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Export Campaign CSV</DialogTitle>
+              <DialogDescription>
+                Review your campaign export details before downloading
+              </DialogDescription>
+            </DialogHeader>
+            
+            {getExportStatistics() && (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.campaigns}</div>
+                    <div className="text-sm text-slate-600">Campaigns</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.adGroups}</div>
+                    <div className="text-sm text-slate-600">Ad Groups</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.keywords}</div>
+                    <div className="text-sm text-slate-600">Keywords</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.ads}</div>
+                    <div className="text-sm text-slate-600">Ads</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.negativeKeywords}</div>
+                    <div className="text-sm text-slate-600">Negative Keywords</div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.extensions}</div>
+                    <div className="text-sm text-slate-600">Extensions</div>
+                  </div>
+                </div>
+                <div className="p-4 bg-slate-50 rounded-lg">
+                  <div className="text-sm text-slate-600">Total CSV Rows</div>
+                  <div className="text-xl font-semibold text-slate-800">{getExportStatistics()!.totalRows}</div>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowExportDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmDownloadCSV} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+                <Download className="w-4 h-4 mr-2" />
+                Download CSV
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+    </div>
+  );
+};
+
+// Helper functions
+function detectVertical(landingData: LandingPageExtractionResult): string {
+  const text = (landingData.title || '') + ' ' + (landingData.h1 || '') + ' ' + landingData.page_text_tokens.join(' ');
+  const lowerText = text.toLowerCase();
+  const domain = (landingData.domain || '').toLowerCase();
+
+  // Travel & Tourism
+  if (lowerText.includes('flight') || lowerText.includes('hotel') || lowerText.includes('booking') || 
+      lowerText.includes('travel') || lowerText.includes('airline') || lowerText.includes('resort') ||
+      lowerText.includes('vacation') || lowerText.includes('destination') || domain.includes('flight') || 
+      domain.includes('hotel') || domain.includes('travel')) {
+    return 'Travel';
+  }
+
+  // E-commerce / Shopping
+  if (lowerText.includes('product') || lowerText.includes('shop') || lowerText.includes('buy') || 
+      lowerText.includes('cart') || lowerText.includes('store') || lowerText.includes('ecommerce') ||
+      lowerText.includes('checkout') || lowerText.includes('order') || lowerText.includes('shipping') ||
+      domain.includes('shop') || domain.includes('store') || domain.includes('amazon') || domain.includes('ebay')) {
+    return 'E-commerce';
+  }
+
+  // Healthcare
+  if (lowerText.includes('health') || lowerText.includes('medical') || lowerText.includes('doctor') ||
+      lowerText.includes('hospital') || lowerText.includes('clinic') || lowerText.includes('pharmacy') ||
+      domain.includes('health') || domain.includes('medical')) {
+    return 'Healthcare';
+  }
+
+  // Legal
+  if (lowerText.includes('law') || lowerText.includes('legal') || lowerText.includes('attorney') ||
+      lowerText.includes('lawyer') || lowerText.includes('court') || domain.includes('law')) {
+    return 'Legal';
+  }
+
+  // Real Estate
+  if (lowerText.includes('real estate') || lowerText.includes('property') || lowerText.includes('home') ||
+      lowerText.includes('apartment') || lowerText.includes('house') || lowerText.includes('rent') ||
+      domain.includes('real-estate') || domain.includes('property')) {
+    return 'Real Estate';
+  }
+
+  // Finance
+  if (lowerText.includes('bank') || lowerText.includes('financial') || lowerText.includes('loan') ||
+      lowerText.includes('investment') || lowerText.includes('insurance') || domain.includes('finance') ||
+      domain.includes('bank')) {
+    return 'Finance';
+  }
+
+  // Education
+  if (lowerText.includes('school') || lowerText.includes('university') || lowerText.includes('course') ||
+      lowerText.includes('training') || lowerText.includes('education') || domain.includes('education')) {
+    return 'Education';
+  }
+
+  // Services
+  if (lowerText.includes('service') || lowerText.includes('consulting') || lowerText.includes('agency') ||
+      lowerText.includes('repair') || lowerText.includes('maintenance')) {
+    return 'Services';
+  }
+
+  return 'General';
+}
+
+function detectCTA(landingData: LandingPageExtractionResult, vertical?: string): string {
+  const text = (landingData.title || '') + ' ' + (landingData.h1 || '') + ' ' + landingData.page_text_tokens.join(' ');
+  const lowerText = text.toLowerCase();
+
+  // For Travel vertical, "Book" is the primary CTA
+  if (vertical === 'Travel') {
+    // Travel sites typically have booking functionality
+    if (lowerText.includes('book') || lowerText.includes('reserve') || lowerText.includes('booking') ||
+        lowerText.includes('reservation') || lowerText.includes('schedule') || lowerText.includes('search flight') ||
+        lowerText.includes('search hotel') || lowerText.includes('find flight') || lowerText.includes('find hotel')) {
+      return 'Book';
+    }
+    // Default for travel is Book
+    return 'Book';
+  }
+
+  // Booking/Reservation specific
+  if (lowerText.includes('book') || lowerText.includes('reserve') || lowerText.includes('booking') ||
+      lowerText.includes('reservation') || lowerText.includes('schedule')) {
+    return 'Book';
+  }
+
+  // Call-based
+  if (lowerText.includes('call') || lowerText.includes('phone') || landingData.phones?.length > 0) {
+    return 'Call';
+  }
+
+  // Contact/Lead
+  if (lowerText.includes('contact') || lowerText.includes('form') || lowerText.includes('quote') ||
+      lowerText.includes('inquiry') || lowerText.includes('request')) {
+    return 'Contact/Lead';
+  }
+
+  // Purchase/Buy
+  if (lowerText.includes('buy') || lowerText.includes('purchase') || lowerText.includes('order') ||
+      lowerText.includes('checkout') || lowerText.includes('add to cart')) {
+    return 'Purchase';
+  }
+
+  // Download
+  if (lowerText.includes('download') || lowerText.includes('get started')) {
+    return 'Download';
+  }
+
+  // Search/Browse
+  if (lowerText.includes('search') || lowerText.includes('explore') || lowerText.includes('browse')) {
+    return 'Search';
+  }
+
+  return 'Visit';
+}
+
+async function generateSeedKeywords(
+  landingData: LandingPageExtractionResult,
+  intent: IntentResult
+): Promise<string[]> {
+  try {
+    // Use AI to intelligently generate 3-4 seed keywords based on landing page content
+    const pageContent = [
+      landingData.title || '',
+      landingData.h1 || '',
+      landingData.metaDescription || '',
+      landingData.services.join(', ') || '',
+      landingData.page_text_tokens?.slice(0, 50).join(' ') || ''
+    ].filter(Boolean).join(' ').substring(0, 500);
+
+    // Dynamically import OpenAI for client-side generation
+    const OpenAI = (await import('openai')).default;
+    const openai = new OpenAI({
+      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+      dangerouslyAllowBrowser: true
+    });
+
+    const prompt = `You are a Google Ads keyword expert. Analyze this landing page and generate exactly 3-4 highly relevant seed keywords.
+
+Page Content:
+${pageContent}
+
+Services: ${landingData.services.join(', ') || 'Not specified'}
+Intent: ${intent.intentLabel || 'General'}
+Domain: ${landingData.domain}
+
+Rules:
+1. Generate EXACTLY 3-4 keywords (no more, no less)
+2. Each keyword: 1-3 words, specific to the business
+3. No generic placeholders
+4. Include search intent variations
+5. Return ONLY a JSON array: ["keyword1", "keyword2", "keyword3", "keyword4"]
+
+Response:`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a Google Ads keyword expert. Return ONLY a JSON array of 3-4 keywords. No explanation.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 100
+    });
+
+    const content = response.choices[0]?.message?.content || '[]';
+    const jsonMatch = content.match(/\[.*\]/s);
+    const keywords = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    
+    if (Array.isArray(keywords) && keywords.length > 0) {
+      console.log('✅ AI generated seed keywords:', keywords.slice(0, 4));
+      return keywords.slice(0, 4);
+    }
+  } catch (error) {
+    console.warn('AI seed keyword generation failed, using fallback:', error);
+  }
+
+  // Fallback: Generate keywords from landing page content if AI fails
+  const keywords: string[] = [];
+  const mainTerms = [
+    landingData.title,
+    landingData.h1,
+    ...landingData.services.slice(0, 2),
+  ].filter(Boolean);
+
+  mainTerms.forEach(term => {
+    if (term && keywords.length < 4) {
+      keywords.push(term.toLowerCase());
+    }
+  });
+
+  // Add intent-based keywords
+  if (mainTerms[0]) {
+    if (intent.intentId === IntentId.CALL) {
+      keywords.push(`${mainTerms[0]} near me`);
+    } else if (intent.intentId === IntentId.LEAD) {
+      keywords.push(`${mainTerms[0]} quote`);
+    }
+  }
+
+  return keywords.slice(0, 4);
+}
+
+function rankCampaignStructures(intent: IntentResult, vertical: string): { id: string; score: number }[] {
+  // AI-based ranking logic - enhanced for different verticals
+  const scores: { [key: string]: number } = {};
+
+  // Initialize all structures with base score
+  CAMPAIGN_STRUCTURES.forEach(struct => {
+    scores[struct.id] = 1; // Everyone starts at 1
+  });
+
+  // ===== VERTICAL-SPECIFIC SCORING =====
+  
+  if (vertical === 'Travel') {
+    // Travel/Booking sites benefit from funnel, intent-based, and seasonal
+    scores['funnel'] += 5;        // TOF/MOF/BOF for awareness → consideration → booking
+    scores['intent'] += 4;         // Search intent matters (flights vs hotels)
+    scores['seasonal'] += 4;       // Seasonal variations (holidays, summer)
+    scores['stag'] += 3;           // Theme grouping (destinations)
+    scores['alpha_beta'] += 2;     // A/B testing for offers
+  } 
+  else if (vertical === 'E-commerce') {
+    // E-commerce needs brand split and funnel
+    scores['funnel'] += 5;         // Awareness → Consideration → Purchase
+    scores['brand_split'] += 4;    // Brand vs product keywords
+    scores['mix'] += 3;            // Mixed approach
+    scores['seasonal'] += 3;       // Holiday campaigns
+  } 
+  else if (vertical === 'Healthcare') {
+    // Healthcare is local and intent-driven
+    scores['geo'] += 5;            // Local doctors/hospitals matter
+    scores['intent'] += 4;         // Specific health issues/services
+    scores['skag'] += 3;           // Single keyword groups work well
+    scores['stag'] += 3;           // Theme-based (symptoms/services)
+  } 
+  else if (vertical === 'Real Estate') {
+    // Real estate is heavily location-based
+    scores['geo'] += 5;            // Location is everything
+    scores['intent'] += 4;         // Buy vs rent intent
+    scores['brand_split'] += 3;    // Brand vs properties
+    scores['stag'] += 3;           // Theme by property type
+  } 
+  else if (vertical === 'Legal') {
+    // Legal is service + expertise + location
+    scores['geo'] += 4;            // Local laws matter
+    scores['intent'] += 4;         // Type of legal service
+    scores['skag'] += 3;           // Specific legal terms
+    scores['stag'] += 3;           // Service types
+  } 
+  else if (vertical === 'Finance') {
+    // Finance benefits from intent and funnel
+    scores['funnel'] += 4;         // Awareness → Research → Apply
+    scores['intent'] += 4;         // Loan type, product type
+    scores['brand_split'] += 3;    // Brand vs product offers
+  } 
+  else if (vertical === 'Education') {
+    // Education is funnel + seasonal
+    scores['funnel'] += 4;         // Awareness → Consideration → Enrollment
+    scores['seasonal'] += 4;       // Enrollment cycles
+    scores['intent'] += 3;         // Degree/course type
+    scores['stag'] += 3;           // Program themes
+  } 
+  else if (vertical === 'Services') {
+    // Generic services benefit from geo + intent
+    scores['geo'] += 4;            // Local services
+    scores['intent'] += 4;         // Type of service
+    scores['skag'] += 3;           // Specific services
+    scores['stag'] += 3;           // Service categories
+  }
+
+  // ===== INTENT-SPECIFIC SCORING (applied after vertical) =====
+  
+  if (intent.intentId === IntentId.CALL) {
+    // Phone-based CTAs
+    scores['geo'] += 2;            // Local calls matter
+    scores['skag'] += 2;           // Specific keyword calls
+    scores['match_type'] += 1;     // Match type variations help
+  } 
+  else if (intent.intentId === IntentId.LEAD) {
+    // Form/quote submissions
+    scores['funnel'] += 2;         // Lead funnel
+    scores['stag'] += 2;           // Theme grouping
+    scores['intent'] += 2;         // Intent variations
+  } 
+  else if (intent.intentId === IntentId.PURCHASE) {
+    // E-commerce purchase intent
+    scores['funnel'] += 2;         // Shopping funnel
+    scores['brand_split'] += 2;    // Brand keywords matter
+  }
+
+  // ===== EDGE CASE: Prevent zero-score structures =====
+  // Ensure top structures have clear differentiation
+  const sortedScores = Object.entries(scores)
+    .map(([id, score]) => ({ id, score }))
+    .sort((a, b) => b.score - a.score);
+
+  // If top structures are too close, add small tiebreaker
+  if (sortedScores.length > 1 && sortedScores[0].score === sortedScores[1].score) {
+    // Add small bonus to first one for consistency
+    const topId = sortedScores[0].id;
+    sortedScores[0].score += 0.5;
+  }
+
+  return sortedScores;
+}
+
+function detectIsProduct(url: string, intent: IntentResult | null): boolean {
+  // Simple detection - can be enhanced
+  const lowerUrl = url.toLowerCase();
+  return lowerUrl.includes('shop') || lowerUrl.includes('product') || lowerUrl.includes('buy') || 
+         (intent?.intentId === IntentId.PURCHASE);
+}
+
+
