@@ -45,6 +45,119 @@ export const DKI_CAPITALIZATION = {
 } as const;
 
 // ============================================================================
+// DKI DEFAULT TEXT BUILDER
+// ============================================================================
+
+/**
+ * Build a properly-sized DKI default text that fits within character limits
+ * 
+ * @param keyword - The keyword to use as default text
+ * @param maxLength - Maximum allowed characters (typically 30 for headlines, 90 for descriptions)
+ * @param capitalization - DKI capitalization style to apply
+ * @returns Truncated and properly capitalized default text
+ */
+export function buildDKIDefault(
+  keyword: string,
+  maxLength: number = CHARACTER_LIMITS.RSA.HEADLINE,
+  capitalization: DKICapitalization = 'KeyWord'
+): string {
+  if (!keyword || keyword.trim().length === 0) {
+    return 'Service';
+  }
+
+  let text = keyword.trim();
+  
+  // If already fits, just apply capitalization
+  if (text.length <= maxLength) {
+    return applyDKICapitalization(text, capitalization);
+  }
+
+  // Strategy 1: Try using first N words that fit
+  const words = text.split(/\s+/);
+  let truncated = '';
+  
+  for (const word of words) {
+    const candidate = truncated ? `${truncated} ${word}` : word;
+    if (candidate.length <= maxLength) {
+      truncated = candidate;
+    } else {
+      break;
+    }
+  }
+
+  // Strategy 2: If first word is still too long, hard truncate it
+  if (!truncated && words[0]) {
+    truncated = words[0].substring(0, maxLength);
+  }
+
+  // Strategy 3: If still empty, use a safe default
+  if (!truncated) {
+    truncated = 'Service';
+  }
+
+  return applyDKICapitalization(truncated, capitalization);
+}
+
+/**
+ * Apply DKI capitalization style to text
+ */
+export function applyDKICapitalization(text: string, style: DKICapitalization): string {
+  if (!text) return text;
+  
+  switch (style) {
+    case 'keyword':
+      return text.toLowerCase();
+    case 'Keyword':
+      return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+    case 'KeyWord':
+      return text
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    case 'KEYWord':
+      const words = text.split(/\s+/);
+      return words
+        .map((word, idx) => idx === 0 ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    default:
+      return text;
+  }
+}
+
+/**
+ * Format a complete DKI insertion syntax with properly-sized default text
+ * 
+ * @param keyword - The keyword to use as default
+ * @param fieldType - 'headline' or 'description' to determine character limit
+ * @param capitalization - DKI capitalization style
+ * @param prefixText - Any text before the DKI (to account for total length)
+ * @param suffixText - Any text after the DKI (to account for total length)
+ * @returns Complete DKI syntax like {KeyWord:Default Text}
+ */
+export function formatDKIWithLimit(
+  keyword: string,
+  fieldType: 'headline' | 'description' = 'headline',
+  capitalization: DKICapitalization = 'KeyWord',
+  prefixText: string = '',
+  suffixText: string = ''
+): string {
+  const maxLength = fieldType === 'headline' 
+    ? CHARACTER_LIMITS.RSA.HEADLINE 
+    : CHARACTER_LIMITS.RSA.DESCRIPTION;
+  
+  // Calculate available space for the default text
+  // DKI syntax is {KeyWord:default} - we need to account for the wrapper
+  const wrapperLength = `{${capitalization}:}`.length;
+  const contextLength = prefixText.length + suffixText.length;
+  const availableForDefault = maxLength - wrapperLength - contextLength;
+  
+  // Build the properly-sized default text
+  const defaultText = buildDKIDefault(keyword, Math.max(5, availableForDefault), capitalization);
+  
+  return `{${capitalization}:${defaultText}}`;
+}
+
+// ============================================================================
 // VALIDATION INTERFACES
 // ============================================================================
 

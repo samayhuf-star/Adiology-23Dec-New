@@ -20,7 +20,8 @@ import {
   validateCallOnlyAd,
   validateDKISyntax,
   BEST_PRACTICES,
-  areHeadlinesSimilar
+  areHeadlinesSimilar,
+  buildDKIDefault
 } from './googleAdsRules';
 
 // ============================================================================
@@ -783,16 +784,42 @@ export function buildRSA(adCopy: AdCopyTemplates, input: AdGenerationInput): Res
 
 /**
  * Apply DKI (Dynamic Keyword Insertion) syntax to ad text
+ * Properly truncates the default text to fit within character limits
+ * 
+ * @param text - The original ad text
+ * @param mainKeyword - The keyword to use in DKI syntax
+ * @param fieldType - 'headline' (30 char limit) or 'description' (90 char limit)
  */
-function applyDKISyntax(text: string, mainKeyword: string): string {
+function applyDKISyntax(text: string, mainKeyword: string, fieldType: 'headline' | 'description' = 'headline'): string {
+  const maxLength = fieldType === 'headline' 
+    ? CHARACTER_LIMITS.RSA.HEADLINE 
+    : CHARACTER_LIMITS.RSA.DESCRIPTION;
+  
   // Replace keyword mentions with {KeyWord:fallback} syntax
   // This allows Google Ads to dynamically insert the keyword
-  const keywordRegex = new RegExp(`\\b${mainKeyword.split(' ')[0]}\\w*\\b`, 'gi');
+  const firstWord = mainKeyword.split(' ')[0];
+  if (!firstWord) return text;
+  
+  const keywordRegex = new RegExp(`\\b${firstWord}\\w*\\b`, 'gi');
   if (keywordRegex.test(text)) {
-    // Replace first occurrence of keyword with {KeyWord:original}
+    // Calculate available space for DKI default text
+    // Find position of keyword in text to calculate prefix length
+    const match = text.match(new RegExp(`\\b${firstWord}\\w*\\b`, 'i'));
+    const prefixLength = match?.index || 0;
+    const matchLength = match?.[0]?.length || 0;
+    const suffixLength = text.length - prefixLength - matchLength;
+    
+    // DKI wrapper is {KeyWord:} = 10 characters
+    const dkiWrapperLength = 10;
+    const availableForDefault = maxLength - prefixLength - suffixLength - dkiWrapperLength;
+    
+    // Build properly-sized DKI default text
+    const safeDefault = buildDKIDefault(mainKeyword, Math.max(5, availableForDefault), 'KeyWord');
+    
+    // Replace first occurrence of keyword with {KeyWord:safeDefault}
     return text.replace(
-      new RegExp(`\\b${mainKeyword.split(' ')[0]}\\w*\\b`, 'i'),
-      `{KeyWord:${mainKeyword}}`
+      new RegExp(`\\b${firstWord}\\w*\\b`, 'i'),
+      `{KeyWord:${safeDefault}}`
     );
   }
   return text;
@@ -800,6 +827,7 @@ function applyDKISyntax(text: string, mainKeyword: string): string {
 
 /**
  * Build Expanded Text Ad with DKI (Dynamic Keyword Insertion) syntax
+ * Ensures all DKI default text fits within character limits
  */
 export function buildETA(adCopy: AdCopyTemplates, input: AdGenerationInput): ExpandedTextAd {
   const rsa = buildRSA(adCopy, input);
@@ -807,14 +835,14 @@ export function buildETA(adCopy: AdCopyTemplates, input: AdGenerationInput): Exp
   const cleanedKeywords = cleanKeywords(input.keywords);
   const mainKeyword = cleanedKeywords[0] || 'service';
   
-  // Apply DKI syntax to headlines - replace keyword with {KeyWord:...}
-  const h1 = applyDKISyntax(rsa.headlines[0] || '', mainKeyword);
-  const h2 = applyDKISyntax(rsa.headlines[1] || '', mainKeyword);
-  const h3 = rsa.headlines[2] ? applyDKISyntax(rsa.headlines[2], mainKeyword) : undefined;
+  // Apply DKI syntax to headlines (30 char limit)
+  const h1 = applyDKISyntax(rsa.headlines[0] || '', mainKeyword, 'headline');
+  const h2 = applyDKISyntax(rsa.headlines[1] || '', mainKeyword, 'headline');
+  const h3 = rsa.headlines[2] ? applyDKISyntax(rsa.headlines[2], mainKeyword, 'headline') : undefined;
   
-  // Apply DKI syntax to descriptions
-  const d1 = applyDKISyntax(rsa.descriptions[0] || '', mainKeyword);
-  const d2 = rsa.descriptions[1] ? applyDKISyntax(rsa.descriptions[1], mainKeyword) : undefined;
+  // Apply DKI syntax to descriptions (90 char limit)
+  const d1 = applyDKISyntax(rsa.descriptions[0] || '', mainKeyword, 'description');
+  const d2 = rsa.descriptions[1] ? applyDKISyntax(rsa.descriptions[1], mainKeyword, 'description') : undefined;
   
   return {
     headline1: truncateHeadline(h1, 30),
