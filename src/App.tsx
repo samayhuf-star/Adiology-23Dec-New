@@ -156,11 +156,67 @@ const App = () => {
       setActiveTab('dashboard');
     }
   };
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Campaign Created', message: 'Your campaign "Summer Sale" has been created successfully', time: '2 hours ago', read: false },
-    { id: 2, title: 'Export Ready', message: 'Your CSV export is ready for download', time: '5 hours ago', read: false },
-    { id: 3, title: 'Billing Update', message: 'Your subscription will renew on Dec 1, 2025', time: '1 day ago', read: true },
-  ]);
+  const [notifications, setNotifications] = useState<Array<{
+    id: number;
+    title: string;
+    message: string;
+    time: string;
+    read: boolean;
+    action_type?: string;
+  }>>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  // Fetch real notifications from the database
+  const fetchNotifications = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setNotificationsLoading(true);
+      const response = await fetch(`/api/notifications/${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const formattedNotifications = (data.notifications || []).map((n: any) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          time: formatRelativeTime(n.created_at),
+          read: n.read,
+          action_type: n.action_type,
+        }));
+        setNotifications(formattedNotifications);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  // Helper to format time relative to now
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Fetch notifications when user logs in
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotifications();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
   // Bug_64: Search suggestions state
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
@@ -192,8 +248,13 @@ const App = () => {
     });
   };
 
-  const handleMarkNotificationAsRead = (id: number) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+  const handleMarkNotificationAsRead = async (id: number) => {
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: 'PUT' });
+      setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
   const handleNotificationClick = (notification: typeof notifications[0]) => {
@@ -224,8 +285,14 @@ const App = () => {
     // You could also create a dedicated notifications tab/page
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  const handleMarkAllAsRead = async () => {
+    if (!user?.id) return;
+    try {
+      await fetch(`/api/notifications/user/${user.id}/read-all`, { method: 'PUT' });
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
   const handleLogout = async () => {

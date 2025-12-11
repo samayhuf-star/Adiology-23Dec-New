@@ -84,50 +84,35 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
     
     setLoading(true);
     try {
-      // Fetch user subscription data
-      const { data: subscriptions } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      const subscription = subscriptions && subscriptions.length > 0 ? subscriptions[0] : null;
+      // Fetch dashboard data from our API
+      let apiData: any = { stats: { totalCampaigns: 0, totalSearches: 0 }, recentCampaigns: [] };
+      try {
+        const response = await fetch(`/api/dashboard/${user.id}`);
+        if (response.ok) {
+          apiData = await response.json();
+        }
+      } catch (err) {
+        console.warn('Dashboard API not available, using fallback');
+      }
 
-      // Fetch usage metrics
-      const { data: usageData } = await supabase
-        .from('usage_metrics')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('period_start', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
-
-      // Fetch recent audit logs
-      const { data: activityData } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      // Process usage metrics
-      const apiCalls = usageData?.find((m: { metric_type: string; metric_value: number }) => m.metric_type === 'api_calls')?.metric_value || 0;
-      const campaigns = usageData?.find((m: { metric_type: string; metric_value: number }) => m.metric_type === 'campaigns')?.metric_value || 0;
-      const keywords = usageData?.find((m: { metric_type: string; metric_value: number }) => m.metric_type === 'keywords')?.metric_value || 0;
-
-      // Fetch user-specific resources
-      let myCampaigns = 0;
+      // Fetch user-specific resources from local history as fallback
+      let myCampaigns = apiData.stats?.totalCampaigns || 0;
       let myWebsites = 0;
       let myPresets = 0;
       let myDomains = 0;
+      let activityData: any[] = [];
 
       try {
-        // Get campaigns from history
+        // Get campaigns from history service as additional source
         const allHistory = await historyService.getAll();
-        myCampaigns = allHistory.filter(item => 
+        const historyCampaigns = allHistory.filter(item => 
           item.type === 'builder-2-campaign' || 
           item.type === 'campaign' ||
           item.type?.includes('campaign')
         ).length;
+        
+        // Use the higher count between API and local
+        myCampaigns = Math.max(myCampaigns, historyCampaigns);
 
         // Get saved templates/presets from history
         myPresets = allHistory.filter(item => 
@@ -137,7 +122,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
           item.type?.includes('template')
         ).length;
 
-        // Get domains from history (domain searches, purchases, monitored domains)
+        // Get domains from history
         myDomains = allHistory.filter(item => 
           item.type === 'domain-search' || 
           item.type === 'domain-purchase' ||
@@ -146,14 +131,23 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
           item.type?.includes('domain')
         ).length;
 
+        // Convert recent campaigns to activity format
+        if (apiData.recentCampaigns && apiData.recentCampaigns.length > 0) {
+          activityData = apiData.recentCampaigns.map((c: any) => ({
+            id: c.id,
+            action: `${c.step >= 5 ? 'completed' : 'created'}_campaign`,
+            timestamp: c.updated_at || c.created_at,
+            resourceType: 'campaign',
+            metadata: { name: c.campaign_name, structure: c.structure_type }
+          }));
+        }
+
         // Get published websites (gracefully handle missing table)
         try {
           const websites = await getUserPublishedWebsites(user.id);
           myWebsites = websites.length;
         } catch (websiteError: any) {
-          // Silently handle published websites errors (table might not exist)
           const errorMessage = websiteError?.message?.toLowerCase() || '';
-          // Only log if it's not a missing table error
           if (!errorMessage.includes('schema cache') && 
               !errorMessage.includes('could not find the table') &&
               !errorMessage.includes('does not exist')) {
@@ -181,12 +175,12 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
         subscription: {
           plan: user.subscription_plan || 'free',
           status: user.subscription_status || 'active',
-          periodEnd: subscription?.current_period_end || null,
+          periodEnd: null,
         },
         usage: {
-          apiCalls: Number(apiCalls),
-          campaigns: Number(campaigns),
-          keywords: Number(keywords),
+          apiCalls: 0,
+          campaigns: myCampaigns,
+          keywords: 0,
         },
         activity: {
           lastLogin: user.last_login_at || null,

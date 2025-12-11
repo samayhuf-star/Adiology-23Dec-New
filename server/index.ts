@@ -1338,6 +1338,156 @@ app.post('/api/google-ads/push-campaign', async (c) => {
   }
 });
 
+// ============================================
+// User Notifications API
+// ============================================
+
+// Get user notifications
+app.get('/api/notifications/:userId', async (c) => {
+  try {
+    const { userId } = c.req.param();
+    
+    const result = await pool.query(
+      `SELECT id, title, message, type, read, action_type, action_data, created_at
+       FROM user_notifications 
+       WHERE user_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT 50`,
+      [userId]
+    );
+    
+    return c.json({ notifications: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching notifications:', error);
+    return c.json({ error: error.message, notifications: [] }, 500);
+  }
+});
+
+// Create a notification
+app.post('/api/notifications', async (c) => {
+  try {
+    const { userId, title, message, type = 'info', actionType, actionData } = await c.req.json();
+    
+    if (!userId || !title || !message) {
+      return c.json({ error: 'userId, title, and message are required' }, 400);
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO user_notifications (user_id, title, message, type, action_type, action_data)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [userId, title, message, type, actionType, actionData ? JSON.stringify(actionData) : null]
+    );
+    
+    return c.json({ notification: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error creating notification:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Mark notification as read
+app.put('/api/notifications/:id/read', async (c) => {
+  try {
+    const { id } = c.req.param();
+    
+    await pool.query(
+      `UPDATE user_notifications SET read = TRUE WHERE id = $1`,
+      [id]
+    );
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error marking notification as read:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Mark all notifications as read for a user
+app.put('/api/notifications/user/:userId/read-all', async (c) => {
+  try {
+    const { userId } = c.req.param();
+    
+    await pool.query(
+      `UPDATE user_notifications SET read = TRUE WHERE user_id = $1`,
+      [userId]
+    );
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error marking all notifications as read:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete a notification
+app.delete('/api/notifications/:id', async (c) => {
+  try {
+    const { id } = c.req.param();
+    
+    await pool.query(
+      `DELETE FROM user_notifications WHERE id = $1`,
+      [id]
+    );
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting notification:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ============================================
+// Dashboard Data API
+// ============================================
+
+// Get dashboard stats for a user
+app.get('/api/dashboard/:userId', async (c) => {
+  try {
+    const { userId } = c.req.param();
+    
+    // Get campaign history count
+    const campaignsResult = await pool.query(
+      `SELECT COUNT(*) as count FROM campaign_history WHERE user_id = $1`,
+      [userId]
+    );
+    
+    // Get ad search requests count
+    const searchesResult = await pool.query(
+      `SELECT COUNT(*) as count FROM ad_search_requests WHERE user_id = $1`,
+      [userId]
+    );
+    
+    // Get recent campaigns (last 10)
+    const recentCampaignsResult = await pool.query(
+      `SELECT id, campaign_name, structure_type, step, created_at, updated_at
+       FROM campaign_history 
+       WHERE user_id = $1 
+       ORDER BY updated_at DESC 
+       LIMIT 10`,
+      [userId]
+    );
+    
+    // Get unread notifications count
+    const unreadResult = await pool.query(
+      `SELECT COUNT(*) as count FROM user_notifications WHERE user_id = $1 AND read = FALSE`,
+      [userId]
+    );
+    
+    return c.json({
+      stats: {
+        totalCampaigns: parseInt(campaignsResult.rows[0]?.count || '0'),
+        totalSearches: parseInt(searchesResult.rows[0]?.count || '0'),
+        unreadNotifications: parseInt(unreadResult.rows[0]?.count || '0'),
+      },
+      recentCampaigns: recentCampaignsResult.rows,
+    });
+  } catch (error: any) {
+    console.error('Error fetching dashboard data:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Start cron scheduler
 startCronScheduler();
 
