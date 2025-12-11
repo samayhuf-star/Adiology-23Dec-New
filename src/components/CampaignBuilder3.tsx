@@ -4253,40 +4253,75 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               </DialogDescription>
             </DialogHeader>
             
-            {getExportStatistics() && (
+            {getExportStatistics() && (() => {
+              const stats = getExportStatistics()!;
+              const wizardKeywords = campaignData.selectedKeywords?.length || 0;
+              const wizardNegativeKeywords = campaignData.negativeKeywords?.length || 0;
+              const wizardAds = campaignData.ads?.length || 0;
+              const wizardLocations = (campaignData.locations?.countries?.length || 0) + 
+                (campaignData.locations?.states?.length || 0) + 
+                (campaignData.locations?.cities?.length || 0) + 
+                (campaignData.locations?.zipCodes?.length || 0);
+              
+              const diffs = [];
+              if (stats.keywords !== wizardKeywords) diffs.push({ label: 'Keywords', wizard: wizardKeywords, csv: stats.keywords });
+              if (stats.negativeKeywords !== wizardNegativeKeywords) diffs.push({ label: 'Negative Keywords', wizard: wizardNegativeKeywords, csv: stats.negativeKeywords });
+              if (stats.ads !== wizardAds) diffs.push({ label: 'Ads', wizard: wizardAds, csv: stats.ads });
+              if (stats.locations !== wizardLocations) diffs.push({ label: 'Locations', wizard: wizardLocations, csv: stats.locations });
+              
+              return (
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.campaigns}</div>
+                    <div className="text-2xl font-bold text-indigo-600">{stats.campaigns}</div>
                     <div className="text-sm text-slate-600">Campaigns</div>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.adGroups}</div>
+                    <div className="text-2xl font-bold text-indigo-600">{stats.adGroups}</div>
                     <div className="text-sm text-slate-600">Ad Groups</div>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.keywords}</div>
+                    <div className="text-2xl font-bold text-indigo-600">{stats.keywords}</div>
                     <div className="text-sm text-slate-600">Keywords</div>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.ads}</div>
+                    <div className="text-2xl font-bold text-indigo-600">{stats.ads}</div>
                     <div className="text-sm text-slate-600">Ads</div>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.negativeKeywords}</div>
+                    <div className="text-2xl font-bold text-indigo-600">{stats.negativeKeywords}</div>
                     <div className="text-sm text-slate-600">Negative Keywords</div>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <div className="text-2xl font-bold text-indigo-600">{getExportStatistics()!.extensions}</div>
+                    <div className="text-2xl font-bold text-indigo-600">{stats.extensions}</div>
                     <div className="text-sm text-slate-600">Extensions</div>
+                  </div>
+                  <div className="p-4 border rounded-lg col-span-2">
+                    <div className="text-2xl font-bold text-indigo-600">{stats.locations}</div>
+                    <div className="text-sm text-slate-600">Locations (Countries, States, Cities, Zip Codes)</div>
                   </div>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg">
                   <div className="text-sm text-slate-600">Total CSV Rows</div>
-                  <div className="text-xl font-semibold text-slate-800">{getExportStatistics()!.totalRows}</div>
+                  <div className="text-xl font-semibold text-slate-800">{stats.totalRows}</div>
                 </div>
+                
+                {diffs.length > 0 && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="text-sm font-semibold text-red-700 mb-2">Differences from Wizard Final Screen</div>
+                    <div className="space-y-1">
+                      {diffs.map((d, i) => (
+                        <div key={i} className="text-sm text-red-600 flex justify-between">
+                          <span>{d.label}:</span>
+                          <span>Wizard: {d.wizard} → CSV: {d.csv} ({d.csv > d.wizard ? '+' : ''}{d.csv - d.wizard})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+              );
+            })()}
             
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowExportDialog(false)}>
