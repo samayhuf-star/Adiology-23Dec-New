@@ -57,6 +57,24 @@ function buildSectionsFromTemplate(data: TemplateData): Section[] {
   if (data.contact || data.contactForm) {
     sects.push({ id: 'contact', type: 'contact', name: 'Contact', data: { ...data.contact, ...data.contactForm } });
   }
+  if ((data as any).team) {
+    sects.push({ id: 'team', type: 'team', name: 'Team', data: (data as any).team });
+  }
+  if ((data as any).faq) {
+    sects.push({ id: 'faq', type: 'faq', name: 'FAQ', data: (data as any).faq });
+  }
+  if ((data as any).pricing) {
+    sects.push({ id: 'pricing', type: 'pricing', name: 'Pricing', data: (data as any).pricing });
+  }
+  if ((data as any).gallery) {
+    sects.push({ id: 'gallery', type: 'gallery', name: 'Gallery', data: (data as any).gallery });
+  }
+  if ((data as any).blog) {
+    sects.push({ id: 'blog', type: 'blog', name: 'Blog', data: (data as any).blog });
+  }
+  if ((data as any).partners) {
+    sects.push({ id: 'partners', type: 'partners', name: 'Partners', data: (data as any).partners });
+  }
 
   return sects;
 }
