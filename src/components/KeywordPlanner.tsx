@@ -616,516 +616,592 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
     }, []);
 
     return (
-        <div className="p-4 max-w-5xl mx-auto">
-            <div className="mb-4">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">
-                    AI Keyword Planner
-                </h1>
-                <p className="text-sm text-slate-500">
-                    Generate comprehensive keyword lists using AI based on your seed keywords and negative filters
-                </p>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-6">
+            <div className="max-w-6xl mx-auto">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/25">
+                            <Sparkles className="w-6 h-6 text-white" />
+                        </div>
+                        <h1 className="text-3xl font-bold text-white tracking-tight">
+                            Keyword Planner
+                        </h1>
+                    </div>
+                    <p className="text-slate-400 ml-14">
+                        Generate comprehensive keyword lists powered by AI and Google Ads data
+                    </p>
+                </div>
 
-            {/* Tabs at the top */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-                <TabsList>
-                    <TabsTrigger value="planner">Keyword Planner</TabsTrigger>
-                    <TabsTrigger value="saved">Saved Lists</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="planner">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* Left Panel: Analysis Configuration */}
-                        <div className="bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-slate-200/60 shadow-lg flex flex-col">
-                            <div className="relative mb-3">
-                                <div className="flex items-start justify-between mb-2">
-                                    <div>
-                                        <h2 className="text-lg font-bold text-slate-800 mb-1">
-                                            Analysis Configuration
-                                        </h2>
-                                        <p className="text-xs text-slate-500">
-                                            Provide details to guide the AI model
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleFillInfo}
-                                        className="shrink-0 text-xs"
-                                    >
-                                        <Sparkles className="w-3 h-3 mr-1" />
-                                        Fill Info
-                                    </Button>
-                                </div>
-                            </div>
-
-                            <div className="flex-1 space-y-4 overflow-y-auto">
-                                {/* URL-based Seed Generation */}
-                                <div className="space-y-1.5 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
-                                    <Label htmlFor="urlInput" className="flex items-center gap-1.5 text-sm text-slate-700">
-                                        <Link className="w-4 h-4 text-blue-600" />
-                                        Generate Seeds from URL
-                                    </Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            id="urlInput"
-                                            placeholder="https://example.com/your-landing-page"
-                                            value={urlInput}
-                                            onChange={(e) => setUrlInput(e.target.value)}
-                                            className="text-sm flex-1"
-                                        />
+                {/* Tabs */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                    <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1 rounded-xl backdrop-blur-sm">
+                        <TabsTrigger 
+                            value="planner" 
+                            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/20 rounded-lg px-6 py-2.5 text-slate-400 transition-all duration-300"
+                        >
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Keyword Planner
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="saved"
+                            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/20 rounded-lg px-6 py-2.5 text-slate-400 transition-all duration-300"
+                        >
+                            <FolderOpen className="w-4 h-4 mr-2" />
+                            Saved Lists
+                        </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="planner" className="mt-0">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Left Panel: Configuration */}
+                            <div className="relative group">
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-500"></div>
+                                <div className="relative bg-slate-900/90 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 shadow-2xl">
+                                    {/* Panel Header */}
+                                    <div className="flex items-start justify-between mb-6">
+                                        <div>
+                                            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
+                                                Configuration
+                                            </h2>
+                                            <p className="text-sm text-slate-500 mt-1">
+                                                Set up your keyword generation parameters
+                                            </p>
+                                        </div>
                                         <Button
-                                            onClick={handleGenerateSeedsFromUrl}
-                                            disabled={isGeneratingSeedFromUrl || !urlInput.trim()}
-                                            size="sm"
                                             variant="outline"
-                                            className="shrink-0"
+                                            size="sm"
+                                            onClick={handleFillInfo}
+                                            className="bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-violet-500/50 transition-all duration-300"
                                         >
-                                            {isGeneratingSeedFromUrl ? (
-                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                            <Sparkles className="w-4 h-4 mr-2 text-violet-400" />
+                                            Auto Fill
+                                        </Button>
+                                    </div>
+
+                                    <div className="space-y-5">
+                                        {/* URL Seed Generator */}
+                                        <div className="relative p-4 rounded-xl bg-gradient-to-r from-violet-950/50 to-indigo-950/50 border border-violet-500/20">
+                                            <Label htmlFor="urlInput" className="flex items-center gap-2 text-sm font-medium text-violet-300 mb-3">
+                                                <Link className="w-4 h-4" />
+                                                Generate from URL
+                                            </Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    id="urlInput"
+                                                    placeholder="https://example.com/landing-page"
+                                                    value={urlInput}
+                                                    onChange={(e) => setUrlInput(e.target.value)}
+                                                    className="flex-1 bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 rounded-lg"
+                                                />
+                                                <Button
+                                                    onClick={handleGenerateSeedsFromUrl}
+                                                    disabled={isGeneratingSeedFromUrl || !urlInput.trim()}
+                                                    className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white border-0 shadow-lg shadow-violet-500/20 disabled:opacity-50 rounded-lg px-4"
+                                                >
+                                                    {isGeneratingSeedFromUrl ? (
+                                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                                    ) : (
+                                                        <Sparkles className="w-4 h-4" />
+                                                    )}
+                                                </Button>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                Extract seed keywords automatically from any landing page
+                                            </p>
+                                        </div>
+
+                                        {/* Seed Keywords */}
+                                        <div className="space-y-3">
+                                            <Label htmlFor="seedKeywords" className="flex items-center gap-2 text-sm font-medium text-slate-300">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                Seed Keywords
+                                            </Label>
+                                            <Input
+                                                id="seedKeywords"
+                                                placeholder="airline number, contact airline, delta phone..."
+                                                value={seedKeywords}
+                                                onChange={(e) => setSeedKeywords(e.target.value)}
+                                                className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 rounded-lg"
+                                            />
+                                            <p className="text-xs text-slate-500">
+                                                Enter 3-5 core keywords, comma-separated
+                                            </p>
+                                            
+                                            {/* AI Suggestions */}
+                                            {suggestedKeywords.length > 0 && (
+                                                <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-cyan-950/30 to-blue-950/30 border border-cyan-500/20">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <Lightbulb className="w-4 h-4 text-cyan-400" />
+                                                        <span className="text-sm font-medium text-cyan-300">AI Suggestions</span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {suggestedKeywords.map((keyword, idx) => (
+                                                            <Button
+                                                                key={idx}
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => applySuggestedKeyword(keyword)}
+                                                                className="h-8 text-xs bg-slate-800/50 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400/50 hover:text-cyan-200 transition-all duration-200"
+                                                            >
+                                                                <Plus className="w-3 h-3 mr-1.5" />
+                                                                {keyword}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Match Types */}
+                                        <div className="space-y-3">
+                                            <Label className="flex items-center gap-2 text-sm font-medium text-slate-300">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                Match Types
+                                            </Label>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div 
+                                                    onClick={() => setMatchTypes(prev => ({...prev, broad: !prev.broad}))}
+                                                    className={`cursor-pointer p-3 rounded-xl border transition-all duration-300 ${
+                                                        matchTypes.broad 
+                                                            ? 'bg-amber-500/10 border-amber-500/50 shadow-lg shadow-amber-500/10' 
+                                                            : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600/50'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <Checkbox 
+                                                            id="broad-planner" 
+                                                            checked={matchTypes.broad}
+                                                            onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, broad: c as boolean}))}
+                                                            className="border-amber-400 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                                        />
+                                                    </div>
+                                                    <span className={`text-xs font-medium ${matchTypes.broad ? 'text-amber-300' : 'text-slate-400'}`}>
+                                                        Broad
+                                                    </span>
+                                                </div>
+                                                <div 
+                                                    onClick={() => setMatchTypes(prev => ({...prev, phrase: !prev.phrase}))}
+                                                    className={`cursor-pointer p-3 rounded-xl border transition-all duration-300 ${
+                                                        matchTypes.phrase 
+                                                            ? 'bg-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/10' 
+                                                            : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600/50'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <Checkbox 
+                                                            id="phrase-planner" 
+                                                            checked={matchTypes.phrase}
+                                                            onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, phrase: c as boolean}))}
+                                                            className="border-blue-400 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                                                        />
+                                                    </div>
+                                                    <span className={`text-xs font-medium ${matchTypes.phrase ? 'text-blue-300' : 'text-slate-400'}`}>
+                                                        "Phrase"
+                                                    </span>
+                                                </div>
+                                                <div 
+                                                    onClick={() => setMatchTypes(prev => ({...prev, exact: !prev.exact}))}
+                                                    className={`cursor-pointer p-3 rounded-xl border transition-all duration-300 ${
+                                                        matchTypes.exact 
+                                                            ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10' 
+                                                            : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600/50'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <Checkbox 
+                                                            id="exact-planner" 
+                                                            checked={matchTypes.exact}
+                                                            onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, exact: c as boolean}))}
+                                                            className="border-emerald-400 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                                                        />
+                                                    </div>
+                                                    <span className={`text-xs font-medium ${matchTypes.exact ? 'text-emerald-300' : 'text-slate-400'}`}>
+                                                        [Exact]
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Negative Keywords */}
+                                        <div className="space-y-3">
+                                            <Label className="flex items-center gap-2 text-sm font-medium text-slate-300">
+                                                <AlertCircle className="w-3.5 h-3.5 text-slate-500" />
+                                                Negative Keywords
+                                            </Label>
+                                            <Textarea
+                                                placeholder="cheap, discount, reviews, job, free..."
+                                                value={negativeKeywords}
+                                                onChange={(e) => setNegativeKeywords(e.target.value)}
+                                                className="min-h-[100px] bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 rounded-lg text-sm resize-none"
+                                            />
+                                            <p className="text-xs text-slate-500">
+                                                One per line or comma-separated. These terms will be excluded.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Generate Button */}
+                                    <div className="mt-6 pt-6 border-t border-slate-700/50 space-y-3">
+                                        <Button
+                                            onClick={() => handleGenerate(false)}
+                                            disabled={isGenerating || !(typeof seedKeywords === 'string' && seedKeywords.trim())}
+                                            className="w-full h-12 bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 hover:from-violet-500 hover:via-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 text-sm"
+                                        >
+                                            {isGenerating ? (
+                                                <>
+                                                    <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                                                    Generating Keywords...
+                                                </>
                                             ) : (
                                                 <>
-                                                    <Sparkles className="w-4 h-4 mr-1" />
-                                                    Extract
+                                                    <Sparkles className="w-5 h-5 mr-2" />
+                                                    Generate Keywords
                                                 </>
                                             )}
                                         </Button>
-                                    </div>
-                                    <p className="text-xs text-slate-500">
-                                        Enter a URL to automatically extract seed keywords using Google Ads Keyword Planner.
-                                    </p>
-                                </div>
-
-                                {/* Seed Keywords */}
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="seedKeywords" className="flex items-center gap-1.5 text-sm text-slate-700">
-                                        <span className="text-red-500">*</span>
-                                        Seed Keywords
-                                    </Label>
-                                    <Input
-                                        id="seedKeywords"
-                                        placeholder="airline number, contact airline, delta phone number"
-                                        value={seedKeywords}
-                                        onChange={(e) => setSeedKeywords(e.target.value)}
-                                        className="text-sm"
-                                    />
-                                    <p className="text-xs text-slate-500">
-                                        Enter the main keywords you are targeting (3-5 core ideas, comma-separated).
-                                    </p>
-                                    
-                                    {/* AI Suggestions */}
-                                    {suggestedKeywords.length > 0 && (
-                                        <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Lightbulb className="w-4 h-4 text-blue-600" />
-                                                <span className="text-xs font-semibold text-blue-900">AI Suggestions</span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {suggestedKeywords.map((keyword, idx) => (
-                                                    <Button
-                                                        key={idx}
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => applySuggestedKeyword(keyword)}
-                                                        className="text-xs h-7 bg-white border-blue-300 hover:bg-blue-100 hover:border-blue-400"
-                                                    >
-                                                        <Plus className="w-3 h-3 mr-1" />
-                                                        {keyword}
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Target Match Types */}
-                                <div className="space-y-1.5">
-                                    <Label className="flex items-center gap-1.5 text-sm text-slate-700">
-                                        <span className="text-red-500">*</span>
-                                        Target Match Types
-                                    </Label>
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center gap-1.5">
-                                            <Checkbox 
-                                                id="broad-planner" 
-                                                checked={matchTypes.broad}
-                                                onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, broad: c as boolean}))}
-                                                className="border-amber-400"
-                                            />
-                                            <label htmlFor="broad-planner" className="text-xs text-slate-600 cursor-pointer">
-                                                Broad Match
-                                            </label>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <Checkbox 
-                                                id="phrase-planner" 
-                                                checked={matchTypes.phrase}
-                                                onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, phrase: c as boolean}))}
-                                                className="border-blue-400"
-                                            />
-                                            <label htmlFor="phrase-planner" className="text-xs text-slate-600 cursor-pointer">
-                                                Phrase Match "keyword"
-                                            </label>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <Checkbox 
-                                                id="exact-planner" 
-                                                checked={matchTypes.exact}
-                                                onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, exact: c as boolean}))}
-                                                className="border-emerald-400"
-                                            />
-                                            <label htmlFor="exact-planner" className="text-xs text-slate-600 cursor-pointer">
-                                                Exact Match [keyword]
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Negative Keywords */}
-                                <div className="space-y-1.5">
-                                    <Label className="text-sm text-slate-700">
-                                        Negative Keywords
-                                    </Label>
-                                    <Textarea
-                                        placeholder="cheap, discount, reviews, job, free, best..."
-                                        value={negativeKeywords}
-                                        onChange={(e) => setNegativeKeywords(e.target.value)}
-                                        className="min-h-[100px] text-xs resize-none"
-                                    />
-                                    <p className="text-xs text-slate-500">
-                                        Enter negative keywords (one per line or comma-separated). AI will avoid generating keywords containing these terms.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Generate Button */}
-                            <div className="pt-4 border-t border-slate-200 mt-4">
-                                <Button
-                                    onClick={() => handleGenerate(false)}
-                                    disabled={isGenerating || !(typeof seedKeywords === 'string' && seedKeywords.trim())}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2.5"
-                                >
-                                    {isGenerating ? (
-                                        <>
-                                            <Sparkles className="w-4 h-4 mr-2 animate-spin" />
-                                            Generating Keywords...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles className="w-4 h-4 mr-2" />
-                                            Generate Keywords
-                                        </>
-                                    )}
-                                </Button>
-                                {generatedKeywords.length > 0 && (
-                                    <Button
-                                        onClick={() => handleGenerate(true)}
-                                        disabled={isGenerating || !(typeof seedKeywords === 'string' && seedKeywords.trim())}
-                                        variant="outline"
-                                        className="w-full mt-2 text-sm py-2"
-                                    >
-                                        Append More ({generatedKeywords.length} total)
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Right Panel: Generated Keywords */}
-                        <div className="bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-slate-200/60 shadow-lg flex flex-col">
-                            <div className="mb-3">
-                                <div className="flex items-center justify-between mb-1">
-                                    <h2 className="text-lg font-bold text-slate-800">
-                                        Generated Keywords ({generatedKeywords.length})
-                                    </h2>
-                                    <div className="flex items-center gap-2">
                                         {generatedKeywords.length > 0 && (
-                                            <>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setShowMetrics(!showMetrics)}
-                                                    className="text-xs h-7"
-                                                >
-                                                    <BarChart3 className="w-3 h-3 mr-1" />
-                                                    {showMetrics ? 'Hide' : 'Show'} Metrics
-                                                </Button>
-                                                <Badge variant="outline" className={`text-xs ${
-                                                    dataSource === 'google_ads_api' 
-                                                        ? 'bg-green-50 text-green-700 border-green-200' 
-                                                        : dataSource === 'fallback' 
-                                                            ? 'bg-yellow-50 text-yellow-700 border-yellow-200' 
-                                                            : 'bg-slate-50 text-slate-600 border-slate-200'
-                                                }`}>
-                                                    {dataSource === 'google_ads_api' 
-                                                        ? 'Google Ads API' 
-                                                        : dataSource === 'fallback' 
-                                                            ? 'Estimated' 
-                                                            : 'Local'}
-                                                </Badge>
-                                            </>
+                                            <Button
+                                                onClick={() => handleGenerate(true)}
+                                                disabled={isGenerating || !(typeof seedKeywords === 'string' && seedKeywords.trim())}
+                                                variant="outline"
+                                                className="w-full h-10 bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-violet-500/50 rounded-xl transition-all duration-300 text-sm"
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                Append More ({generatedKeywords.length} total)
+                                            </Button>
                                         )}
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-500">
-                                    {showMetrics && enrichedKeywords.some(k => k.metrics) 
-                                        ? 'Keywords with volume, CPC, and competition data' 
-                                        : 'Results will appear here after generation'}
-                                </p>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto">
-                                {generatedKeywords.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-                                            <Sparkles className="w-8 h-8 text-slate-400" />
-                                        </div>
-                                        <h3 className="text-base font-semibold text-slate-700 mb-2">
-                                            Ready to Generate
-                                        </h3>
-                                        <p className="text-xs text-slate-500 max-w-xs">
-                                            Fill out the configuration including your seed keywords. AI will analyze your inputs and generate a comprehensive list of keywords.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {/* Action Buttons */}
-                                        <div className="flex gap-2 flex-wrap">
-                                            <Button
-                                                onClick={handleOpenSaveDialog}
-                                                disabled={isSaving || generatedKeywords.length === 0}
-                                                variant="default"
-                                                size="sm"
-                                                className="text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
-                                            >
-                                                <Save className="w-3.5 h-3.5" />
-                                                {isSaving ? 'Saving...' : 'Save'}
-                                            </Button>
-                                            <Button
-                                                onClick={handleCopyAll}
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-xs gap-1.5"
-                                            >
-                                                <Copy className="w-3.5 h-3.5" />
-                                                Copy All
-                                            </Button>
-                                            <Button
-                                                onClick={handleDownloadKeywords}
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-xs gap-1.5"
-                                            >
-                                                <Download className="w-3.5 h-3.5" />
-                                                Download
-                                            </Button>
-                                            <Button
-                                                onClick={() => {
-                                                    // Navigate to campaign builder with generated keywords
-                                                    // Use SKAG structure by default and pass data for AD Generation step
-                                                    const event = new CustomEvent('navigate', { 
-                                                        detail: { 
-                                                            tab: 'builder-3',
-                                                            data: {
-                                                                selectedKeywords: generatedKeywords,
-                                                                seedKeywords: seedKeywords,
-                                                                negativeKeywords: negativeKeywords,
-                                                                matchTypes: matchTypes,
-                                                                structure: 'SKAG',
-                                                                skipToAdsGeneration: true
-                                                            }
-                                                        } 
-                                                    });
-                                                    window.dispatchEvent(event);
-                                                    
-                                                    // Fallback: Update URL hash
-                                                    if (window.location.hash !== '#builder-3') {
-                                                        window.location.hash = '#builder-3';
-                                                    }
-                                                }}
-                                                disabled={generatedKeywords.length === 0}
-                                                variant="default"
-                                                size="sm"
-                                                className="text-xs gap-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
-                                            >
-                                                <ArrowRight className="w-3.5 h-3.5" />
-                                                Create Campaign
-                                            </Button>
-                                        </div>
-
-                                        {/* Keywords List with Metrics */}
-                                        <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
-                                            {showMetrics && enrichedKeywords.some(k => k.metrics) && (
-                                                <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-100 rounded-lg text-xs font-medium text-slate-600 sticky top-0">
-                                                    <div className="col-span-5">Keyword</div>
-                                                    <div className="col-span-2 text-center">Volume</div>
-                                                    <div className="col-span-2 text-center">CPC</div>
-                                                    <div className="col-span-3 text-center">Competition</div>
+                            {/* Right Panel: Generated Keywords */}
+                            <div className="relative group">
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-cyan-600 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-500"></div>
+                                <div className="relative bg-slate-900/90 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 shadow-2xl h-full flex flex-col">
+                                    {/* Panel Header */}
+                                    <div className="mb-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h2 className="text-xl font-semibold text-white flex items-center gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></div>
+                                                Keywords
+                                                {generatedKeywords.length > 0 && (
+                                                    <span className="px-2.5 py-1 text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full text-white shadow-lg shadow-violet-500/20">
+                                                        {generatedKeywords.length}
+                                                    </span>
+                                                )}
+                                            </h2>
+                                            {generatedKeywords.length > 0 && (
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setShowMetrics(!showMetrics)}
+                                                        className="h-8 text-xs text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                                    >
+                                                        <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+                                                        {showMetrics ? 'Hide' : 'Show'}
+                                                    </Button>
+                                                    <Badge className={`text-xs px-2.5 py-1 rounded-full font-medium border-0 ${
+                                                        dataSource === 'google_ads_api' 
+                                                            ? 'bg-emerald-500/20 text-emerald-400' 
+                                                            : dataSource === 'fallback' 
+                                                                ? 'bg-amber-500/20 text-amber-400' 
+                                                                : 'bg-slate-700/50 text-slate-400'
+                                                    }`}>
+                                                        {dataSource === 'google_ads_api' 
+                                                            ? 'Google Ads API' 
+                                                            : dataSource === 'fallback' 
+                                                                ? 'Estimated' 
+                                                                : 'Local Data'}
+                                                    </Badge>
                                                 </div>
                                             )}
-                                            {(showMetrics && enrichedKeywords.length > 0 ? enrichedKeywords : generatedKeywords.map(k => ({ text: k }))).map((item, idx) => {
-                                                const kw = typeof item === 'string' ? { text: item } : item;
-                                                const metrics = (kw as EnrichedKeyword).metrics;
-                                                
-                                                return showMetrics && metrics ? (
-                                                    <div
-                                                        key={idx}
-                                                        className="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-50 rounded-lg hover:bg-indigo-50 transition-colors text-xs"
-                                                    >
-                                                        <div className="col-span-5 font-mono text-slate-700 truncate" title={kw.text}>
-                                                            {kw.text}
-                                                        </div>
-                                                        <div className="col-span-2 text-center flex items-center justify-center gap-1">
-                                                            <TrendingUp className="w-3 h-3 text-blue-500" />
-                                                            <span className="text-slate-600">
-                                                                {metrics.avgMonthlySearches 
-                                                                    ? metrics.avgMonthlySearches >= 1000 
-                                                                        ? `${(metrics.avgMonthlySearches / 1000).toFixed(1)}K`
-                                                                        : metrics.avgMonthlySearches.toLocaleString()
-                                                                    : '-'}
-                                                            </span>
-                                                        </div>
-                                                        <div className="col-span-2 text-center flex items-center justify-center gap-1">
-                                                            <DollarSign className="w-3 h-3 text-green-500" />
-                                                            <span className="text-slate-600">
-                                                                {metrics.avgCpc ? `$${metrics.avgCpc.toFixed(2)}` : '-'}
-                                                            </span>
-                                                        </div>
-                                                        <div className="col-span-3 text-center">
-                                                            <Badge variant="outline" className={`text-xs ${
-                                                                metrics.competition === 'HIGH' 
-                                                                    ? 'bg-red-50 text-red-600 border-red-200' 
-                                                                    : metrics.competition === 'MEDIUM' 
-                                                                        ? 'bg-yellow-50 text-yellow-600 border-yellow-200' 
-                                                                        : 'bg-green-50 text-green-600 border-green-200'
-                                                            }`}>
-                                                                {metrics.competition || 'Low'}
-                                                            </Badge>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div
-                                                        key={idx}
-                                                        className="px-3 py-2 bg-slate-50 rounded-lg hover:bg-indigo-50 transition-colors text-xs text-slate-700 font-mono"
-                                                    >
-                                                        {kw.text}
-                                                    </div>
-                                                );
-                                            })}
                                         </div>
+                                        <p className="text-sm text-slate-500">
+                                            {showMetrics && enrichedKeywords.some(k => k.metrics) 
+                                                ? 'Keywords with volume, CPC, and competition metrics' 
+                                                : 'Your generated keywords will appear here'}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex-1 overflow-hidden flex flex-col">
+                                        {generatedKeywords.length === 0 ? (
+                                            <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
+                                                <div className="relative mb-6">
+                                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center shadow-xl">
+                                                        <Sparkles className="w-10 h-10 text-slate-500" />
+                                                    </div>
+                                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                                                        <Plus className="w-3 h-3 text-white" />
+                                                    </div>
+                                                </div>
+                                                <h3 className="text-lg font-semibold text-white mb-2">
+                                                    Ready to Generate
+                                                </h3>
+                                                <p className="text-sm text-slate-500 max-w-xs">
+                                                    Configure your seed keywords and click Generate to create a comprehensive keyword list
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col h-full">
+                                                {/* Action Buttons */}
+                                                <div className="flex gap-2 flex-wrap mb-4">
+                                                    <Button
+                                                        onClick={handleOpenSaveDialog}
+                                                        disabled={isSaving || generatedKeywords.length === 0}
+                                                        size="sm"
+                                                        className="h-9 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white border-0 shadow-lg shadow-violet-500/20 text-xs font-medium rounded-lg"
+                                                    >
+                                                        <Save className="w-3.5 h-3.5 mr-1.5" />
+                                                        {isSaving ? 'Saving...' : 'Save'}
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handleCopyAll}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-9 bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-500/50 text-xs rounded-lg"
+                                                    >
+                                                        <Copy className="w-3.5 h-3.5 mr-1.5" />
+                                                        Copy
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handleDownloadKeywords}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-9 bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:border-slate-500/50 text-xs rounded-lg"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                                                        Export
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => {
+                                                            const event = new CustomEvent('navigate', { 
+                                                                detail: { 
+                                                                    tab: 'builder-3',
+                                                                    data: {
+                                                                        selectedKeywords: generatedKeywords,
+                                                                        seedKeywords: seedKeywords,
+                                                                        negativeKeywords: negativeKeywords,
+                                                                        matchTypes: matchTypes,
+                                                                        structure: 'SKAG',
+                                                                        skipToAdsGeneration: true
+                                                                    }
+                                                                } 
+                                                            });
+                                                            window.dispatchEvent(event);
+                                                            if (window.location.hash !== '#builder-3') {
+                                                                window.location.hash = '#builder-3';
+                                                            }
+                                                        }}
+                                                        disabled={generatedKeywords.length === 0}
+                                                        size="sm"
+                                                        className="h-9 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white border-0 shadow-lg shadow-cyan-500/20 text-xs font-medium rounded-lg ml-auto"
+                                                    >
+                                                        <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
+                                                        Create Campaign
+                                                    </Button>
+                                                </div>
+
+                                                {/* Keywords Table */}
+                                                <div className="flex-1 overflow-hidden rounded-xl border border-slate-700/50 bg-slate-800/30">
+                                                    {showMetrics && enrichedKeywords.some(k => k.metrics) && (
+                                                        <div className="grid grid-cols-12 gap-3 px-4 py-3 bg-slate-800/80 border-b border-slate-700/50 text-xs font-semibold text-slate-400 sticky top-0">
+                                                            <div className="col-span-5">Keyword</div>
+                                                            <div className="col-span-2 text-center">Volume</div>
+                                                            <div className="col-span-2 text-center">CPC</div>
+                                                            <div className="col-span-3 text-center">Competition</div>
+                                                        </div>
+                                                    )}
+                                                    <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                                                        {(showMetrics && enrichedKeywords.length > 0 ? enrichedKeywords : generatedKeywords.map(k => ({ text: k }))).map((item, idx) => {
+                                                            const kw = typeof item === 'string' ? { text: item } : item;
+                                                            const metrics = (kw as EnrichedKeyword).metrics;
+                                                            
+                                                            return showMetrics && metrics ? (
+                                                                <div
+                                                                    key={idx}
+                                                                    className="grid grid-cols-12 gap-3 px-4 py-3 border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors duration-200 text-sm"
+                                                                >
+                                                                    <div className="col-span-5 font-mono text-slate-200 truncate" title={kw.text}>
+                                                                        {kw.text}
+                                                                    </div>
+                                                                    <div className="col-span-2 text-center flex items-center justify-center gap-1.5">
+                                                                        <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
+                                                                        <span className="text-slate-300 font-medium">
+                                                                            {metrics.avgMonthlySearches 
+                                                                                ? metrics.avgMonthlySearches >= 1000 
+                                                                                    ? `${(metrics.avgMonthlySearches / 1000).toFixed(1)}K`
+                                                                                    : metrics.avgMonthlySearches.toLocaleString()
+                                                                                : '-'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="col-span-2 text-center flex items-center justify-center gap-1.5">
+                                                                        <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                                                                        <span className="text-slate-300 font-medium">
+                                                                            {metrics.avgCpc ? `$${metrics.avgCpc.toFixed(2)}` : '-'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="col-span-3 text-center">
+                                                                        <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
+                                                                            metrics.competition === 'HIGH' 
+                                                                                ? 'bg-rose-500/20 text-rose-400' 
+                                                                                : metrics.competition === 'MEDIUM' 
+                                                                                    ? 'bg-amber-500/20 text-amber-400' 
+                                                                                    : 'bg-emerald-500/20 text-emerald-400'
+                                                                        }`}>
+                                                                            {metrics.competition || 'Low'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div
+                                                                    key={idx}
+                                                                    className="px-4 py-3 border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors duration-200 text-sm text-slate-300 font-mono"
+                                                                >
+                                                                    {kw.text}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="saved" className="mt-0">
+                        <div className="relative group">
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-500"></div>
+                            <div className="relative bg-slate-900/90 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 shadow-2xl">
+                                <div className="mb-6">
+                                    <h2 className="text-xl font-semibold text-white flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
+                                        Saved Keyword Lists
+                                        {savedLists.length > 0 && (
+                                            <span className="px-2.5 py-1 text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full text-white">
+                                                {savedLists.length}
+                                            </span>
+                                        )}
+                                    </h2>
+                                </div>
+                                {savedLists.length > 0 ? (
+                                    <div className="grid gap-4">
+                                        {savedLists.map(list => (
+                                            <div
+                                                key={list.id}
+                                                className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-violet-500/30 hover:bg-slate-800/70 transition-all duration-300"
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <div className="space-y-1">
+                                                        <span className="text-base font-semibold text-white">{list.name}</span>
+                                                        <p className="text-xs text-slate-500">
+                                                            Created {new Date(list.createdAt).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            onClick={() => handleLoadSavedList(list.id)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-9 bg-slate-700/50 border-slate-600/50 text-slate-300 hover:bg-violet-600/20 hover:text-violet-300 hover:border-violet-500/50 rounded-lg text-xs"
+                                                        >
+                                                            <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                                                            Load
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleDeleteSavedList(list.id)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-9 bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20 hover:border-rose-500/50 rounded-lg text-xs"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                                            Delete
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                                        <div className="relative mb-6">
+                                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center shadow-xl">
+                                                <FolderOpen className="w-10 h-10 text-slate-500" />
+                                            </div>
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-white mb-2">
+                                            No Saved Lists
+                                        </h3>
+                                        <p className="text-sm text-slate-500 max-w-xs">
+                                            Generate keywords and save them for future use
+                                        </p>
                                     </div>
                                 )}
                             </div>
                         </div>
-                    </div>
-                </TabsContent>
-                
-                <TabsContent value="saved">
-                    <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-slate-200/60 shadow-xl">
-                        <h2 className="text-xl font-bold text-indigo-600 mb-6">
-                            3. Saved Keyword Lists
-                        </h2>
-                        {savedLists.length > 0 ? (
-                            <div className="space-y-4">
-                                {savedLists.map(list => (
-                                    <div
-                                        key={list.id}
-                                        className="px-3 py-2 bg-white rounded border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-sm text-slate-700 font-mono"
-                                    >
-                                        <div className="flex justify-between items-center">
-                                            <div className="space-y-1">
-                                                <span className="font-bold">{list.name}</span>
-                                                <span className="text-xs text-slate-500">
-                                                    Created: {new Date(list.createdAt).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    onClick={() => handleLoadSavedList(list.id)}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="gap-2"
-                                                >
-                                                    <FolderOpen className="w-4 h-4" />
-                                                    Load
-                                                </Button>
-                                                <Button
-                                                    onClick={() => handleDeleteSavedList(list.id)}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="gap-2 bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                    Delete
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-full">
-                                <div className="text-center">
-                                    <Sparkles className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                    <p className="text-slate-500">
-                                        No saved keyword lists found.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </TabsContent>
-            </Tabs>
+                    </TabsContent>
+                </Tabs>
 
-            {/* Save Dialog */}
-            <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>Save Keyword Plan</DialogTitle>
-                        <DialogDescription>
-                            Enter a name for your keyword plan and save it for future use.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Name</Label>
-                            <Input
-                                id="name"
-                                placeholder="My Keyword Plan"
-                                value={listName}
-                                onChange={(e) => setListName(e.target.value)}
-                                className="bg-white border-slate-300"
-                            />
+                {/* Save Dialog */}
+                <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+                    <DialogContent className="bg-slate-900 border-slate-700/50 shadow-2xl rounded-2xl sm:max-w-[440px]">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600">
+                                    <Save className="w-4 h-4 text-white" />
+                                </div>
+                                Save Keyword Plan
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-400">
+                                Give your keyword plan a name to save it for later
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-sm font-medium text-slate-300">Plan Name</Label>
+                                <Input
+                                    id="name"
+                                    placeholder="My Keyword Plan"
+                                    value={listName}
+                                    onChange={(e) => setListName(e.target.value)}
+                                    className="bg-slate-800/50 border-slate-600/50 text-white placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-violet-500/20 rounded-lg"
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            onClick={handleCloseSaveDialog}
-                            variant="outline"
-                            className="gap-2"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleSaveWithCustomName}
-                            disabled={isSaving}
-                            className="gap-2"
-                        >
-                            {isSaving ? (
-                                <>
-                                    <Sparkles className="w-5 h-5 mr-2 animate-spin" />
-                                    Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="w-4 h-4" />
-                                    Save
-                                </>
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                        <DialogFooter className="gap-2">
+                            <Button
+                                onClick={handleCloseSaveDialog}
+                                variant="outline"
+                                className="bg-slate-800/50 border-slate-600/50 text-slate-300 hover:bg-slate-700/50 hover:text-white rounded-lg"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleSaveWithCustomName}
+                                disabled={isSaving}
+                                className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white border-0 shadow-lg shadow-violet-500/20 rounded-lg"
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="w-4 h-4 mr-2" />
+                                        Save Plan
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
     );
 };
