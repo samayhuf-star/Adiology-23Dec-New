@@ -4,7 +4,7 @@ import { TemplateData } from '../utils/savedWebsites';
 
 interface Section {
   id: string;
-  type: 'hero' | 'features' | 'services' | 'testimonials' | 'team' | 'faq' | 'pricing' | 'gallery' | 'blog' | 'partners' | 'cta' | 'contact' | 'about';
+  type: 'hero' | 'features' | 'services' | 'testimonials' | 'team' | 'faq' | 'pricing' | 'gallery' | 'blog' | 'partners' | 'cta' | 'contact' | 'about' | 'policies' | 'footer' | 'form' | 'popup';
   name: string;
   data: any;
 }
@@ -287,6 +287,167 @@ function generateSectionHtml(section: Section): string {
           </div>
         </section>`;
 
+    case 'form':
+      return `
+        <section class="section-form" style="background-color: ${bgClass}; padding: 60px 20px;">
+          <div style="max-width: 600px; margin: 0 auto;">
+            <h2 style="font-size: 2rem; font-weight: bold; text-align: center; margin-bottom: 15px; color: #1f2937;">
+              ${section.data.heading || 'Get a Free Quote'}
+            </h2>
+            <p style="text-align: center; color: #6b7280; margin-bottom: 30px;">
+              ${section.data.subheading || 'Fill out the form below and we\'ll get back to you within 24 hours.'}
+            </p>
+            <form style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+              <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #374151;">Full Name *</label>
+                <input type="text" placeholder="John Doe" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+              </div>
+              <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #374151;">Email Address *</label>
+                <input type="email" placeholder="john@example.com" required style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+              </div>
+              <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #374151;">Phone Number</label>
+                <input type="tel" placeholder="(555) 123-4567" style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+              </div>
+              <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #374151;">Message</label>
+                <textarea rows="4" placeholder="Tell us about your project..." style="width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
+              </div>
+              <button type="submit" style="width: 100%; background: #3b82f6; color: white; padding: 14px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+                ${section.data.buttonText || 'Submit Request'}
+              </button>
+              <p style="text-align: center; font-size: 0.85rem; color: #9ca3af; margin-top: 15px;">
+                By submitting, you agree to our Privacy Policy.
+              </p>
+            </form>
+          </div>
+        </section>`;
+
+    case 'policies':
+      const policies = section.data.items || [
+        { title: 'Privacy Policy', content: 'We respect your privacy and are committed to protecting your personal information. This policy outlines how we collect, use, and safeguard your data.' },
+        { title: 'Terms of Service', content: 'By using our services, you agree to these terms. We reserve the right to modify these terms at any time.' },
+        { title: 'Refund Policy', content: 'We offer a 30-day money-back guarantee on all our services. Contact us for refund requests.' }
+      ];
+      return `
+        <section class="section-policies" style="background-color: ${bgClass}; padding: 60px 20px;">
+          <div style="max-width: 900px; margin: 0 auto;">
+            <h2 style="font-size: 2rem; font-weight: bold; text-align: center; margin-bottom: 40px; color: #1f2937;">
+              ${section.data.heading || 'Our Policies'}
+            </h2>
+            <div style="display: flex; flex-direction: column; gap: 30px;">
+              ${policies.map((policy: any) => `
+                <div style="background: white; padding: 30px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                  <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 15px; color: #1f2937; display: flex; align-items: center; gap: 10px;">
+                    <span style="display: inline-block; width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></span>
+                    ${policy.title}
+                  </h3>
+                  <p style="color: #6b7280; line-height: 1.7;">${policy.content}</p>
+                  ${policy.link ? `<a href="${policy.link}" style="color: #3b82f6; text-decoration: underline; margin-top: 10px; display: inline-block;">Read Full Policy</a>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </section>`;
+
+    case 'footer':
+      const footerLinks = section.data.links || [
+        { text: 'Home', url: '#' },
+        { text: 'Services', url: '#services' },
+        { text: 'About', url: '#about' },
+        { text: 'Contact', url: '#contact' },
+        { text: 'Privacy Policy', url: '#privacy' },
+        { text: 'Terms of Service', url: '#terms' }
+      ];
+      return `
+        <footer class="section-footer" style="background-color: #1f2937; color: white; padding: 50px 20px 30px;">
+          <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px;">
+              <div>
+                <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 15px;">
+                  ${section.data.companyName || 'Company Name'}
+                </h3>
+                <p style="color: #9ca3af; font-size: 0.95rem; line-height: 1.6;">
+                  ${section.data.description || 'Your trusted partner for quality services. Available 24/7 to serve you.'}
+                </p>
+              </div>
+              <div>
+                <h4 style="font-weight: 600; margin-bottom: 15px;">Quick Links</h4>
+                <ul style="list-style: none; padding: 0;">
+                  ${footerLinks.slice(0, 4).map((link: any) => `
+                    <li style="margin-bottom: 10px;">
+                      <a href="${link.url}" style="color: #9ca3af; text-decoration: none; transition: color 0.2s;">${link.text}</a>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+              <div>
+                <h4 style="font-weight: 600; margin-bottom: 15px;">Legal</h4>
+                <ul style="list-style: none; padding: 0;">
+                  ${footerLinks.slice(4).map((link: any) => `
+                    <li style="margin-bottom: 10px;">
+                      <a href="${link.url}" style="color: #9ca3af; text-decoration: none;">${link.text}</a>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+              <div>
+                <h4 style="font-weight: 600; margin-bottom: 15px;">Contact</h4>
+                <p style="color: #9ca3af; margin-bottom: 8px;">${section.data.phone || '+1 (800) 123-4567'}</p>
+                <p style="color: #9ca3af; margin-bottom: 8px;">${section.data.email || 'info@example.com'}</p>
+                <p style="color: #9ca3af;">${section.data.address || '123 Main St, City, State'}</p>
+              </div>
+            </div>
+            <div style="border-top: 1px solid #374151; padding-top: 25px; text-align: center;">
+              <p style="color: #9ca3af; font-size: 0.9rem;">
+                © ${new Date().getFullYear()} ${section.data.companyName || 'Company Name'}. All rights reserved.
+              </p>
+              ${section.data.disclaimer ? `<p style="color: #6b7280; font-size: 0.8rem; margin-top: 10px;">${section.data.disclaimer}</p>` : ''}
+            </div>
+          </div>
+        </footer>`;
+
+    case 'popup':
+      return `
+        <div class="section-popup" id="popup-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;">
+          <div style="background: white; max-width: 500px; width: 90%; border-radius: 16px; overflow: hidden; position: relative; animation: popupSlide 0.3s ease-out;">
+            <button onclick="document.getElementById('popup-modal').style.display='none'" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+            <div style="padding: 40px;">
+              <h2 style="font-size: 1.75rem; font-weight: bold; margin-bottom: 15px; color: #1f2937; text-align: center;">
+                ${section.data.heading || 'Special Offer!'}
+              </h2>
+              <p style="color: #6b7280; text-align: center; margin-bottom: 25px;">
+                ${section.data.text || 'Get 20% off your first order. Limited time only!'}
+              </p>
+              <form style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="email" placeholder="Enter your email" style="padding: 14px 18px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;">
+                <button type="submit" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 14px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                  ${section.data.buttonText || 'Claim Offer'}
+                </button>
+              </form>
+              <p style="text-align: center; font-size: 0.8rem; color: #9ca3af; margin-top: 15px;">
+                No spam. Unsubscribe anytime.
+              </p>
+            </div>
+          </div>
+        </div>
+        <script>
+          setTimeout(function() {
+            var popup = document.getElementById('popup-modal');
+            if (popup && !sessionStorage.getItem('popupShown')) {
+              popup.style.display = 'flex';
+              sessionStorage.setItem('popupShown', 'true');
+            }
+          }, ${section.data.delay || 3000});
+        </script>
+        <style>
+          @keyframes popupSlide {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+        </style>`;
+
     default:
       return `
         <section style="background-color: ${bgClass}; padding: 40px 20px; text-align: center;">
@@ -321,6 +482,10 @@ const SECTION_TYPES = [
   { type: 'cta', name: 'Call to Action', color: 'bg-amber-50', icon: '🚀' },
   { type: 'contact', name: 'Contact', color: 'bg-teal-50', icon: '📧' },
   { type: 'about', name: 'About Us', color: 'bg-fuchsia-50', icon: '📖' },
+  { type: 'form', name: 'Lead Form', color: 'bg-rose-50', icon: '📋' },
+  { type: 'policies', name: 'Policies', color: 'bg-slate-50', icon: '📜' },
+  { type: 'footer', name: 'Footer', color: 'bg-gray-100', icon: '🔻' },
+  { type: 'popup', name: 'Popup/Modal', color: 'bg-violet-50', icon: '💡' },
 ];
 
 export default function SectionsEditor({ templateData, onUpdate, onSave }: SectionsEditorProps) {
