@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Clock, CheckCircle, AlertCircle, RefreshCw, History } from 'lucide-react';
+import { Search, Clock, CheckCircle, AlertCircle, RefreshCw, Plus, FolderOpen, Trash2, Eye } from 'lucide-react';
 
 interface GoogleAdsSearchProps {
   user: any;
@@ -15,6 +15,7 @@ interface SearchRequest {
 }
 
 export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
+  const [activeTab, setActiveTab] = useState<'new' | 'saved'>('new');
   const [keywords, setKeywords] = useState<string[]>(['']);
   const [dateRange, setDateRange] = useState('30');
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,6 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
   const [statusMessage, setStatusMessage] = useState('');
   const [requestId, setRequestId] = useState<number | null>(null);
   const [previousRequests, setPreviousRequests] = useState<SearchRequest[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     fetchPreviousRequests();
@@ -119,6 +119,7 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
       if (data.status === 'completed' && data.results) {
         setResults(data.results);
         setKeywords(data.keywords || ['']);
+        setActiveTab('new');
       } else if (data.status === 'failed') {
         setError(data.errorMessage || 'Search failed');
       }
@@ -146,6 +147,7 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Header */}
       <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -158,103 +160,194 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
         </div>
       </div>
 
-      {/* Search Form */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h3 className="font-semibold mb-4">Search Keywords</h3>
-        
-        <div className="space-y-4">
-          {keywords.map((keyword, index) => (
-            <div key={index} className="flex items-center gap-3">
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => updateKeyword(index, e.target.value)}
-                placeholder={`Keyword ${index + 1}`}
-                className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              {keywords.length > 1 && (
-                <button
-                  onClick={() => removeKeyword(index)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
-
-          {keywords.length < 5 && (
-            <button
-              onClick={addKeyword}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Add another keyword
-            </button>
-          )}
-        </div>
-
-        <div className="mt-6 flex items-center gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="px-4 py-2 border rounded-lg"
-            >
-              <option value="7">Last 7 days</option>
-              <option value="14">Last 14 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="60">Last 60 days</option>
-              <option value="90">Last 90 days</option>
-            </select>
-          </div>
-
-          <div className="flex-1"></div>
-
+      {/* Tabs */}
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="flex border-b">
           <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            onClick={() => setActiveTab('new')}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-colors ${
+              activeTab === 'new'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
           >
-            <History className="w-4 h-4" />
-            History
+            <Plus className="w-4 h-4" />
+            New Search
           </button>
-
           <button
-            onClick={searchKeywords}
-            disabled={loading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            onClick={() => setActiveTab('saved')}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-colors ${
+              activeTab === 'saved'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
           >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Submitting...
-              </>
-            ) : (
-              <>
-                <Search className="w-5 h-5" />
-                Search
-              </>
+            <FolderOpen className="w-4 h-4" />
+            Saved Searches
+            {previousRequests.length > 0 && (
+              <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-600">
+                {previousRequests.length}
+              </span>
             )}
           </button>
         </div>
 
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+        {/* New Search Tab */}
+        {activeTab === 'new' && (
+          <div className="p-6">
+            <h3 className="font-semibold mb-4">Search Keywords</h3>
+            
+            <div className="space-y-4">
+              {keywords.map((keyword, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={keyword}
+                    onChange={(e) => updateKeyword(index, e.target.value)}
+                    placeholder={`Keyword ${index + 1}`}
+                    className="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {keywords.length > 1 && (
+                    <button
+                      onClick={() => removeKeyword(index)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {keywords.length < 5 && (
+                <button
+                  onClick={addKeyword}
+                  className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add another keyword
+                </button>
+              )}
+            </div>
+
+            <div className="mt-6 flex items-center gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                <select
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="px-4 py-2 border rounded-lg"
+                >
+                  <option value="7">Last 7 days</option>
+                  <option value="14">Last 14 days</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="60">Last 60 days</option>
+                  <option value="90">Last 90 days</option>
+                </select>
+              </div>
+
+              <div className="flex-1"></div>
+
+              <button
+                onClick={searchKeywords}
+                disabled={loading}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-5 h-5" />
+                    Search
+                  </>
+                )}
+              </button>
+            </div>
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Info Box */}
+            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-800 mb-2">How it works</h4>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Enter up to 5 keywords you want to research</li>
+                <li>• Your search is queued and processed in the background</li>
+                <li>• Results are scraped from Google Ads Transparency Center</li>
+                <li>• Check back in about 1 hour for your results</li>
+                <li>• Results are cached for 24 hours for instant access</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Saved Searches Tab */}
+        {activeTab === 'saved' && (
+          <div className="p-6">
+            <h3 className="font-semibold mb-4">Your Saved Searches</h3>
+            
+            {previousRequests.length === 0 ? (
+              <div className="text-center py-12">
+                <FolderOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No saved searches yet</p>
+                <p className="text-sm text-gray-400 mt-1">Your search history will appear here</p>
+                <button
+                  onClick={() => setActiveTab('new')}
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Start a New Search
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {previousRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{req.keywords.join(', ')}</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {new Date(req.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                        req.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                        req.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {req.status === 'completed' ? 'Completed' :
+                         req.status === 'pending' ? 'Pending' :
+                         req.status === 'processing' ? 'Processing' : 'Failed'}
+                      </span>
+                      {req.status === 'completed' && (
+                        <span className="text-sm text-gray-600">{req.result_count} results</span>
+                      )}
+                      <button
+                        onClick={() => checkRequestStatus(req.id)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        title="View Results"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Status Message */}
-      {searchStatus !== 'idle' && searchStatus !== 'completed' && (
+      {/* Status Message - Shows when search is pending/processing */}
+      {activeTab === 'new' && searchStatus !== 'idle' && searchStatus !== 'completed' && (
         <div className={`p-6 rounded-lg border ${
           searchStatus === 'pending' ? 'bg-yellow-50 border-yellow-200' :
           searchStatus === 'processing' ? 'bg-blue-50 border-blue-200' :
@@ -295,42 +388,6 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Previous Requests History */}
-      {showHistory && previousRequests.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h3 className="font-semibold mb-4">Previous Searches</h3>
-          <div className="space-y-3">
-            {previousRequests.map((req) => (
-              <div
-                key={req.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
-                onClick={() => checkRequestStatus(req.id)}
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{req.keywords.join(', ')}</p>
-                  <p className="text-sm text-gray-500">
-                    {new Date(req.created_at).toLocaleString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    req.status === 'completed' ? 'bg-green-100 text-green-700' :
-                    req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                    req.status === 'processing' ? 'bg-blue-100 text-blue-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {req.status}
-                  </span>
-                  {req.status === 'completed' && (
-                    <span className="text-sm text-gray-600">{req.result_count} results</span>
-                  )}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -410,18 +467,6 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
           ))}
         </div>
       )}
-
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-medium text-blue-800 mb-2">How it works</h4>
-        <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Enter up to 5 keywords you want to research</li>
-          <li>• Your search is queued and processed in the background</li>
-          <li>• Results are scraped from Google Ads Transparency Center</li>
-          <li>• Check back in about 1 hour for your results</li>
-          <li>• Results are cached for 24 hours for instant access</li>
-        </ul>
-      </div>
     </div>
   );
 }
