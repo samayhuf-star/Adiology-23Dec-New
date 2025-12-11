@@ -516,7 +516,7 @@ export function convertBuilderDataToEditorFormat(
           path2: ad.displayPath?.[1] || ad.path2 || '',
           finalUrl: ad.finalUrl || ad.final_url || baseUrl
         });
-      } else if (ad.type === 'callonly') {
+      } else if (ad.type === 'call' || ad.type === 'callonly' || ad.type === 'call_only' || ad.adType === 'CallOnly' || ad.adType === 'call_only') {
         // Initialize call-only tracking for this ad group
         if (!callOnlyAdsPerAdGroup.has(adGroupName)) {
           callOnlyAdsPerAdGroup.set(adGroupName, new Set());
