@@ -181,8 +181,29 @@ export async function fetchGitHubExpenses(): Promise<Partial<ServiceExpense>> {
   return { currentSpend: 0, status: 'inactive' };
 }
 
-// Fetch all expenses in parallel
+// Fetch all expenses from secure backend API
 export async function fetchAllExpenses(): Promise<ServiceExpense[]> {
+  try {
+    // Use backend API to fetch billing data securely
+    const response = await fetch('/api/admin/services-billing');
+    if (response.ok) {
+      const services = await response.json();
+      console.log('📊 Fetched billing data from backend:', services.length, 'services');
+      return services.map((s: any) => ({
+        name: s.name,
+        icon: getServiceIcon(s.name),
+        description: s.description,
+        monthlyBudget: s.monthlyBudget,
+        currentSpend: s.currentSpend || 0,
+        status: s.status || 'inactive',
+        lastBilled: s.lastBilled || 'N/A'
+      }));
+    }
+  } catch (error) {
+    console.error('Error fetching billing from backend:', error);
+  }
+
+  // Fallback to client-side fetching if backend fails
   const [openai, stripe, supabase, vercel, sendgrid, replit, github] = await Promise.allSettled([
     fetchOpenAIExpenses(),
     fetchStripeExpenses(),
@@ -267,4 +288,19 @@ export async function fetchAllExpenses(): Promise<ServiceExpense[]> {
       lastBilled: (github.status === 'fulfilled' ? github.value.lastBilled : new Date().toISOString().split('T')[0]) || new Date().toISOString().split('T')[0]
     }
   ];
+}
+
+// Helper to get service icons
+function getServiceIcon(name: string): string {
+  const icons: Record<string, string> = {
+    'OpenAI': '🤖',
+    'Supabase': '⚡',
+    'Stripe': '💳',
+    'Vercel': '▲',
+    'Redis Cloud': '🔴',
+    'SendGrid': '📧',
+    'Replit': '🔥',
+    'GitHub': '🐙'
+  };
+  return icons[name] || '📦';
 }

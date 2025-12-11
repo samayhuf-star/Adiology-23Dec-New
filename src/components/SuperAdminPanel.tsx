@@ -689,56 +689,70 @@ function ExpensesPage({ expenses, onRefresh, onCreate, onEdit, onDelete }: {
         <Kpi label="Active Services" value={thirdPartyServices.filter(s => s.status === 'active').length} />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold text-lg">Third-Party Services</h3>
-          <span className="text-sm text-gray-500">Live expense tracking</span>
+          <button onClick={loadRealTimeExpenses} className="p-2 border rounded-md hover:bg-gray-50">
+            <IconRefresh />
+          </button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {thirdPartyServices.map((service) => (
-            <div key={service.name} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{service.icon}</span>
-                  <div>
-                    <div className="font-medium">{service.name}</div>
-                    <div className="text-xs text-gray-500">{service.description}</div>
-                  </div>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  service.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {service.status === 'free_tier' ? 'Free Tier' : 'Active'}
-                </span>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Current Spend</span>
-                  <span className="font-semibold">${service.currentSpend.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Monthly Budget</span>
-                  <span>${service.monthlyBudget}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full ${
-                      (service.currentSpend / service.monthlyBudget) > 0.9 ? 'bg-red-500' :
-                      (service.currentSpend / service.monthlyBudget) > 0.7 ? 'bg-yellow-500' :
-                      'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(100, (service.currentSpend / service.monthlyBudget) * 100)}%` }}
-                  />
-                </div>
-                <div className="text-xs text-gray-500">
-                  Last billed: {service.lastBilled}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-50 text-xs text-gray-500">
+            <tr>
+              <th className="px-4 py-3 text-left">Service</th>
+              <th className="px-4 py-3 text-left">Description</th>
+              <th className="px-4 py-3 text-left">Current Spend</th>
+              <th className="px-4 py-3 text-left">Monthly Budget</th>
+              <th className="px-4 py-3 text-left">Usage</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Last Billed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loadingExpenses ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">Loading services...</td>
+              </tr>
+            ) : thirdPartyServices.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No services configured</td>
+              </tr>
+            ) : (
+              thirdPartyServices.map((service) => {
+                const usagePercent = service.monthlyBudget > 0 ? (service.currentSpend / service.monthlyBudget) * 100 : 0;
+                return (
+                  <tr key={service.name} className="border-t hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{service.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{service.description}</td>
+                    <td className="px-4 py-3 font-semibold">${service.currentSpend.toFixed(2)}</td>
+                    <td className="px-4 py-3">${service.monthlyBudget}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${usagePercent > 90 ? 'bg-red-500' : usagePercent > 70 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                            style={{ width: `${Math.min(100, usagePercent)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500">{usagePercent.toFixed(0)}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        service.status === 'active' ? 'bg-green-100 text-green-700' : 
+                        service.status === 'free_tier' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {service.status === 'free_tier' ? 'Free Tier' : service.status === 'active' ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{service.lastBilled}</td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
