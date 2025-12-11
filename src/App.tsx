@@ -43,7 +43,6 @@ import { TermsOfService } from './components/TermsOfService';
 import { CookiePolicy } from './components/CookiePolicy';
 import { GDPRCompliance } from './components/GDPRCompliance';
 import { RefundPolicy } from './components/RefundPolicy';
-import { GoogleAdsSearch } from './components/GoogleAdsSearch';
 import { supabase } from './utils/supabase/client';
 import { getCurrentUserProfile, isAuthenticated, signOut, isSuperAdmin } from './utils/auth';
 import { getUserPreferences, applyUserPreferences } from './utils/userPreferences';
@@ -130,7 +129,6 @@ const App = () => {
     'keyword-planner',
     'keyword-mixer',
     'negative-keywords',
-    'ads-search',
     'settings',
     'billing',
     'support',
@@ -838,7 +836,6 @@ const App = () => {
         { id: 'negative-keywords', label: 'Negatives', icon: MinusCircle },
       ]
     },
-    { id: 'ads-search', label: 'Ads Search', icon: TrendingUp },
     { id: 'web-templates', label: 'Web Templates', icon: Globe },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
@@ -1310,8 +1307,6 @@ const App = () => {
         return <NegativeKeywordsBuilder initialData={activeTab === 'negative-keywords' ? historyData : null} />;
       case 'keyword-saved-lists':
         return <KeywordSavedLists />;
-      case 'ads-search':
-        return <GoogleAdsSearch user={user} />;
       case 'web-templates':
         return <WebTemplates />;
       case 'support-help':
