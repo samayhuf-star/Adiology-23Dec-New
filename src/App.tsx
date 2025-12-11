@@ -1366,11 +1366,11 @@ const App = () => {
       } as React.CSSProperties}
       data-color-theme={userPrefs.colorTheme}
     >
-      {/* Desktop Sidebar - hidden on mobile */}
+      {/* Desktop Sidebar - completely hidden on mobile */}
       <aside 
-        className={`hidden md:flex ${
-          (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'w-64' : 'w-20'
-        } transition-all duration-300 bg-white/80 backdrop-blur-xl border-r border-indigo-100/60 shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto flex-col`}
+        className={`hidden md:flex md:flex-col ${
+          (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'md:w-64' : 'md:w-20'
+        } transition-all duration-300 bg-white/80 backdrop-blur-xl border-r border-indigo-100/60 shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto`}
         style={{
           background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(238, 242, 255, 0.95) 100%)'
         }}
