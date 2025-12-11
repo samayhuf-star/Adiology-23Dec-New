@@ -50,6 +50,8 @@ import {
   generateLocationInput 
 } from '../utils/autoFill';
 import { getKeywordMetrics, type KeywordMetrics } from '../utils/keywordPlannerApi';
+import { GEO_PRESETS, US_STATES_ALL, US_CITIES_TOP_500, US_ZIP_CODES_EXTENDED } from '../data/locationPresets';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 
 // Campaign Structure Types (14 structures)
 const CAMPAIGN_STRUCTURES = [
@@ -3225,11 +3227,62 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   };
 
   const renderStep5 = () => {
+    const handlePresetSelect = (type: 'cities' | 'states' | 'zips', preset: string) => {
+      let items: string[] = [];
+      
+      if (type === 'cities') {
+        if (preset === 'top50') items = GEO_PRESETS.cities.top50;
+        else if (preset === 'top250') items = GEO_PRESETS.cities.top250;
+        else if (preset === 'top500') items = GEO_PRESETS.cities.top500;
+        setCampaignData(prev => ({ 
+          ...prev, 
+          locations: { ...prev.locations, cities: items, states: [], zipCodes: [] }
+        }));
+      } else if (type === 'states') {
+        if (preset === 'top10') items = GEO_PRESETS.states.top10;
+        else if (preset === 'top25') items = GEO_PRESETS.states.top25;
+        else if (preset === 'top50') items = GEO_PRESETS.states.top50;
+        setCampaignData(prev => ({ 
+          ...prev, 
+          locations: { ...prev.locations, states: items, cities: [], zipCodes: [] }
+        }));
+      } else if (type === 'zips') {
+        if (preset === 'top1000') items = GEO_PRESETS.zips.top1000;
+        else if (preset === 'top5000') items = GEO_PRESETS.zips.top5000;
+        else if (preset === 'top15000') items = GEO_PRESETS.zips.top15000;
+        else if (preset === 'top25000') items = GEO_PRESETS.zips.top25000;
+        setCampaignData(prev => ({ 
+          ...prev, 
+          locations: { ...prev.locations, zipCodes: items, cities: [], states: [] }
+        }));
+      }
+      autoSaveDraft();
+      notifications.success(`Selected ${items.length} ${type}`, { title: 'Geo Targeting Updated' });
+    };
+
+    const clearLocations = () => {
+      setCampaignData(prev => ({ 
+        ...prev, 
+        locations: { countries: [], states: [], cities: [], zipCodes: [] }
+      }));
+      notifications.info('Locations cleared - will target entire country');
+    };
+
+    const getCurrentSelection = () => {
+      const { cities, states, zipCodes } = campaignData.locations;
+      if (cities.length > 0) return { type: 'Cities', count: cities.length };
+      if (states.length > 0) return { type: 'States', count: states.length };
+      if (zipCodes.length > 0) return { type: 'ZIP Codes', count: zipCodes.length };
+      return null;
+    };
+
+    const currentSelection = getCurrentSelection();
+
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-slate-800 mb-2">Geo Target</h2>
-          <p className="text-slate-600">Select the country where your ads will be shown.</p>
+          <p className="text-slate-600">Target specific locations or the entire country.</p>
         </div>
 
         <div className="space-y-6">
@@ -3241,7 +3294,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 <CardTitle>Target Country</CardTitle>
               </div>
               <CardDescription>
-                Select the country where you want your ads to be displayed. All users within this country will see your ads.
+                Select the base country for your campaign.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -3261,6 +3314,229 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   ))}
                 </SelectContent>
               </Select>
+            </CardContent>
+          </Card>
+
+          {/* Location Targeting Tabs */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-indigo-600" />
+                  <CardTitle>Location Targeting</CardTitle>
+                </div>
+                {currentSelection && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-sm">
+                      {currentSelection.count} {currentSelection.type} selected
+                    </Badge>
+                    <Button variant="ghost" size="sm" onClick={clearLocations}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <CardDescription>
+                Choose to target specific cities, states, or ZIP codes within {campaignData.targetCountry}. 
+                Leave empty to target the entire country.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="cities" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
+                  <TabsTrigger value="cities" className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Cities
+                  </TabsTrigger>
+                  <TabsTrigger value="states" className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    States
+                  </TabsTrigger>
+                  <TabsTrigger value="zips" className="flex items-center gap-2">
+                    <Hash className="w-4 h-4" />
+                    ZIP Codes
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Cities Tab */}
+                <TabsContent value="cities" className="space-y-4">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">Quick Presets</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={campaignData.locations.cities.length === 50 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('cities', 'top50')}
+                        className="text-sm"
+                      >
+                        Top 50 Cities
+                      </Button>
+                      <Button
+                        variant={campaignData.locations.cities.length === 250 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('cities', 'top250')}
+                        className="text-sm"
+                      >
+                        Top 250 Cities
+                      </Button>
+                      <Button
+                        variant={campaignData.locations.cities.length === 500 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('cities', 'top500')}
+                        className="text-sm"
+                      >
+                        Top 500 Cities
+                      </Button>
+                    </div>
+                  </div>
+                  {campaignData.locations.cities.length > 0 && (
+                    <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                      <p className="text-sm text-slate-600 mb-2">
+                        <strong>{campaignData.locations.cities.length}</strong> cities selected
+                      </p>
+                      <ScrollArea className="h-24">
+                        <div className="flex flex-wrap gap-1">
+                          {campaignData.locations.cities.slice(0, 20).map((city, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">{city}</Badge>
+                          ))}
+                          {campaignData.locations.cities.length > 20 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{campaignData.locations.cities.length - 20} more
+                            </Badge>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* States Tab */}
+                <TabsContent value="states" className="space-y-4">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">Quick Presets</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={campaignData.locations.states.length === 10 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('states', 'top10')}
+                        className="text-sm"
+                      >
+                        Top 10 States
+                      </Button>
+                      <Button
+                        variant={campaignData.locations.states.length === 25 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('states', 'top25')}
+                        className="text-sm"
+                      >
+                        Top 25 States
+                      </Button>
+                      <Button
+                        variant={campaignData.locations.states.length === 50 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('states', 'top50')}
+                        className="text-sm"
+                      >
+                        All 50 States
+                      </Button>
+                    </div>
+                  </div>
+                  {campaignData.locations.states.length > 0 && (
+                    <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                      <p className="text-sm text-slate-600 mb-2">
+                        <strong>{campaignData.locations.states.length}</strong> states selected
+                      </p>
+                      <ScrollArea className="h-24">
+                        <div className="flex flex-wrap gap-1">
+                          {campaignData.locations.states.map((state, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">{state}</Badge>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ZIP Codes Tab */}
+                <TabsContent value="zips" className="space-y-4">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">Quick Presets</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={campaignData.locations.zipCodes.length === 1000 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('zips', 'top1000')}
+                        className="text-sm"
+                      >
+                        Top 1,000 ZIPs
+                      </Button>
+                      <Button
+                        variant={campaignData.locations.zipCodes.length === 5000 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('zips', 'top5000')}
+                        className="text-sm"
+                      >
+                        Top 5,000 ZIPs
+                      </Button>
+                      <Button
+                        variant={campaignData.locations.zipCodes.length === 15000 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('zips', 'top15000')}
+                        className="text-sm"
+                      >
+                        Top 15,000 ZIPs
+                      </Button>
+                      <Button
+                        variant={campaignData.locations.zipCodes.length >= 25000 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePresetSelect('zips', 'top25000')}
+                        className="text-sm"
+                      >
+                        Top 25,000 ZIPs
+                      </Button>
+                    </div>
+                  </div>
+                  {campaignData.locations.zipCodes.length > 0 && (
+                    <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                      <p className="text-sm text-slate-600 mb-2">
+                        <strong>{campaignData.locations.zipCodes.length.toLocaleString()}</strong> ZIP codes selected
+                      </p>
+                      <ScrollArea className="h-24">
+                        <div className="flex flex-wrap gap-1">
+                          {campaignData.locations.zipCodes.slice(0, 30).map((zip, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs">{zip}</Badge>
+                          ))}
+                          {campaignData.locations.zipCodes.length > 30 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{(campaignData.locations.zipCodes.length - 30).toLocaleString()} more
+                            </Badge>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Summary */}
+          <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-800">Targeting Summary</p>
+                  <p className="text-sm text-slate-600">
+                    {currentSelection 
+                      ? `${currentSelection.count.toLocaleString()} ${currentSelection.type} in ${campaignData.targetCountry}`
+                      : `All of ${campaignData.targetCountry} (nationwide)`
+                    }
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
