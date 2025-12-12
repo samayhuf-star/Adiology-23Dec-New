@@ -1314,6 +1314,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const autoSaveDraft = async () => {
     try {
       if (campaignData.campaignName || campaignData.url) {
+        // Map step number to step name for display
+        const stepNames = ['', 'Setup', 'Structure', 'Keywords', 'Ads', 'Locations', 'Extensions', 'Validate', 'Export'];
+        const stepName = stepNames[currentStep] || 'Setup';
+        
         await historyService.save('campaign', campaignData.campaignName || 'Draft Campaign', {
           name: campaignData.campaignName || 'Draft Campaign',
           url: campaignData.url,
@@ -1326,6 +1330,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           cta: campaignData.cta,
           negativeKeywords: campaignData.negativeKeywords,
           adGroups: campaignData.adGroups,
+          step: currentStep,
+          stepName: stepName,
           createdAt: new Date().toISOString(),
         }, 'draft');
       }
