@@ -656,208 +656,186 @@ app.post('/api/analyze-url', async (c) => {
       // Wait a bit for dynamic content
       await page.waitForTimeout(2000);
 
-      // Extract comprehensive data from the page (using pure JS - no TypeScript types)
-      const analysisResult = await page.evaluate(() => {
-        // Helper function to clean text
-        function cleanText(text) {
-          return (text || '').trim().replace(/\s+/g, ' ').slice(0, 500);
-        }
-
-        // Extract all headings with hierarchy
-        var headings = [];
-        document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function(h) {
-          var text = cleanText(h.textContent);
-          if (text && text.length > 2) {
-            headings.push({ level: h.tagName.toLowerCase(), text: text });
+      // Extract comprehensive data from the page using string evaluation to avoid tsx transpilation issues
+      const pageScript = `
+        (function() {
+          function cleanText(text) {
+            return (text || '').trim().replace(/\\s+/g, ' ').slice(0, 500);
           }
-        });
 
-        // Extract all CTAs (buttons and CTA-like links)
-        var ctaElements = [];
-        var ctaSelectors = 'button, [role="button"], a.btn, a.button, a.cta, .cta, [class*="cta"], [class*="btn-"], input[type="submit"], a[href*="contact"], a[href*="quote"], a[href*="book"], a[href*="call"]';
-        document.querySelectorAll(ctaSelectors).forEach(function(el) {
-          var text = cleanText(el.textContent);
-          var href = el.href || '';
-          if (text && text.length > 1 && text.length < 100) {
-            ctaElements.push({
-              text: text,
-              type: el.tagName.toLowerCase(),
-              href: href.startsWith('http') ? href : undefined
-            });
-          }
-        });
-
-        // Extract forms and their fields
-        var forms = [];
-        document.querySelectorAll('form').forEach(function(form) {
-          var fields = [];
-          form.querySelectorAll('input, select, textarea').forEach(function(field) {
-            var name = field.name || field.placeholder || field.getAttribute('aria-label') || '';
-            var type = field.type || field.tagName.toLowerCase();
-            if (name) fields.push(type + ': ' + name);
-          });
-          if (fields.length > 0) {
-            forms.push({
-              action: form.action || '',
-              method: form.method || 'get',
-              fields: fields
-            });
-          }
-        });
-
-        // Extract images with alt text
-        var images = [];
-        document.querySelectorAll('img').forEach(function(img) {
-          var src = img.src || '';
-          var alt = img.alt || '';
-          if (src && !src.includes('data:image')) {
-            images.push({ src: src.slice(0, 200), alt: alt.slice(0, 100) });
-          }
-        });
-
-        // Extract navigation structure
-        var navigation = [];
-        document.querySelectorAll('nav a, header a, [role="navigation"] a').forEach(function(link) {
-          var text = cleanText(link.textContent);
-          if (text && text.length > 1 && text.length < 50) {
-            navigation.push(text);
-          }
-        });
-
-        // Extract structured data (JSON-LD)
-        var schemas = [];
-        document.querySelectorAll('script[type="application/ld+json"]').forEach(function(script) {
-          try {
-            var data = JSON.parse(script.textContent || '{}');
-            schemas.push(data);
-          } catch(e) {}
-        });
-
-        // Extract SEO signals
-        var metaDesc = document.querySelector('meta[name="description"]');
-        var canonical = document.querySelector('link[rel="canonical"]');
-        var robots = document.querySelector('meta[name="robots"]');
-        var viewport = document.querySelector('meta[name="viewport"]');
-        var ogTitle = document.querySelector('meta[property="og:title"]');
-        var ogDesc = document.querySelector('meta[property="og:description"]');
-        var seoSignals = {
-          title: document.title || '',
-          metaDescription: metaDesc ? metaDesc.getAttribute('content') : '',
-          canonical: canonical ? canonical.getAttribute('href') : '',
-          robots: robots ? robots.getAttribute('content') : '',
-          viewport: viewport ? viewport.getAttribute('content') : '',
-          ogTitle: ogTitle ? ogTitle.getAttribute('content') : '',
-          ogDescription: ogDesc ? ogDesc.getAttribute('content') : ''
-        };
-        var ogImage = document.querySelector('meta[property="og:image"]');
-        seoSignals.ogImage = ogImage ? ogImage.getAttribute('content') : '';
-        seoSignals.h1Count = document.querySelectorAll('h1').length;
-        seoSignals.wordCount = (document.body.innerText || '').split(/\s+/).filter(function(w) { return w.length > 0; }).length;
-
-        // Extract value propositions and key messaging
-        var keyMessaging = [];
-        var heroSections = document.querySelectorAll('.hero, [class*="hero"], .banner, [class*="banner"], section:first-of-type');
-        heroSections.forEach(function(section) {
-          var text = cleanText(section.textContent);
-          if (text && text.length > 20) {
-            keyMessaging.push(text.slice(0, 300));
-          }
-        });
-
-        // Extract testimonials and social proof
-        var testimonials = [];
-        var testimonialSelectors = '.testimonial, [class*="testimonial"], .review, [class*="review"], blockquote, .quote';
-        document.querySelectorAll(testimonialSelectors).forEach(function(el) {
-          var text = cleanText(el.textContent);
-          if (text && text.length > 20 && text.length < 500) {
-            testimonials.push({ text: text });
-          }
-        });
-
-        // Extract FAQs
-        var faqs = [];
-        var faqSelectors = '.faq, [class*="faq"], .accordion, details, [itemtype*="FAQPage"]';
-        document.querySelectorAll(faqSelectors).forEach(function(el) {
-          var questionEl = el.querySelector('summary, .question, dt, h3, h4, [itemprop="name"]');
-          var answerEl = el.querySelector('.answer, dd, p, [itemprop="text"]');
-          var question = questionEl ? (questionEl.textContent || '').trim() : '';
-          var answer = answerEl ? (answerEl.textContent || '').trim() : '';
-          if (question && answer) {
-            faqs.push({ question: question.slice(0, 200), answer: answer.slice(0, 500) });
-          }
-        });
-
-        // Extract contact info
-        var contactInfo = {
-          phones: [],
-          emails: [],
-          addresses: []
-        };
-        
-        // Extract phone numbers
-        var phoneRegex = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
-        var bodyText = document.body.innerText || '';
-        var phoneMatches = bodyText.match(phoneRegex);
-        if (phoneMatches) {
-          contactInfo.phones = Array.from(new Set(phoneMatches)).slice(0, 5);
-        }
-        
-        // Extract emails
-        var emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-        var emailMatches = bodyText.match(emailRegex);
-        if (emailMatches) {
-          contactInfo.emails = Array.from(new Set(emailMatches)).slice(0, 5);
-        }
-
-        // Extract services
-        var services = [];
-        var serviceSections = document.querySelectorAll('[class*="service"], .services, section');
-        serviceSections.forEach(function(section) {
-          section.querySelectorAll('li, h3, h4, .service-item').forEach(function(item) {
-            var text = cleanText(item.textContent);
-            if (text && text.length > 3 && text.length < 100) {
-              services.push(text);
+          var headings = [];
+          document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function(h) {
+            var text = cleanText(h.textContent);
+            if (text && text.length > 2) {
+              headings.push({ level: h.tagName.toLowerCase(), text: text });
             }
           });
-        });
 
-        // Extract main content (first 1000 words)
-        var mainContent = cleanText(document.body.innerText).slice(0, 3000);
+          var ctaElements = [];
+          var ctaSelectors = 'button, [role="button"], a.btn, a.button, a.cta, .cta, [class*="cta"], [class*="btn-"], input[type="submit"], a[href*="contact"], a[href*="quote"], a[href*="book"], a[href*="call"]';
+          document.querySelectorAll(ctaSelectors).forEach(function(el) {
+            var text = cleanText(el.textContent);
+            var href = el.href || '';
+            if (text && text.length > 1 && text.length < 100) {
+              ctaElements.push({
+                text: text,
+                type: el.tagName.toLowerCase(),
+                href: href.startsWith('http') ? href : undefined
+              });
+            }
+          });
 
-        // Extract links for internal/external analysis
-        var links = {
-          internal: [],
-          external: []
-        };
-        document.querySelectorAll('a[href]').forEach(function(a) {
-          var href = a.href || '';
-          if (href.startsWith(window.location.origin)) {
-            links.internal.push(href);
-          } else if (href.startsWith('http')) {
-            links.external.push(href);
+          var forms = [];
+          document.querySelectorAll('form').forEach(function(form) {
+            var fields = [];
+            form.querySelectorAll('input, select, textarea').forEach(function(field) {
+              var name = field.name || field.placeholder || field.getAttribute('aria-label') || '';
+              var type = field.type || field.tagName.toLowerCase();
+              if (name) fields.push(type + ': ' + name);
+            });
+            if (fields.length > 0) {
+              forms.push({
+                action: form.action || '',
+                method: form.method || 'get',
+                fields: fields
+              });
+            }
+          });
+
+          var images = [];
+          document.querySelectorAll('img').forEach(function(img) {
+            var src = img.src || '';
+            var alt = img.alt || '';
+            if (src && !src.includes('data:image')) {
+              images.push({ src: src.slice(0, 200), alt: alt.slice(0, 100) });
+            }
+          });
+
+          var navigation = [];
+          document.querySelectorAll('nav a, header a, [role="navigation"] a').forEach(function(link) {
+            var text = cleanText(link.textContent);
+            if (text && text.length > 1 && text.length < 50) {
+              navigation.push(text);
+            }
+          });
+
+          var schemas = [];
+          document.querySelectorAll('script[type="application/ld+json"]').forEach(function(script) {
+            try {
+              var data = JSON.parse(script.textContent || '{}');
+              schemas.push(data);
+            } catch(e) {}
+          });
+
+          var metaDesc = document.querySelector('meta[name="description"]');
+          var canonical = document.querySelector('link[rel="canonical"]');
+          var robots = document.querySelector('meta[name="robots"]');
+          var viewport = document.querySelector('meta[name="viewport"]');
+          var ogTitle = document.querySelector('meta[property="og:title"]');
+          var ogDesc = document.querySelector('meta[property="og:description"]');
+          var ogImage = document.querySelector('meta[property="og:image"]');
+          var seoSignals = {
+            title: document.title || '',
+            metaDescription: metaDesc ? metaDesc.getAttribute('content') : '',
+            canonical: canonical ? canonical.getAttribute('href') : '',
+            robots: robots ? robots.getAttribute('content') : '',
+            viewport: viewport ? viewport.getAttribute('content') : '',
+            ogTitle: ogTitle ? ogTitle.getAttribute('content') : '',
+            ogDescription: ogDesc ? ogDesc.getAttribute('content') : '',
+            ogImage: ogImage ? ogImage.getAttribute('content') : '',
+            h1Count: document.querySelectorAll('h1').length,
+            wordCount: (document.body.innerText || '').split(/\\s+/).filter(function(w) { return w.length > 0; }).length
+          };
+
+          var keyMessaging = [];
+          var heroSections = document.querySelectorAll('.hero, [class*="hero"], .banner, [class*="banner"], section:first-of-type');
+          heroSections.forEach(function(section) {
+            var text = cleanText(section.textContent);
+            if (text && text.length > 20) {
+              keyMessaging.push(text.slice(0, 300));
+            }
+          });
+
+          var testimonials = [];
+          var testimonialSelectors = '.testimonial, [class*="testimonial"], .review, [class*="review"], blockquote, .quote';
+          document.querySelectorAll(testimonialSelectors).forEach(function(el) {
+            var text = cleanText(el.textContent);
+            if (text && text.length > 20 && text.length < 500) {
+              testimonials.push({ text: text });
+            }
+          });
+
+          var faqs = [];
+          var faqSelectors = '.faq, [class*="faq"], .accordion, details, [itemtype*="FAQPage"]';
+          document.querySelectorAll(faqSelectors).forEach(function(el) {
+            var questionEl = el.querySelector('summary, .question, dt, h3, h4, [itemprop="name"]');
+            var answerEl = el.querySelector('.answer, dd, p, [itemprop="text"]');
+            var question = questionEl ? (questionEl.textContent || '').trim() : '';
+            var answer = answerEl ? (answerEl.textContent || '').trim() : '';
+            if (question && answer) {
+              faqs.push({ question: question.slice(0, 200), answer: answer.slice(0, 500) });
+            }
+          });
+
+          var contactInfo = { phones: [], emails: [], addresses: [] };
+          var phoneRegex = /(?:\\+?1[-.\s]?)?\\(?\\d{3}\\)?[-.\s]?\\d{3}[-.\s]?\\d{4}/g;
+          var bodyText = document.body.innerText || '';
+          var phoneMatches = bodyText.match(phoneRegex);
+          if (phoneMatches) {
+            contactInfo.phones = Array.from(new Set(phoneMatches)).slice(0, 5);
           }
-        });
-
-        return {
-          headings: headings.slice(0, 30),
-          ctaElements: ctaElements.slice(0, 20),
-          forms: forms.slice(0, 5),
-          images: images.slice(0, 20),
-          navigation: Array.from(new Set(navigation)).slice(0, 20),
-          schemas: schemas,
-          seoSignals: seoSignals,
-          keyMessaging: keyMessaging.slice(0, 5),
-          testimonials: testimonials.slice(0, 10),
-          faqs: faqs.slice(0, 10),
-          contactInfo: contactInfo,
-          services: Array.from(new Set(services)).slice(0, 30),
-          mainContent: mainContent,
-          links: {
-            internal: Array.from(new Set(links.internal)).slice(0, 20),
-            external: Array.from(new Set(links.external)).slice(0, 20)
+          var emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;
+          var emailMatches = bodyText.match(emailRegex);
+          if (emailMatches) {
+            contactInfo.emails = Array.from(new Set(emailMatches)).slice(0, 5);
           }
-        };
-      });
+
+          var services = [];
+          var serviceSections = document.querySelectorAll('[class*="service"], .services, section');
+          serviceSections.forEach(function(section) {
+            section.querySelectorAll('li, h3, h4, .service-item').forEach(function(item) {
+              var text = cleanText(item.textContent);
+              if (text && text.length > 3 && text.length < 100) {
+                services.push(text);
+              }
+            });
+          });
+
+          var mainContent = cleanText(document.body.innerText).slice(0, 3000);
+
+          var links = { internal: [], external: [] };
+          document.querySelectorAll('a[href]').forEach(function(a) {
+            var href = a.href || '';
+            if (href.startsWith(window.location.origin)) {
+              links.internal.push(href);
+            } else if (href.startsWith('http')) {
+              links.external.push(href);
+            }
+          });
+
+          return {
+            headings: headings.slice(0, 30),
+            ctaElements: ctaElements.slice(0, 20),
+            forms: forms.slice(0, 5),
+            images: images.slice(0, 20),
+            navigation: Array.from(new Set(navigation)).slice(0, 20),
+            schemas: schemas,
+            seoSignals: seoSignals,
+            keyMessaging: keyMessaging.slice(0, 5),
+            testimonials: testimonials.slice(0, 10),
+            faqs: faqs.slice(0, 10),
+            contactInfo: contactInfo,
+            services: Array.from(new Set(services)).slice(0, 30),
+            mainContent: mainContent,
+            links: {
+              internal: Array.from(new Set(links.internal)).slice(0, 20),
+              external: Array.from(new Set(links.external)).slice(0, 20)
+            }
+          };
+        })()
+      `;
+      
+      const analysisResult = await page.evaluate(pageScript) as any;
 
       await browser.close();
 
