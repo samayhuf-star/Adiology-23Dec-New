@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft, Upload, X } from 'lucide-react';
 import VisualSectionsEditor from './VisualSectionsEditor';
 import { TemplateData, SavedWebsite, updateSavedWebsite, downloadTemplate } from '../utils/savedWebsites';
 import { supabase } from '../utils/supabase/client';
@@ -16,6 +16,9 @@ export default function TemplateEditorBuilder({ savedWebsite, onClose, onUpdate 
   const [exportedHtml, setExportedHtml] = useState<string>('');
   const [exportedCss, setExportedCss] = useState<string>('');
   const [isPublishing, setIsPublishing] = useState(false);
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [publishName, setPublishName] = useState(savedWebsite.name);
+  const [currentName, setCurrentName] = useState(savedWebsite.name);
   
   console.log('📝 TemplateEditorBuilder loaded with:', {
     id: savedWebsite.id,
@@ -78,17 +81,25 @@ ${exportedHtml}
     }
   };
 
-  const handlePublish = async () => {
+  const handlePublishClick = () => {
+    setPublishName(currentName);
+    setShowNameDialog(true);
+  };
+
+  const handlePublishConfirm = async () => {
+    const finalName = publishName.trim() || savedWebsite.name;
+    setShowNameDialog(false);
     setIsPublishing(true);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const domain = (savedWebsite as any).domain || `${savedWebsite.name.toLowerCase().replace(/\s+/g, '-')}.adiology.app`;
+      const domain = `${finalName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}.adiology.app`;
       
-      console.log('📤 Publishing website:', { id: savedWebsite.id, name: savedWebsite.name, domain, user: user?.email });
+      console.log('📤 Publishing website:', { id: savedWebsite.id, name: finalName, domain, user: user?.email });
       
       const { data, error } = await supabase.from('admin_websites').upsert({
         id: savedWebsite.id,
-        name: savedWebsite.name,
+        name: finalName,
         user_email: user?.email || 'unknown',
         domain: domain,
         status: 'Published',
@@ -100,8 +111,14 @@ ${exportedHtml}
         throw error;
       }
       
+      setCurrentName(finalName);
+      const updated = updateSavedWebsite(savedWebsite.id, { name: finalName });
+      if (updated) {
+        onUpdate(updated);
+      }
+      
       console.log('✅ Website published successfully:', data);
-      alert('Website published successfully!\n\nDomain: ' + domain);
+      alert('Website published successfully!\n\nName: ' + finalName + '\nDomain: ' + domain);
     } catch (error: any) {
       console.error('Error publishing website:', error);
       const errorMsg = error?.message || error?.details || 'Unknown error';
@@ -122,13 +139,13 @@ ${exportedHtml}
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h2 className="font-semibold text-gray-900 text-sm">{savedWebsite.name}</h2>
+            <h2 className="font-semibold text-gray-900 text-sm">{currentName}</h2>
             <p className="text-xs text-gray-500">Visual Editor</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={handlePublish}
+            onClick={handlePublishClick}
             disabled={isPublishing}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
           >
@@ -137,6 +154,52 @@ ${exportedHtml}
           </button>
         </div>
       </div>
+      
+      {showNameDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Publish Website</h3>
+              <button
+                onClick={() => setShowNameDialog(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Website Name
+              </label>
+              <input
+                type="text"
+                value={publishName}
+                onChange={(e) => setPublishName(e.target.value)}
+                placeholder="Enter website name..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                This name will be shown in your saved websites list
+              </p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowNameDialog(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePublishConfirm}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium text-sm hover:bg-purple-700"
+              >
+                Publish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="flex-1 overflow-auto">
         <VisualSectionsEditor
