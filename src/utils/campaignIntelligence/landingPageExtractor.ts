@@ -190,9 +190,6 @@ async function extractViaClient(url: string): Promise<Partial<LandingPageExtract
       console.warn('Landing page extraction error:', error);
     }
     
-    if (!isCSPError) {
-      console.warn('Client-side extraction failed (CORS or network):', error);
-    }
     return {};
   }
 }
@@ -469,7 +466,7 @@ function extractTokens(text: string): string[] {
     /\b(service|services|repair|installation|maintenance)\b/gi,
   ];
   
-  const tokens: string[] = new Set();
+  const tokens = new Set<string>();
   relevantPatterns.forEach(pattern => {
     const matches = text.match(pattern);
     if (matches) {

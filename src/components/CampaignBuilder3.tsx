@@ -6,7 +6,8 @@ import {
   Target, Zap, Layers, TrendingUp, Building2, ShoppingBag,
   Phone, Mail, Calendar, Clock, Eye, FileSpreadsheet, Copy,
   MessageSquare, Gift, Image as ImageIcon, DollarSign, MapPin as MapPinIcon,
-  Star, RefreshCw, Smartphone, Megaphone, FolderOpen
+  Star, RefreshCw, Smartphone, Megaphone, FolderOpen,
+  Type, ChevronUp, ChevronDown, MousePointerClick, Briefcase
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -300,6 +301,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const [seedKeywordsText, setSeedKeywordsText] = useState('');
   const [keywordDataSource, setKeywordDataSource] = useState<'google_ads_api' | 'fallback' | 'estimated' | 'local'>('local');
   const [googleAdsCustomerId, setGoogleAdsCustomerId] = useState<string | null>(null);
+  const [comprehensiveAnalysis, setComprehensiveAnalysis] = useState<any>(null);
+  const [analysisExpanded, setAnalysisExpanded] = useState<{ [key: string]: boolean }>({});
   const [campaignData, setCampaignData] = useState<CampaignData>({
     url: '',
     campaignName: generateDefaultCampaignName(),
@@ -549,49 +552,105 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     }
 
     setLoading(true);
+    setComprehensiveAnalysis(null);
+    
     try {
       // Format URL properly
       const formattedUrl = formatUrl(campaignData.url.trim());
       
-      // Extract landing page content (may fail due to CSP - that's OK)
-      let landingData: LandingPageExtractionResult;
+      // Try comprehensive server-side analysis first
+      let comprehensiveData: any = null;
       try {
-        landingData = await extractLandingPageContent(formattedUrl);
-      } catch (extractError: any) {
-        // If extraction fails (e.g., CSP violation), use fallback
-        console.warn('Landing page extraction failed, using fallback:', extractError);
-        landingData = {
-          domain: extractDomain(formattedUrl),
-          title: null,
-          h1: null,
-          metaDescription: null,
-          services: [],
-          phones: [],
-          emails: [],
-          hours: null,
-          addresses: [],
-          schemas: {},
-          page_text_tokens: [],
-          extractionMethod: 'fallback',
-          extractedAt: new Date().toISOString(),
-        };
+        const response = await fetch('/api/analyze-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: formattedUrl, extractionDepth: 'comprehensive' })
+        });
+        
+        if (response.ok) {
+          comprehensiveData = await response.json();
+          if (comprehensiveData.success) {
+            setComprehensiveAnalysis(comprehensiveData);
+            console.log('✅ Comprehensive analysis complete:', comprehensiveData);
+          }
+        }
+      } catch (serverError) {
+        console.warn('Server-side analysis failed, using client-side fallback:', serverError);
       }
       
-      // Detect intent, CTA, and vertical (with null checks)
-      const intentResult = mapGoalToIntent(
-        (landingData?.title || landingData?.h1 || '').trim(),
-        { ...landingData, url: formattedUrl, tokens: landingData.page_text_tokens || [] } as any,
-        landingData?.phones?.[0] || ''
-      );
-
-      // Determine vertical from content
-      const vertical = detectVertical(landingData);
+      // Build landing data from comprehensive analysis or fallback to client extraction
+      let landingData: LandingPageExtractionResult;
+      if (comprehensiveData?.success && comprehensiveData.data) {
+        const data = comprehensiveData.data;
+        landingData = {
+          domain: extractDomain(formattedUrl),
+          title: data.seoSignals?.title || null,
+          h1: data.headings?.find((h: any) => h.level === 'h1')?.text || null,
+          metaDescription: data.seoSignals?.metaDescription || null,
+          services: data.services || [],
+          phones: data.contactInfo?.phones || [],
+          emails: data.contactInfo?.emails || [],
+          hours: null,
+          addresses: data.contactInfo?.addresses || [],
+          schemas: { org: data.schemas?.[0] || undefined },
+          page_text_tokens: data.mainContent?.split(' ').slice(0, 100) || [],
+          extractionMethod: 'crawl',
+          extractedAt: new Date().toISOString(),
+        };
+      } else {
+        // Fallback to client-side extraction
+        try {
+          landingData = await extractLandingPageContent(formattedUrl);
+        } catch (extractError: any) {
+          console.warn('Landing page extraction failed, using fallback:', extractError);
+          landingData = {
+            domain: extractDomain(formattedUrl),
+            title: null,
+            h1: null,
+            metaDescription: null,
+            services: [],
+            phones: [],
+            emails: [],
+            hours: null,
+            addresses: [],
+            schemas: {},
+            page_text_tokens: [],
+            extractionMethod: 'fallback',
+            extractedAt: new Date().toISOString(),
+          };
+        }
+      }
       
-      // Determine CTA using vertical for better context
-      const cta = detectCTA(landingData, vertical);
-
-      // Generate seed keywords (3-4 keywords)
-      const seedKeywords = await generateSeedKeywords(landingData, intentResult);
+      // Use AI insights if available, otherwise detect manually
+      let intentResult: IntentResult;
+      let vertical: string | null;
+      let cta: string | null;
+      let seedKeywords: string[];
+      
+      if (comprehensiveData?.aiInsights) {
+        const ai = comprehensiveData.aiInsights;
+        intentResult = {
+          intentId: ai.primaryIntent?.toLowerCase()?.includes('call') ? IntentId.CALL 
+            : ai.primaryIntent?.toLowerCase()?.includes('lead') ? IntentId.LEAD
+            : ai.primaryIntent?.toLowerCase()?.includes('purchase') ? IntentId.PURCHASE
+            : IntentId.VISIT,
+          intentLabel: ai.primaryIntent || 'Visit',
+          score: 0.9
+        };
+        vertical = ai.businessType || detectVertical(landingData);
+        cta = ai.conversionGoal || detectCTA(landingData, vertical);
+        seedKeywords = ai.suggestedKeywords?.slice(0, 5) || await generateSeedKeywords(landingData, intentResult);
+      } else {
+        // Fallback to manual detection
+        intentResult = mapGoalToIntent(
+          (landingData?.title || landingData?.h1 || '').trim(),
+          { ...landingData, url: formattedUrl, tokens: landingData.page_text_tokens || [] } as any,
+          landingData?.phones?.[0] || ''
+        );
+        vertical = detectVertical(landingData);
+        cta = detectCTA(landingData, vertical);
+        seedKeywords = await generateSeedKeywords(landingData, intentResult);
+      }
 
       setCampaignData(prev => ({
         ...prev,
@@ -601,7 +660,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         seedKeywords,
       }));
       
-      // Sync the text state with the array
       setSeedKeywordsText(seedKeywords.join('\n'));
 
       // Auto-select best campaign structures
@@ -620,17 +678,17 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         vertical: vertical || 'Unknown',
         cta: cta || 'Unknown',
         seedKeywords: seedKeywords,
-        contentSummary: `Website analyzed: ${formattedUrl}`,
+        contentSummary: comprehensiveData?.aiInsights?.uniqueValueProposition || `Website analyzed: ${formattedUrl}`,
         detectedServices: landingData?.services || [],
-        detectedCTAs: landingData?.phones ? [`Phone: ${landingData.phones[0]}`] : [],
+        detectedCTAs: comprehensiveData?.data?.ctaElements?.map((c: any) => c.text) || [],
       });
 
+      setShowAnalysisResults(true);
       notifications.success('URL analyzed successfully', {
-        title: 'Analysis Complete',
+        title: 'Comprehensive Analysis Complete',
         description: `Detected: ${intentResult.intentLabel} intent, ${vertical} vertical`
       });
 
-      // Show results on Step 1 for user to review before proceeding
     } catch (error) {
       console.error('URL analysis error:', error);
       notifications.error('Failed to analyze URL', {
@@ -2227,48 +2285,257 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       {campaignData.intent && (
         <Card className="mb-6 border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50">
           <CardHeader>
-            <CardTitle className="text-lg">✓ Analysis Complete</CardTitle>
-            <CardDescription>Website analysis results saved to database</CardDescription>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              Comprehensive Analysis Complete
+            </CardTitle>
+            <CardDescription>
+              {comprehensiveAnalysis ? 'Deep website analysis with AI insights' : 'Website analysis results saved'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Primary Analysis Results */}
               <div className="bg-white rounded-lg p-4 border border-indigo-100">
-                <div className="font-semibold text-sm text-slate-600 mb-3">Analysis Details:</div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                    <span className="text-sm font-semibold text-slate-700">Detected Intent:</span>
-                    <span className="text-lg font-bold text-indigo-600">{campaignData.intent?.intentLabel}</span>
+                <div className="font-semibold text-sm text-slate-600 mb-3">Core Analysis:</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-3 bg-indigo-50 rounded-lg">
+                    <span className="text-xs font-semibold text-slate-500 uppercase">Intent</span>
+                    <p className="text-lg font-bold text-indigo-600">{campaignData.intent?.intentLabel}</p>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                    <span className="text-sm font-semibold text-slate-700">Industry Vertical:</span>
-                    <span className="text-lg font-bold text-purple-600">{campaignData.vertical}</span>
+                  <div className="p-3 bg-purple-50 rounded-lg">
+                    <span className="text-xs font-semibold text-slate-500 uppercase">Vertical</span>
+                    <p className="text-lg font-bold text-purple-600">{campaignData.vertical}</p>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
-                    <span className="text-sm font-semibold text-slate-700">Call-To-Action:</span>
-                    <span className="text-lg font-bold text-green-600">{campaignData.cta}</span>
-                  </div>
-                  <div className="py-2">
-                    <span className="text-sm font-semibold text-slate-700 block mb-3">Seed Keywords:</span>
-                    {campaignData.seedKeywords.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {campaignData.seedKeywords.slice(0, 5).map((keyword, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm"
-                          >
-                            {keyword}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 italic">No seed keywords generated. You can add them manually in the next step.</p>
-                    )}
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <span className="text-xs font-semibold text-slate-500 uppercase">CTA</span>
+                    <p className="text-lg font-bold text-green-600">{campaignData.cta}</p>
                   </div>
                 </div>
               </div>
+
+              {/* Seed Keywords */}
+              <div className="bg-white rounded-lg p-4 border border-indigo-100">
+                <div className="font-semibold text-sm text-slate-600 mb-3">AI-Generated Seed Keywords:</div>
+                {campaignData.seedKeywords.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {campaignData.seedKeywords.slice(0, 5).map((keyword, idx) => (
+                      <span key={idx} className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm">
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 italic">No seed keywords generated. Add manually in Step 3.</p>
+                )}
+              </div>
+
+              {/* Comprehensive Analysis Details */}
+              {comprehensiveAnalysis?.data && (
+                <>
+                  {/* SEO & Technical Summary */}
+                  <div className="bg-white rounded-lg p-4 border border-slate-200">
+                    <button 
+                      onClick={() => setAnalysisExpanded(prev => ({ ...prev, seo: !prev.seo }))}
+                      className="flex items-center justify-between w-full text-left"
+                    >
+                      <span className="font-semibold text-sm text-slate-700 flex items-center gap-2">
+                        <Search className="w-4 h-4 text-blue-500" />
+                        SEO & Technical Signals
+                      </span>
+                      {analysisExpanded.seo ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    {analysisExpanded.seo && (
+                      <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div className="p-2 bg-slate-50 rounded">
+                          <span className="text-xs text-slate-500">Word Count</span>
+                          <p className="font-bold">{comprehensiveAnalysis.data.seoSignals?.wordCount || 0}</p>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded">
+                          <span className="text-xs text-slate-500">Headings</span>
+                          <p className="font-bold">{comprehensiveAnalysis.data.headings?.length || 0}</p>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded">
+                          <span className="text-xs text-slate-500">CTAs Found</span>
+                          <p className="font-bold">{comprehensiveAnalysis.data.ctaElements?.length || 0}</p>
+                        </div>
+                        <div className="p-2 bg-slate-50 rounded">
+                          <span className="text-xs text-slate-500">Forms</span>
+                          <p className="font-bold">{comprehensiveAnalysis.data.forms?.length || 0}</p>
+                        </div>
+                        {comprehensiveAnalysis.data.seoSignals?.metaDescription && (
+                          <div className="col-span-full p-2 bg-slate-50 rounded">
+                            <span className="text-xs text-slate-500">Meta Description</span>
+                            <p className="text-sm">{comprehensiveAnalysis.data.seoSignals.metaDescription.slice(0, 160)}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Headings Structure */}
+                  {comprehensiveAnalysis.data.headings?.length > 0 && (
+                    <div className="bg-white rounded-lg p-4 border border-slate-200">
+                      <button 
+                        onClick={() => setAnalysisExpanded(prev => ({ ...prev, headings: !prev.headings }))}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <span className="font-semibold text-sm text-slate-700 flex items-center gap-2">
+                          <Type className="w-4 h-4 text-purple-500" />
+                          Heading Structure ({comprehensiveAnalysis.data.headings.length})
+                        </span>
+                        {analysisExpanded.headings ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      {analysisExpanded.headings && (
+                        <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
+                          {comprehensiveAnalysis.data.headings.slice(0, 15).map((h: any, idx: number) => (
+                            <div key={idx} className={`text-sm flex items-center gap-2 ${h.level === 'h1' ? 'font-bold text-indigo-700' : h.level === 'h2' ? 'font-semibold text-slate-700 pl-2' : 'text-slate-600 pl-4'}`}>
+                              <Badge variant="outline" className="text-xs">{h.level}</Badge>
+                              <span className="truncate">{h.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* CTAs Found */}
+                  {comprehensiveAnalysis.data.ctaElements?.length > 0 && (
+                    <div className="bg-white rounded-lg p-4 border border-slate-200">
+                      <button 
+                        onClick={() => setAnalysisExpanded(prev => ({ ...prev, ctas: !prev.ctas }))}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <span className="font-semibold text-sm text-slate-700 flex items-center gap-2">
+                          <MousePointerClick className="w-4 h-4 text-green-500" />
+                          Call-to-Action Buttons ({comprehensiveAnalysis.data.ctaElements.length})
+                        </span>
+                        {analysisExpanded.ctas ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      {analysisExpanded.ctas && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {comprehensiveAnalysis.data.ctaElements.slice(0, 12).map((cta: any, idx: number) => (
+                            <span key={idx} className="px-3 py-1 bg-green-50 text-green-700 text-sm rounded-full border border-green-200">
+                              {cta.text}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Services/Products Detected */}
+                  {comprehensiveAnalysis.data.services?.length > 0 && (
+                    <div className="bg-white rounded-lg p-4 border border-slate-200">
+                      <button 
+                        onClick={() => setAnalysisExpanded(prev => ({ ...prev, services: !prev.services }))}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <span className="font-semibold text-sm text-slate-700 flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-orange-500" />
+                          Services/Products Detected ({comprehensiveAnalysis.data.services.length})
+                        </span>
+                        {analysisExpanded.services ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      {analysisExpanded.services && (
+                        <div className="mt-3 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                          {comprehensiveAnalysis.data.services.slice(0, 20).map((svc: string, idx: number) => (
+                            <span key={idx} className="px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded border border-orange-200">
+                              {svc}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Contact Info */}
+                  {(comprehensiveAnalysis.data.contactInfo?.phones?.length > 0 || comprehensiveAnalysis.data.contactInfo?.emails?.length > 0) && (
+                    <div className="bg-white rounded-lg p-4 border border-slate-200">
+                      <button 
+                        onClick={() => setAnalysisExpanded(prev => ({ ...prev, contact: !prev.contact }))}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <span className="font-semibold text-sm text-slate-700 flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-blue-500" />
+                          Contact Information
+                        </span>
+                        {analysisExpanded.contact ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      {analysisExpanded.contact && (
+                        <div className="mt-3 space-y-2">
+                          {comprehensiveAnalysis.data.contactInfo.phones?.length > 0 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="w-4 h-4 text-slate-400" />
+                              <span>{comprehensiveAnalysis.data.contactInfo.phones.join(', ')}</span>
+                            </div>
+                          )}
+                          {comprehensiveAnalysis.data.contactInfo.emails?.length > 0 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail className="w-4 h-4 text-slate-400" />
+                              <span>{comprehensiveAnalysis.data.contactInfo.emails.join(', ')}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI Insights */}
+                  {comprehensiveAnalysis.aiInsights && (
+                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 border border-purple-200">
+                      <button 
+                        onClick={() => setAnalysisExpanded(prev => ({ ...prev, ai: !prev.ai }))}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <span className="font-semibold text-sm text-purple-700 flex items-center gap-2">
+                          <Sparkles className="w-4 h-4" />
+                          AI Marketing Insights
+                        </span>
+                        {analysisExpanded.ai ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      {analysisExpanded.ai && (
+                        <div className="mt-3 space-y-3 text-sm">
+                          {comprehensiveAnalysis.aiInsights.targetAudience && (
+                            <div>
+                              <span className="text-xs font-semibold text-purple-600 uppercase">Target Audience</span>
+                              <p className="text-slate-700">{comprehensiveAnalysis.aiInsights.targetAudience}</p>
+                            </div>
+                          )}
+                          {comprehensiveAnalysis.aiInsights.uniqueValueProposition && (
+                            <div>
+                              <span className="text-xs font-semibold text-purple-600 uppercase">Value Proposition</span>
+                              <p className="text-slate-700">{comprehensiveAnalysis.aiInsights.uniqueValueProposition}</p>
+                            </div>
+                          )}
+                          {comprehensiveAnalysis.aiInsights.adCopyAngle && (
+                            <div>
+                              <span className="text-xs font-semibold text-purple-600 uppercase">Recommended Ad Angle</span>
+                              <p className="text-slate-700">{comprehensiveAnalysis.aiInsights.adCopyAngle}</p>
+                            </div>
+                          )}
+                          {comprehensiveAnalysis.aiInsights.competitiveAdvantages?.length > 0 && (
+                            <div>
+                              <span className="text-xs font-semibold text-purple-600 uppercase">Competitive Advantages</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {comprehensiveAnalysis.aiInsights.competitiveAdvantages.map((adv: string, idx: number) => (
+                                  <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
+                                    {adv}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-800">
-                  <strong>✓ Ready:</strong> Analysis complete! Click below to proceed with these seed keywords.
+                  <strong>✓ Ready:</strong> Comprehensive analysis complete! Click below to proceed.
                 </p>
               </div>
             </div>
