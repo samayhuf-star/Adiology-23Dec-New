@@ -2127,36 +2127,87 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       // Import the new V5 Master CSV exporter with all 183 columns
       const { generateMasterCSV, convertToV5Format } = await import('../utils/googleAdsEditorCSVExporterV5');
       
-      // Collect all extensions from ads
+      // Collect all extensions from ads - properly handle nested structures
       const sitelinks: any[] = [];
       const callouts: any[] = [];
       const snippets: any[] = [];
+      const seenSitelinks = new Set<string>();
+      const seenCallouts = new Set<string>();
+      const seenSnippets = new Set<string>();
       
       (campaignData.ads || []).forEach((ad: any) => {
         if (ad.extensions && Array.isArray(ad.extensions)) {
           ad.extensions.forEach((ext: any) => {
             if (ext.type === 'sitelink') {
-              sitelinks.push({
-                text: ext.text || ext.linkText || '',
-                description1: ext.description1 || ext.descriptionLine1 || '',
-                description2: ext.description2 || ext.descriptionLine2 || '',
-                finalUrl: ext.finalUrl || ext.url || campaignData.url || '',
-                status: 'Enabled'
-              });
+              // Handle nested sitelinks array structure from ADD ALL button
+              if (ext.sitelinks && Array.isArray(ext.sitelinks)) {
+                ext.sitelinks.forEach((sl: any) => {
+                  const slText = sl.text || sl.linkText || '';
+                  if (slText && !seenSitelinks.has(slText)) {
+                    seenSitelinks.add(slText);
+                    sitelinks.push({
+                      text: slText,
+                      description1: sl.description || sl.description1 || '',
+                      description2: sl.description2 || '',
+                      finalUrl: sl.url || sl.finalUrl || campaignData.url || '',
+                      status: 'Enabled'
+                    });
+                  }
+                });
+              } else {
+                // Handle flat structure
+                const slText = ext.text || ext.linkText || '';
+                if (slText && !seenSitelinks.has(slText)) {
+                  seenSitelinks.add(slText);
+                  sitelinks.push({
+                    text: slText,
+                    description1: ext.description1 || ext.descriptionLine1 || '',
+                    description2: ext.description2 || ext.descriptionLine2 || '',
+                    finalUrl: ext.finalUrl || ext.url || campaignData.url || '',
+                    status: 'Enabled'
+                  });
+                }
+              }
             } else if (ext.type === 'callout') {
-              callouts.push({
-                text: ext.text || '',
-                status: 'Enabled'
-              });
+              // Handle nested callouts array structure from ADD ALL button
+              if (ext.callouts && Array.isArray(ext.callouts)) {
+                ext.callouts.forEach((calloutText: string) => {
+                  if (calloutText && !seenCallouts.has(calloutText)) {
+                    seenCallouts.add(calloutText);
+                    callouts.push({
+                      text: calloutText,
+                      status: 'Enabled'
+                    });
+                  }
+                });
+              } else if (ext.text && !seenCallouts.has(ext.text)) {
+                // Handle flat structure
+                seenCallouts.add(ext.text);
+                callouts.push({
+                  text: ext.text,
+                  status: 'Enabled'
+                });
+              }
             } else if (ext.type === 'snippet') {
-              snippets.push({
-                header: ext.header || '',
-                values: ext.values || '',
-                status: 'Enabled'
-              });
+              // Handle snippet with header and values
+              const snippetKey = `${ext.header || ''}:${Array.isArray(ext.values) ? ext.values.join(',') : ext.values || ''}`;
+              if (!seenSnippets.has(snippetKey)) {
+                seenSnippets.add(snippetKey);
+                snippets.push({
+                  header: ext.header || 'Types',
+                  values: Array.isArray(ext.values) ? ext.values.join(', ') : (ext.values || ''),
+                  status: 'Enabled'
+                });
+              }
             }
           });
         }
+      });
+      
+      console.log('📦 Extensions collected for CSV:', { 
+        sitelinks: sitelinks.length, 
+        callouts: callouts.length, 
+        snippets: snippets.length 
       });
       
       // Build the V5 campaign data structure with all 183 columns
