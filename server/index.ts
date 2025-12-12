@@ -2113,6 +2113,108 @@ app.post('/api/google-ads/push-campaign', async (c) => {
 });
 
 // ============================================
+// AI Seed Keywords API
+// ============================================
+
+app.post('/api/ai/generate-seed-keywords', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { context, vertical, services, pageText, maxKeywords = 5 } = body;
+
+    if (!context || context.length < 10) {
+      return c.json({ error: 'Please provide page context (minimum 10 characters)' }, 400);
+    }
+
+    const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    if (!openaiKey) {
+      return c.json({ 
+        error: 'AI service not configured',
+        keywords: ['service near me', 'professional services', 'best solutions', 'local experts', 'quality service']
+      }, 200);
+    }
+
+    const prompt = `You are a Google Ads keyword expert. Analyze this landing page and generate exactly ${maxKeywords} highly relevant seed keywords.
+
+Page Content:
+${context.substring(0, 500)}
+
+${vertical ? `Business Vertical: ${vertical}` : ''}
+${services && services.length > 0 ? `Services/Products: ${services.slice(0, 5).join(', ')}` : ''}
+${pageText ? `Key Terms: ${pageText.substring(0, 200)}` : ''}
+
+Requirements:
+- Generate ${maxKeywords} seed keywords that would be searched by potential customers
+- Keywords should be 2-4 words each
+- Focus on high-intent, commercial keywords
+- Include location-based modifiers where relevant (e.g., "near me")
+- Return ONLY a JSON array of strings, no explanations
+
+Example output format: ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"]`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 200
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      return c.json({
+        error: 'AI generation failed',
+        keywords: ['service near me', 'professional services', 'best solutions', 'local experts', 'quality service']
+      }, 200);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Parse JSON array from response
+    let keywords: string[] = [];
+    try {
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        keywords = JSON.parse(jsonMatch[0]);
+      }
+    } catch (parseError) {
+      // Fallback: extract keywords from text
+      keywords = content
+        .replace(/[\[\]"]/g, '')
+        .split(/[,\n]/)
+        .map((k: string) => k.trim())
+        .filter((k: string) => k.length > 0 && k.length < 50)
+        .slice(0, maxKeywords);
+    }
+
+    if (keywords.length === 0) {
+      keywords = ['service near me', 'professional services', 'best solutions', 'local experts', 'quality service'];
+    }
+
+    return c.json({
+      success: true,
+      keywords: keywords.slice(0, maxKeywords),
+      model: 'gpt-4o-mini',
+      tokensUsed: data.usage?.total_tokens || 0
+    });
+
+  } catch (error: any) {
+    console.error('AI seed keywords error:', error);
+    return c.json({
+      error: error.message || 'AI generation failed',
+      keywords: ['service near me', 'professional services', 'best solutions', 'local experts', 'quality service']
+    }, 200);
+  }
+});
+
+// ============================================
 // User Notifications API
 // ============================================
 

@@ -4571,64 +4571,33 @@ async function generateSeedKeywords(
   intent: IntentResult
 ): Promise<string[]> {
   try {
-    // Use AI to intelligently generate 4-5 seed keywords based on landing page content
-    const pageContent = [
+    // Build context from landing page data
+    const context = [
       landingData.title || '',
       landingData.h1 || '',
       landingData.metaDescription || '',
       landingData.services.join(', ') || '',
       landingData.page_text_tokens?.slice(0, 50).join(' ') || ''
-    ].filter(Boolean).join(' ').substring(0, 500);
+    ].filter(Boolean).join(' ');
 
-    // Dynamically import OpenAI for client-side generation
-    const OpenAI = (await import('openai')).default;
-    const openai = new OpenAI({
-      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-      dangerouslyAllowBrowser: true
+    // Call server endpoint for AI seed keyword generation
+    const response = await fetch('/api/ai/generate-seed-keywords', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        context,
+        vertical: intent.intentLabel || 'General',
+        services: landingData.services.slice(0, 5),
+        pageText: landingData.page_text_tokens?.slice(0, 30).join(' ') || '',
+        maxKeywords: 5
+      })
     });
 
-    const prompt = `You are a Google Ads keyword expert. Analyze this landing page and generate exactly 4-5 highly relevant seed keywords.
-
-Page Content:
-${pageContent}
-
-Services: ${landingData.services.join(', ') || 'Not specified'}
-Intent: ${intent.intentLabel || 'General'}
-Domain: ${landingData.domain}
-
-Rules:
-1. Generate EXACTLY 4-5 keywords (no more, no less)
-2. Each keyword: 1-4 words, specific to the business
-3. No generic placeholders like "service", "product", etc.
-4. Include search intent variations (informational, commercial, transactional)
-5. Make keywords actionable for Google Ads campaigns
-6. Return ONLY a JSON array: ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
-
-Response:`;
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a Google Ads keyword expert. Return ONLY a JSON array of 4-5 keywords. No explanation.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 150
-    });
-
-    const content = response.choices[0]?.message?.content || '[]';
-    const jsonMatch = content.match(/\[.*\]/s);
-    const keywords = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    const data = await response.json();
     
-    if (Array.isArray(keywords) && keywords.length > 0) {
-      console.log('✅ AI generated seed keywords:', keywords.slice(0, 5));
-      return keywords.slice(0, 5);
+    if (data.keywords && Array.isArray(data.keywords) && data.keywords.length > 0) {
+      console.log('✅ AI generated seed keywords:', data.keywords);
+      return data.keywords.slice(0, 5);
     }
   } catch (error) {
     console.warn('AI seed keyword generation failed, using fallback:', error);
