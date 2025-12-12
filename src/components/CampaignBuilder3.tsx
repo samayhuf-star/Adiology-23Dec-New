@@ -2434,42 +2434,9 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               )}
             </div>
             
-            {/* Analysis Summary - Shows after complete */}
+            {/* Next Button - Shows after complete */}
             {!isAnalyzing && campaignData.intent && (
               <div className="border-t border-slate-700 p-4 bg-slate-800/50">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-                  <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-                    <span className="text-xs text-slate-400 uppercase block mb-1">Intent</span>
-                    <p className="text-lg font-bold text-cyan-400">{campaignData.intent?.intentLabel}</p>
-                  </div>
-                  <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-                    <span className="text-xs text-slate-400 uppercase block mb-1">Vertical</span>
-                    <p className="text-lg font-bold text-purple-400">{campaignData.vertical}</p>
-                  </div>
-                  <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-                    <span className="text-xs text-slate-400 uppercase block mb-1">CTA</span>
-                    <p className="text-lg font-bold text-green-400">{campaignData.cta}</p>
-                  </div>
-                  <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-                    <span className="text-xs text-slate-400 uppercase block mb-1">Keywords</span>
-                    <p className="text-lg font-bold text-yellow-400">{campaignData.seedKeywords.length}</p>
-                  </div>
-                </div>
-                
-                {/* Seed Keywords */}
-                {campaignData.seedKeywords.length > 0 && (
-                  <div className="mb-4">
-                    <span className="text-xs text-slate-400 uppercase block mb-2">Seed Keywords:</span>
-                    <div className="flex flex-wrap gap-2">
-                      {campaignData.seedKeywords.slice(0, 5).map((keyword, idx) => (
-                        <span key={idx} className="px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-                          {keyword}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
                 <Button 
                   onClick={() => setCurrentStep(2)}
                   className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold"
