@@ -2173,8 +2173,8 @@ app.get('/api/dashboard/:userId', async (c) => {
   }
 });
 
-// Start cron scheduler
-startCronScheduler();
+// Start cron scheduler - DISABLED per user request
+// startCronScheduler();
 
 const port = 3001;
 console.log(`Admin API Server running on port ${port}`);
