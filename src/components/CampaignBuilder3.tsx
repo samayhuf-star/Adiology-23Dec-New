@@ -2686,71 +2686,58 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           </Card>
 
       <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Negative Keywords</CardTitle>
-              <CardDescription>Exclude these keywords from your campaign. Remove defaults if needed or add more custom ones.</CardDescription>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Negative Keywords ({campaignData.negativeKeywords.length})</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Negative Keywords List */}
-                <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-                  <p className="text-sm font-semibold text-slate-700 mb-3">14 Negative Keywords (click to remove custom ones)</p>
-                  <div className="flex flex-wrap gap-2">
-                    {campaignData.negativeKeywords.map((neg, idx) => {
-                      const isDefault = DEFAULT_NEGATIVE_KEYWORDS.includes(neg);
-                      return (
-                        <div
-                          key={idx}
-                          className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                            isDefault
-                              ? 'bg-red-100 text-red-700 border border-red-200'
-                              : 'bg-orange-100 text-orange-700 border border-orange-200 cursor-pointer hover:bg-orange-200'
-                          }`}
-                          onClick={() => {
-                            // Only allow removal of non-default keywords
-                            if (!isDefault) {
-                              const updated = campaignData.negativeKeywords.filter((_, i) => i !== idx);
-                              setCampaignData(prev => ({
-                                ...prev,
-                                negativeKeywords: updated
-                              }));
-                            }
-                          }}
-                          title={isDefault ? "Default keyword - cannot remove" : "Click to remove"}
-                        >
-                          {neg}
-                          {!isDefault && <X className="w-4 h-4" />}
-                        </div>
-                      );
-                    })}
-                  </div>
+            <CardContent className="pt-2">
+              <div className="space-y-3">
+                {/* Compact Negative Keywords Display */}
+                <div className="flex flex-wrap gap-1.5">
+                  {campaignData.negativeKeywords.map((neg, idx) => {
+                    const isDefault = DEFAULT_NEGATIVE_KEYWORDS.includes(neg);
+                    return (
+                      <span
+                        key={idx}
+                        className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-medium transition-all ${
+                          isDefault
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-orange-100 text-orange-700 cursor-pointer hover:bg-orange-200'
+                        }`}
+                        onClick={() => {
+                          if (!isDefault) {
+                            const updated = campaignData.negativeKeywords.filter((_, i) => i !== idx);
+                            setCampaignData(prev => ({ ...prev, negativeKeywords: updated }));
+                          }
+                        }}
+                        title={isDefault ? "Default" : "Click to remove"}
+                      >
+                        {neg}
+                        {!isDefault && <X className="w-3 h-3" />}
+                      </span>
+                    );
+                  })}
                 </div>
 
-                {/* Add Custom Negative Keywords */}
-                <div>
-                  <label className="text-sm font-semibold text-slate-700 block mb-2">Add More Negative Keywords</label>
-                  <Textarea
-                    placeholder="Add custom negative keywords (one per line)"
-                    onChange={(e) => {
-                      const customNegatives = e.target.value
-                        .split('\n')
-                        .map(n => n.trim())
-                        .filter(n => n.length > 0 && !DEFAULT_NEGATIVE_KEYWORDS.includes(n));
-                      // Combine defaults with custom
-                      const combined = [...new Set([...DEFAULT_NEGATIVE_KEYWORDS, ...customNegatives])];
-                      setCampaignData(prev => ({
-                        ...prev,
-                        negativeKeywords: combined
-                      }));
+                {/* Compact Add Custom */}
+                <div className="flex gap-2 items-start">
+                  <Input
+                    placeholder="Add negative keyword..."
+                    className="text-sm h-8"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const value = (e.target as HTMLInputElement).value.trim();
+                        if (value && !campaignData.negativeKeywords.includes(value)) {
+                          setCampaignData(prev => ({
+                            ...prev,
+                            negativeKeywords: [...prev.negativeKeywords, value]
+                          }));
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
                     }}
-                    rows={3}
-                    className="font-mono text-sm"
                   />
+                  <span className="text-xs text-slate-400 whitespace-nowrap mt-2">Press Enter to add</span>
                 </div>
-
-                <p className="text-xs text-slate-500">
-                  🔴 Red = 14 default negative keywords (always kept)  |  🟠 Orange = custom keywords (click to remove)  |  Total: {campaignData.negativeKeywords.length} keywords excluded
-                </p>
               </div>
             </CardContent>
           </Card>
