@@ -323,9 +323,12 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
       <div className="flex flex-col gap-6 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl font-bold theme-gradient-text">
-              Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}!
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl sm:text-4xl font-bold theme-gradient-text">
+                Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}!
+              </h1>
+              <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-1 rounded-full tracking-wide uppercase">Beta</span>
+            </div>
             <p className="text-base text-slate-600">Here's what's happening with your campaigns today.</p>
           </div>
           <Button

@@ -1239,6 +1239,7 @@ const App = () => {
               </div>
               <div className="flex flex-col">
                 <span className="font-bold theme-gradient-text">Adiology</span>
+                <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full tracking-wide uppercase">Beta</span>
               </div>
             </div>
           )}
@@ -1390,7 +1391,10 @@ const App = () => {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md theme-gradient">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <SheetTitle className="font-bold theme-gradient-text">Adiology</SheetTitle>
+              <div className="flex flex-col">
+                <SheetTitle className="font-bold theme-gradient-text">Adiology</SheetTitle>
+                <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full tracking-wide uppercase w-fit">Beta</span>
+              </div>
             </div>
           </SheetHeader>
           
