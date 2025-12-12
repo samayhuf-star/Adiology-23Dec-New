@@ -2999,43 +2999,23 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   <Button
                     size="sm"
                     onClick={() => {
-                      if (!campaignData.url || campaignData.url.trim() === '') {
-                        notifications.error('URL is required', { 
-                          title: 'Missing URL', 
-                          description: 'Please go back to Step 1 and enter a landing page URL.' 
-                        });
-                        return;
-                      }
-                      if (!campaignData.selectedKeywords || campaignData.selectedKeywords.length === 0) {
-                        notifications.error('Keywords are required', { 
-                          title: 'Missing Keywords', 
-                          description: 'Please go back to Step 3 and select keywords.' 
-                        });
-                        return;
-                      }
-                      if (campaignData.ads.length === 0) {
-                        notifications.error('Please add at least one ad first', { 
-                          title: 'No Ads Added', 
-                          description: 'Click on one of the ad type buttons to add an ad.' 
-                        });
-                        return;
-                      }
-                      handleGenerateAds();
+                      // Add all 3 ad types at once
+                      const adTypes = ['rsa', 'dki', 'call'];
+                      adTypes.forEach(type => {
+                        const hasType = campaignData.ads.some(ad => 
+                          ad.type === type || 
+                          ad.adType === (type === 'rsa' ? 'RSA' : type === 'dki' ? 'DKI' : 'CallOnly')
+                        );
+                        if (!hasType && campaignData.ads.length < 3) {
+                          handleAddNewAd(type);
+                        }
+                      });
                     }}
-                    disabled={loading || !campaignData.url || !campaignData.selectedKeywords || campaignData.selectedKeywords.length === 0 || campaignData.ads.length === 0}
-                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                    disabled={loading || campaignData.ads.length >= 3}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
                   >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                        Generating
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        Generate
-                      </>
-                    )}
+                    <Plus className="w-3 h-3 mr-1" />
+                    ADD ALL
                   </Button>
                 </div>
                 
@@ -3058,6 +3038,20 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                       </Button>
                     );
                   })}
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      // Add all extensions at once
+                      extensionTypes.forEach(ext => {
+                        handleAddExtensionToAllAds(ext.id);
+                      });
+                    }}
+                    disabled={loading}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    ADD ALL
+                  </Button>
                 </div>
               </div>
             </div>
