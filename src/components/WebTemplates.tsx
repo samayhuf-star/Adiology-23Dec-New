@@ -2876,10 +2876,14 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
   const [copied, setCopied] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'verified' | 'failed'>('idle');
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const [customDomain, setCustomDomain] = useState((website as any).customDomain || '');
+  
+  const userDomain = customDomain.replace(/^www\./, '') || 'yourdomain.com';
   
   const dnsRecords = [
-    { type: 'A Record', name: '@', value: '185.199.108.153', description: 'Points to our server' },
-    { type: 'CNAME', name: 'www', value: 'yourcompany.com', description: 'Points to main domain' }
+    { type: 'A Record', name: '@', value: '34.110.210.168', description: 'Points to Replit servers (required for apex domain)' },
+    { type: 'CNAME', name: 'www', value: userDomain, description: 'Points www subdomain to your apex domain' }
   ];
 
   const handleCopy = (text: string, type: string) => {
@@ -2889,20 +2893,38 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
   };
 
   const handleVerifyDNS = async () => {
+    if (!customDomain) {
+      setVerificationStatus('failed');
+      setVerificationMessage('Please enter a domain name first');
+      return;
+    }
+    
     setVerifying(true);
     setVerificationStatus('idle');
+    setVerificationMessage('');
     
     try {
-      // Simulate DNS verification delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('/api/dns/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          domain: customDomain.replace(/^www\./, ''),
+          expectedIP: '34.110.210.168'
+        })
+      });
       
-      // In a real scenario, you'd check DNS propagation here
-      // For now, we'll simulate a successful verification
-      setVerificationStatus('verified');
-      setTimeout(() => setVerificationStatus('idle'), 5000);
-    } catch (error) {
+      const result = await response.json();
+      
+      if (result.verified) {
+        setVerificationStatus('verified');
+        setVerificationMessage(result.message || 'DNS records verified successfully! Your domain is correctly configured.');
+      } else {
+        setVerificationStatus('failed');
+        setVerificationMessage(result.message || 'DNS verification failed. Please check your DNS records.');
+      }
+    } catch (error: any) {
       setVerificationStatus('failed');
-      setTimeout(() => setVerificationStatus('idle'), 5000);
+      setVerificationMessage('Unable to verify DNS. Please try again later.');
     } finally {
       setVerifying(false);
     }
@@ -2925,14 +2947,29 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
         </div>
 
         <div className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Your Custom Domain
+            </label>
+            <input
+              type="text"
+              value={customDomain}
+              onChange={(e) => setCustomDomain(e.target.value.toLowerCase().trim())}
+              placeholder="example.com"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-lg font-mono"
+            />
+            <p className="text-xs text-gray-500 mt-1">Enter your domain without http:// or www (e.g., mycompany.com)</p>
+          </div>
+          
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800"><strong>Steps:</strong></p>
             <ol className="text-sm text-blue-700 mt-2 space-y-1 list-decimal list-inside">
+              <li>Enter your domain name above</li>
               <li>Go to your domain registrar (GoDaddy, Namecheap, etc.)</li>
               <li>Find DNS settings for your domain</li>
               <li>Add the DNS records below</li>
-              <li>Wait 24-48 hours for DNS propagation</li>
-              <li>Your website will be live on your custom domain!</li>
+              <li>Click "Verify DNS" to check configuration</li>
+              <li>Once verified, your website will be live!</li>
             </ol>
           </div>
 
@@ -2977,20 +3014,26 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
           </div>
 
           {verificationStatus !== 'idle' && (
-            <div className={`rounded-lg p-4 flex items-center gap-3 ${
+            <div className={`rounded-lg p-4 flex items-start gap-3 ${
               verificationStatus === 'verified' 
                 ? 'bg-green-50 border border-green-200' 
                 : 'bg-red-50 border border-red-200'
             }`}>
               {verificationStatus === 'verified' ? (
                 <>
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <p className="text-sm text-green-800"><strong>Success!</strong> DNS records verified. Your domain should be live soon.</p>
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-green-800 font-semibold">DNS Verified Successfully!</p>
+                    <p className="text-sm text-green-700 mt-1">{verificationMessage}</p>
+                  </div>
                 </>
               ) : (
                 <>
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <p className="text-sm text-red-800"><strong>Verification Failed.</strong> Please check your DNS records and try again.</p>
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-red-800 font-semibold">Verification Failed</p>
+                    <p className="text-sm text-red-700 mt-1">{verificationMessage}</p>
+                  </div>
                 </>
               )}
             </div>

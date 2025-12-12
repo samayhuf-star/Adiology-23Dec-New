@@ -610,6 +610,95 @@ app.delete('/api/admin/expenses/:id', async (c) => {
   }
 });
 
+// DNS Verification endpoint - performs real DNS lookup
+app.post('/api/dns/verify', async (c) => {
+  try {
+    const { domain, expectedIP } = await c.req.json();
+    
+    if (!domain) {
+      return c.json({ verified: false, message: 'Domain is required' }, 400);
+    }
+    
+    // Clean the domain
+    const cleanDomain = domain.replace(/^(https?:\/\/)?/, '').replace(/^www\./, '').replace(/\/.*$/, '').trim();
+    
+    if (!cleanDomain || !/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/.test(cleanDomain)) {
+      return c.json({ verified: false, message: 'Invalid domain format. Please enter a valid domain like example.com' }, 400);
+    }
+    
+    // Use DNS-over-HTTPS via Cloudflare for reliable DNS lookup
+    const dnsResponse = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(cleanDomain)}&type=A`, {
+      headers: { 'Accept': 'application/dns-json' }
+    });
+    
+    if (!dnsResponse.ok) {
+      return c.json({ 
+        verified: false, 
+        message: 'Unable to query DNS. Please try again later.' 
+      }, 500);
+    }
+    
+    const dnsData = await dnsResponse.json() as any;
+    
+    // Check for errors
+    if (dnsData.Status !== 0) {
+      const statusMessages: Record<number, string> = {
+        1: 'DNS query format error',
+        2: 'DNS server failure',
+        3: 'Domain does not exist (NXDOMAIN). Make sure you own this domain.',
+        4: 'DNS query not implemented',
+        5: 'DNS query refused'
+      };
+      return c.json({ 
+        verified: false, 
+        message: statusMessages[dnsData.Status] || 'DNS lookup failed' 
+      });
+    }
+    
+    // Check if we got A records
+    if (!dnsData.Answer || dnsData.Answer.length === 0) {
+      return c.json({ 
+        verified: false, 
+        message: `No A records found for ${cleanDomain}. Please add an A record pointing to ${expectedIP || '34.110.210.168'}` 
+      });
+    }
+    
+    // Extract IP addresses from A records (type 1 = A record)
+    const aRecords = dnsData.Answer.filter((r: any) => r.type === 1);
+    const ips = aRecords.map((r: any) => r.data);
+    
+    if (ips.length === 0) {
+      return c.json({ 
+        verified: false, 
+        message: `No A records found for ${cleanDomain}. Please add an A record pointing to ${expectedIP || '34.110.210.168'}` 
+      });
+    }
+    
+    // Check if any IP matches the expected IP
+    const targetIP = expectedIP || '34.110.210.168';
+    if (ips.includes(targetIP)) {
+      return c.json({ 
+        verified: true, 
+        message: `DNS is correctly configured! A record points to ${targetIP}. Your domain ${cleanDomain} is ready.`,
+        ips: ips
+      });
+    } else {
+      return c.json({ 
+        verified: false, 
+        message: `A record found but pointing to wrong IP. Found: ${ips.join(', ')}. Expected: ${targetIP}. Please update your A record.`,
+        ips: ips
+      });
+    }
+    
+  } catch (error: any) {
+    console.error('DNS verification error:', error);
+    return c.json({ 
+      verified: false, 
+      message: 'DNS verification failed. Please check your domain and try again.' 
+    }, 500);
+  }
+});
+
 // Fetch real-time billing data from third-party services (secure backend endpoint)
 app.get('/api/admin/services-billing', async (c) => {
   interface ServiceBilling {
