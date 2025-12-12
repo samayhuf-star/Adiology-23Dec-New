@@ -4,7 +4,6 @@ import { presetCampaigns, PresetCampaign } from '../data/presetCampaigns';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { notifications } from '../utils/notifications';
 import { generateCampaignStructure, StructureSettings, Ad } from '../utils/campaignStructureGenerator';
 import { exportCampaignToGoogleAdsEditorCSV, validateCSVRows, campaignStructureToCSVRows } from '../utils/googleAdsEditorCSVExporter';
@@ -84,7 +83,7 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
   const [searchQuery, setSearchQuery] = useState('');
   const [structureFilter, setStructureFilter] = useState<StructureFilter>('all');
   const [selectedPreset, setSelectedPreset] = useState<PresetCampaign | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [showDetailView, setShowDetailView] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
   const filteredPresets = useMemo(() => {
@@ -150,7 +149,12 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
       e.stopPropagation();
     }
     setSelectedPreset(preset);
-    setIsPreviewOpen(true);
+    setShowDetailView(true);
+  };
+
+  const handleBackToList = () => {
+    setShowDetailView(false);
+    setSelectedPreset(null);
   };
 
   const handleLoadPreset = (preset: PresetCampaign) => {
@@ -360,177 +364,180 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
         </div>
       )}
 
-      {/* Preview Modal */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-          {selectedPreset && (
-            <>
-              <DialogHeader className="shrink-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <Badge
-                    className={`text-xs font-semibold ${
-                      selectedPreset.structure === 'skag'
-                        ? 'bg-purple-100 text-purple-700 border-purple-200'
-                        : 'bg-blue-100 text-blue-700 border-blue-200'
-                    }`}
-                    variant="outline"
-                  >
-                    {selectedPreset.structureLabel}
-                  </Badge>
-                  <Badge
-                    className={`text-xs ${getIntentColor(selectedPreset.targetIntent)}`}
-                    variant="outline"
-                  >
-                    <span className="flex items-center gap-1">
-                      {getIntentIcon(selectedPreset.targetIntent)}
-                      {selectedPreset.targetIntent}
-                    </span>
-                  </Badge>
-                  <span className="text-sm text-green-600 font-medium">
-                    {selectedPreset.estimatedCPC} CPC
-                  </span>
-                </div>
-                <DialogTitle className="text-xl">{selectedPreset.name}</DialogTitle>
-                <DialogDescription>{selectedPreset.description}</DialogDescription>
-              </DialogHeader>
-
-              <div className="flex-1 mt-4 min-h-0 overflow-y-auto max-h-[60vh]">
-                <div className="space-y-6 pr-4">
-                  {/* Keywords Section */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4" />
-                      Keywords ({selectedPreset.keywords.length})
-                    </h3>
-                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-3 bg-slate-50 rounded-lg">
-                      {selectedPreset.keywords.map((keyword, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs bg-white">
-                          {keyword}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Headlines Section */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                      <Zap className="w-4 h-4" />
-                      Headlines ({selectedPreset.adTemplate.headlines.length})
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {selectedPreset.adTemplate.headlines.map((headline, idx) => (
-                        <div
-                          key={idx}
-                          className="text-sm p-2 bg-indigo-50 rounded-lg text-indigo-800 border border-indigo-100"
-                        >
-                          {idx + 1}. {headline}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Descriptions Section */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                      <Target className="w-4 h-4" />
-                      Descriptions ({selectedPreset.adTemplate.descriptions.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {selectedPreset.adTemplate.descriptions.map((desc, idx) => (
-                        <div
-                          key={idx}
-                          className="text-sm p-3 bg-emerald-50 rounded-lg text-emerald-800 border border-emerald-100"
-                        >
-                          {idx + 1}. {desc}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Negative Keywords Section */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                      <X className="w-4 h-4" />
-                      Negative Keywords ({selectedPreset.negativeKeywords.length})
-                    </h3>
-                    <div className="flex flex-wrap gap-2 p-3 bg-red-50 rounded-lg">
-                      {selectedPreset.negativeKeywords.map((keyword, idx) => (
-                        <Badge
-                          key={idx}
-                          variant="outline"
-                          className="text-xs bg-white text-red-600 border-red-200"
-                        >
-                          -{keyword}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Match Types */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Match Types</h3>
-                    <div className="flex items-center gap-3">
-                      {selectedPreset.matchTypes.broad && (
-                        <Badge variant="secondary">Broad</Badge>
-                      )}
-                      {selectedPreset.matchTypes.phrase && (
-                        <Badge variant="secondary">Phrase</Badge>
-                      )}
-                      {selectedPreset.matchTypes.exact && (
-                        <Badge variant="secondary">Exact</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="flex items-center justify-between gap-4 pt-4 mt-4 border-t shrink-0">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsPreviewOpen(false)}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-                <div className="flex items-center gap-2">
-                  {onLoadPreset && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        handleLoadPreset(selectedPreset);
-                        setIsPreviewOpen(false);
-                      }}
-                    >
-                      Load to Builder
-                    </Button>
-                  )}
-                  <Button
-                    className={`${
-                      selectedPreset.structure === 'skag'
-                        ? 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600'
-                        : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600'
-                    } text-white`}
-                    onClick={() => handleExportCSV(selectedPreset)}
-                    disabled={isExporting === selectedPreset.id}
-                  >
-                    {isExporting === selectedPreset.id ? (
-                      <span>Exporting...</span>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download CSV
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
+
+  if (showDetailView && selectedPreset) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <div className="mb-6">
+          <button
+            onClick={handleBackToList}
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors mb-4"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Back to Presets</span>
+          </button>
+          
+          <div className="flex items-center gap-3 mb-3">
+            <Badge
+              className={`text-xs font-semibold ${
+                selectedPreset.structure === 'skag'
+                  ? 'bg-purple-100 text-purple-700 border-purple-200'
+                  : 'bg-blue-100 text-blue-700 border-blue-200'
+              }`}
+              variant="outline"
+            >
+              {selectedPreset.structureLabel}
+            </Badge>
+            <Badge
+              className={`text-xs ${getIntentColor(selectedPreset.targetIntent)}`}
+              variant="outline"
+            >
+              <span className="flex items-center gap-1">
+                {getIntentIcon(selectedPreset.targetIntent)}
+                {selectedPreset.targetIntent}
+              </span>
+            </Badge>
+            <span className="text-sm text-green-600 font-medium">
+              {selectedPreset.estimatedCPC} CPC
+            </span>
+          </div>
+          
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">{selectedPreset.name}</h1>
+          <p className="text-slate-600">{selectedPreset.description}</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Keywords ({selectedPreset.keywords.length})
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {selectedPreset.keywords.map((keyword, idx) => (
+                <Badge key={idx} variant="outline" className="text-sm bg-slate-50 px-3 py-1">
+                  {keyword}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Headlines ({selectedPreset.adTemplate.headlines.length})
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {selectedPreset.adTemplate.headlines.map((headline, idx) => (
+                <div
+                  key={idx}
+                  className="text-sm p-3 bg-indigo-50 rounded-lg text-indigo-800 border border-indigo-100"
+                >
+                  {idx + 1}. {headline}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Descriptions ({selectedPreset.adTemplate.descriptions.length})
+            </h3>
+            <div className="space-y-3">
+              {selectedPreset.adTemplate.descriptions.map((desc, idx) => (
+                <div
+                  key={idx}
+                  className="text-sm p-4 bg-emerald-50 rounded-lg text-emerald-800 border border-emerald-100"
+                >
+                  {idx + 1}. {desc}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <X className="w-4 h-4" />
+              Negative Keywords ({selectedPreset.negativeKeywords.length})
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {selectedPreset.negativeKeywords.map((keyword, idx) => (
+                <Badge
+                  key={idx}
+                  variant="outline"
+                  className="text-sm bg-red-50 text-red-600 border-red-200 px-3 py-1"
+                >
+                  -{keyword}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4">Match Types</h3>
+            <div className="flex items-center gap-3">
+              {selectedPreset.matchTypes.broad && (
+                <Badge variant="secondary" className="px-4 py-1">Broad</Badge>
+              )}
+              {selectedPreset.matchTypes.phrase && (
+                <Badge variant="secondary" className="px-4 py-1">Phrase</Badge>
+              )}
+              {selectedPreset.matchTypes.exact && (
+                <Badge variant="secondary" className="px-4 py-1">Exact</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 mt-8 pt-6 border-t border-slate-200">
+          <Button
+            variant="outline"
+            onClick={handleBackToList}
+            className="px-6"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Presets
+          </Button>
+          <div className="flex items-center gap-3">
+            {onLoadPreset && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  handleLoadPreset(selectedPreset);
+                  handleBackToList();
+                }}
+                className="px-6"
+              >
+                Load to Builder
+              </Button>
+            )}
+            <Button
+              className={`px-6 ${
+                selectedPreset.structure === 'skag'
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600'
+                  : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600'
+              } text-white`}
+              onClick={() => handleExportCSV(selectedPreset)}
+              disabled={isExporting === selectedPreset.id}
+            >
+              {isExporting === selectedPreset.id ? (
+                <span>Exporting...</span>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download CSV
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return listView;
 };
 
 export default PresetCampaigns;
