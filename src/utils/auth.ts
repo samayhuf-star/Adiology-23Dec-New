@@ -331,7 +331,7 @@ export async function signUpWithEmail(email: string, password: string, fullName:
         data: {
           full_name: fullName,
         },
-        emailRedirectTo: `${window.location.origin}/verify-email`,
+        emailRedirectTo: `https://adiology.io/verify-email`,
       },
     });
 
@@ -451,7 +451,7 @@ export async function signOut() {
 export async function resetPassword(email: string) {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `https://adiology.io/reset-password`,
     });
 
     if (error) throw error;
@@ -488,7 +488,7 @@ export async function resendVerificationEmail(email: string) {
       type: 'signup',
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/verify-email`,
+        emailRedirectTo: `https://adiology.io/verify-email`,
       },
     });
 

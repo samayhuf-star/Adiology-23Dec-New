@@ -421,7 +421,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onBackToHome, initia
                       const { data, error } = await supabase.auth.signInWithOAuth({
                         provider: 'google',
                         options: {
-                          redirectTo: window.location.origin
+                          redirectTo: 'https://adiology.io'
                         }
                       });
                       if (error) {

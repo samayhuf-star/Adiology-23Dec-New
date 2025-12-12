@@ -22,7 +22,7 @@ export const authHelpers = {
         data: {
           full_name: fullName || '',
         },
-        emailRedirectTo: `${window.location.origin}/verify-email`,
+        emailRedirectTo: `https://adiology.io/verify-email`,
       },
     });
 
@@ -108,7 +108,7 @@ export const authHelpers = {
    */
   async resetPassword(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `https://adiology.io/reset-password`,
     });
 
     if (error) {
