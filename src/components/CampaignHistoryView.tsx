@@ -1034,7 +1034,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                   <span>Status</span>
                   <SortIcon column="status" />
                 </button>
-                <div className="w-64 text-center">Actions</div>
+                <div className="w-40 text-center">Actions</div>
               </div>
             </div>
             
@@ -1104,14 +1104,14 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                         <div className="w-24 flex justify-center">
                           {getStatusBadge(status)}
                         </div>
-                        <div className="w-72 flex items-center justify-end gap-2">
+                        <div className="w-40 flex items-center justify-end gap-1">
                           <Button 
                             onClick={() => loadCampaignData(data)}
                             size="sm"
-                            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                            className="w-8 h-8 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                            title="Continue editing campaign"
                           >
-                            <Eye className="w-4 h-4 mr-1.5" />
-                            Continue
+                            <Eye className="w-4 h-4" />
                           </Button>
                           {googleAdsConnected && selectedAccount && (
                             <Button 
@@ -1119,16 +1119,13 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                               size="sm"
                               onClick={() => pushCampaignToGoogleAds(campaign)}
                               disabled={pushingCampaign === campaign.id}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="w-8 h-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                               title="Push to Google Ads (Paused)"
                             >
                               {pushingCampaign === campaign.id ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <>
-                                  <Upload className="w-4 h-4 mr-1.5" />
-                                  Push
-                                </>
+                                <Upload className="w-4 h-4" />
                               )}
                             </Button>
                           )}
@@ -1136,17 +1133,16 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                             variant="outline"
                             size="sm"
                             onClick={() => handleRegenerateCSV(campaign)}
-                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                            title="Regenerate and download CSV"
+                            className="w-8 h-8 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            title="Download CSV"
                           >
-                            <RefreshCw className="w-4 h-4 mr-1.5" />
-                            CSV
+                            <Download className="w-4 h-4" />
                           </Button>
                           <Button 
                             variant="outline"
                             size="sm"
                             onClick={() => deleteCampaign(campaign.id)}
-                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            className="w-8 h-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
                             title="Delete campaign"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1189,14 +1185,14 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                             <span>Ads: <span className="font-medium text-slate-700">{data.generatedAds.length}</span></span>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-2 ml-11">
+                        <div className="flex gap-2 ml-11">
                           <Button 
                             onClick={() => loadCampaignData(data)}
                             size="sm"
-                            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                            className="w-9 h-9 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                            title="Continue editing campaign"
                           >
-                            <Eye className="w-4 h-4 mr-1.5" />
-                            Continue
+                            <Eye className="w-4 h-4" />
                           </Button>
                           {googleAdsConnected && selectedAccount && (
                             <Button 
@@ -1204,16 +1200,13 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                               size="sm"
                               onClick={() => pushCampaignToGoogleAds(campaign)}
                               disabled={pushingCampaign === campaign.id}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="w-9 h-9 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                               title="Push to Google Ads (Paused)"
                             >
                               {pushingCampaign === campaign.id ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <>
-                                  <Upload className="w-4 h-4 mr-1" />
-                                  Push
-                                </>
+                                <Upload className="w-4 h-4" />
                               )}
                             </Button>
                           )}
@@ -1221,16 +1214,17 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                             variant="outline"
                             size="sm"
                             onClick={() => handleRegenerateCSV(campaign)}
-                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            className="w-9 h-9 p-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            title="Download CSV"
                           >
-                            <RefreshCw className="w-4 h-4 mr-1" />
-                            CSV
+                            <Download className="w-4 h-4" />
                           </Button>
                           <Button 
                             variant="outline"
                             size="sm"
                             onClick={() => deleteCampaign(campaign.id)}
-                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            className="w-9 h-9 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            title="Delete campaign"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
