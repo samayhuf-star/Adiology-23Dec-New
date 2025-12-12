@@ -2459,45 +2459,41 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         <p className="text-slate-600">AI has ranked the best structures for your vertical. Choose the one that fits your needs.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-6">
         {CAMPAIGN_STRUCTURES.map((structure, idx) => {
           const ranking = campaignData.structureRankings.findIndex(r => r.id === structure.id);
           const isRecommended = ranking === 0 || ranking === 1 || ranking === 2;
-          const rankLabel = ranking === 0 ? 'Best' : ranking === 1 ? '2nd Best' : ranking === 2 ? '3rd Best' : null;
+          const rankLabel = ranking === 0 ? 'Best' : ranking === 1 ? '2nd' : ranking === 2 ? '3rd' : null;
           const isSelected = campaignData.selectedStructure === structure.id;
           const Icon = structure.icon;
 
           return (
             <Card
               key={structure.id}
-              className={`cursor-pointer transition-all ${
+              className={`cursor-pointer transition-all p-2 ${
                 isSelected
                   ? 'ring-2 ring-indigo-500 bg-indigo-50'
-                  : 'hover:shadow-lg'
+                  : 'hover:shadow-md hover:border-indigo-200'
               }`}
               onClick={() => handleStructureSelect(structure.id)}
             >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-5 h-5 text-indigo-600" />
-                    <CardTitle className="text-lg">{structure.name}</CardTitle>
-                  </div>
-                  {isRecommended && rankLabel && (
-                    <Badge variant={ranking === 0 ? 'default' : 'secondary'}>
-                      {rankLabel}
-                    </Badge>
-                  )}
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <Icon className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="text-sm font-semibold text-slate-800 truncate">{structure.name}</span>
                 </div>
-                <CardDescription>{structure.description}</CardDescription>
-              </CardHeader>
+                {isRecommended && rankLabel && (
+                  <Badge variant={ranking === 0 ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 h-4">
+                    {rankLabel}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 line-clamp-1">{structure.description}</p>
               {isSelected && (
-                <CardContent>
-                  <div className="flex items-center gap-2 text-indigo-600">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="text-sm font-medium">Selected</span>
-                  </div>
-                </CardContent>
+                <div className="flex items-center gap-1 text-indigo-600 mt-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span className="text-xs font-medium">Selected</span>
+                </div>
               )}
             </Card>
           );
