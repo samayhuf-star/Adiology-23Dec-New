@@ -84,7 +84,9 @@ ${exportedHtml}
       const { data: { user } } = await supabase.auth.getUser();
       const domain = (savedWebsite as any).domain || `${savedWebsite.name.toLowerCase().replace(/\s+/g, '-')}.adiology.app`;
       
-      const { error } = await supabase.from('admin_websites').upsert({
+      console.log('📤 Publishing website:', { id: savedWebsite.id, name: savedWebsite.name, domain, user: user?.email });
+      
+      const { data, error } = await supabase.from('admin_websites').upsert({
         id: savedWebsite.id,
         name: savedWebsite.name,
         user_email: user?.email || 'unknown',
@@ -93,12 +95,17 @@ ${exportedHtml}
         created_at: new Date().toISOString(),
       }, { onConflict: 'id' });
 
-      if (error) throw error;
-      alert('✅ Website published! Domain: ' + domain);
-      console.log('🚀 Website published to admin_websites:', domain);
-    } catch (error) {
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Website published successfully:', data);
+      alert('Website published successfully!\n\nDomain: ' + domain);
+    } catch (error: any) {
       console.error('Error publishing website:', error);
-      alert('❌ Failed to publish website');
+      const errorMsg = error?.message || error?.details || 'Unknown error';
+      alert('Failed to publish website\n\nError: ' + errorMsg);
     } finally {
       setIsPublishing(false);
     }
