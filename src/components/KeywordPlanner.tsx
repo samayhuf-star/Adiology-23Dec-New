@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Copy, Save, AlertCircle, Download, FolderOpen, Trash2, FileDown, ArrowRight, Lightbulb, Plus, Link, TrendingUp, DollarSign, BarChart3, RefreshCw } from 'lucide-react';
+import { Sparkles, Copy, Save, AlertCircle, Download, FolderOpen, Trash2, FileDown, ArrowRight, Lightbulb, Plus, Link, TrendingUp, DollarSign, BarChart3, RefreshCw, Globe, Target, Zap, Building2, Phone, Mail, MapPin, FileText, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
@@ -16,6 +16,76 @@ import { copyToClipboard } from '../utils/clipboard';
 import { notifications } from '../utils/notifications';
 import { DEFAULT_SEED_KEYWORDS, DEFAULT_NEGATIVE_KEYWORDS as DEFAULT_NEG_KW } from '../utils/defaultExamples';
 import { generateSeedKeywordSuggestions } from '../utils/seedKeywordSuggestions';
+import { extractLandingPageContent } from '../utils/campaignIntelligence/landingPageExtractor';
+import { generateTemplateKeywords, serviceTermsByIndustry } from '../utils/templateKeywordGenerator';
+import { mapGoalToIntent } from '../utils/campaignIntelligence/intentClassifier';
+
+// Inline vertical detection (same logic as Campaign Builder)
+function detectVertical(url: string, pageText: string): string {
+    const combined = (url + ' ' + pageText).toLowerCase();
+    const verticalPatterns: Record<string, string[]> = {
+        plumbing: ['plumber', 'plumbing', 'drain', 'pipe', 'water heater', 'leak', 'sewer'],
+        hvac: ['hvac', 'heating', 'cooling', 'air conditioning', 'furnace', 'ac repair'],
+        electrical: ['electrician', 'electrical', 'wiring', 'circuit', 'outlet'],
+        roofing: ['roofing', 'roof repair', 'shingle', 'gutter'],
+        legal: ['attorney', 'lawyer', 'law firm', 'legal'],
+        medical: ['doctor', 'medical', 'healthcare', 'clinic', 'hospital'],
+        dental: ['dentist', 'dental', 'orthodont'],
+        automotive: ['auto repair', 'mechanic', 'car repair', 'tire'],
+        restaurant: ['restaurant', 'food', 'dining', 'catering', 'menu'],
+        real_estate: ['real estate', 'realtor', 'property', 'homes for sale'],
+        fitness: ['gym', 'fitness', 'personal trainer', 'workout'],
+        beauty: ['salon', 'spa', 'beauty', 'hair', 'nail'],
+        cleaning: ['cleaning', 'maid', 'janitorial', 'housekeeping'],
+        landscaping: ['landscaping', 'lawn care', 'garden', 'tree service'],
+        pest_control: ['pest control', 'exterminator', 'termite', 'rodent'],
+        moving: ['moving', 'movers', 'relocation', 'packing'],
+        photography: ['photographer', 'photography', 'photo studio'],
+        marketing: ['marketing', 'seo', 'advertising', 'digital marketing'],
+        software: ['software', 'saas', 'app', 'technology', 'developer'],
+        ecommerce: ['shop', 'store', 'buy', 'product', 'ecommerce']
+    };
+    
+    for (const [vertical, patterns] of Object.entries(verticalPatterns)) {
+        if (patterns.some(p => combined.includes(p))) {
+            return vertical;
+        }
+    }
+    return 'general';
+}
+
+// Inline CTA detection
+function detectCTA(pageText: string): string {
+    const text = pageText.toLowerCase();
+    if (/call\s*(us|now|today)/i.test(text) || /phone/i.test(text)) return 'Call';
+    if (/book\s*(now|online|appointment)/i.test(text)) return 'Book';
+    if (/schedule/i.test(text)) return 'Schedule';
+    if (/get\s*(quote|estimate|started)/i.test(text)) return 'Get Quote';
+    if (/contact\s*(us)?/i.test(text)) return 'Contact';
+    if (/buy|purchase|order/i.test(text)) return 'Buy Now';
+    if (/sign\s*up|register/i.test(text)) return 'Sign Up';
+    if (/learn\s*more/i.test(text)) return 'Learn More';
+    return 'Contact';
+}
+
+interface UrlAnalysisResult {
+    domain: string;
+    title: string | null;
+    metaDescription: string | null;
+    h1: string | null;
+    services: string[];
+    phones: string[];
+    emails: string[];
+    addresses: string[];
+    vertical: string;
+    cta: string;
+    intent: {
+        id: string;
+        label: string;
+        confidence: number;
+    };
+    suggestedKeywords: string[];
+}
 
 interface SavedList {
     id: string;
@@ -147,6 +217,8 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
     const [activeTab, setActiveTab] = useState('planner');
     const [googleAdsCustomerId, setGoogleAdsCustomerId] = useState<string | null>(null);
     const [showMetrics, setShowMetrics] = useState(true);
+    const [urlAnalysis, setUrlAnalysis] = useState<UrlAnalysisResult | null>(null);
+    const [analysisLogs, setAnalysisLogs] = useState<string[]>([]);
     
     // Match types - all selected by default
     const [matchTypes, setMatchTypes] = useState({
@@ -232,7 +304,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
         }
     }, [initialData]);
 
-    // Generate seed keywords from URL using Keyword Planner API
+    // Generate seed keywords from URL using full Web Analyzer (same as Campaign Builder)
     const handleGenerateSeedsFromUrl = async () => {
         if (!urlInput.trim()) {
             notifications.warning('Please enter a URL', { title: 'URL Required' });
@@ -240,34 +312,124 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
         }
 
         setIsGeneratingSeedFromUrl(true);
-        try {
-            const response = await getKeywordIdeas({
-                url: urlInput.trim(),
-                targetCountry: 'US',
-                customerId: googleAdsCustomerId || undefined,
-            });
+        setUrlAnalysis(null);
+        setAnalysisLogs([]);
+        
+        const addLog = (message: string) => {
+            setAnalysisLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+        };
 
-            if (response.success && response.keywords.length > 0) {
-                // Extract top keyword suggestions as seeds
-                const topKeywords = response.keywords.slice(0, 10).map(k => k.keyword);
-                const currentSeeds = seedKeywords.trim();
-                const newSeeds = currentSeeds 
-                    ? `${currentSeeds}, ${topKeywords.join(', ')}` 
-                    : topKeywords.join(', ');
-                setSeedKeywords(newSeeds);
-                setDataSource(response.source as any);
-                notifications.success(`Added ${topKeywords.length} seed keywords from URL`, {
-                    title: 'Seeds Generated',
-                    description: `Source: ${response.source === 'google_ads_api' ? 'Google Ads API' : 'Estimated Data'}`
-                });
-            } else {
-                notifications.warning('Could not extract keywords from URL. Try adding seed keywords manually.', {
-                    title: 'No Keywords Found'
-                });
-            }
+        try {
+            const url = urlInput.trim();
+            addLog(`🔍 Starting analysis of: ${url}`);
+            
+            // Step 1: Extract landing page content
+            addLog('📄 Fetching landing page content...');
+            const pageData = await extractLandingPageContent(url, { timeout: 15000 });
+            addLog(`✅ Page extracted: ${pageData.title || pageData.domain}`);
+            
+            // Step 2: Detect vertical/industry
+            addLog('🏢 Detecting business vertical...');
+            const pageText = [
+                pageData.title || '',
+                pageData.h1 || '',
+                pageData.metaDescription || '',
+                ...(pageData.services || []),
+                ...(pageData.page_text_tokens || [])
+            ].join(' ');
+            const vertical = detectVertical(url, pageText);
+            addLog(`✅ Vertical detected: ${vertical}`);
+            
+            // Step 3: Detect CTA
+            addLog('🎯 Detecting call-to-action...');
+            const cta = detectCTA(pageText);
+            addLog(`✅ CTA detected: ${cta}`);
+            
+            // Step 4: Classify intent
+            addLog('💡 Classifying user intent...');
+            const landingExtraction = {
+                domain: pageData.domain || '',
+                url: url,
+                title: pageData.title,
+                tokens: pageData.page_text_tokens || [],
+                phones: pageData.phones || [],
+                services: pageData.services || [],
+                emails: pageData.emails || [],
+                addresses: pageData.addresses || []
+            };
+            const intentResult = mapGoalToIntent(
+                `Get more customers for ${vertical} business`,
+                landingExtraction as any,
+                pageData.phones?.[0]
+            );
+            addLog(`✅ Intent: ${intentResult.intentId} (${Math.round(intentResult.confidence * 100)}% confidence)`);
+            
+            // Step 5: Generate keywords
+            addLog('🔑 Generating seed keywords...');
+            const primaryService = pageData.services?.[0] || vertical || pageData.domain?.split('.')[0] || 'service';
+            const generatedKws = generateTemplateKeywords({
+                businessUrl: url,
+                primaryService,
+                specificServices: pageData.services?.slice(0, 5) || [],
+                location: 'near me'
+            });
+            
+            // Collect keywords
+            const suggestedKws = [
+                ...generatedKws.map(k => k.keyword),
+                ...(pageData.services || []).slice(0, 10),
+                primaryService,
+                `${primaryService} near me`,
+                `best ${primaryService}`,
+                `${primaryService} services`,
+                `affordable ${primaryService}`,
+                `professional ${primaryService}`
+            ].filter((v, i, a) => a.indexOf(v) === i).slice(0, 20);
+            
+            addLog(`✅ Generated ${suggestedKws.length} keyword suggestions`);
+            
+            // Store analysis results
+            const analysis: UrlAnalysisResult = {
+                domain: pageData.domain || url,
+                title: pageData.title || null,
+                metaDescription: pageData.metaDescription || null,
+                h1: pageData.h1 || null,
+                services: pageData.services || [],
+                phones: pageData.phones || [],
+                emails: pageData.emails || [],
+                addresses: pageData.addresses || [],
+                vertical,
+                cta,
+                intent: {
+                    id: intentResult.intentId,
+                    label: intentResult.intentLabel || intentResult.intentId,
+                    confidence: intentResult.confidence
+                },
+                suggestedKeywords: suggestedKws
+            };
+            
+            setUrlAnalysis(analysis);
+            
+            // Auto-populate seed keywords
+            const topSeeds = suggestedKws.slice(0, 5);
+            const currentSeeds = seedKeywords.trim();
+            const newSeeds = currentSeeds 
+                ? `${currentSeeds}, ${topSeeds.join(', ')}` 
+                : topSeeds.join(', ');
+            setSeedKeywords(newSeeds);
+            setSuggestedKeywords(suggestedKws);
+            
+            addLog('✅ Analysis complete!');
+            
+            notifications.success(`Extracted ${suggestedKws.length} keywords from ${pageData.domain}`, {
+                title: 'URL Analysis Complete',
+                description: `Vertical: ${vertical} | Intent: ${intentResult.intentId}`
+            });
+            
         } catch (error) {
-            console.error('URL seed generation error:', error);
-            notifications.error('Failed to generate seeds from URL', { title: 'Error' });
+            console.error('URL analysis error:', error);
+            addLog(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            notifications.error('Failed to analyze URL. Try adding seed keywords manually.', { title: 'Analysis Failed' });
         } finally {
             setIsGeneratingSeedFromUrl(false);
         }
@@ -710,7 +872,99 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                             <p className="text-xs text-gray-500 mt-2">
                                                 Extract seed keywords automatically from any landing page
                                             </p>
+                                            
+                                            {/* Analysis Logs (Terminal-like) */}
+                                            {analysisLogs.length > 0 && (
+                                                <div className="mt-3 bg-slate-900 rounded-lg p-3 font-mono text-xs max-h-32 overflow-y-auto">
+                                                    {analysisLogs.map((log, idx) => (
+                                                        <div key={idx} className="text-green-400">{log}</div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
+                                        
+                                        {/* URL Analysis Results */}
+                                        {urlAnalysis && (
+                                            <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 space-y-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Globe className="w-5 h-5 text-blue-600" />
+                                                    <span className="text-sm font-semibold text-blue-800">URL Analysis Results</span>
+                                                    <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />
+                                                </div>
+                                                
+                                                {/* Page Info */}
+                                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                                    <div className="bg-white rounded-lg p-2.5 border border-blue-100">
+                                                        <div className="text-gray-500 mb-1">Domain</div>
+                                                        <div className="font-medium text-gray-800 truncate">{urlAnalysis.domain}</div>
+                                                    </div>
+                                                    <div className="bg-white rounded-lg p-2.5 border border-blue-100">
+                                                        <div className="text-gray-500 mb-1">Page Title</div>
+                                                        <div className="font-medium text-gray-800 truncate">{urlAnalysis.title || 'N/A'}</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Intelligence */}
+                                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                                    <div className="bg-purple-100 rounded-lg p-2.5 border border-purple-200">
+                                                        <div className="flex items-center gap-1 text-purple-600 mb-1">
+                                                            <Building2 className="w-3 h-3" />
+                                                            <span>Vertical</span>
+                                                        </div>
+                                                        <div className="font-semibold text-purple-800 capitalize">{urlAnalysis.vertical}</div>
+                                                    </div>
+                                                    <div className="bg-amber-100 rounded-lg p-2.5 border border-amber-200">
+                                                        <div className="flex items-center gap-1 text-amber-600 mb-1">
+                                                            <Target className="w-3 h-3" />
+                                                            <span>Intent</span>
+                                                        </div>
+                                                        <div className="font-semibold text-amber-800">{urlAnalysis.intent.label}</div>
+                                                    </div>
+                                                    <div className="bg-green-100 rounded-lg p-2.5 border border-green-200">
+                                                        <div className="flex items-center gap-1 text-green-600 mb-1">
+                                                            <Zap className="w-3 h-3" />
+                                                            <span>CTA</span>
+                                                        </div>
+                                                        <div className="font-semibold text-green-800">{urlAnalysis.cta}</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Services Found */}
+                                                {urlAnalysis.services.length > 0 && (
+                                                    <div className="bg-white rounded-lg p-2.5 border border-blue-100">
+                                                        <div className="flex items-center gap-1 text-gray-600 mb-2 text-xs">
+                                                            <FileText className="w-3 h-3" />
+                                                            <span>Services Detected</span>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {urlAnalysis.services.slice(0, 6).map((service, idx) => (
+                                                                <Badge key={idx} variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                                                                    {service}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Contact Info */}
+                                                {(urlAnalysis.phones.length > 0 || urlAnalysis.emails.length > 0) && (
+                                                    <div className="flex gap-3 text-xs">
+                                                        {urlAnalysis.phones.length > 0 && (
+                                                            <div className="flex items-center gap-1 text-gray-600">
+                                                                <Phone className="w-3 h-3" />
+                                                                <span>{urlAnalysis.phones[0]}</span>
+                                                            </div>
+                                                        )}
+                                                        {urlAnalysis.emails.length > 0 && (
+                                                            <div className="flex items-center gap-1 text-gray-600">
+                                                                <Mail className="w-3 h-3" />
+                                                                <span>{urlAnalysis.emails[0]}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {/* Seed Keywords */}
                                         <div className="space-y-3">
