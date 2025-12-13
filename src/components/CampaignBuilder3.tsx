@@ -54,6 +54,7 @@ import { getKeywordMetrics, type KeywordMetrics } from '../utils/keywordPlannerA
 import { GEO_PRESETS, US_STATES_ALL, US_CITIES_TOP_500, US_ZIP_CODES_EXTENDED } from '../data/locationPresets';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { generateDKIAdWithAI } from '../utils/dkiAdGeneratorAI';
+import { CampaignFlowDiagram } from './CampaignFlowDiagram';
 
 // Campaign Structure Types (14 structures)
 const CAMPAIGN_STRUCTURES = [
@@ -310,6 +311,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const [showCallAdDialog, setShowCallAdDialog] = useState(false);
   const [callAdPhone, setCallAdPhone] = useState('');
   const [callAdBusinessName, setCallAdBusinessName] = useState('');
+  const [showFlowDiagram, setShowFlowDiagram] = useState(false);
+  const [selectedStructureForDiagram, setSelectedStructureForDiagram] = useState<{ id: string; name: string } | null>(null);
   const [campaignData, setCampaignData] = useState<CampaignData>({
     url: '',
     campaignName: generateDefaultCampaignName(),
@@ -2675,34 +2678,47 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           const Icon = structure.icon;
 
           return (
-            <Card
-              key={structure.id}
-              className={`cursor-pointer transition-all p-2 ${
-                isSelected
-                  ? 'ring-2 ring-indigo-500 bg-indigo-50'
-                  : 'hover:shadow-md hover:border-indigo-200'
-              }`}
-              onClick={() => handleStructureSelect(structure.id)}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5">
-                  <Icon className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span className="text-sm font-semibold text-slate-800 truncate">{structure.name}</span>
+            <div key={structure.id} className="relative group">
+              <Card
+                className={`cursor-pointer transition-all p-2 ${
+                  isSelected
+                    ? 'ring-2 ring-indigo-500 bg-indigo-50'
+                    : 'hover:shadow-md hover:border-indigo-200'
+                }`}
+                onClick={() => handleStructureSelect(structure.id)}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <Icon className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="text-sm font-semibold text-slate-800 truncate">{structure.name}</span>
+                  </div>
+                  {isRecommended && rankLabel && (
+                    <Badge variant={ranking === 0 ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 h-4">
+                      {rankLabel}
+                    </Badge>
+                  )}
                 </div>
-                {isRecommended && rankLabel && (
-                  <Badge variant={ranking === 0 ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 h-4">
-                    {rankLabel}
-                  </Badge>
+                <p className="text-xs text-slate-500 line-clamp-1">{structure.description}</p>
+                {isSelected && (
+                  <div className="flex items-center gap-1 text-indigo-600 mt-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span className="text-xs font-medium">Selected</span>
+                  </div>
                 )}
-              </div>
-              <p className="text-xs text-slate-500 line-clamp-1">{structure.description}</p>
-              {isSelected && (
-                <div className="flex items-center gap-1 text-indigo-600 mt-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span className="text-xs font-medium">Selected</span>
-                </div>
-              )}
-            </Card>
+              </Card>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs h-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedStructureForDiagram({ id: structure.id, name: structure.name });
+                  setShowFlowDiagram(true);
+                }}
+              >
+                View Structure
+              </Button>
+            </div>
           );
         })}
       </div>
