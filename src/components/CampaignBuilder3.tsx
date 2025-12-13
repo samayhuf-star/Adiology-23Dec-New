@@ -51,7 +51,7 @@ import {
   generateLocationInput 
 } from '../utils/autoFill';
 import { getKeywordMetrics, type KeywordMetrics } from '../utils/keywordPlannerApi';
-import { GEO_PRESETS, US_STATES_ALL, US_CITIES_TOP_500, US_ZIP_CODES_EXTENDED } from '../data/locationPresets';
+import { GEO_PRESETS, US_STATES_ALL, US_CITIES_TOP_500, US_ZIP_CODES_EXTENDED, getGeoPresetsForCountry } from '../data/locationPresets';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { generateDKIAdWithAI } from '../utils/dkiAdGeneratorAI';
 import { CampaignFlowDiagram } from './CampaignFlowDiagram';
@@ -3643,28 +3643,29 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const renderStep5 = () => {
     const handlePresetSelect = (type: 'cities' | 'states' | 'zips', preset: string) => {
       let items: string[] = [];
+      const countryPresets = getGeoPresetsForCountry(campaignData.targetCountry);
       
       if (type === 'cities') {
-        if (preset === 'top50') items = GEO_PRESETS.cities.top50;
-        else if (preset === 'top250') items = GEO_PRESETS.cities.top250;
-        else if (preset === 'top500') items = GEO_PRESETS.cities.top500;
+        if (preset === 'top50') items = countryPresets.cities.top50;
+        else if (preset === 'top250') items = countryPresets.cities.top250;
+        else if (preset === 'top500') items = countryPresets.cities.top500;
         setCampaignData(prev => ({ 
           ...prev, 
           locations: { ...prev.locations, cities: items, states: [], zipCodes: [] }
         }));
       } else if (type === 'states') {
-        if (preset === 'top10') items = GEO_PRESETS.states.top10;
-        else if (preset === 'top25') items = GEO_PRESETS.states.top25;
-        else if (preset === 'top50') items = GEO_PRESETS.states.top50;
+        if (preset === 'top10') items = countryPresets.states.top10;
+        else if (preset === 'top25') items = countryPresets.states.top25;
+        else if (preset === 'top50') items = countryPresets.states.top50;
         setCampaignData(prev => ({ 
           ...prev, 
           locations: { ...prev.locations, states: items, cities: [], zipCodes: [] }
         }));
       } else if (type === 'zips') {
-        if (preset === 'top1000') items = GEO_PRESETS.zips.top1000;
-        else if (preset === 'top5000') items = GEO_PRESETS.zips.top5000;
-        else if (preset === 'top15000') items = GEO_PRESETS.zips.top15000;
-        else if (preset === 'top25000') items = GEO_PRESETS.zips.top25000;
+        if (preset === 'top1000') items = countryPresets.zips.top1000;
+        else if (preset === 'top5000') items = countryPresets.zips.top5000;
+        else if (preset === 'top15000') items = countryPresets.zips.top15000;
+        else if (preset === 'top25000') items = countryPresets.zips.top25000;
         setCampaignData(prev => ({ 
           ...prev, 
           locations: { ...prev.locations, zipCodes: items, cities: [], states: [] }
