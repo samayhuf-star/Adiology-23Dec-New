@@ -763,7 +763,7 @@ const App = () => {
       submenu: [
         { id: 'builder-3', label: 'Builder 3.0', icon: Zap },
         { id: 'preset-campaigns', label: 'Preset Campaigns', icon: Package },
-        { id: 'campaign-history', label: 'Saved Campaigns', icon: Clock },
+        { id: 'campaign-history', label: 'Campaign History', icon: Clock },
       ]
     },
     {
