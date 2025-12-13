@@ -4359,22 +4359,29 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     if (currentStep === 1) handleUrlSubmit();
     else if (currentStep === 2) handleNextFromStructure();
     else if (currentStep === 3) {
-      if (campaignData.generatedKeywords.length === 0 && campaignData.seedKeywords.length > 0) {
-        const seedKeywordsAsKeywords = createKeywordsFromSeeds(campaignData.seedKeywords);
-        setCampaignData(prev => ({
-          ...prev,
-          generatedKeywords: seedKeywordsAsKeywords,
-          selectedKeywords: seedKeywordsAsKeywords,
-          // Ensure SKAG structure is set when coming from keywords to ads wizard
-          selectedStructure: prev.selectedStructure || 'skag',
-        }));
-      } else {
-        // Ensure SKAG structure is set when coming from keywords to ads wizard
-        setCampaignData(prev => ({
-          ...prev,
-          selectedStructure: prev.selectedStructure || 'skag',
-        }));
+      // Validation: Check if seed keywords are entered
+      if (campaignData.seedKeywords.length === 0) {
+        notifications.error('Please enter seed keywords before proceeding', { 
+          title: 'Seed Keywords Required',
+          description: 'Add at least one seed keyword to generate keyword variations.'
+        });
+        return;
       }
+      
+      // Validation: Check if keywords have been generated
+      if (campaignData.generatedKeywords.length === 0) {
+        notifications.error('Please click "Generate Keywords" before proceeding', { 
+          title: 'Keywords Not Generated',
+          description: 'You must generate keywords using the Generate Keywords button before moving to the next step.'
+        });
+        return;
+      }
+      
+      // Ensure SKAG structure is set when coming from keywords to ads wizard
+      setCampaignData(prev => ({
+        ...prev,
+        selectedStructure: prev.selectedStructure || 'skag',
+      }));
       setCurrentStep(4);
     }
     else if (currentStep === 4) {
