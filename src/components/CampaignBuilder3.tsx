@@ -4389,7 +4389,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     { id: 3, label: 'Keywords' },
     { id: 4, label: 'Ads & Extensions' },
     { id: 5, label: 'Geo Target' },
-    { id: 6, label: 'CSV' },
+    { id: 6, label: 'Success' },
   ];
 
   // Reset campaign function
@@ -4469,13 +4469,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       setCurrentStep(5);
     }
     else if (currentStep === 5) {
+      handleSaveCampaign();
       setCurrentStep(6);
-      autoSaveDraft();
     }
     else if (currentStep === 6) {
-      handleSaveCampaign();
-    }
-    else if (currentStep === 7) {
       // Success screen - no action needed
     }
   };
@@ -4512,11 +4509,11 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               </Button>
               <Button
                 onClick={handleNextStep}
-                disabled={loading || currentStep === 7}
+                disabled={loading || currentStep === 6}
                 size="sm"
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
-                {currentStep === 6 ? 'Save & Finish' : currentStep === 7 ? 'Download CSV' : 'Next Step'}
+                {currentStep === 5 ? 'Save & Finish' : currentStep === 6 ? 'Download CSV' : 'Next Step'}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -4580,10 +4577,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           </span>
             <Button
               onClick={handleNextStep}
-              disabled={loading || currentStep === 7}
+              disabled={loading || currentStep === 6}
             size="sm"
             >
-            {currentStep === 6 ? 'Save & Finish' : currentStep === 7 ? 'Download CSV' : 'Next Step'}
+            {currentStep === 5 ? 'Save & Finish' : currentStep === 6 ? 'Download CSV' : 'Next Step'}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -4596,8 +4593,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         {currentStep === 3 && renderStep3()}
         {currentStep === 4 && renderStep4()}
         {currentStep === 5 && renderStep5()}
-        {currentStep === 6 && renderStep7()}
-        {currentStep === 7 && renderStep8()}
+        {currentStep === 6 && renderStep8()}
       </div>
 
         
