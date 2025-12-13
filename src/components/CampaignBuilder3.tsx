@@ -3140,20 +3140,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                       </Button>
                     );
                   })}
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      // Add all extensions at once
-                      extensionTypes.forEach(ext => {
-                        handleAddExtensionToAllAds(ext.id);
-                      });
-                    }}
-                    disabled={loading}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    ADD ALL
-                  </Button>
                 </div>
               </div>
             </div>

@@ -1,15 +1,29 @@
-export const US_STATES_ALL = [
-  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 
-  'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
-  'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan',
-  'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire',
-  'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
-  'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
-  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
-  'Wisconsin', 'Wyoming'
-];
+/**
+ * Location Validation & Correction Utility
+ * Validates and corrects city names and zip codes for Google Ads Editor compatibility
+ * Handles ambiguous city names by disambiguating with state information
+ */
 
-export const US_CITIES_TOP_500 = [
+// Mapping of problematic cities to their primary states
+// These are cities that appear multiple times in the original list and need disambiguation
+const CITY_STATE_MAPPING: Record<string, string> = {
+  'Columbus': 'Ohio',
+  'Springfield': 'Illinois',
+  'Kansas City': 'Missouri',
+  'Rochester': 'New York',
+  'Peoria': 'Illinois',
+  'Glendale': 'Arizona',
+  'Pasadena': 'California',
+  'Odessa': 'Texas',
+  'Hillsboro': 'Oregon',
+  'Westminster': 'California',
+  'Lawrence': 'Kansas',
+  'Richmond': 'Virginia',
+  'Lakewood': 'Colorado',
+};
+
+// Deduplicated and validated cities for top 500
+const VALIDATED_CITIES_TOP_500 = [
   'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio',
   'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville', 'Fort Worth', 'Columbus',
   'Charlotte', 'San Francisco', 'Indianapolis', 'Seattle', 'Denver', 'Washington',
@@ -87,125 +101,113 @@ export const US_CITIES_TOP_500 = [
   'Huntersville', 'Blaine', 'Novi', 'Arcadia', 'Paramount', 'Midwest City'
 ];
 
-export const US_ZIP_CODES_EXTENDED = (() => {
-  const zips: string[] = [];
-  
-  const metroRanges = [
-    { start: 10001, count: 300 },
-    { start: 90001, count: 500 },
-    { start: 60601, count: 400 },
-    { start: 77001, count: 350 },
-    { start: 85001, count: 250 },
-    { start: 19101, count: 300 },
-    { start: 78201, count: 200 },
-    { start: 92101, count: 250 },
-    { start: 75201, count: 300 },
-    { start: 95101, count: 200 },
-    { start: 78701, count: 200 },
-    { start: 32201, count: 200 },
-    { start: 76101, count: 200 },
-    { start: 43201, count: 200 },
-    { start: 28201, count: 200 },
-    { start: 94101, count: 200 },
-    { start: 46201, count: 200 },
-    { start: 98101, count: 200 },
-    { start: 80201, count: 200 },
-    { start: 20001, count: 200 },
-    { start: 2101, count: 200 },
-    { start: 79901, count: 100 },
-    { start: 37201, count: 150 },
-    { start: 48201, count: 200 },
-    { start: 73101, count: 150 },
-    { start: 97201, count: 150 },
-    { start: 89101, count: 200 },
-    { start: 38101, count: 150 },
-    { start: 40201, count: 150 },
-    { start: 21201, count: 200 },
-    { start: 53201, count: 150 },
-    { start: 87101, count: 100 },
-    { start: 85701, count: 100 },
-    { start: 93701, count: 150 },
-    { start: 95814, count: 150 },
-    { start: 64101, count: 150 },
-    { start: 85201, count: 150 },
-    { start: 30301, count: 300 },
-    { start: 68101, count: 100 },
-    { start: 27601, count: 150 },
-    { start: 33101, count: 400 },
-    { start: 90801, count: 150 },
-    { start: 23451, count: 100 },
-    { start: 94601, count: 150 },
-    { start: 55401, count: 150 },
-    { start: 74101, count: 100 },
-    { start: 33601, count: 200 },
-    { start: 76001, count: 100 },
-    { start: 70112, count: 150 },
-    { start: 67201, count: 100 },
-    { start: 44101, count: 200 },
-    { start: 84101, count: 150 },
-    { start: 97401, count: 100 },
-    { start: 35201, count: 150 },
-    { start: 29401, count: 100 },
-    { start: 96701, count: 100 },
-    { start: 99501, count: 50 },
-    { start: 83701, count: 50 },
-    { start: 59101, count: 50 },
-    { start: 57101, count: 50 },
-    { start: 58101, count: 50 },
-    { start: 82001, count: 50 },
-    { start: 5401, count: 50 },
-    { start: 3301, count: 50 },
-    { start: 4101, count: 50 },
-    { start: 2901, count: 50 },
-    { start: 6101, count: 100 },
-    { start: 19701, count: 50 },
-    { start: 25301, count: 50 },
-    { start: 61101, count: 100 },
-    { start: 47201, count: 100 },
-    { start: 50301, count: 100 },
-    { start: 66101, count: 100 },
-    { start: 40501, count: 100 },
-    { start: 70501, count: 100 },
-    { start: 39201, count: 100 },
-    { start: 63101, count: 200 },
-    { start: 68501, count: 100 },
-    { start: 88001, count: 100 },
-    { start: 28001, count: 200 },
-    { start: 45201, count: 150 },
-    { start: 73401, count: 100 },
-    { start: 15201, count: 200 },
-    { start: 29201, count: 100 },
-    { start: 37401, count: 100 },
-    { start: 79001, count: 150 },
-    { start: 84601, count: 100 },
-    { start: 22101, count: 200 },
-    { start: 53101, count: 100 },
-  ];
+// Valid US zip code pattern (5 digits)
+const ZIP_CODE_REGEX = /^\d{5}$/;
 
-  for (const range of metroRanges) {
-    for (let i = 0; i < range.count; i++) {
-      zips.push(String(range.start + i).padStart(5, '0'));
+/**
+ * Validates a city name
+ * Returns true if city is in the validated list
+ */
+export function validateCity(city: string): boolean {
+  return VALIDATED_CITIES_TOP_500.includes(city);
+}
+
+/**
+ * Validates a zip code (must be 5 digits)
+ */
+export function validateZipCode(zip: string): boolean {
+  return ZIP_CODE_REGEX.test(zip);
+}
+
+/**
+ * Corrects a city name by returning the primary state if it's ambiguous
+ * Returns the city with state context for problematic cities
+ */
+export function getCityWithState(city: string): string {
+  const state = CITY_STATE_MAPPING[city];
+  if (state) {
+    return `${city}, ${state}`;
+  }
+  return city;
+}
+
+/**
+ * Validates and corrects a list of cities
+ * Removes duplicates and returns only valid cities
+ */
+export function validateAndCorrectCities(cities: string[]): string[] {
+  const validCities = new Set<string>();
+  
+  cities.forEach(city => {
+    if (validateCity(city)) {
+      validCities.add(city);
+    }
+  });
+  
+  return Array.from(validCities);
+}
+
+/**
+ * Validates and corrects a list of zip codes
+ * Removes invalid zip codes and returns only valid ones
+ */
+export function validateAndCorrectZipCodes(zips: string[]): string[] {
+  const validZips = new Set<string>();
+  
+  zips.forEach(zip => {
+    // Clean the zip code (remove spaces, dashes)
+    const cleanedZip = zip.replace(/[\s-]/g, '');
+    if (validateZipCode(cleanedZip)) {
+      validZips.add(cleanedZip);
+    }
+  });
+  
+  return Array.from(validZips);
+}
+
+/**
+ * Validates locations before CSV export
+ * Returns validation result with any issues found
+ */
+export function validateLocations(locations: {
+  cities?: string[];
+  zipCodes?: string[];
+}) {
+  const result = {
+    valid: true,
+    issues: [] as string[],
+    correctedCities: [] as string[],
+    correctedZips: [] as string[],
+  };
+
+  if (locations.cities && locations.cities.length > 0) {
+    result.correctedCities = validateAndCorrectCities(locations.cities);
+    
+    // Check if any cities were removed
+    if (result.correctedCities.length < locations.cities.length) {
+      const invalidCount = locations.cities.length - result.correctedCities.length;
+      result.issues.push(`${invalidCount} invalid city names were removed`);
+      result.valid = false;
     }
   }
 
-  return [...new Set(zips)];
-})();
+  if (locations.zipCodes && locations.zipCodes.length > 0) {
+    result.correctedZips = validateAndCorrectZipCodes(locations.zipCodes);
+    
+    // Check if any zip codes were removed
+    if (result.correctedZips.length < locations.zipCodes.length) {
+      const invalidCount = locations.zipCodes.length - result.correctedZips.length;
+      result.issues.push(`${invalidCount} invalid zip codes were removed`);
+      result.valid = false;
+    }
+  }
 
-export const GEO_PRESETS = {
-  cities: {
-    top50: US_CITIES_TOP_500.slice(0, 50),
-    top250: US_CITIES_TOP_500.slice(0, 250),
-    top500: US_CITIES_TOP_500.slice(0, 500),
-  },
-  states: {
-    top10: US_STATES_ALL.slice(0, 10),
-    top25: US_STATES_ALL.slice(0, 25),
-    top50: US_STATES_ALL,
-  },
-  zips: {
-    top1000: US_ZIP_CODES_EXTENDED.slice(0, 1000),
-    top5000: US_ZIP_CODES_EXTENDED.slice(0, 5000),
-    top15000: US_ZIP_CODES_EXTENDED.slice(0, 15000),
-    top25000: US_ZIP_CODES_EXTENDED,
-  },
-};
+  return result;
+}
+
+/**
+ * Get all deduplicated and validated top 500 cities
+ */
+export function getValidatedCitiesTop500(): string[] {
+  return [...VALIDATED_CITIES_TOP_500];
+}
