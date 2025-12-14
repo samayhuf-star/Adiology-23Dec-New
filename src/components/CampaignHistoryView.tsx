@@ -11,6 +11,7 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
 import { campaignStructureToCSVRows, GOOGLE_ADS_EDITOR_HEADERS } from '../utils/googleAdsEditorCSVExporter';
@@ -66,8 +67,18 @@ interface SavedCampaign {
   status?: 'draft' | 'completed' | 'in_progress';
 }
 
+interface HistoryEntry {
+  id: string;
+  type: string;
+  name: string;
+  timestamp: string;
+  data: any;
+  status?: string;
+}
+
 export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoadCampaign }) => {
   const [savedCampaigns, setSavedCampaigns] = useState<SavedCampaign[]>([]);
+  const [allHistory, setAllHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -210,12 +221,19 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
       setError(null);
       setLoading(true);
       
-      const allHistory = await historyService.getAll();
+      const historyItems = await historyService.getAll();
       
-      console.log('📋 All history items:', allHistory);
-      console.log('📋 History items count:', allHistory.length);
+      console.log('📋 All history items:', historyItems);
+      console.log('📋 History items count:', historyItems.length);
       
-      const campaigns = allHistory.filter(item => {
+      // Store ALL history items for the History tab (sorted by timestamp, newest first)
+      const sortedHistory = [...historyItems].sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      setAllHistory(sortedHistory);
+      
+      // Filter for campaigns only (for Saved Campaigns tab)
+      const campaigns = historyItems.filter(item => {
         const type = (item.type || '').toLowerCase();
         const matches = type === 'builder-2-campaign' || 
                type === 'campaign' ||
@@ -223,7 +241,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                type.includes('campaign') ||
                type.includes('builder');
         
-        if (allHistory.length > 0) {
+        if (historyItems.length > 0) {
           console.log(`🔍 Filtering item: type="${item.type}" (normalized: "${type}"), matches=${matches}`);
         }
         
@@ -679,8 +697,29 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
           </div>
         </div>
 
-        {/* Search & Filters Card */}
-        <Card className="border-slate-200/60 bg-white shadow-xl mb-6">
+        {/* Tabs Section */}
+        <Tabs defaultValue="saved-campaigns" className="w-full">
+          <TabsList className="mb-6 bg-white border border-slate-200 p-1 rounded-lg shadow-sm">
+            <TabsTrigger 
+              value="saved-campaigns" 
+              className="px-6 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-md transition-all"
+            >
+              <FolderOpen className="w-4 h-4 mr-2" />
+              Saved Campaigns
+            </TabsTrigger>
+            <TabsTrigger 
+              value="history" 
+              className="px-6 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-md transition-all"
+            >
+              <Clock className="w-4 h-4 mr-2" />
+              History
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Saved Campaigns Tab */}
+          <TabsContent value="saved-campaigns" className="mt-0">
+            {/* Search & Filters Card */}
+            <Card className="border-slate-200/60 bg-white shadow-xl mb-6">
           <CardContent className="p-4 sm:p-6">
             {/* Search Bar */}
             <div className="flex gap-3 items-center mb-4">
@@ -1237,6 +1276,100 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
             </CardContent>
           </Card>
         )}
+          </TabsContent>
+
+          {/* History Tab */}
+          <TabsContent value="history" className="mt-0">
+            <Card className="border-slate-200/60 bg-white shadow-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Clock className="w-5 h-5 text-indigo-600" />
+                  Campaign History
+                </CardTitle>
+                <CardDescription>
+                  View your campaign activity and changes over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+                    <p className="text-slate-600">Loading history...</p>
+                  </div>
+                ) : savedCampaigns.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                      <Clock className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-700 mb-2">No History Yet</h3>
+                    <p className="text-slate-500 max-w-md">
+                      Your campaign activity will appear here once you start creating campaigns.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {savedCampaigns.map((campaign) => {
+                      const data = campaign.data || campaign;
+                      const timestamp = new Date(campaign.timestamp);
+                      const formattedDate = timestamp.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      });
+                      const formattedTime = timestamp.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+
+                      return (
+                        <div 
+                          key={campaign.id}
+                          className="flex items-start gap-4 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-slate-900 truncate">
+                                {campaign.name || data.campaignName || 'Untitled Campaign'}
+                              </h4>
+                              {getStatusBadge(campaign.status || 'started')}
+                            </div>
+                            <p className="text-sm text-slate-600 mb-2">
+                              {data.structureType ? `${STRUCTURE_TYPES.find(s => s.id === data.structureType)?.name || data.structureType} structure` : 'Campaign created'}
+                              {data.selectedKeywords?.length > 0 && ` with ${data.selectedKeywords.length} keywords`}
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formattedDate} at {formattedTime}
+                              </span>
+                              {data.url && (
+                                <span className="truncate max-w-[200px]" title={data.url}>
+                                  {data.url}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => loadCampaignData(data)}
+                            className="flex-shrink-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
