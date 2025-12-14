@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
+import { getStatusBadgeClasses, getStructureBadgeClasses } from '../utils/badgeTheme';
 import { campaignStructureToCSVRows, GOOGLE_ADS_EDITOR_HEADERS } from '../utils/googleAdsEditorCSVExporter';
 import { validateAndFixAds, formatValidationReport } from '../utils/adValidationUtils';
 import Papa from 'papaparse';
@@ -436,18 +437,11 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-700 border-green-300">Completed</Badge>;
-      case 'in_progress':
-        return <Badge className="bg-blue-100 text-blue-700 border-blue-300">In Progress</Badge>;
-      case 'started':
-        return <Badge className="bg-slate-100 text-slate-700 border-slate-300">Started</Badge>;
-      case 'draft':
-        return <Badge className="bg-amber-100 text-amber-700 border-amber-300">Draft</Badge>;
-      default:
-        return <Badge className="bg-slate-100 text-slate-700 border-slate-300">Unknown</Badge>;
-    }
+    const statusLabel = status === 'in_progress' ? 'In Progress' : 
+                        status === 'completed' ? 'Completed' :
+                        status === 'draft' ? 'Draft' :
+                        status === 'started' ? 'Started' : 'Unknown';
+    return <Badge className={getStatusBadgeClasses(status)}>{statusLabel}</Badge>;
   };
 
   const getStepLabel = (stepNum: number) => {
