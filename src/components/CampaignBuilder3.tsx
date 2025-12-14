@@ -2948,17 +2948,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         </Card>
       )}
 
-      {/* Inline Navigation */}
-      <div className="flex justify-between items-center pt-4 border-t border-slate-200">
-        <Button variant="outline" onClick={() => setCurrentStep(1)}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button onClick={() => setCurrentStep(3)} disabled={!campaignData.selectedStructure}>
-          Next Step
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
     </div>
   );
 
@@ -3211,17 +3200,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         </>
       )}
 
-      {/* Inline Navigation */}
-      <div className="flex justify-between items-center pt-4 mt-6 border-t border-slate-200">
-        <Button variant="outline" onClick={() => setCurrentStep(2)}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button onClick={() => setCurrentStep(4)} disabled={campaignData.selectedKeywords.length === 0}>
-          Next Step
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
     </div>
   );
 
@@ -3813,17 +3791,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           </div>
         </div>
 
-      {/* Inline Navigation */}
-      <div className="flex justify-between items-center pt-4 mt-6 border-t border-slate-200">
-        <Button variant="outline" onClick={() => setCurrentStep(3)}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button onClick={() => setCurrentStep(5)} disabled={campaignData.ads.length === 0}>
-          Next Step
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
     </div>
   );
   };
@@ -4263,20 +4230,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           </div>
         </div>
 
-        {/* Bottom Navigation */}
-        <div className="flex justify-between items-center pt-6 mt-8 border-t border-slate-200">
-          <Button variant="outline" onClick={() => setCurrentStep(4)} className="px-6">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Ads
-          </Button>
-          <Button 
-            onClick={() => { setCurrentStep(6); autoSaveDraft(); }}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 px-8 shadow-lg"
-          >
-            Generate CSV
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
       </div>
     );
   };
@@ -4706,17 +4659,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         </Card>
       )}
 
-      {/* Inline Navigation */}
-      <div className="flex justify-between items-center pt-4 mt-6 border-t border-slate-200">
-        <Button variant="outline" onClick={() => setCurrentStep(5)}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button onClick={handleGenerateCSV} disabled={loading || !!campaignData.csvData}>
-          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
-          {campaignData.csvData ? 'CSV Generated' : 'Generate CSV'}
-        </Button>
-      </div>
     </div>
   );
 
