@@ -842,7 +842,8 @@ function generateNgramClusters(keywords: string[], settings: StructureSettings):
 }
 
 /**
- * Long-Tail Master: Focus on 3+ word keywords for lower competition & higher conversion
+ * Long-Tail Master: Focus on 4+ word keywords for lower competition & higher conversion
+ * Only includes true long-tail keywords (4 or more words)
  */
 function generateLongTail(keywords: string[], settings: StructureSettings): CampaignStructure {
   const matchTypes = getMatchTypes(settings.matchTypes);
@@ -853,9 +854,8 @@ function generateLongTail(keywords: string[], settings: StructureSettings): Camp
   }));
   const negativeKeywords = settings.negativeKeywords || [];
   
-  // Filter for long-tail keywords (3+ words)
-  const longTailKeywords = keywords.filter(kw => kw.trim().split(/\s+/).length >= 3);
-  const shortKeywords = keywords.filter(kw => kw.trim().split(/\s+/).length < 3);
+  // Filter for true long-tail keywords (4+ words only)
+  const longTailKeywords = keywords.filter(kw => kw.trim().split(/\s+/).length >= 4);
   
   const adgroups: AdGroup[] = [];
   
@@ -885,30 +885,35 @@ function generateLongTail(keywords: string[], settings: StructureSettings): Camp
     });
   }
   
-  // Add short keywords to a separate "General" group if any exist
-  if (shortKeywords.length > 0) {
-    const adGroup: AdGroup = {
-      adgroup_name: 'General Keywords',
-      keywords: shortKeywords.flatMap(kw => matchTypes.map(mt => formatKeyword(kw, mt))),
-      match_types: matchTypes,
-      ads: ads,
-      negative_keywords: negativeKeywords,
-      location_target: buildLocationTarget(settings)
-    };
-    addLocationDataToAdGroup(adGroup, settings);
-    adgroups.push(adGroup);
-  }
-  
-  // If no keywords matched, use all keywords in a single group
+  // If no 4+ word keywords exist, show a message that no true long-tail keywords were found
+  // Create a single group with available keywords (but ideally user should generate more long-tail keywords)
   if (adgroups.length === 0) {
-    adgroups.push({
-      adgroup_name: 'All Keywords',
-      keywords: keywords.flatMap(kw => matchTypes.map(mt => formatKeyword(kw, mt))),
-      match_types: matchTypes,
-      ads: ads,
-      negative_keywords: negativeKeywords,
-      location_target: buildLocationTarget(settings)
-    });
+    // Try to find keywords with 3+ words as fallback
+    const fallbackKeywords = keywords.filter(kw => kw.trim().split(/\s+/).length >= 3);
+    if (fallbackKeywords.length > 0) {
+      adgroups.push({
+        adgroup_name: 'Long-Tail Keywords (3+ words)',
+        keywords: fallbackKeywords.flatMap(kw => matchTypes.map(mt => formatKeyword(kw, mt))),
+        match_types: matchTypes,
+        ads: ads,
+        negative_keywords: negativeKeywords,
+        location_target: buildLocationTarget(settings)
+      });
+    } else {
+      // Last resort: use longest keywords available
+      const sortedByLength = [...keywords].sort((a, b) => 
+        b.trim().split(/\s+/).length - a.trim().split(/\s+/).length
+      ).slice(0, 20);
+      
+      adgroups.push({
+        adgroup_name: 'Keywords (Consider adding longer keywords)',
+        keywords: sortedByLength.flatMap(kw => matchTypes.map(mt => formatKeyword(kw, mt))),
+        match_types: matchTypes,
+        ads: ads,
+        negative_keywords: negativeKeywords,
+        location_target: buildLocationTarget(settings)
+      });
+    }
   }
 
   const campaign: Campaign = {
