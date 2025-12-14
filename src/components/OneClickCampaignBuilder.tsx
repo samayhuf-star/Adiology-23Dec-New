@@ -393,30 +393,45 @@ export function OneClickCampaignBuilder() {
             </div>
 
             <div className="space-y-4">
-              <div className="bg-white rounded-xl border border-slate-200 p-5">
-                <h3 className="text-sm font-medium text-slate-700 mb-4">AI will automatically:</h3>
-                <ul className="text-sm text-slate-600 space-y-3">
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                    <span>Analyze your website content</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                    <span>Generate 100+ targeted keywords</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                    <span>Create high-converting ad copy</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                    <span>Build complete campaign structure</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                    <span>Export ready-to-import CSV</span>
-                  </li>
-                </ul>
+              <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 rounded-2xl border border-indigo-100 p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-base font-semibold text-slate-800">AI will automatically:</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-xl border border-white/80 backdrop-blur-sm">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                    </div>
+                    <span className="text-sm text-slate-700 font-medium">Analyze your website content</span>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-xl border border-white/80 backdrop-blur-sm">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                    </div>
+                    <span className="text-sm text-slate-700 font-medium">Generate 100+ targeted keywords</span>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-xl border border-white/80 backdrop-blur-sm">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                    </div>
+                    <span className="text-sm text-slate-700 font-medium">Create high-converting ad copy</span>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-xl border border-white/80 backdrop-blur-sm">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                    </div>
+                    <span className="text-sm text-slate-700 font-medium">Build complete campaign structure</span>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-xl border border-white/80 backdrop-blur-sm">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                    </div>
+                    <span className="text-sm text-slate-700 font-medium">Export ready-to-import CSV</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
