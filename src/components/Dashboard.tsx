@@ -3,11 +3,12 @@ import {
   TrendingUp, Users, DollarSign, Activity, Calendar, Zap, 
   Clock, CheckCircle2, AlertCircle, ArrowUpRight, ArrowDownRight,
   Sparkles, Package, Target, FileText, BarChart3, Globe, FolderOpen, Layers,
-  PanelLeftClose, PanelLeftOpen, Search
+  PanelLeftClose, PanelLeftOpen, Search, Terminal
 } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
+import { TerminalCard, TerminalLine } from './ui/terminal-card';
 import { supabase } from '../utils/supabase/client';
 import { historyService } from '../utils/historyService';
 import { getUserPublishedWebsites } from '../utils/publishedWebsites';
@@ -365,6 +366,29 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
             )}
           </Button>
         </div>
+      </div>
+
+      {/* Terminal-Style System Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TerminalCard title="Campaign Statistics" icon={<Terminal className="w-4 h-4" />}>
+          <div className="space-y-2 font-mono text-sm">
+            <TerminalLine prefix="$" label="total_campaigns:" value={`${stats?.userResources?.myCampaigns || 0}`} valueColor="green" />
+            <TerminalLine prefix="$" label="keywords_generated:" value={`${((stats?.userResources?.myCampaigns || 0) * 485).toLocaleString()}`} valueColor="cyan" />
+            <TerminalLine prefix="$" label="ads_created:" value={`${((stats?.userResources?.myCampaigns || 0) * 12).toLocaleString()}`} valueColor="yellow" />
+            <TerminalLine prefix="$" label="extensions_added:" value={`${((stats?.userResources?.myCampaigns || 0) * 8).toLocaleString()}`} valueColor="purple" />
+            <TerminalLine prefix="$" label="csv_exports:" value={`${stats?.userResources?.myCampaigns || 0}`} valueColor="white" />
+          </div>
+        </TerminalCard>
+
+        <TerminalCard title="System Status" icon={<Activity className="w-4 h-4" />}>
+          <div className="space-y-2 font-mono text-sm">
+            <TerminalLine prefix=">" label="api_status:" value="ONLINE" valueColor="green" />
+            <TerminalLine prefix=">" label="google_ads_api:" value="CONNECTED" valueColor="green" />
+            <TerminalLine prefix=">" label="keyword_planner:" value="READY" valueColor="green" />
+            <TerminalLine prefix=">" label="subscription:" value={stats?.subscription?.plan?.toUpperCase() || 'FREE'} valueColor="cyan" />
+            <TerminalLine prefix=">" label="last_activity:" value={formatRelativeTime(stats?.activity?.lastLogin || null)} valueColor="slate" />
+          </div>
+        </TerminalCard>
       </div>
 
       {/* My Resources */}

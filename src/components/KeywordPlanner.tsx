@@ -933,6 +933,27 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                     </p>
                 </div>
 
+                {/* Terminal-Style Stats */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                    <TerminalCard title="Keyword Statistics" showDots={true} variant="compact">
+                        <div className="space-y-1.5">
+                            <TerminalLine prefix="$" label="keywords_generated:" value={`${generatedKeywords.length}`} valueColor="green" />
+                            <TerminalLine prefix="$" label="seed_keywords:" value={`${seedKeywords.split(',').filter(s => s.trim()).length}`} valueColor="cyan" />
+                            <TerminalLine prefix="$" label="negative_keywords:" value={`${negativeKeywords.split('\n').filter(s => s.trim()).length}`} valueColor="yellow" />
+                            <TerminalLine prefix="$" label="saved_lists:" value={`${savedLists.length}`} valueColor="purple" />
+                        </div>
+                    </TerminalCard>
+
+                    <TerminalCard title="System Status" showDots={true} variant="compact">
+                        <div className="space-y-1.5">
+                            <TerminalLine prefix=">" label="api_status:" value={apiStatus === 'ok' ? 'CONNECTED' : apiStatus === 'error' ? 'FALLBACK' : 'CHECKING...'} valueColor={apiStatus === 'ok' ? 'green' : apiStatus === 'error' ? 'yellow' : 'slate'} />
+                            <TerminalLine prefix=">" label="data_source:" value={dataSource === 'google_ads_api' ? 'GOOGLE_ADS_API' : dataSource === 'fallback' ? 'LOCAL_FALLBACK' : 'LOCAL'} valueColor={dataSource === 'google_ads_api' ? 'green' : 'yellow'} />
+                            <TerminalLine prefix=">" label="match_types:" value={`[${matchTypes.broad ? 'B' : '-'}${matchTypes.phrase ? 'P' : '-'}${matchTypes.exact ? 'E' : '-'}]`} valueColor="cyan" />
+                            <TerminalLine prefix=">" label="metrics:" value={showMetrics ? 'ENABLED' : 'DISABLED'} valueColor={showMetrics ? 'green' : 'slate'} />
+                        </div>
+                    </TerminalCard>
+                </div>
+
                 {/* Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                     <TabsList className="bg-gray-100 border border-gray-200 p-1 rounded-xl">

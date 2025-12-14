@@ -12,6 +12,7 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { TerminalCard, TerminalLine } from './ui/terminal-card';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
 import { campaignStructureToCSVRows, GOOGLE_ADS_EDITOR_HEADERS } from '../utils/googleAdsEditorCSVExporter';
@@ -695,6 +696,27 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
               </div>
             )}
           </div>
+        </div>
+
+        {/* Terminal-Style Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <TerminalCard title="Campaign Statistics" showDots={true} variant="compact">
+            <div className="space-y-1.5">
+              <TerminalLine prefix="$" label="saved_campaigns:" value={`${savedCampaigns.length}`} valueColor="green" />
+              <TerminalLine prefix="$" label="filtered_results:" value={`${filteredCampaigns.length}`} valueColor="cyan" />
+              <TerminalLine prefix="$" label="history_items:" value={`${allHistory.length}`} valueColor="yellow" />
+              <TerminalLine prefix="$" label="view_mode:" value={viewMode.toUpperCase()} valueColor="purple" />
+            </div>
+          </TerminalCard>
+
+          <TerminalCard title="Connection Status" showDots={true} variant="compact">
+            <div className="space-y-1.5">
+              <TerminalLine prefix=">" label="google_ads:" value={googleAdsConnected ? 'CONNECTED' : googleAdsLoading ? 'CHECKING...' : 'DISCONNECTED'} valueColor={googleAdsConnected ? 'green' : googleAdsLoading ? 'slate' : 'yellow'} />
+              <TerminalLine prefix=">" label="accounts:" value={`${googleAdsAccounts.length}`} valueColor="cyan" />
+              <TerminalLine prefix=">" label="selected_account:" value={selectedAccount ? selectedAccount.substring(0, 12) + '...' : 'NONE'} valueColor={selectedAccount ? 'green' : 'slate'} />
+              <TerminalLine prefix=">" label="status:" value={loading ? 'LOADING' : error ? 'ERROR' : 'READY'} valueColor={loading ? 'yellow' : error ? 'yellow' : 'green'} />
+            </div>
+          </TerminalCard>
         </div>
 
         {/* Tabs Section */}
