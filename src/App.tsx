@@ -130,6 +130,8 @@ const App = () => {
     'support',
     'support-help',
     'web-templates',
+    'saved-websites',
+    'connected-websites',
   ]);
 
   // Safe setActiveTab wrapper that validates and redirects to dashboard if invalid
@@ -776,7 +778,16 @@ const App = () => {
         { id: 'negative-keywords', label: 'Negatives', icon: MinusCircle },
       ]
     },
-    { id: 'web-templates', label: 'Web Templates', icon: Globe },
+    { 
+      id: 'web-templates', 
+      label: 'Web Templates', 
+      icon: Globe,
+      submenu: [
+        { id: 'web-templates', label: 'Templates', icon: Globe },
+        { id: 'saved-websites', label: 'Saved Websites', icon: FolderOpen },
+        { id: 'connected-websites', label: 'Connected Websites', icon: Globe },
+      ]
+    },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
   ];
@@ -1161,6 +1172,10 @@ const App = () => {
         return <KeywordSavedLists />;
       case 'web-templates':
         return <WebTemplates />;
+      case 'saved-websites':
+        return <WebTemplates initialTab="saved" />;
+      case 'connected-websites':
+        return <WebTemplates initialTab="connected" />;
       case 'support-help':
         return <SupportHelpCombined />;
       case 'support':
