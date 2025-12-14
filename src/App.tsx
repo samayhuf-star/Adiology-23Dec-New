@@ -1232,9 +1232,9 @@ const App = () => {
       <aside 
         className={`hidden md:flex md:flex-col ${
           (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'md:w-64' : 'md:w-20'
-        } transition-all duration-300 bg-white/80 backdrop-blur-xl border-r border-indigo-100/60 shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto`}
+        } transition-all duration-300 bg-white/80 backdrop-blur-xl border-r border-teal-100/60 shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto`}
         style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(238, 242, 255, 0.95) 100%)'
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240, 253, 250, 0.95) 100%)'
         }}
         onMouseEnter={() => {
           if (userPrefs.sidebarAutoClose) {
@@ -1248,7 +1248,7 @@ const App = () => {
         }}
       >
         {/* Logo Section */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-indigo-100/60 theme-sidebar-header">
+        <div className="h-16 flex items-center justify-between px-5 border-b border-teal-100/60 theme-sidebar-header">
           {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
             <div className="flex items-center gap-2">
               <div 
@@ -1259,7 +1259,7 @@ const App = () => {
               </div>
               <div className="flex flex-col">
                 <span className="font-bold theme-gradient-text">Adiology</span>
-                <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full tracking-wide uppercase">Beta</span>
+                <span className="text-[10px] font-semibold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full tracking-wide uppercase">Beta</span>
               </div>
             </div>
           )}
@@ -1268,7 +1268,7 @@ const App = () => {
               setSidebarOpen(!sidebarOpen);
               setSidebarHovered(false);
             }}
-            className="p-2 rounded-lg hover:bg-indigo-50 transition-all cursor-pointer theme-menu-toggle"
+            className="p-2 rounded-lg hover:bg-teal-50 transition-all cursor-pointer theme-menu-toggle"
           >
             {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? <X className="w-5 h-5 text-slate-600" /> : <Menu className="w-5 h-5 text-slate-600" />}
           </button>
@@ -1319,7 +1319,7 @@ const App = () => {
                 style={{ minWidth: 0 }}
               >
                   <div className={`flex items-center ${!(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'justify-center flex-shrink-0' : 'gap-2 flex-1 min-w-0 overflow-hidden justify-start'}`}>
-                    <Icon className={`w-5 h-5 shrink-0 ${isActive || hasActiveSubmenu ? 'text-white' : !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'text-slate-700 group-hover:text-indigo-600' : `text-slate-500 ${COLOR_CLASSES.primaryTextHover}`}`} />
+                    <Icon className={`w-5 h-5 shrink-0 ${isActive || hasActiveSubmenu ? 'text-white' : !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'text-slate-700 group-hover:text-teal-600' : `text-slate-500 ${COLOR_CLASSES.primaryTextHover}`}`} />
                 {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
                   <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.8125rem, 2.5vw, 0.9375rem)' }}>
                     {item.label}
@@ -1343,14 +1343,14 @@ const App = () => {
                           }}
                           className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 group cursor-pointer ${
                             isSubActive
-                              ? `bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200`
-                              : `text-slate-600 hover:bg-indigo-50/50`
+                              ? `bg-teal-100 text-teal-700 shadow-sm border border-teal-200`
+                              : `text-slate-600 hover:bg-teal-50/50`
                           } ${!(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'justify-center px-2' : 'justify-start'}`}
                           style={{ minWidth: 0 }}
                         >
-                          <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-indigo-600' : !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'text-slate-600 group-hover:text-indigo-600' : 'text-slate-400'}`} />
+                          <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-teal-600' : !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'text-slate-600 group-hover:text-teal-600' : 'text-slate-400'}`} />
                           {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
-                            <span className={`font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left ${isSubActive ? 'text-indigo-700' : 'text-slate-600'}`} style={{ fontSize: 'clamp(0.75rem, 2.2vw, 0.8125rem)' }}>
+                            <span className={`font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left ${isSubActive ? 'text-teal-700' : 'text-slate-600'}`} style={{ fontSize: 'clamp(0.75rem, 2.2vw, 0.8125rem)' }}>
                               {subItem.label}
                             </span>
                           )}
