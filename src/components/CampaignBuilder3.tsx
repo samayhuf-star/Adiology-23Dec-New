@@ -309,7 +309,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const analysisLogsRef = React.useRef<HTMLDivElement>(null);
   const [showCallAdDialog, setShowCallAdDialog] = useState(false);
-  const [callAdPhone, setCallAdPhone] = useState('');
+  const [callAdPhone, setCallAdPhone] = useState('(555) 123-4567');
   const [callAdBusinessName, setCallAdBusinessName] = useState('');
   const [showFlowDiagram, setShowFlowDiagram] = useState(false);
   const [selectedStructureForDiagram, setSelectedStructureForDiagram] = useState<{ id: string; name: string } | null>(null);
@@ -4741,12 +4741,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 Cancel
               </Button>
               <Button 
-                variant="outline"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium border-0"
                 onClick={() => {
                   setCallAdPhone('(555) 123-4567');
                   handleCreateCallAd();
                 }}
               >
+                <Zap className="w-4 h-4 mr-2" />
                 Skip (Use Defaults)
               </Button>
               <Button 
