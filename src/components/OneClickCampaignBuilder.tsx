@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { notifications } from '../utils/notifications';
+import { generateMasterCSV, CampaignDataV5, AdGroupV5, KeywordV5, AdV5 } from '../utils/googleAdsEditorCSVExporterV5';
 
 interface GeneratedCampaign {
   id: string;
@@ -216,23 +217,75 @@ export function OneClickCampaignBuilder() {
   };
 
   const downloadCSV = () => {
-    if (!generatedCampaign?.csvData) {
-      notifications.error('No CSV data available');
+    if (!generatedCampaign) {
+      notifications.error('No campaign data available');
       return;
     }
 
-    const element = document.createElement('a');
-    const file = new Blob([generatedCampaign.csvData], { type: 'text/csv' });
-    element.href = URL.createObjectURL(file);
-    element.download = `${generatedCampaign.campaign_name || 'campaign'}.csv`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    try {
+      const campaignData = generatedCampaign.campaign_data;
+      const adCopy = campaignData.adCopy;
+      
+      const adGroupsV5: AdGroupV5[] = campaignData.adGroups.map((ag) => {
+        const keywords: KeywordV5[] = ag.keywords.map((kw) => ({
+          text: kw,
+          matchType: 'Broad' as const,
+          status: 'Enabled',
+          finalUrl: generatedCampaign.website_url
+        }));
+        
+        const ads: AdV5[] = [{
+          type: 'RSA' as const,
+          headlines: adCopy.headlines.slice(0, 15).map(h => (h.text || '').substring(0, 30)),
+          descriptions: adCopy.descriptions.slice(0, 4).map(d => (d.text || '').substring(0, 90)),
+          path1: '',
+          path2: '',
+          finalUrl: generatedCampaign.website_url
+        }];
+        
+        return {
+          name: ag.name,
+          maxCpc: 2.00,
+          status: 'Enabled',
+          keywords,
+          ads
+        };
+      });
+      
+      const campaignV5: CampaignDataV5 = {
+        campaignName: generatedCampaign.campaign_name,
+        dailyBudget: campaignData.structure.dailyBudget || 100,
+        campaignType: 'Search',
+        bidStrategy: 'Maximize Conversions',
+        networks: 'Google search',
+        status: 'Enabled',
+        url: generatedCampaign.website_url,
+        adGroups: adGroupsV5,
+        callouts: adCopy.callouts?.slice(0, 4).map(text => ({ text, status: 'Enabled' })) || [],
+        locations: { countries: ['United States'], countryCode: 'US' }
+      };
+      
+      const csvContent = generateMasterCSV(campaignV5);
+      
+      const element = document.createElement('a');
+      const file = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      element.href = URL.createObjectURL(file);
+      element.download = `${generatedCampaign.campaign_name || 'campaign'}_GoogleAdsEditor.csv`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
 
-    notifications.success('CSV downloaded!', {
-      title: 'Download Complete',
-      description: 'Import this file into Google Ads Editor'
-    });
+      notifications.success('CSV downloaded!', {
+        title: 'Download Complete',
+        description: 'Import this file into Google Ads Editor'
+      });
+    } catch (err) {
+      console.error('CSV generation error:', err);
+      notifications.error('Failed to generate CSV', {
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Unknown error'
+      });
+    }
   };
 
   const saveCampaign = async () => {
