@@ -99,37 +99,43 @@ export function OneClickCampaignBuilder() {
     
     const simulatedLogs = [
       { delay: 0, message: 'Initializing campaign builder...', type: 'info' as const },
-      { delay: 300, message: `Target URL: ${formattedUrl}`, type: 'progress' as const },
-      { delay: 800, message: 'Connecting to AI engine...', type: 'action' as const },
-      { delay: 1500, message: 'AI connection established', type: 'success' as const },
-      { delay: 2200, message: 'Fetching landing page content...', type: 'action' as const },
-      { delay: 3000, message: 'Extracting page metadata...', type: 'progress' as const },
-      { delay: 3800, message: 'Analyzing business vertical...', type: 'action' as const },
-      { delay: 4500, message: 'Detecting campaign intent...', type: 'progress' as const },
-      { delay: 5500, message: 'Building campaign structure...', type: 'action' as const },
-      { delay: 6500, message: 'Generating seed keywords...', type: 'progress' as const },
-      { delay: 7500, message: 'Expanding keyword variations...', type: 'action' as const },
-      { delay: 8500, message: 'Building ad groups...', type: 'progress' as const },
-      { delay: 9500, message: 'Creating headline variations...', type: 'action' as const },
-      { delay: 10500, message: 'Writing ad descriptions...', type: 'progress' as const },
-      { delay: 11500, message: 'Optimizing ad copy...', type: 'action' as const },
-      { delay: 12500, message: 'Generating callout extensions...', type: 'progress' as const },
-      { delay: 13500, message: 'Building sitelink extensions...', type: 'action' as const },
-      { delay: 14500, message: 'Organizing campaign hierarchy...', type: 'progress' as const },
-      { delay: 15500, message: 'Validating keyword match types...', type: 'action' as const },
-      { delay: 16500, message: 'Optimizing bid strategies...', type: 'progress' as const },
-      { delay: 17500, message: 'Generating Google Ads CSV...', type: 'action' as const },
-      { delay: 18500, message: 'Validating CSV format...', type: 'progress' as const },
-      { delay: 19500, message: 'Finalizing campaign data...', type: 'action' as const },
+      { delay: 200, message: `Target URL: ${formattedUrl}`, type: 'progress' as const },
+      { delay: 500, message: 'Connecting to AI engine...', type: 'info' as const },
+      { delay: 900, message: 'AI connection established', type: 'success' as const },
+      { delay: 1300, message: 'Fetching landing page content...', type: 'info' as const },
+      { delay: 1700, message: 'Extracting page metadata...', type: 'progress' as const },
+      { delay: 2100, message: 'Analyzing business vertical...', type: 'info' as const },
+      { delay: 2500, message: 'Detecting campaign intent...', type: 'progress' as const },
+      { delay: 3000, message: 'Building campaign structure...', type: 'info' as const },
+      { delay: 3500, message: 'Generating seed keywords...', type: 'progress' as const },
+      { delay: 4000, message: 'Expanding keyword variations...', type: 'info' as const },
+      { delay: 4500, message: 'Building ad groups...', type: 'progress' as const },
+      { delay: 5000, message: 'Creating headline variations...', type: 'info' as const },
+      { delay: 5500, message: 'Writing ad descriptions...', type: 'progress' as const },
+      { delay: 6000, message: 'Optimizing ad copy...', type: 'info' as const },
+      { delay: 6500, message: 'Generating callout extensions...', type: 'progress' as const },
+      { delay: 7000, message: 'Building sitelink extensions...', type: 'info' as const },
+      { delay: 7500, message: 'Organizing campaign hierarchy...', type: 'progress' as const },
+      { delay: 8000, message: 'Validating keyword match types...', type: 'info' as const },
+      { delay: 8500, message: 'Optimizing bid strategies...', type: 'progress' as const },
+      { delay: 9000, message: 'Generating Google Ads CSV...', type: 'info' as const },
+      { delay: 9500, message: 'Validating CSV format...', type: 'progress' as const },
+      { delay: 10000, message: 'Finalizing campaign data...', type: 'info' as const },
     ];
     
     const logTimeouts: NodeJS.Timeout[] = [];
     simulatedLogs.forEach(log => {
       const timeout = setTimeout(() => {
-        addLogEntry(log.message, log.type);
+        if (!analysisComplete) {
+          addLogEntry(log.message, log.type);
+        }
       }, log.delay);
       logTimeouts.push(timeout);
     });
+    
+    const clearSimulatedLogs = () => {
+      logTimeouts.forEach(t => clearTimeout(t));
+    };
 
     try {
       const response = await fetch('/api/campaigns/one-click', {
@@ -170,9 +176,10 @@ export function OneClickCampaignBuilder() {
                   addLogEntry(data.log.message, data.log.type || 'info');
                 }
                 if (data.complete && data.campaign) {
+                  clearSimulatedLogs();
                   setAnalysisComplete(true);
                   setGeneratedCampaign(data.campaign);
-                  addLogEntry('Analysis complete! Ready to proceed.', 'success');
+                  addLogEntry('Campaign built successfully! Ready to proceed.', 'success');
                 }
                 if (data.error) {
                   throw new Error(data.error);
@@ -414,13 +421,13 @@ export function OneClickCampaignBuilder() {
                   <span className="text-slate-500 shrink-0">[{entry.timestamp}]</span>
                   <span className={`
                     ${entry.type === 'success' ? 'text-green-400' : ''}
-                    ${entry.type === 'action' ? 'text-yellow-400' : ''}
-                    ${entry.type === 'progress' ? 'text-cyan-400' : ''}
+                    ${entry.type === 'action' ? 'text-blue-400' : ''}
+                    ${entry.type === 'progress' ? 'text-blue-300' : ''}
                     ${entry.type === 'info' ? 'text-slate-400' : ''}
                   `}>
                     {entry.type === 'success' && <span className="text-green-400 mr-1">{'\u2713'}</span>}
-                    {entry.type === 'action' && <span className="text-yellow-400 mr-1">{'>'}</span>}
-                    {entry.type === 'progress' && <span className="text-cyan-400 mr-1">{'\u2192'}</span>}
+                    {entry.type === 'action' && <span className="text-blue-400 mr-1">{'>'}</span>}
+                    {entry.type === 'progress' && <span className="text-blue-300 mr-1">{'\u2192'}</span>}
                     {entry.message}
                   </span>
                 </div>
