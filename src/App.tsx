@@ -1514,7 +1514,7 @@ const App = () => {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 w-full">
         {/* Header */}
         <header className="h-16 bg-white/60 backdrop-blur-xl border-b border-slate-200/60 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm flex-shrink-0">
-          <div className="flex items-center gap-2 md:gap-4 flex-1 max-w-2xl">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -1522,70 +1522,6 @@ const App = () => {
             >
               <Menu className="w-5 h-5 text-slate-600" />
             </button>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
-              <input
-                type="text"
-                placeholder="Search campaigns, keywords, tools..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => searchQuery.trim() && setShowSearchSuggestions(true)}
-                onBlur={() => {
-                  // Delay to allow click on suggestion
-                  setTimeout(() => setShowSearchSuggestions(false), 200);
-                }}
-                onKeyDown={(e) => {
-                  // Bug_63: Handle Enter key to execute search
-                  if (e.key === 'Enter' && searchQuery.trim()) {
-                    e.preventDefault();
-                    if (searchSuggestions.length > 0) {
-                      handleSearchSuggestionClick(searchSuggestions[0]);
-                    } else {
-                      // If no suggestions, try to find matching menu item
-                      const matchingItem = menuItems.find(item => 
-                        item.label.toLowerCase().includes(searchQuery.toLowerCase())
-                      );
-                      if (matchingItem) {
-                        setActiveTabSafe(matchingItem.id);
-                        setSearchQuery('');
-                        setShowSearchSuggestions(false);
-                        return;
-                      }
-                      // Check submenu items
-                      for (const item of menuItems) {
-                        if (item.submenu) {
-                          const matchingSubItem = item.submenu.find(sub => 
-                            sub.label.toLowerCase().includes(searchQuery.toLowerCase())
-                          );
-                          if (matchingSubItem) {
-                            setActiveTabSafe(matchingSubItem.id);
-                            setSearchQuery('');
-                            setShowSearchSuggestions(false);
-                            return;
-                          }
-                        }
-                      }
-                    }
-                  }
-                }}
-                className="w-full pl-11 pr-4 py-2.5 bg-indigo-50/50 border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:bg-white transition-all h-11"
-              />
-              {/* Bug_64: Search suggestions dropdown */}
-              {showSearchSuggestions && searchSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-64 overflow-y-auto">
-                  {searchSuggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSearchSuggestionClick(suggestion)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors flex items-center gap-2"
-                    >
-                      <Search className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-700">{suggestion}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
           
           <div className="flex items-center gap-3">

@@ -4859,15 +4859,15 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="bg-white border-b border-slate-200 sticky top-[57px] z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 overflow-x-auto">
+      {/* Progress Bar - Compact */}
+      <div className="bg-white border-b border-slate-200 sticky top-[49px] z-10">
+        <div className="max-w-7xl mx-auto px-4 py-2 overflow-x-auto">
           <div className="flex items-center justify-between min-w-max">
             {steps.map((step, idx) => (
               <React.Fragment key={step.id}>
                 <div className="flex items-center flex-shrink-0">
                   <div
-                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base ${
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
                       currentStep > step.id
                         ? 'bg-green-500 text-white'
                         : currentStep === step.id
@@ -4876,19 +4876,19 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     }`}
                   >
                     {currentStep > step.id ? (
-                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <Check className="w-3 h-3" />
                     ) : (
                       <span>{step.id}</span>
                     )}
                   </div>
-                  <span className={`ml-2 text-xs sm:text-sm font-medium whitespace-nowrap ${
-                    currentStep === step.id ? 'text-indigo-600' : 'text-slate-600'
+                  <span className={`ml-1.5 text-xs font-medium whitespace-nowrap ${
+                    currentStep === step.id ? 'text-indigo-600' : 'text-slate-500'
                   }`}>
                     {step.label}
                   </span>
                 </div>
                 {idx < steps.length - 1 && (
-                  <div className={`flex-1 h-1 mx-2 sm:mx-4 min-w-[20px] ${
+                  <div className={`flex-1 h-0.5 mx-2 min-w-[16px] ${
                     currentStep > step.id ? 'bg-green-500' : 'bg-slate-200'
                   }`} />
                 )}
