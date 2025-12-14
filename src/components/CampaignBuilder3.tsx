@@ -2530,7 +2530,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const renderStep1 = () => (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800 mb-2">Enter Your Website URL</h2>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">Enter Your Website URL</h3>
         <p className="text-slate-600">AI will analyze your website to identify intent, CTA, and vertical</p>
       </div>
 
@@ -2665,7 +2665,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const renderStep2 = () => (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800 mb-2">Select Campaign Structure</h2>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">Select Campaign Structure</h3>
         <p className="text-slate-600">AI has ranked the best structures for your vertical. Choose the one that fits your needs.</p>
       </div>
 
@@ -2954,7 +2954,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const renderStep3 = () => (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800 mb-2">Keywords Planner</h2>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">Keywords Planner</h3>
         <p className="text-slate-600">Generate 410-710 keywords based on your seed keywords and campaign structure</p>
       </div>
 
@@ -3223,8 +3223,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     return (
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">Ads & Extensions Wizard</h2>
-          <p className="text-slate-600">Generate ad copies and add extensions to your campaign</p>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">Ads & Extensions</h3>
         </div>
 
         {/* Campaign Info Card - URL (greyed out) and Keywords */}
@@ -4039,26 +4038,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                       </div>
                     </div>
                     
-                    <Separator />
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Edit3 className="w-4 h-4 text-slate-500" />
-                        <Label className="text-sm font-semibold text-slate-700">Manual Entry</Label>
-                      </div>
-                      <textarea
-                        className="w-full h-28 p-4 text-sm border-2 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50 hover:bg-white"
-                        placeholder="Enter city names separated by commas or new lines&#10;e.g., New York, Los Angeles, Chicago"
-                        onChange={(e) => {
-                          const input = e.target.value;
-                          if (input.trim()) {
-                            const cities = input.split(/[,\n]/).map(c => c.trim()).filter(c => c.length > 0);
-                            setCampaignData(prev => ({ ...prev, locations: { ...prev.locations, cities, states: [], zipCodes: [] } }));
-                          }
-                        }}
-                      />
-                    </div>
-                    
                     {campaignData.locations.cities.length > 0 && (
                       <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                         <div className="flex items-center gap-2 mb-3">
@@ -4112,26 +4091,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                       </div>
                     </div>
                     
-                    <Separator />
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Edit3 className="w-4 h-4 text-slate-500" />
-                        <Label className="text-sm font-semibold text-slate-700">Manual Entry</Label>
-                      </div>
-                      <textarea
-                        className="w-full h-28 p-4 text-sm border-2 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50 hover:bg-white"
-                        placeholder="Enter state names or abbreviations&#10;e.g., California, Texas, FL, NY"
-                        onChange={(e) => {
-                          const input = e.target.value;
-                          if (input.trim()) {
-                            const states = input.split(/[,\n]/).map(s => s.trim()).filter(s => s.length > 0);
-                            setCampaignData(prev => ({ ...prev, locations: { ...prev.locations, states, cities: [], zipCodes: [] } }));
-                          }
-                        }}
-                      />
-                    </div>
-                    
                     {campaignData.locations.states.length > 0 && (
                       <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                         <div className="flex items-center gap-2 mb-3">
@@ -4163,7 +4122,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                           { label: '1K ZIPs', value: 'top1000', count: 1000 },
                           { label: '5K ZIPs', value: 'top5000', count: 5000 },
                           { label: '15K ZIPs', value: 'top15000', count: 15000 },
-                          { label: '25K ZIPs', value: 'top25000', count: 25000 },
                         ].map(preset => (
                           <Button
                             key={preset.value}
@@ -4179,26 +4137,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                           </Button>
                         ))}
                       </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Edit3 className="w-4 h-4 text-slate-500" />
-                        <Label className="text-sm font-semibold text-slate-700">Manual Entry</Label>
-                      </div>
-                      <textarea
-                        className="w-full h-28 p-4 text-sm border-2 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50 hover:bg-white"
-                        placeholder="Enter ZIP codes separated by commas or new lines&#10;e.g., 10001, 90210, 60601"
-                        onChange={(e) => {
-                          const input = e.target.value;
-                          if (input.trim()) {
-                            const zipCodes = input.split(/[,\s\n]+/).map(z => z.trim()).filter(z => /^\d{5}(-\d{4})?$/.test(z));
-                            setCampaignData(prev => ({ ...prev, locations: { ...prev.locations, zipCodes, cities: [], states: [] } }));
-                          }
-                        }}
-                      />
                     </div>
                     
                     {campaignData.locations.zipCodes.length > 0 && (
@@ -4601,7 +4539,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         <div className="text-sm text-slate-500 mr-4">CSV generation step - no inputs to fill</div>
       </div>
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-800 mb-2">CSV Generation</h2>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">CSV Generation</h3>
         <p className="text-slate-600">Generate your campaign CSV for Google Ads Editor</p>
       </div>
 
