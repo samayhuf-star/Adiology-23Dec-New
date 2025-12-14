@@ -1,3 +1,19 @@
+export interface SitelinkAsset {
+  text: string;
+  description1: string;
+  description2: string;
+  finalUrl: string;
+}
+
+export interface CalloutAsset {
+  text: string;
+}
+
+export interface StructuredSnippetAsset {
+  header: string;
+  values: string[];
+}
+
 export interface CampaignPreset {
   slug: string;
   title: string;
@@ -17,13 +33,20 @@ export interface CampaignPreset {
     headline1: string;
     headline2: string;
     headline3: string;
+    headline4?: string;
+    headline5?: string;
     description1: string;
     description2: string;
+    description3?: string;
+    description4?: string;
   }>;
   final_url: string;
   landing_page_url?: string;
   cta: string;
   phone?: string;
+  sitelinks?: SitelinkAsset[];
+  callouts?: CalloutAsset[];
+  structured_snippets?: StructuredSnippetAsset[];
 }
 
 // Campaign structure descriptions
@@ -1247,6 +1270,872 @@ export const campaignPresets: CampaignPreset[] = [
     }],
     final_url: "https://adiology.online/los-angeles-plumber?utm_source=adiology&utm_medium=ads&utm_campaign=la_plumber_geo",
     cta: "Call Today"
+  },
+  {
+    slug: "dental-clinic-stag",
+    title: "Dental Clinic",
+    campaign_name: "Dental Clinic - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/dental.html",
+    ad_groups: [
+      { name: "General Dentistry" },
+      { name: "Cosmetic Dentistry" },
+      { name: "Emergency Dental" },
+      { name: "Dental Implants" }
+    ],
+    keywords: [
+      "dentist near me", "dental clinic near me", "teeth cleaning near me", "emergency dentist",
+      "cosmetic dentist near me", "teeth whitening near me", "dental implants near me",
+      "root canal dentist", "dental checkup near me", "family dentist near me",
+      "affordable dentist near me", "dental crown near me", "tooth extraction near me"
+    ],
+    negative_keywords: ["dental school", "free dental", "jobs", "training", "dental supplies"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 5.5,
+    daily_budget: 150,
+    ads: [{
+      headline1: "Trusted Dental Care — Book Today",
+      headline2: "Family & Cosmetic Dentistry",
+      headline3: "Emergency Appointments Available",
+      headline4: "Insurance Accepted — Affordable Care",
+      headline5: "Modern, Comfortable Dental Office",
+      description1: "Comprehensive dental services for the whole family. Cleanings, fillings, implants & more.",
+      description2: "New patient special offer. Book your appointment online or call now."
+    }],
+    final_url: "https://adiology.online/dental-clinic?utm_source=adiology&utm_medium=ads&utm_campaign=dental_stag",
+    cta: "Book Appointment",
+    sitelinks: [
+      { text: "Teeth Whitening", description1: "Professional whitening", description2: "Bright smile in 1 visit", finalUrl: "https://adiology.online/dental-clinic/whitening" },
+      { text: "Dental Implants", description1: "Permanent tooth replacement", description2: "Free consultation", finalUrl: "https://adiology.online/dental-clinic/implants" },
+      { text: "Emergency Dental", description1: "Same-day appointments", description2: "Open 7 days a week", finalUrl: "https://adiology.online/dental-clinic/emergency" },
+      { text: "New Patient Special", description1: "First visit discount", description2: "Full exam & X-rays", finalUrl: "https://adiology.online/dental-clinic/new-patient" }
+    ],
+    callouts: [
+      { text: "Same-Day Appointments" },
+      { text: "Insurance Accepted" },
+      { text: "Flexible Financing" },
+      { text: "Modern Equipment" }
+    ],
+    structured_snippets: [
+      { header: "Services", values: ["Cleanings", "Fillings", "Implants", "Whitening", "Root Canals"] }
+    ]
+  },
+  {
+    slug: "personal-injury-lawyer-ibag",
+    title: "Personal Injury Lawyer",
+    campaign_name: "Personal Injury Lawyer - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/injury-lawyer.html",
+    ad_groups: [
+      { name: "Car Accident Intent" },
+      { name: "Workplace Injury Intent" },
+      { name: "Medical Malpractice Intent" }
+    ],
+    keywords: [
+      "personal injury lawyer near me", "car accident lawyer", "injury attorney near me",
+      "slip and fall lawyer", "workplace injury lawyer", "medical malpractice attorney",
+      "wrongful death lawyer", "injury claim lawyer", "accident lawyer free consultation",
+      "best personal injury attorney", "no win no fee lawyer"
+    ],
+    negative_keywords: ["law school", "paralegal jobs", "pro bono", "free legal advice", "how to become"],
+    match_distribution: { exact: 0.3, phrase: 0.5, broad_mod: 0.2 },
+    max_cpc: 15.0,
+    daily_budget: 500,
+    ads: [{
+      headline1: "Injured? Get Compensation Now",
+      headline2: "No Win, No Fee Guarantee",
+      headline3: "Free Case Evaluation — Call 24/7",
+      headline4: "Millions Recovered for Clients",
+      headline5: "Experienced Trial Attorneys",
+      description1: "Don't settle for less. Our injury lawyers fight for maximum compensation. Free consultation.",
+      description2: "Car accidents, workplace injuries, medical malpractice. Call now for free case review."
+    }],
+    final_url: "https://adiology.online/personal-injury-lawyer?utm_source=adiology&utm_medium=ads&utm_campaign=injury_ibag",
+    cta: "Free Consultation",
+    sitelinks: [
+      { text: "Car Accident Cases", description1: "Experienced auto injury lawyers", description2: "Maximum settlements", finalUrl: "https://adiology.online/personal-injury-lawyer/car-accident" },
+      { text: "Free Case Review", description1: "No obligation consultation", description2: "Available 24/7", finalUrl: "https://adiology.online/personal-injury-lawyer/free-review" },
+      { text: "Our Results", description1: "Millions recovered", description2: "See our case wins", finalUrl: "https://adiology.online/personal-injury-lawyer/results" },
+      { text: "Contact Us", description1: "Speak to an attorney", description2: "Call or chat now", finalUrl: "https://adiology.online/personal-injury-lawyer/contact" }
+    ],
+    callouts: [
+      { text: "No Win No Fee" },
+      { text: "24/7 Availability" },
+      { text: "Free Consultation" },
+      { text: "Home & Hospital Visits" }
+    ]
+  },
+  {
+    slug: "real-estate-agent-mix",
+    title: "Real Estate Agent",
+    campaign_name: "Real Estate Agent - MIX",
+    structure: "MIX",
+    landing_page_url: "/landing-pages/real-estate.html",
+    ad_groups: [
+      { name: "Buyers Agent" },
+      { name: "Sellers Agent" },
+      { name: "Luxury Homes" },
+      { name: "First Time Buyers" }
+    ],
+    keywords: [
+      "real estate agent near me", "realtor near me", "homes for sale near me",
+      "sell my house fast", "buy a house near me", "luxury realtor near me",
+      "first time home buyer agent", "real estate listings near me", "home selling agent",
+      "best realtor near me", "property agent near me"
+    ],
+    negative_keywords: ["real estate license", "become realtor", "jobs", "training", "rent"],
+    match_distribution: { exact: 0.2, phrase: 0.5, broad_mod: 0.3 },
+    max_cpc: 6.0,
+    daily_budget: 180,
+    ads: [{
+      headline1: "Top Local Real Estate Agent",
+      headline2: "Buy or Sell Your Home Today",
+      headline3: "Free Home Valuation",
+      headline4: "Experienced Neighborhood Expert",
+      headline5: "Sell Fast, Get Top Dollar",
+      description1: "Local realtor with 15+ years experience. Free market analysis & personalized service.",
+      description2: "Buyers & sellers welcome. Let me help you find your dream home or sell for top dollar."
+    }],
+    final_url: "https://adiology.online/real-estate-agent?utm_source=adiology&utm_medium=ads&utm_campaign=realtor_mix",
+    cta: "Get Free Valuation",
+    sitelinks: [
+      { text: "View Listings", description1: "Browse available homes", description2: "Updated daily", finalUrl: "https://adiology.online/real-estate-agent/listings" },
+      { text: "Sell Your Home", description1: "Get top dollar", description2: "Free home valuation", finalUrl: "https://adiology.online/real-estate-agent/sell" },
+      { text: "First-Time Buyers", description1: "Step-by-step guidance", description2: "Pre-approval help", finalUrl: "https://adiology.online/real-estate-agent/first-time" },
+      { text: "About Me", description1: "15+ years experience", description2: "Local market expert", finalUrl: "https://adiology.online/real-estate-agent/about" }
+    ],
+    callouts: [
+      { text: "Free Home Valuation" },
+      { text: "Virtual Tours Available" },
+      { text: "Negotiation Expert" },
+      { text: "Local Market Knowledge" }
+    ]
+  },
+  {
+    slug: "auto-repair-skag",
+    title: "Auto Repair Shop",
+    campaign_name: "Auto Repair - SKAG",
+    structure: "SKAG",
+    landing_page_url: "/landing-pages/auto-repair.html",
+    ad_groups: [
+      { name: "brake repair near me" },
+      { name: "oil change near me" },
+      { name: "transmission repair near me" },
+      { name: "tire service near me" },
+      { name: "auto AC repair near me" },
+      { name: "engine repair near me" },
+      { name: "car inspection near me" },
+      { name: "suspension repair near me" }
+    ],
+    keywords: [
+      "auto repair near me", "brake repair near me", "oil change near me",
+      "transmission repair near me", "tire service near me", "auto AC repair near me",
+      "engine repair near me", "car inspection near me", "suspension repair near me",
+      "mechanic near me", "car repair shop near me"
+    ],
+    negative_keywords: ["auto parts store", "DIY repair", "car repair manual", "jobs", "training"],
+    match_distribution: { exact: 0.3, phrase: 0.5, broad_mod: 0.2 },
+    max_cpc: 3.5,
+    daily_budget: 100,
+    ads: [{
+      headline1: "Expert Auto Repair — Book Now",
+      headline2: "Certified Mechanics — All Makes",
+      headline3: "Same-Day Service Available",
+      headline4: "Honest Pricing, No Surprises",
+      headline5: "Free Diagnostic Check",
+      description1: "Full-service auto repair. Brakes, oil, transmission, AC & more. ASE certified mechanics.",
+      description2: "Family-owned shop with transparent pricing. Schedule your appointment today."
+    }],
+    final_url: "https://adiology.online/auto-repair?utm_source=adiology&utm_medium=ads&utm_campaign=auto_skag",
+    cta: "Book Service",
+    sitelinks: [
+      { text: "Brake Service", description1: "Pads, rotors, calipers", description2: "Free brake inspection", finalUrl: "https://adiology.online/auto-repair/brakes" },
+      { text: "Oil Change", description1: "Synthetic & conventional", description2: "Quick service", finalUrl: "https://adiology.online/auto-repair/oil-change" },
+      { text: "Tire Service", description1: "New tires, rotation", description2: "Alignment available", finalUrl: "https://adiology.online/auto-repair/tires" },
+      { text: "Free Estimate", description1: "No obligation quote", description2: "Call or visit", finalUrl: "https://adiology.online/auto-repair/estimate" }
+    ],
+    callouts: [
+      { text: "ASE Certified" },
+      { text: "Same-Day Service" },
+      { text: "All Makes & Models" },
+      { text: "Warranty on Parts" }
+    ]
+  },
+  {
+    slug: "wedding-photographer-stag",
+    title: "Wedding Photographer",
+    campaign_name: "Wedding Photographer - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/wedding-photo.html",
+    ad_groups: [
+      { name: "Wedding Photography" },
+      { name: "Engagement Sessions" },
+      { name: "Bridal Portraits" }
+    ],
+    keywords: [
+      "wedding photographer near me", "wedding photography packages", "engagement photographer",
+      "bridal portrait photographer", "affordable wedding photographer", "best wedding photographer",
+      "destination wedding photographer", "elopement photographer", "wedding videographer near me"
+    ],
+    negative_keywords: ["photography classes", "camera for sale", "free photography", "jobs", "how to"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 4.0,
+    daily_budget: 120,
+    ads: [{
+      headline1: "Stunning Wedding Photography",
+      headline2: "Capture Your Perfect Day",
+      headline3: "Award-Winning Photographer",
+      headline4: "Custom Packages Available",
+      headline5: "Book Your Date Today",
+      description1: "Beautiful, timeless wedding photos. Professional photographer with 10+ years experience.",
+      description2: "Engagement sessions, full-day coverage & albums. Limited dates available — book now."
+    }],
+    final_url: "https://adiology.online/wedding-photographer?utm_source=adiology&utm_medium=ads&utm_campaign=wedding_stag",
+    cta: "View Portfolio",
+    sitelinks: [
+      { text: "View Portfolio", description1: "See our best work", description2: "Real weddings", finalUrl: "https://adiology.online/wedding-photographer/portfolio" },
+      { text: "Pricing & Packages", description1: "Transparent pricing", description2: "Custom packages", finalUrl: "https://adiology.online/wedding-photographer/pricing" },
+      { text: "Engagement Sessions", description1: "Pre-wedding photos", description2: "Complimentary with pkg", finalUrl: "https://adiology.online/wedding-photographer/engagement" },
+      { text: "Contact Us", description1: "Check availability", description2: "Free consultation", finalUrl: "https://adiology.online/wedding-photographer/contact" }
+    ],
+    callouts: [
+      { text: "10+ Years Experience" },
+      { text: "High-Res Digital Files" },
+      { text: "Free Engagement Session" },
+      { text: "Same-Day Previews" }
+    ]
+  },
+  {
+    slug: "fitness-gym-ibag",
+    title: "Fitness Gym",
+    campaign_name: "Fitness Gym - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/fitness-gym.html",
+    ad_groups: [
+      { name: "Weight Loss Intent" },
+      { name: "Muscle Building Intent" },
+      { name: "General Fitness Intent" }
+    ],
+    keywords: [
+      "gym near me", "fitness center near me", "personal trainer near me",
+      "weight loss gym near me", "24 hour gym near me", "gym membership deals",
+      "crossfit gym near me", "strength training gym", "gym with pool near me",
+      "women's gym near me", "cheap gym near me"
+    ],
+    negative_keywords: ["gym equipment for sale", "home gym", "gym franchise", "jobs", "trainer certification"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 2.5,
+    daily_budget: 80,
+    ads: [{
+      headline1: "Join Our Gym — First Month Free",
+      headline2: "State-of-the-Art Equipment",
+      headline3: "Personal Training Available",
+      headline4: "Open 24/7 — No Contracts",
+      headline5: "Group Classes Included",
+      description1: "Achieve your fitness goals. Modern equipment, expert trainers, supportive community.",
+      description2: "Tour our facility for free. Join today & get your first month on us."
+    }],
+    final_url: "https://adiology.online/fitness-gym?utm_source=adiology&utm_medium=ads&utm_campaign=gym_ibag",
+    cta: "Start Free Trial",
+    sitelinks: [
+      { text: "Free Trial", description1: "Try before you join", description2: "No commitment", finalUrl: "https://adiology.online/fitness-gym/free-trial" },
+      { text: "Membership Plans", description1: "Flexible pricing", description2: "No contracts", finalUrl: "https://adiology.online/fitness-gym/membership" },
+      { text: "Group Classes", description1: "Yoga, spin, HIIT", description2: "All levels welcome", finalUrl: "https://adiology.online/fitness-gym/classes" },
+      { text: "Personal Training", description1: "1-on-1 coaching", description2: "Custom programs", finalUrl: "https://adiology.online/fitness-gym/personal-training" }
+    ],
+    callouts: [
+      { text: "First Month Free" },
+      { text: "Open 24/7" },
+      { text: "No Long-Term Contracts" },
+      { text: "Free Parking" }
+    ]
+  },
+  {
+    slug: "accounting-firm-stag",
+    title: "Accounting & Tax Services",
+    campaign_name: "Accounting Firm - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/accounting.html",
+    ad_groups: [
+      { name: "Tax Preparation" },
+      { name: "Business Accounting" },
+      { name: "Bookkeeping Services" }
+    ],
+    keywords: [
+      "accountant near me", "tax preparation near me", "CPA near me",
+      "bookkeeping services near me", "small business accountant", "tax planning services",
+      "business tax filing", "payroll services near me", "tax advisor near me",
+      "quarterly tax preparation", "corporate accounting services"
+    ],
+    negative_keywords: ["accounting software", "free tax filing", "jobs", "CPA exam", "accounting degree"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 8.0,
+    daily_budget: 200,
+    ads: [{
+      headline1: "Expert Tax & Accounting Services",
+      headline2: "CPA Firm — Trusted Advisors",
+      headline3: "Business & Personal Tax Prep",
+      headline4: "Maximize Your Deductions",
+      headline5: "Year-Round Support",
+      description1: "Certified public accountants for individuals & businesses. Tax prep, planning & bookkeeping.",
+      description2: "Reduce your tax burden legally. Schedule your free consultation today."
+    }],
+    final_url: "https://adiology.online/accounting-firm?utm_source=adiology&utm_medium=ads&utm_campaign=accounting_stag",
+    cta: "Schedule Consultation",
+    sitelinks: [
+      { text: "Tax Preparation", description1: "Personal & business", description2: "Maximize refunds", finalUrl: "https://adiology.online/accounting-firm/tax-prep" },
+      { text: "Bookkeeping", description1: "Monthly services", description2: "Accurate records", finalUrl: "https://adiology.online/accounting-firm/bookkeeping" },
+      { text: "Business Services", description1: "Payroll, consulting", description2: "Grow your business", finalUrl: "https://adiology.online/accounting-firm/business" },
+      { text: "Free Consultation", description1: "Meet our CPAs", description2: "No obligation", finalUrl: "https://adiology.online/accounting-firm/consultation" }
+    ],
+    callouts: [
+      { text: "Licensed CPAs" },
+      { text: "Year-Round Support" },
+      { text: "IRS Representation" },
+      { text: "Secure Client Portal" }
+    ]
+  },
+  {
+    slug: "home-cleaning-geo",
+    title: "Home Cleaning Service",
+    campaign_name: "Home Cleaning - GEO",
+    structure: "GEO",
+    landing_page_url: "/landing-pages/home-cleaning.html",
+    ad_groups: [
+      { name: "Chicago Area" },
+      { name: "Suburbs" },
+      { name: "Downtown" }
+    ],
+    keywords: [
+      "house cleaning near me", "maid service near me", "home cleaning service",
+      "deep cleaning service near me", "move out cleaning near me", "weekly cleaning service",
+      "residential cleaning near me", "apartment cleaning service", "cleaning lady near me",
+      "professional house cleaners"
+    ],
+    negative_keywords: ["cleaning products", "cleaning jobs", "how to clean", "DIY cleaning", "cleaning supplies"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 3.0,
+    daily_budget: 90,
+    ads: [{
+      headline1: "Professional Home Cleaning",
+      headline2: "Trusted, Insured Cleaners",
+      headline3: "Book Online — Easy Scheduling",
+      headline4: "100% Satisfaction Guaranteed",
+      headline5: "Eco-Friendly Products Available",
+      description1: "Reliable home cleaning services. Weekly, bi-weekly or one-time deep cleans.",
+      description2: "Background-checked cleaners. Book online in 60 seconds. Satisfaction guaranteed."
+    }],
+    final_url: "https://adiology.online/home-cleaning?utm_source=adiology&utm_medium=ads&utm_campaign=cleaning_geo",
+    cta: "Book Online",
+    sitelinks: [
+      { text: "Get Instant Quote", description1: "Fast online booking", description2: "Transparent pricing", finalUrl: "https://adiology.online/home-cleaning/quote" },
+      { text: "Deep Cleaning", description1: "Top-to-bottom clean", description2: "Move-in/move-out", finalUrl: "https://adiology.online/home-cleaning/deep-clean" },
+      { text: "Weekly Service", description1: "Regular maintenance", description2: "Discounted rates", finalUrl: "https://adiology.online/home-cleaning/weekly" },
+      { text: "Our Guarantee", description1: "100% satisfaction", description2: "Or we re-clean free", finalUrl: "https://adiology.online/home-cleaning/guarantee" }
+    ],
+    callouts: [
+      { text: "Background Checked" },
+      { text: "Insured & Bonded" },
+      { text: "Eco-Friendly Options" },
+      { text: "Same-Day Available" }
+    ]
+  },
+  {
+    slug: "dog-grooming-skag",
+    title: "Dog Grooming",
+    campaign_name: "Dog Grooming - SKAG",
+    structure: "SKAG",
+    landing_page_url: "/landing-pages/dog-grooming.html",
+    ad_groups: [
+      { name: "dog grooming near me" },
+      { name: "pet grooming near me" },
+      { name: "mobile dog grooming" },
+      { name: "dog bath near me" },
+      { name: "puppy grooming near me" }
+    ],
+    keywords: [
+      "dog grooming near me", "pet grooming near me", "mobile dog grooming",
+      "dog bath near me", "puppy grooming near me", "dog haircut near me",
+      "dog nail trimming near me", "professional dog groomer", "cat grooming near me"
+    ],
+    negative_keywords: ["grooming tools", "dog grooming school", "how to groom", "jobs", "training"],
+    match_distribution: { exact: 0.3, phrase: 0.5, broad_mod: 0.2 },
+    max_cpc: 2.5,
+    daily_budget: 70,
+    ads: [{
+      headline1: "Professional Dog Grooming",
+      headline2: "Gentle, Caring Groomers",
+      headline3: "Full Service — Bath to Trim",
+      headline4: "Walk-Ins Welcome",
+      headline5: "Mobile Grooming Available",
+      description1: "Expert pet grooming for all breeds. Baths, haircuts, nail trims & more. Calm environment.",
+      description2: "Book your pup's spa day. Walk-ins welcome or schedule online."
+    }],
+    final_url: "https://adiology.online/dog-grooming?utm_source=adiology&utm_medium=ads&utm_campaign=grooming_skag",
+    cta: "Book Appointment",
+    sitelinks: [
+      { text: "Full Grooming", description1: "Bath, cut & style", description2: "All breeds", finalUrl: "https://adiology.online/dog-grooming/full-service" },
+      { text: "Mobile Grooming", description1: "We come to you", description2: "Convenient & safe", finalUrl: "https://adiology.online/dog-grooming/mobile" },
+      { text: "Puppy First Groom", description1: "Gentle introduction", description2: "Special pricing", finalUrl: "https://adiology.online/dog-grooming/puppy" },
+      { text: "Pricing", description1: "Transparent rates", description2: "By breed & size", finalUrl: "https://adiology.online/dog-grooming/pricing" }
+    ],
+    callouts: [
+      { text: "Certified Groomers" },
+      { text: "All Breeds Welcome" },
+      { text: "Calm Environment" },
+      { text: "Online Booking" }
+    ]
+  },
+  {
+    slug: "landscaping-mix",
+    title: "Landscaping Services",
+    campaign_name: "Landscaping - MIX",
+    structure: "MIX",
+    landing_page_url: "/landing-pages/landscaping.html",
+    ad_groups: [
+      { name: "Landscape Design" },
+      { name: "Lawn Installation" },
+      { name: "Hardscaping" },
+      { name: "Maintenance" }
+    ],
+    keywords: [
+      "landscaping near me", "landscape design near me", "lawn installation near me",
+      "hardscape contractors near me", "patio installation near me", "retaining wall contractor",
+      "landscape maintenance near me", "irrigation installation", "outdoor lighting installation",
+      "sod installation near me"
+    ],
+    negative_keywords: ["landscaping jobs", "how to landscape", "landscaping supplies", "plants for sale", "DIY"],
+    match_distribution: { exact: 0.2, phrase: 0.5, broad_mod: 0.3 },
+    max_cpc: 4.5,
+    daily_budget: 130,
+    ads: [{
+      headline1: "Professional Landscaping Services",
+      headline2: "Design & Installation Experts",
+      headline3: "Transform Your Outdoor Space",
+      headline4: "Free Design Consultation",
+      headline5: "Licensed & Insured",
+      description1: "Full-service landscaping. Design, installation & maintenance. Patios, lawns, lighting & more.",
+      description2: "Create your dream outdoor space. Free consultation & 3D design preview."
+    }],
+    final_url: "https://adiology.online/landscaping?utm_source=adiology&utm_medium=ads&utm_campaign=landscape_mix",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Landscape Design", description1: "Custom 3D designs", description2: "Free consultation", finalUrl: "https://adiology.online/landscaping/design" },
+      { text: "Hardscaping", description1: "Patios & walkways", description2: "Retaining walls", finalUrl: "https://adiology.online/landscaping/hardscape" },
+      { text: "Lawn Care", description1: "Sod, seeding, maintenance", description2: "Irrigation systems", finalUrl: "https://adiology.online/landscaping/lawn" },
+      { text: "Outdoor Lighting", description1: "Path & accent lights", description2: "Professional install", finalUrl: "https://adiology.online/landscaping/lighting" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Licensed & Insured" },
+      { text: "5-Year Warranty" },
+      { text: "Financing Available" }
+    ]
+  },
+  {
+    slug: "tutoring-service-ibag",
+    title: "Tutoring Service",
+    campaign_name: "Tutoring - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/tutoring.html",
+    ad_groups: [
+      { name: "Math Tutoring Intent" },
+      { name: "Test Prep Intent" },
+      { name: "Online Tutoring Intent" }
+    ],
+    keywords: [
+      "tutor near me", "math tutor near me", "SAT prep tutor", "ACT tutor near me",
+      "online tutoring", "reading tutor near me", "science tutor near me",
+      "homework help tutor", "private tutor near me", "college prep tutor"
+    ],
+    negative_keywords: ["tutoring jobs", "become a tutor", "free tutoring", "volunteer tutor"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 4.0,
+    daily_budget: 100,
+    ads: [{
+      headline1: "Expert Tutors — All Subjects",
+      headline2: "Boost Grades & Confidence",
+      headline3: "In-Home or Online Sessions",
+      headline4: "SAT/ACT Test Prep Specialists",
+      headline5: "Free Trial Session",
+      description1: "Personalized tutoring for K-12 & college. Math, science, reading, test prep & more.",
+      description2: "Experienced, certified tutors. See results in as little as 4 sessions. Book your free trial."
+    }],
+    final_url: "https://adiology.online/tutoring?utm_source=adiology&utm_medium=ads&utm_campaign=tutoring_ibag",
+    cta: "Book Free Trial",
+    sitelinks: [
+      { text: "Math Tutoring", description1: "All levels", description2: "Algebra to calculus", finalUrl: "https://adiology.online/tutoring/math" },
+      { text: "SAT/ACT Prep", description1: "Score improvement", description2: "Proven strategies", finalUrl: "https://adiology.online/tutoring/test-prep" },
+      { text: "Online Tutoring", description1: "Learn from anywhere", description2: "Interactive sessions", finalUrl: "https://adiology.online/tutoring/online" },
+      { text: "Find a Tutor", description1: "Match with expert", description2: "Free consultation", finalUrl: "https://adiology.online/tutoring/find" }
+    ],
+    callouts: [
+      { text: "Certified Teachers" },
+      { text: "Flexible Scheduling" },
+      { text: "Progress Reports" },
+      { text: "Satisfaction Guaranteed" }
+    ]
+  },
+  {
+    slug: "tree-service-skag",
+    title: "Tree Service",
+    campaign_name: "Tree Service - SKAG",
+    structure: "SKAG",
+    landing_page_url: "/landing-pages/tree-service.html",
+    ad_groups: [
+      { name: "tree removal near me" },
+      { name: "tree trimming near me" },
+      { name: "stump grinding near me" },
+      { name: "emergency tree service" },
+      { name: "tree pruning near me" }
+    ],
+    keywords: [
+      "tree removal near me", "tree trimming near me", "stump grinding near me",
+      "emergency tree service", "tree pruning near me", "tree cutting service",
+      "arborist near me", "tree service near me", "dead tree removal"
+    ],
+    negative_keywords: ["tree for sale", "how to remove tree", "DIY tree removal", "jobs", "chainsaw"],
+    match_distribution: { exact: 0.3, phrase: 0.5, broad_mod: 0.2 },
+    max_cpc: 5.0,
+    daily_budget: 140,
+    ads: [{
+      headline1: "Professional Tree Service",
+      headline2: "Safe Removal & Trimming",
+      headline3: "24/7 Emergency Service",
+      headline4: "Free Estimates — Insured",
+      headline5: "Stump Grinding Available",
+      description1: "Licensed arborists for tree removal, trimming & stump grinding. Safe, efficient service.",
+      description2: "Storm damage? Emergency service available 24/7. Call for free estimate."
+    }],
+    final_url: "https://adiology.online/tree-service?utm_source=adiology&utm_medium=ads&utm_campaign=tree_skag",
+    cta: "Get Free Estimate",
+    sitelinks: [
+      { text: "Tree Removal", description1: "Safe & efficient", description2: "Any size tree", finalUrl: "https://adiology.online/tree-service/removal" },
+      { text: "Tree Trimming", description1: "Shape & health", description2: "Expert pruning", finalUrl: "https://adiology.online/tree-service/trimming" },
+      { text: "Stump Grinding", description1: "Complete removal", description2: "Clean up included", finalUrl: "https://adiology.online/tree-service/stump" },
+      { text: "Emergency 24/7", description1: "Storm damage", description2: "Fast response", finalUrl: "https://adiology.online/tree-service/emergency" }
+    ],
+    callouts: [
+      { text: "Fully Insured" },
+      { text: "Free Estimates" },
+      { text: "Licensed Arborists" },
+      { text: "Clean Up Included" }
+    ]
+  },
+  {
+    slug: "spa-massage-stag",
+    title: "Spa & Massage",
+    campaign_name: "Spa & Massage - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/spa.html",
+    ad_groups: [
+      { name: "Massage Therapy" },
+      { name: "Facial Treatments" },
+      { name: "Couples Spa" }
+    ],
+    keywords: [
+      "massage near me", "spa near me", "deep tissue massage near me",
+      "couples massage near me", "facial near me", "hot stone massage",
+      "Swedish massage near me", "day spa near me", "relaxation massage",
+      "therapeutic massage near me"
+    ],
+    negative_keywords: ["massage school", "become massage therapist", "massage table", "jobs", "training"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 3.0,
+    daily_budget: 85,
+    ads: [{
+      headline1: "Relaxing Spa & Massage",
+      headline2: "Book Your Escape Today",
+      headline3: "Licensed Massage Therapists",
+      headline4: "Couples Packages Available",
+      headline5: "New Client Special",
+      description1: "Unwind with professional massage & spa treatments. Swedish, deep tissue, hot stone & more.",
+      description2: "Treat yourself. Book online for instant confirmation. Gift cards available."
+    }],
+    final_url: "https://adiology.online/spa-massage?utm_source=adiology&utm_medium=ads&utm_campaign=spa_stag",
+    cta: "Book Now",
+    sitelinks: [
+      { text: "Massage Services", description1: "Swedish, deep tissue", description2: "Hot stone, sports", finalUrl: "https://adiology.online/spa-massage/massage" },
+      { text: "Facial Treatments", description1: "Anti-aging, hydrating", description2: "Customized facials", finalUrl: "https://adiology.online/spa-massage/facials" },
+      { text: "Couples Packages", description1: "Romantic escape", description2: "Side-by-side rooms", finalUrl: "https://adiology.online/spa-massage/couples" },
+      { text: "Gift Cards", description1: "Perfect gift", description2: "Any amount", finalUrl: "https://adiology.online/spa-massage/gift-cards" }
+    ],
+    callouts: [
+      { text: "Licensed Therapists" },
+      { text: "Relaxing Atmosphere" },
+      { text: "Online Booking" },
+      { text: "Gift Cards Available" }
+    ]
+  },
+  {
+    slug: "catering-service-mix",
+    title: "Catering Service",
+    campaign_name: "Catering - MIX",
+    structure: "MIX",
+    landing_page_url: "/landing-pages/catering.html",
+    ad_groups: [
+      { name: "Wedding Catering" },
+      { name: "Corporate Catering" },
+      { name: "Party Catering" },
+      { name: "Event Catering" }
+    ],
+    keywords: [
+      "catering near me", "wedding catering near me", "corporate catering",
+      "party catering near me", "event catering service", "food catering near me",
+      "BBQ catering near me", "buffet catering", "catering company near me"
+    ],
+    negative_keywords: ["catering jobs", "catering equipment", "how to start catering", "catering supplies"],
+    match_distribution: { exact: 0.2, phrase: 0.5, broad_mod: 0.3 },
+    max_cpc: 4.0,
+    daily_budget: 110,
+    ads: [{
+      headline1: "Professional Catering Service",
+      headline2: "Weddings, Corporate & Events",
+      headline3: "Custom Menus Available",
+      headline4: "Full Service — Setup & Cleanup",
+      headline5: "Free Tasting Available",
+      description1: "Delicious catering for any occasion. Weddings, corporate events, parties & more.",
+      description2: "Customized menus to fit your taste & budget. Request a free quote today."
+    }],
+    final_url: "https://adiology.online/catering?utm_source=adiology&utm_medium=ads&utm_campaign=catering_mix",
+    cta: "Request Quote",
+    sitelinks: [
+      { text: "Wedding Catering", description1: "Your special day", description2: "Custom menus", finalUrl: "https://adiology.online/catering/wedding" },
+      { text: "Corporate Events", description1: "Meetings & conferences", description2: "Professional service", finalUrl: "https://adiology.online/catering/corporate" },
+      { text: "Sample Menus", description1: "Browse options", description2: "All cuisines", finalUrl: "https://adiology.online/catering/menus" },
+      { text: "Book Tasting", description1: "Try before you book", description2: "Free consultation", finalUrl: "https://adiology.online/catering/tasting" }
+    ],
+    callouts: [
+      { text: "Custom Menus" },
+      { text: "Full Service" },
+      { text: "Dietary Options" },
+      { text: "Setup & Cleanup" }
+    ]
+  },
+  {
+    slug: "carpet-cleaning-ibag",
+    title: "Carpet Cleaning",
+    campaign_name: "Carpet Cleaning - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/carpet-cleaning.html",
+    ad_groups: [
+      { name: "Residential Cleaning Intent" },
+      { name: "Stain Removal Intent" },
+      { name: "Commercial Cleaning Intent" }
+    ],
+    keywords: [
+      "carpet cleaning near me", "carpet cleaner near me", "steam carpet cleaning",
+      "deep carpet cleaning", "stain removal carpet", "upholstery cleaning near me",
+      "commercial carpet cleaning", "rug cleaning near me", "pet stain carpet cleaning"
+    ],
+    negative_keywords: ["carpet cleaner rental", "DIY carpet cleaning", "carpet cleaning machine", "jobs"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 3.5,
+    daily_budget: 95,
+    ads: [{
+      headline1: "Professional Carpet Cleaning",
+      headline2: "Deep Clean — Fast Drying",
+      headline3: "Pet Stain Specialists",
+      headline4: "Satisfaction Guaranteed",
+      headline5: "Free Estimates",
+      description1: "Expert carpet & upholstery cleaning. Advanced equipment, eco-friendly solutions.",
+      description2: "Remove tough stains & odors. Book online for instant quote. Same-day available."
+    }],
+    final_url: "https://adiology.online/carpet-cleaning?utm_source=adiology&utm_medium=ads&utm_campaign=carpet_ibag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Carpet Cleaning", description1: "All carpet types", description2: "Deep steam clean", finalUrl: "https://adiology.online/carpet-cleaning/carpets" },
+      { text: "Upholstery", description1: "Sofas, chairs, more", description2: "Fabric protection", finalUrl: "https://adiology.online/carpet-cleaning/upholstery" },
+      { text: "Pet Stain Removal", description1: "Odor elimination", description2: "Enzyme treatment", finalUrl: "https://adiology.online/carpet-cleaning/pet-stains" },
+      { text: "Get Quote", description1: "Instant online quote", description2: "No obligation", finalUrl: "https://adiology.online/carpet-cleaning/quote" }
+    ],
+    callouts: [
+      { text: "Eco-Friendly Products" },
+      { text: "Fast Drying" },
+      { text: "Pet & Kid Safe" },
+      { text: "Same-Day Service" }
+    ]
+  },
+  {
+    slug: "insurance-agent-stag",
+    title: "Insurance Agent",
+    campaign_name: "Insurance Agent - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/insurance.html",
+    ad_groups: [
+      { name: "Auto Insurance" },
+      { name: "Home Insurance" },
+      { name: "Life Insurance" },
+      { name: "Business Insurance" }
+    ],
+    keywords: [
+      "insurance agent near me", "auto insurance quotes", "home insurance near me",
+      "life insurance quotes", "business insurance near me", "car insurance agent",
+      "cheap auto insurance", "insurance broker near me", "renters insurance quotes"
+    ],
+    negative_keywords: ["insurance jobs", "become insurance agent", "insurance license", "insurance exam"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 12.0,
+    daily_budget: 300,
+    ads: [{
+      headline1: "Save on Insurance — Free Quotes",
+      headline2: "Auto, Home & Life Coverage",
+      headline3: "Local Independent Agent",
+      headline4: "Compare Top Carriers",
+      headline5: "Bundle & Save More",
+      description1: "Get personalized insurance quotes in minutes. Auto, home, life & business coverage.",
+      description2: "Independent agent with access to top carriers. Find the best rates. Call or quote online."
+    }],
+    final_url: "https://adiology.online/insurance-agent?utm_source=adiology&utm_medium=ads&utm_campaign=insurance_stag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Auto Insurance", description1: "Compare top carriers", description2: "Save up to 40%", finalUrl: "https://adiology.online/insurance-agent/auto" },
+      { text: "Home Insurance", description1: "Protect your home", description2: "Customized coverage", finalUrl: "https://adiology.online/insurance-agent/home" },
+      { text: "Life Insurance", description1: "Protect your family", description2: "Affordable plans", finalUrl: "https://adiology.online/insurance-agent/life" },
+      { text: "Bundle & Save", description1: "Multi-policy discounts", description2: "Maximum savings", finalUrl: "https://adiology.online/insurance-agent/bundle" }
+    ],
+    callouts: [
+      { text: "Free Quotes" },
+      { text: "Top Carriers" },
+      { text: "Bundle Discounts" },
+      { text: "Licensed Agent" }
+    ]
+  },
+  {
+    slug: "electrician-nyc-geo",
+    title: "NYC Electrician",
+    campaign_name: "NYC Electrician - GEO",
+    structure: "GEO",
+    landing_page_url: "/landing-pages/nyc-electrician.html",
+    ad_groups: [
+      { name: "Manhattan" },
+      { name: "Brooklyn" },
+      { name: "Queens" },
+      { name: "Bronx" }
+    ],
+    keywords: [
+      "electrician NYC", "New York electrician", "Manhattan electrician",
+      "Brooklyn electrician", "Queens electrician near me", "emergency electrician NYC",
+      "licensed electrician New York", "electrical contractor NYC", "24 hour electrician NYC"
+    ],
+    negative_keywords: ["electrician jobs NYC", "electrical apprenticeship", "how to become", "training"],
+    match_distribution: { exact: 0.3, phrase: 0.45, broad_mod: 0.25 },
+    max_cpc: 6.0,
+    daily_budget: 180,
+    ads: [{
+      headline1: "NYC Electrician — 24/7 Service",
+      headline2: "Licensed NYC Electrical Contractor",
+      headline3: "All Boroughs — Fast Response",
+      headline4: "Residential & Commercial",
+      headline5: "Free Estimates",
+      description1: "Expert electricians serving all NYC boroughs. Emergency service, repairs & installations.",
+      description2: "Licensed, insured & experienced. Call for same-day service. Free estimates."
+    }],
+    final_url: "https://adiology.online/nyc-electrician?utm_source=adiology&utm_medium=ads&utm_campaign=nyc_geo",
+    cta: "Call Now",
+    sitelinks: [
+      { text: "Emergency Service", description1: "24/7 availability", description2: "Fast response", finalUrl: "https://adiology.online/nyc-electrician/emergency" },
+      { text: "Residential", description1: "Home electrical", description2: "All repairs & installs", finalUrl: "https://adiology.online/nyc-electrician/residential" },
+      { text: "Commercial", description1: "Business electrical", description2: "Code compliance", finalUrl: "https://adiology.online/nyc-electrician/commercial" },
+      { text: "Service Areas", description1: "All NYC boroughs", description2: "Quick dispatch", finalUrl: "https://adiology.online/nyc-electrician/areas" }
+    ],
+    callouts: [
+      { text: "All NYC Boroughs" },
+      { text: "24/7 Emergency" },
+      { text: "Licensed & Insured" },
+      { text: "Same-Day Service" }
+    ]
+  },
+  {
+    slug: "appliance-repair-skag",
+    title: "Appliance Repair",
+    campaign_name: "Appliance Repair - SKAG",
+    structure: "SKAG",
+    landing_page_url: "/landing-pages/appliance-repair.html",
+    ad_groups: [
+      { name: "refrigerator repair near me" },
+      { name: "washer repair near me" },
+      { name: "dryer repair near me" },
+      { name: "dishwasher repair near me" },
+      { name: "oven repair near me" },
+      { name: "microwave repair near me" }
+    ],
+    keywords: [
+      "appliance repair near me", "refrigerator repair near me", "washer repair near me",
+      "dryer repair near me", "dishwasher repair near me", "oven repair near me",
+      "microwave repair near me", "freezer repair near me", "stove repair near me"
+    ],
+    negative_keywords: ["appliance parts", "DIY appliance repair", "used appliances", "jobs", "how to fix"],
+    match_distribution: { exact: 0.3, phrase: 0.5, broad_mod: 0.2 },
+    max_cpc: 4.0,
+    daily_budget: 120,
+    ads: [{
+      headline1: "Appliance Repair — Same Day",
+      headline2: "All Major Brands Serviced",
+      headline3: "Licensed Technicians",
+      headline4: "Fair, Upfront Pricing",
+      headline5: "Warranty on All Repairs",
+      description1: "Fast appliance repair for refrigerators, washers, dryers, dishwashers & more.",
+      description2: "Factory-trained technicians. Same-day service available. Call for free diagnosis."
+    }],
+    final_url: "https://adiology.online/appliance-repair?utm_source=adiology&utm_medium=ads&utm_campaign=appliance_skag",
+    cta: "Schedule Repair",
+    sitelinks: [
+      { text: "Refrigerator Repair", description1: "All brands", description2: "Same-day service", finalUrl: "https://adiology.online/appliance-repair/refrigerator" },
+      { text: "Washer & Dryer", description1: "Quick diagnosis", description2: "Parts in stock", finalUrl: "https://adiology.online/appliance-repair/laundry" },
+      { text: "Dishwasher Repair", description1: "Not draining? Leaking?", description2: "We can fix it", finalUrl: "https://adiology.online/appliance-repair/dishwasher" },
+      { text: "Oven & Stove", description1: "Gas & electric", description2: "Expert repair", finalUrl: "https://adiology.online/appliance-repair/oven" }
+    ],
+    callouts: [
+      { text: "Same-Day Service" },
+      { text: "All Major Brands" },
+      { text: "Warranty Included" },
+      { text: "Fair Pricing" }
+    ]
+  },
+  {
+    slug: "garage-door-repair-ibag",
+    title: "Garage Door Repair",
+    campaign_name: "Garage Door - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/garage-door.html",
+    ad_groups: [
+      { name: "Emergency Repair Intent" },
+      { name: "Spring Replacement Intent" },
+      { name: "Opener Repair Intent" }
+    ],
+    keywords: [
+      "garage door repair near me", "garage door spring repair", "garage door opener repair",
+      "emergency garage door service", "garage door installation near me",
+      "broken garage door spring", "garage door not opening", "garage door cable repair"
+    ],
+    negative_keywords: ["garage door parts", "DIY garage door", "how to fix", "garage door for sale"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 5.5,
+    daily_budget: 150,
+    ads: [{
+      headline1: "Garage Door Repair — Call 24/7",
+      headline2: "Broken Spring? Fast Fix",
+      headline3: "Same-Day Emergency Service",
+      headline4: "All Brands & Types",
+      headline5: "Free Safety Inspection",
+      description1: "Expert garage door repair. Springs, openers, cables & panels. Same-day service.",
+      description2: "Stuck or broken? We're available 24/7 for emergencies. Call for free estimate."
+    }],
+    final_url: "https://adiology.online/garage-door-repair?utm_source=adiology&utm_medium=ads&utm_campaign=garagedoor_ibag",
+    cta: "Call Now",
+    sitelinks: [
+      { text: "Spring Repair", description1: "Torsion & extension", description2: "Same-day service", finalUrl: "https://adiology.online/garage-door-repair/springs" },
+      { text: "Opener Repair", description1: "All brands", description2: "Motor replacement", finalUrl: "https://adiology.online/garage-door-repair/openers" },
+      { text: "New Installation", description1: "Quality doors", description2: "Professional install", finalUrl: "https://adiology.online/garage-door-repair/installation" },
+      { text: "Emergency 24/7", description1: "Stuck or broken?", description2: "Fast response", finalUrl: "https://adiology.online/garage-door-repair/emergency" }
+    ],
+    callouts: [
+      { text: "24/7 Emergency" },
+      { text: "Same-Day Service" },
+      { text: "Warranty Included" },
+      { text: "Free Estimates" }
+    ]
   }
 ];
 
