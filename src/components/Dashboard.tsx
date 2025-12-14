@@ -286,33 +286,12 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
   }
 
   const quickActions = [
-    {
-      id: 'builder-2',
-      title: 'Create Campaign',
-      description: 'Build a new campaign with AI',
-      icon: Sparkles,
-      color: 'from-purple-500 to-pink-500',
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-    },
-    // {
-    //   id: 'campaign-presets',
-    //   title: 'Use Preset',
-    //   description: 'Start from a template',
-    //   icon: Package,
-    //   color: 'from-blue-500 to-cyan-500',
-    //   bgColor: 'bg-blue-50',
-    //   iconColor: 'text-blue-600',
-    // }, // Hidden - Campaign Presets module disabled
-    {
-      id: 'keyword-planner',
-      title: 'Plan Keywords',
-      description: 'Research and generate keywords',
-      icon: Target,
-      color: 'from-green-500 to-emerald-500',
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
-    },
+    { id: 'one-click', title: '1 Click Campaign', icon: Zap },
+    { id: 'builder-2', title: 'Campaign Builder', icon: Sparkles },
+    { id: 'web-templates', title: 'Web Templates', icon: Globe },
+    { id: 'campaign-presets', title: 'Campaign Presets', icon: Package },
+    { id: 'keyword-planner', title: 'Keywords Planner', icon: Target },
+    { id: 'saved-campaigns', title: 'Saved Campaigns', icon: FolderOpen },
   ];
 
   return (
@@ -463,113 +442,28 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Quick Actions - Small Buttons */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-indigo-600" />
+          Quick Actions
+        </h2>
+        <div className="flex flex-wrap gap-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
-              <Card
+              <Button
                 key={action.id}
-                className="p-8 hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-indigo-200"
+                variant="outline"
                 onClick={() => onNavigate(action.id)}
+                className="h-9 px-4 gap-2 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-all"
               >
-                <div className="space-y-5">
-                  <div className={`w-14 h-14 rounded-xl ${action.bgColor} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <Icon className={`w-7 h-7 ${action.iconColor}`} />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-slate-800">{action.title}</h3>
-                    <p className="text-base text-slate-600">{action.description}</p>
-                  </div>
-                </div>
-              </Card>
+                <Icon className="w-4 h-4" />
+                <span className="text-sm font-medium">{action.title}</span>
+              </Button>
             );
           })}
         </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="space-y-6">
-        <Card className="border-2 p-8">
-          {recentActivity.length > 0 ? (
-            <div className="space-y-4">
-              {recentActivity.slice(0, 8).map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start justify-between p-5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors gap-6"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-lg ${getActionColor(activity.action)}`}>
-                      {getActionIcon(activity.action)}
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-medium text-base text-slate-800">
-                        {activity.action.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                      </p>
-                      {activity.resourceType && (
-                        <p className="text-sm text-slate-600">
-                          {activity.resourceType.charAt(0).toUpperCase() + activity.resourceType.slice(1)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-sm text-slate-500 shrink-0">
-                    {formatRelativeTime(activity.timestamp)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <AlertCircle className="w-20 h-20 text-slate-300 mx-auto mb-6" />
-              <h3 className="text-xl font-medium text-slate-600 mb-3">No recent activity</h3>
-              <p className="text-base text-slate-500 mb-8">
-                Start creating campaigns to see your activity here
-              </p>
-              <Button
-                onClick={() => onNavigate('builder-2')}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                Create First Campaign
-              </Button>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Account Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* Last Login */}
-        <Card className="border-2 p-8">
-          <div className="flex items-center gap-6">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg">
-              <Calendar className="w-7 h-7 text-white" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-base text-slate-600">Last Login</p>
-              <p className="text-lg font-semibold text-slate-800">
-                {formatRelativeTime(stats?.activity.lastLogin || null)}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Total Actions */}
-        <Card className="border-2 p-8">
-          <div className="flex items-center gap-6">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg">
-              <Activity className="w-7 h-7 text-white" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-base text-slate-600">Total Actions (Recent)</p>
-              <p className="text-lg font-semibold text-slate-800">
-                {stats?.activity.totalActions || 0}
-              </p>
-            </div>
-          </div>
-        </Card>
       </div>
     </div>
   );
