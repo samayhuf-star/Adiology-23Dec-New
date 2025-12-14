@@ -2481,22 +2481,41 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     const selectedCountries = (campaignData.selectedGeoCountries || []).filter(c => c);
     const isGeoMultiCountry = campaignData.selectedStructure === 'geo' && selectedCountries.length > 1;
     
+    const generateCountrySpecificCSV = (csvData: string, country: string, originalCampaignName: string): string => {
+      const parsed = Papa.parse(csvData, { header: true });
+      const rows = parsed.data as Record<string, string>[];
+      const newCampaignName = `${originalCampaignName} - ${country}`;
+      
+      const filteredRows = rows.filter(row => row['Row Type'] !== 'Location');
+      
+      const processedRows = filteredRows.map(row => {
+        const newRow = { ...row };
+        if (newRow['Campaign'] === originalCampaignName) {
+          newRow['Campaign'] = newCampaignName;
+        }
+        return newRow;
+      });
+      
+      const campaignRowIndex = processedRows.findIndex(row => row['Row Type'] === 'Campaign');
+      if (campaignRowIndex !== -1) {
+        const locationRow: Record<string, string> = {};
+        Object.keys(processedRows[0] || {}).forEach(key => locationRow[key] = '');
+        locationRow['Row Type'] = 'Location';
+        locationRow['Action'] = 'Add';
+        locationRow['Campaign'] = newCampaignName;
+        locationRow['Location'] = country;
+        processedRows.splice(campaignRowIndex + 1, 0, locationRow);
+      }
+      
+      return Papa.unparse(processedRows);
+    };
+    
     if (isGeoMultiCountry) {
       const zip = new JSZip();
       
       for (const country of selectedCountries) {
         const countrySlug = country.replace(/[^a-z0-9]/gi, '_');
-        const csvContent = campaignData.csvData.replace(
-          new RegExp(`^(Row Type,Action,Campaign)`, 'm'),
-          `$1`
-        ).replace(
-          new RegExp(`"${campaignData.campaignName}"`, 'g'),
-          `"${campaignData.campaignName} - ${country}"`
-        ).replace(
-          new RegExp(`${campaignData.campaignName}(?=,)`, 'g'),
-          `${campaignData.campaignName} - ${country}`
-        );
-        
+        const csvContent = generateCountrySpecificCSV(campaignData.csvData, country, campaignData.campaignName || 'Campaign');
         const filename = `${baseFilename}_${countrySlug}_google_ads_editor_${dateStr}.csv`;
         zip.file(filename, csvContent);
       }
@@ -2508,22 +2527,19 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       a.download = `${baseFilename}_multi_country_${dateStr}.zip`;
       a.click();
       URL.revokeObjectURL(url);
-    } else {
-      let csvContent = campaignData.csvData;
-      
-      if (campaignData.selectedStructure === 'geo' && selectedCountries.length === 1) {
-        const country = selectedCountries[0];
-        csvContent = csvContent.replace(
-          new RegExp(`"${campaignData.campaignName}"`, 'g'),
-          `"${campaignData.campaignName} - ${country}"`
-        ).replace(
-          new RegExp(`${campaignData.campaignName}(?=,)`, 'g'),
-          `${campaignData.campaignName} - ${country}`
-        );
-      }
-      
+    } else if (campaignData.selectedStructure === 'geo' && selectedCountries.length === 1) {
+      const csvContent = generateCountrySpecificCSV(campaignData.csvData, selectedCountries[0], campaignData.campaignName || 'Campaign');
       const filename = `${baseFilename}_google_ads_editor_${dateStr}.csv`;
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const filename = `${baseFilename}_google_ads_editor_${dateStr}.csv`;
+      const blob = new Blob([campaignData.csvData], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
