@@ -96,6 +96,10 @@ export function OneClickCampaignBuilder() {
     setIsGenerating(true);
     setLogEntries([]);
     setAnalysisComplete(false);
+    
+    addLogEntry('Initializing campaign builder...', 'info');
+    addLogEntry(`Target URL: ${formattedUrl}`, 'progress');
+    addLogEntry('Connecting to AI engine...', 'action');
 
     try {
       const response = await fetch('/api/campaigns/one-click', {
