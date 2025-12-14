@@ -673,8 +673,16 @@ export function convertToV5Format(legacyData: any): CampaignDataV5 {
     });
   }
   
-  // Convert sitelinks from extensions
-  if (legacyData.extensions && Array.isArray(legacyData.extensions)) {
+  // Convert sitelinks - check both direct array and extensions format
+  if (legacyData.sitelinks && Array.isArray(legacyData.sitelinks)) {
+    campaign.sitelinks = legacyData.sitelinks.slice(0, 4).map((sl: any) => ({
+      text: sl.text || '',
+      description1: sl.description1 || '',
+      description2: sl.description2 || '',
+      finalUrl: sl.finalUrl || legacyData.url || legacyData.final_url || '',
+      status: 'Enabled'
+    }));
+  } else if (legacyData.extensions && Array.isArray(legacyData.extensions)) {
     const sitelinkExts = legacyData.extensions.filter((e: any) => e.type === 'sitelink');
     campaign.sitelinks = sitelinkExts.slice(0, 4).map((sl: any) => ({
       text: sl.text || sl.linkText || '',
@@ -683,13 +691,30 @@ export function convertToV5Format(legacyData: any): CampaignDataV5 {
       finalUrl: sl.finalUrl || sl.url || '',
       status: 'Enabled'
     }));
-    
+  }
+  
+  // Convert callouts - check both direct array and extensions format
+  if (legacyData.callouts && Array.isArray(legacyData.callouts)) {
+    campaign.callouts = legacyData.callouts.slice(0, 4).map((co: any) => ({
+      text: co.text || '',
+      status: 'Enabled'
+    }));
+  } else if (legacyData.extensions && Array.isArray(legacyData.extensions)) {
     const calloutExts = legacyData.extensions.filter((e: any) => e.type === 'callout');
     campaign.callouts = calloutExts.slice(0, 4).map((co: any) => ({
       text: co.text || '',
       status: 'Enabled'
     }));
-    
+  }
+  
+  // Convert structured snippets - check both direct array and extensions format
+  if (legacyData.structured_snippets && Array.isArray(legacyData.structured_snippets)) {
+    campaign.snippets = legacyData.structured_snippets.slice(0, 2).map((sn: any) => ({
+      header: sn.header || '',
+      values: Array.isArray(sn.values) ? sn.values.join('; ') : (sn.values || ''),
+      status: 'Enabled'
+    }));
+  } else if (legacyData.extensions && Array.isArray(legacyData.extensions)) {
     const snippetExts = legacyData.extensions.filter((e: any) => e.type === 'snippet');
     campaign.snippets = snippetExts.slice(0, 2).map((sn: any) => ({
       header: sn.header || '',
