@@ -3416,106 +3416,59 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           </TerminalCard>
         </div>
 
-        {/* Campaign Info Card - URL (greyed out) and Keywords */}
-        <Card className="mb-6 bg-blue-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-blue-900">Campaign Information</CardTitle>
-            <CardDescription className="text-blue-700">Using information from earlier steps</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Landing Page URL - Greyed out */}
-              <div>
-                <Label className="text-sm font-semibold text-blue-800">Landing Page URL</Label>
-                <Input
-                  type="text"
-                  value={campaignData.url || 'Not set'}
-                  disabled
-                  readOnly
-                  className="mt-1 bg-slate-200 text-slate-500 border-slate-300 cursor-not-allowed opacity-70"
-                />
-              </div>
-              
-              {/* Keywords */}
-              <div>
-                <Label className="text-sm font-semibold text-blue-800">Keywords</Label>
-                <div className="mt-1 p-2 bg-white rounded border border-blue-200">
-                  <div className="flex flex-wrap gap-2">
-                    {campaignData.selectedKeywords.length > 0 ? (
-                      campaignData.selectedKeywords.slice(0, 5).map((kw, idx) => {
-                        const keywordText = typeof kw === 'string' ? kw : (kw?.text || kw?.keyword || String(kw || ''));
-                        return (
-                          <Badge key={kw?.id || idx} variant="outline" className="text-xs">
-                            {keywordText}
-                          </Badge>
-                        );
-                      })
-                    ) : (
-                      <span className="text-sm text-slate-500">No keywords selected</span>
-                    )}
-                    {campaignData.selectedKeywords.length > 5 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{campaignData.selectedKeywords.length - 5} more
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Create Ads & Extensions - Compact Inline */}
-              <div className="pt-2 space-y-1">
-                <div className="flex items-center flex-wrap gap-1.5">
-                  <span className="text-xs font-semibold text-blue-800 whitespace-nowrap">Create Ads (Max 3):</span>
-                  <Button 
-                    size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
-                    onClick={() => handleAddNewAd('rsa')}
-                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'rsa' || ad.adType === 'RSA')}
-                  >
-                    <Plus className="mr-1 w-3 h-3" /> RSA
-                  </Button>
-                  <Button 
-                    size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
-                    onClick={() => handleAddNewAd('dki')}
-                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'dki' || ad.adType === 'DKI')}
-                  >
-                    <Plus className="mr-1 w-3 h-3" /> DKI
-                  </Button>
-                  <Button 
-                    size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
-                    onClick={() => handleAddNewAd('call')}
-                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'call' || ad.adType === 'CallOnly')}
-                  >
-                    <Plus className="mr-1 w-3 h-3" /> CALL
-                  </Button>
-                </div>
-                
-                <div className="flex items-center flex-wrap gap-1">
-                  <span className="text-xs font-semibold text-purple-800 whitespace-nowrap">Extensions:</span>
-                  {extensionTypes.map(ext => {
-                    const Icon = ext.icon;
-                    const shortLabel = ext.label.replace(' EXTENSION', '');
-                    return (
-                      <Button
-                        key={ext.id}
-                        variant="outline"
-                        size="sm"
-                        className="border-purple-200 hover:bg-purple-50 text-xs px-1.5 py-0.5 h-6"
-                        onClick={() => handleAddExtensionToAllAds(ext.id)}
-                      >
-                        <Plus className="mr-0.5 w-2.5 h-2.5" />
-                        <Icon className="mr-0.5 w-2.5 h-2.5" />
-                        {shortLabel}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
+        {/* Create Ads & Extensions - Compact Inline */}
+        <div className="mb-6 p-4 bg-white rounded-xl border border-slate-200">
+          <div className="space-y-2">
+            <div className="flex items-center flex-wrap gap-1.5">
+              <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">Create Ads (Max 3):</span>
+              <Button 
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
+                onClick={() => handleAddNewAd('rsa')}
+                disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'rsa' || ad.adType === 'RSA')}
+              >
+                <Plus className="mr-1 w-3 h-3" /> RSA
+              </Button>
+              <Button 
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
+                onClick={() => handleAddNewAd('dki')}
+                disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'dki' || ad.adType === 'DKI')}
+              >
+                <Plus className="mr-1 w-3 h-3" /> DKI
+              </Button>
+              <Button 
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
+                onClick={() => handleAddNewAd('call')}
+                disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'call' || ad.adType === 'CallOnly')}
+              >
+                <Plus className="mr-1 w-3 h-3" /> CALL
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+            
+            <div className="flex items-center flex-wrap gap-1">
+              <span className="text-sm font-semibold text-purple-700 whitespace-nowrap">Extensions:</span>
+              {extensionTypes.map(ext => {
+                const Icon = ext.icon;
+                const shortLabel = ext.label.replace(' EXTENSION', '');
+                return (
+                  <Button
+                    key={ext.id}
+                    variant="outline"
+                    size="sm"
+                    className="border-purple-200 hover:bg-purple-50 text-xs px-1.5 py-1 h-7"
+                    onClick={() => handleAddExtensionToAllAds(ext.id)}
+                  >
+                    <Plus className="mr-0.5 w-2.5 h-2.5" />
+                    <Icon className="mr-0.5 w-2.5 h-2.5" />
+                    {shortLabel}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         {/* Ad Group Selector and Ads Display */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
