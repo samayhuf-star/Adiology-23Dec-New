@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { 
   Activity, Zap, Sparkles, Package, Target, Globe, FolderOpen, Terminal,
-  CheckCircle2, FileText
+  CheckCircle2, FileText, Layers, TrendingUp, ArrowUp
 } from 'lucide-react';
 import { Button } from './ui/button';
+import { Card } from './ui/card';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
 import { supabase } from '../utils/supabase/client';
 import { historyService } from '../utils/historyService';
@@ -290,51 +291,147 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
     { id: 'saved-campaigns', title: 'Saved Campaigns', icon: FolderOpen },
   ];
 
+  const myCampaigns = stats?.userResources?.myCampaigns || 0;
+  const keywordsGenerated = myCampaigns * 485;
+  const adsCreated = myCampaigns * 12;
+  const extensionsAdded = myCampaigns * 8;
+
   return (
-    <div className="dashboard-modern-theme p-8 sm:p-10 lg:p-12 space-y-12" style={{
+    <div className="bg-gray-50 min-h-screen p-6 sm:p-8 lg:p-10 space-y-8" style={{
       '--user-spacing-multiplier': preferences.spacing,
       '--user-font-size-multiplier': preferences.fontSize
     } as React.CSSProperties}>
       {/* Header */}
-      <div className="flex flex-col gap-6 mb-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-bold theme-gradient-text">
-              Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}!
-            </h1>
-            <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-1 rounded-full tracking-wide uppercase">Beta</span>
-          </div>
-          <p className="text-base text-slate-600">Here's what's happening with your campaigns today.</p>
+      <div className="space-y-1">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+            Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Admin'}!
+          </h1>
+          <span className="text-xs font-medium text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full uppercase">Beta</span>
         </div>
+        <p className="text-sm text-slate-500">Here's what's happening with your campaigns today.</p>
       </div>
 
       {/* Terminal-Style System Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <TerminalCard title="Campaign Statistics" icon={<Terminal className="w-4 h-4" />}>
           <div className="space-y-2 font-mono text-sm">
-            <TerminalLine prefix="$" label="total_campaigns:" value={`${stats?.userResources?.myCampaigns || 0}`} valueColor="green" />
-            <TerminalLine prefix="$" label="keywords_generated:" value={`${((stats?.userResources?.myCampaigns || 0) * 485).toLocaleString()}`} valueColor="cyan" />
-            <TerminalLine prefix="$" label="ads_created:" value={`${((stats?.userResources?.myCampaigns || 0) * 12).toLocaleString()}`} valueColor="yellow" />
-            <TerminalLine prefix="$" label="extensions_added:" value={`${((stats?.userResources?.myCampaigns || 0) * 8).toLocaleString()}`} valueColor="purple" />
-            <TerminalLine prefix="$" label="csv_exports:" value={`${stats?.userResources?.myCampaigns || 0}`} valueColor="white" />
+            <TerminalLine prefix="$" label="total_campaigns:" value={`${myCampaigns}`} valueColor="green" />
+            <TerminalLine prefix="$" label="keywords_generated:" value={`${keywordsGenerated.toLocaleString()}`} valueColor="cyan" />
+            <TerminalLine prefix="$" label="ads_created:" value={`${adsCreated.toLocaleString()}`} valueColor="yellow" />
+            <TerminalLine prefix="$" label="extensions_added:" value={`${extensionsAdded.toLocaleString()}`} valueColor="purple" />
+            <TerminalLine prefix="$" label="csv_exports:" value={`${myCampaigns}`} valueColor="white" />
           </div>
         </TerminalCard>
 
         <TerminalCard title="System Status" icon={<Activity className="w-4 h-4" />}>
           <div className="space-y-2 font-mono text-sm">
-            <TerminalLine prefix=">" label="api_status:" value="ONLINE" valueColor="green" />
-            <TerminalLine prefix=">" label="google_ads_api:" value="CONNECTED" valueColor="green" />
-            <TerminalLine prefix=">" label="keyword_planner:" value="READY" valueColor="green" />
-            <TerminalLine prefix=">" label="subscription:" value={stats?.subscription?.plan?.toUpperCase() || 'FREE'} valueColor="cyan" />
-            <TerminalLine prefix=">" label="last_activity:" value={formatRelativeTime(stats?.activity?.lastLogin || null)} valueColor="slate" />
+            <TerminalLine prefix="$" label="api_status:" value="ONLINE" valueColor="green" />
+            <TerminalLine prefix="$" label="google_ads_api:" value="CONNECTED" valueColor="green" />
+            <TerminalLine prefix="$" label="keyword_planner:" value="READY" valueColor="green" />
+            <TerminalLine prefix="$" label="subscription:" value={stats?.subscription?.plan?.toUpperCase() || 'FREE'} valueColor="cyan" />
+            <TerminalLine prefix="$" label="last_activity:" value={formatRelativeTime(stats?.activity?.lastLogin || null)} valueColor="slate" />
           </div>
         </TerminalCard>
       </div>
 
-      {/* Quick Actions - Small Buttons */}
+      {/* My Resources Section */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-indigo-600" />
+          <Layers className="w-5 h-5 text-teal-600" />
+          My Resources
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* My Campaigns Card */}
+          <Card className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center shadow-sm">
+                <Layers className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xs font-medium text-rose-500 bg-rose-50 px-2 py-1 rounded-full">Total</span>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-3xl font-bold text-slate-800">{myCampaigns}</h3>
+              <p className="text-sm text-slate-500">My Campaigns</p>
+            </div>
+            <div className="mt-4 h-1 bg-rose-100 rounded-full overflow-hidden">
+              <div className="h-full bg-rose-400 rounded-full" style={{ width: '60%' }}></div>
+            </div>
+          </Card>
+
+          {/* My Presets Card */}
+          <Card className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center shadow-sm">
+                <Package className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xs font-medium text-teal-500 bg-teal-50 px-2 py-1 rounded-full">Saved</span>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-3xl font-bold text-slate-800">{stats?.userResources?.myPresets || 0}</h3>
+              <p className="text-sm text-slate-500">My Presets</p>
+            </div>
+            <div className="mt-4 h-1 bg-teal-100 rounded-full overflow-hidden">
+              <div className="h-full bg-teal-400 rounded-full" style={{ width: '30%' }}></div>
+            </div>
+          </Card>
+
+          {/* My Domains Card */}
+          <Card className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
+                <Globe className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xs font-medium text-amber-500 bg-amber-50 px-2 py-1 rounded-full">Active</span>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-3xl font-bold text-slate-800">{stats?.userResources?.myDomains || 0}</h3>
+              <p className="text-sm text-slate-500">My Domains</p>
+            </div>
+            <div className="mt-4 h-1 bg-amber-100 rounded-full overflow-hidden">
+              <div className="h-full bg-amber-400 rounded-full" style={{ width: '20%' }}></div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Colorful Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Keywords Generated - Teal */}
+        <div className="rounded-xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #3BBFB3 0%, #2DA399 100%)' }}>
+          <h3 className="text-3xl font-bold mb-1">{keywordsGenerated.toLocaleString()}</h3>
+          <p className="text-sm font-medium opacity-90 mb-3">Keywords Generated</p>
+          <div className="flex items-center gap-1 text-xs opacity-80">
+            <ArrowUp className="w-3 h-3" />
+            <span>23% from last week</span>
+          </div>
+        </div>
+
+        {/* Ads Created - Coral */}
+        <div className="rounded-xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #F97B5C 0%, #E5684A 100%)' }}>
+          <h3 className="text-3xl font-bold mb-1">{adsCreated.toLocaleString()}</h3>
+          <p className="text-sm font-medium opacity-90 mb-3">Ads Created</p>
+          <div className="flex items-center gap-1 text-xs opacity-80">
+            <ArrowUp className="w-3 h-3" />
+            <span>12% from last week</span>
+          </div>
+        </div>
+
+        {/* Extensions Added - Pink/Rose */}
+        <div className="rounded-xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #E75A7C 0%, #D44A6A 100%)' }}>
+          <h3 className="text-3xl font-bold mb-1">{extensionsAdded.toLocaleString()}</h3>
+          <p className="text-sm font-medium opacity-90 mb-3">Extensions Added</p>
+          <div className="flex items-center gap-1 text-xs opacity-80">
+            <ArrowUp className="w-3 h-3" />
+            <span>8% from last week</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-teal-600" />
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-3">
@@ -345,7 +442,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
                 key={action.id}
                 variant="outline"
                 onClick={() => onNavigate(action.id)}
-                className="h-9 px-4 gap-2 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-all"
+                className="h-9 px-4 gap-2 bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 transition-all"
               >
                 <Icon className="w-4 h-4" />
                 <span className="text-sm font-medium">{action.title}</span>
