@@ -56,6 +56,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { generateDKIAdWithAI } from '../utils/dkiAdGeneratorAI';
 import { CampaignFlowDiagram } from './CampaignFlowDiagram';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
+import JSZip from 'jszip';
 
 // Campaign Structure Types (14 structures)
 const CAMPAIGN_STRUCTURES = [
@@ -279,6 +280,7 @@ interface CampaignData {
   csvErrors: any[];
   startDate?: string;
   endDate?: string;
+  selectedGeoCountries?: string[];
 }
 
 interface CampaignBuilder3Props {
@@ -336,6 +338,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     locations: { countries: [], states: [], cities: [], zipCodes: [] },
     csvData: null,
     csvErrors: [],
+    selectedGeoCountries: [],
   });
 
   // Handle initial data from Keyword Planner or saved campaigns
@@ -2469,21 +2472,68 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     setShowExportDialog(true);
   };
 
-  const confirmDownloadCSV = () => {
+  const confirmDownloadCSV = async () => {
     if (!campaignData.csvData) return;
     
-    const filename = `${(campaignData.campaignName || 'campaign').replace(/[^a-z0-9]/gi, '_')}_google_ads_editor_${new Date().toISOString().split('T')[0]}.csv`;
-    const blob = new Blob([campaignData.csvData], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    const baseFilename = (campaignData.campaignName || 'campaign').replace(/[^a-z0-9]/gi, '_');
+    const dateStr = new Date().toISOString().split('T')[0];
+    
+    const selectedCountries = (campaignData.selectedGeoCountries || []).filter(c => c);
+    const isGeoMultiCountry = campaignData.selectedStructure === 'geo' && selectedCountries.length > 1;
+    
+    if (isGeoMultiCountry) {
+      const zip = new JSZip();
+      
+      for (const country of selectedCountries) {
+        const countrySlug = country.replace(/[^a-z0-9]/gi, '_');
+        const csvContent = campaignData.csvData.replace(
+          new RegExp(`^(Row Type,Action,Campaign)`, 'm'),
+          `$1`
+        ).replace(
+          new RegExp(`"${campaignData.campaignName}"`, 'g'),
+          `"${campaignData.campaignName} - ${country}"`
+        ).replace(
+          new RegExp(`${campaignData.campaignName}(?=,)`, 'g'),
+          `${campaignData.campaignName} - ${country}`
+        );
+        
+        const filename = `${baseFilename}_${countrySlug}_google_ads_editor_${dateStr}.csv`;
+        zip.file(filename, csvContent);
+      }
+      
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${baseFilename}_multi_country_${dateStr}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      let csvContent = campaignData.csvData;
+      
+      if (campaignData.selectedStructure === 'geo' && selectedCountries.length === 1) {
+        const country = selectedCountries[0];
+        csvContent = csvContent.replace(
+          new RegExp(`"${campaignData.campaignName}"`, 'g'),
+          `"${campaignData.campaignName} - ${country}"`
+        ).replace(
+          new RegExp(`${campaignData.campaignName}(?=,)`, 'g'),
+          `${campaignData.campaignName} - ${country}`
+        );
+      }
+      
+      const filename = `${baseFilename}_google_ads_editor_${dateStr}.csv`;
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
     
     setShowExportDialog(false);
     
-    // Redirect to dashboard
     setTimeout(() => {
       const event = new CustomEvent('navigate', { detail: { tab: 'dashboard' } });
       window.dispatchEvent(event);
@@ -2945,6 +2995,87 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             <p className="text-sm text-orange-700 mt-3">
               These dates will be included in your CSV export for Google Ads scheduling.
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {campaignData.selectedStructure === 'geo' && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-600" />
+              <CardTitle className="text-lg">GEO-Segmented Countries</CardTitle>
+            </div>
+            <CardDescription>Select up to 3 countries - a separate CSV will be generated for each country</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(campaignData.selectedGeoCountries || []).map((country, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Select
+                    value={country}
+                    onValueChange={(value: string) => {
+                      const updated = [...(campaignData.selectedGeoCountries || [])];
+                      updated[index] = value;
+                      setCampaignData(prev => ({ ...prev, selectedGeoCountries: updated }));
+                    }}
+                  >
+                    <SelectTrigger className="bg-white flex-1">
+                      <SelectValue placeholder="Select a country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LOCATION_PRESETS.countries.map((c) => (
+                        <SelectItem 
+                          key={c} 
+                          value={c}
+                          disabled={(campaignData.selectedGeoCountries || []).includes(c) && c !== country}
+                        >
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                    onClick={() => {
+                      const updated = (campaignData.selectedGeoCountries || []).filter((_, i) => i !== index);
+                      setCampaignData(prev => ({ ...prev, selectedGeoCountries: updated }));
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              {(campaignData.selectedGeoCountries || []).length < 3 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-100"
+                  onClick={() => {
+                    const current = campaignData.selectedGeoCountries || [];
+                    if (current.length < 3) {
+                      setCampaignData(prev => ({ 
+                        ...prev, 
+                        selectedGeoCountries: [...current, ''] 
+                      }));
+                    }
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Country {(campaignData.selectedGeoCountries || []).length > 0 ? `(${3 - (campaignData.selectedGeoCountries || []).length} remaining)` : ''}
+                </Button>
+              )}
+              
+              {(campaignData.selectedGeoCountries || []).length > 0 && (
+                <p className="text-sm text-blue-700 mt-3">
+                  {(campaignData.selectedGeoCountries || []).filter(c => c).length} CSV file(s) will be generated, one for each country selected.
+                  {(campaignData.selectedGeoCountries || []).filter(c => c).length > 1 && ' Download will be a ZIP file.'}
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
