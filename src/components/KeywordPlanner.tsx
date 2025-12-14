@@ -1212,16 +1212,14 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                     </Button>
                                                     <Button
                                                         onClick={() => {
+                                                            const keywordsForSeed = generatedKeywords.slice(0, 20);
                                                             const event = new CustomEvent('navigate', { 
                                                                 detail: { 
                                                                     tab: 'builder-3',
                                                                     data: {
-                                                                        selectedKeywords: generatedKeywords,
-                                                                        seedKeywords: seedKeywords,
+                                                                        seedKeywords: keywordsForSeed,
                                                                         negativeKeywords: negativeKeywords,
-                                                                        matchTypes: matchTypes,
-                                                                        structure: 'SKAG',
-                                                                        skipToAdsGeneration: true
+                                                                        startAtStep: 1
                                                                     }
                                                                 } 
                                                             });
