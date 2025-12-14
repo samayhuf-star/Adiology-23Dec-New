@@ -2519,6 +2519,11 @@ Example output format: ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "key
         .slice(0, maxKeywords);
     }
 
+    // Filter to ensure all keywords have at least 2 words
+    keywords = keywords
+      .map((k: string) => k.trim())
+      .filter((k: string) => k.length > 0 && k.split(/\s+/).length >= 2);
+
     if (keywords.length === 0) {
       keywords = ['service near me', 'professional services', 'best solutions', 'local experts', 'quality service'];
     }

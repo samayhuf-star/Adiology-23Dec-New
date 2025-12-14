@@ -713,6 +713,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       let cta: string | null;
       let seedKeywords: string[];
       
+      // Helper function to ensure all seed keywords have at least 2 words
+      const filterValidSeedKeywords = (keywords: string[]): string[] => {
+        return keywords
+          .map(k => k.trim())
+          .filter(k => k.length > 0 && k.split(/\s+/).length >= 2);
+      };
+
       if (comprehensiveData?.aiInsights) {
         const ai = comprehensiveData.aiInsights;
         intentResult = {
@@ -725,7 +732,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         };
         vertical = ai.businessType || detectVertical(landingData);
         cta = ai.conversionGoal || detectCTA(landingData, vertical);
-        seedKeywords = ai.suggestedKeywords?.slice(0, 5) || await generateSeedKeywords(landingData, intentResult);
+        const rawKeywords = ai.suggestedKeywords?.slice(0, 5) || await generateSeedKeywords(landingData, intentResult);
+        seedKeywords = filterValidSeedKeywords(rawKeywords);
         
         addAnalysisLog(`Intent detected: ${intentResult.intentLabel}`, 'success');
         addAnalysisLog(`Vertical: ${vertical}`, 'success');
@@ -740,7 +748,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         );
         vertical = detectVertical(landingData);
         cta = detectCTA(landingData, vertical);
-        seedKeywords = await generateSeedKeywords(landingData, intentResult);
+        const rawKeywords = await generateSeedKeywords(landingData, intentResult);
+        seedKeywords = filterValidSeedKeywords(rawKeywords);
         
         addAnalysisLog(`Intent detected: ${intentResult.intentLabel}`, 'success');
         addAnalysisLog(`Vertical: ${vertical}`, 'success');
@@ -748,7 +757,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       }
       
       addAnalysisLog('Generating seed keywords...', 'step');
-      addAnalysisLog(`Generated ${seedKeywords.length} seed keywords`, 'success');
+      addAnalysisLog(`Generated ${seedKeywords.length} seed keywords (2+ words each)`, 'success');
 
       setCampaignData(prev => ({
         ...prev,
@@ -5286,6 +5295,7 @@ async function generateSeedKeywords(
   }
 
   // Fallback: Generate keywords from landing page content if AI fails
+  // IMPORTANT: All seed keywords must have at least 2 words
   const keywords: string[] = [];
   const domain = landingData.domain?.replace(/^www\./, '').split('.')[0] || '';
   
@@ -5295,35 +5305,43 @@ async function generateSeedKeywords(
     ...landingData.services.slice(0, 3),
   ].filter(Boolean);
 
-  // Extract meaningful keywords from terms
+  // Extract meaningful keywords from terms - only if they have 2+ words
   mainTerms.forEach(term => {
     if (term && keywords.length < 5) {
       const cleanTerm = term.toLowerCase().trim();
-      if (cleanTerm.length >= 3 && cleanTerm.length <= 50) {
+      // Only add if it has at least 2 words
+      if (cleanTerm.length >= 3 && cleanTerm.length <= 50 && cleanTerm.split(/\s+/).length >= 2) {
         keywords.push(cleanTerm);
       }
     }
   });
 
-  // Add intent-based keywords
-  const baseTerm = mainTerms[0]?.toLowerCase() || domain;
+  // Add intent-based keywords (always 2+ words)
+  const baseTerm = mainTerms[0]?.toLowerCase()?.split(/\s+/)[0] || domain;
   if (baseTerm && keywords.length < 5) {
     if (intent.intentId === IntentId.CALL) {
       keywords.push(`${baseTerm} phone number`);
+      keywords.push(`${baseTerm} contact`);
     } else if (intent.intentId === IntentId.LEAD) {
       keywords.push(`${baseTerm} quote`);
+      keywords.push(`${baseTerm} pricing`);
     } else {
       keywords.push(`${baseTerm} near me`);
+      keywords.push(`${baseTerm} services`);
     }
   }
 
-  // Add domain-based fallback if still not enough
+  // Add domain-based fallback if still not enough (always 2+ words)
   if (keywords.length < 4 && domain) {
-    keywords.push(domain);
     keywords.push(`${domain} services`);
+    keywords.push(`${domain} company`);
+    keywords.push(`${domain} near me`);
   }
 
-  return keywords.slice(0, 5);
+  // Filter to ensure all keywords have at least 2 words
+  return keywords
+    .filter(k => k.trim().split(/\s+/).length >= 2)
+    .slice(0, 5);
 }
 
 function rankCampaignStructures(intent: IntentResult, vertical: string): { id: string; score: number }[] {
