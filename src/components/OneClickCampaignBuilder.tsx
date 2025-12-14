@@ -275,93 +275,98 @@ export function OneClickCampaignBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       {currentStep === 'input' && (
-        <div className="max-w-2xl mx-auto">
-          <Card className="border-purple-200 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
-              <div className="flex items-center gap-3">
-                <Zap className="w-8 h-8 text-yellow-300" />
-                <div>
-                  <CardTitle className="text-2xl">1-Click Campaign Builder</CardTitle>
-                  <CardDescription className="text-purple-100">
-                    Paste your URL and let AI do the rest
-                  </CardDescription>
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-slate-800 rounded-lg">
+                <Zap className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold text-slate-800">1-Click Campaign Builder</h1>
+                <p className="text-slate-500">Paste your URL and let AI do the rest</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-6">
+              <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Landing Page URL
+                  </label>
+                  <Input
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className="h-12 text-base border-slate-200 focus:border-slate-400 focus:ring-slate-400"
+                  />
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <p className="text-slate-600">
-                Enter your landing page URL and our AI will automatically:
-              </p>
-              <ul className="text-sm text-slate-600 space-y-2 ml-4">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Analyze your website content
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Generate 100+ targeted keywords
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Create high-converting ad copy
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Build complete campaign structure
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Export ready-to-import CSV
-                </li>
-              </ul>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">
-                  Landing Page URL
-                </label>
-                <Input
-                  type="url"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  className="border-purple-200 focus:border-purple-500"
-                />
-              </div>
-
-              {error && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                  <span className="text-sm text-red-700">{error}</span>
-                </div>
-              )}
-
-              <div className="p-4 bg-purple-50 border border-purple-100 rounded-lg">
-                <p className="text-sm text-purple-700">
-                  <strong>Default Settings:</strong> Mobile + Desktop, Search Network, USA, English
-                </p>
-              </div>
-
-              <Button
-                onClick={handleAnalyze}
-                disabled={isGenerating}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-6 text-lg"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5 mr-2" />
-                    Generate Campaign
-                  </>
+                {error && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                    <span className="text-sm text-red-700">{error}</span>
+                  </div>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
+
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                  <p className="text-sm text-slate-600">
+                    <span className="font-medium text-slate-700">Default Settings:</span> Mobile + Desktop, Search Network, USA, English
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={isGenerating}
+                  className="w-full bg-slate-800 hover:bg-slate-900 text-white py-6 text-base font-medium"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 mr-2" />
+                      Generate Campaign
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <h3 className="text-sm font-medium text-slate-700 mb-4">AI will automatically:</h3>
+                <ul className="text-sm text-slate-600 space-y-3">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>Analyze your website content</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>Generate 100+ targeted keywords</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>Create high-converting ad copy</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>Build complete campaign structure</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>Export ready-to-import CSV</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -444,7 +449,7 @@ export function OneClickCampaignBuilder() {
               <div className="p-4 border-t border-slate-700">
                 <Button
                   onClick={proceedToResults}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-5 text-base font-medium"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 text-base font-medium"
                 >
                   Next: View Campaign Details
                   <ArrowRight className="w-5 h-5 ml-2" />
@@ -536,7 +541,7 @@ export function OneClickCampaignBuilder() {
             <div className="p-4 border-t border-slate-700 flex gap-3 flex-wrap">
               <Button
                 onClick={downloadCSV}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Download className="w-5 h-5 mr-2" />
                 Download CSV for Google Ads
@@ -544,7 +549,7 @@ export function OneClickCampaignBuilder() {
 
               <Button
                 onClick={saveCampaign}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <Save className="w-5 h-5 mr-2" />
                 Save to Saved Campaigns
