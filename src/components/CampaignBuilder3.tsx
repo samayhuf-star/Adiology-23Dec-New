@@ -3110,7 +3110,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <TerminalCard title="Keyword Statistics" showDots={true} variant="compact">
           <div className="space-y-1.5">
-            <TerminalLine prefix="$" label="seed_keywords:" value={`${seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0).length}`} valueColor="cyan" />
+            <TerminalLine prefix="$" label="seed_keywords:" value={`${seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0 && k.trim().split(/\s+/).length >= 2).length}`} valueColor="cyan" />
             <TerminalLine prefix="$" label="generated:" value={`${campaignData.selectedKeywords.length}`} valueColor="green" />
             <TerminalLine prefix="$" label="negative:" value={`${campaignData.negativeKeywords.length}`} valueColor="yellow" />
             <TerminalLine prefix="$" label="match_types:" value="[BROAD, PHRASE, EXACT]" valueColor="purple" />
@@ -3130,38 +3130,60 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       <Card className="mb-6">
             <CardHeader>
               <CardTitle>Seed Keywords</CardTitle>
-              <CardDescription>AI-suggested seed keywords from your URL analysis - edit as needed</CardDescription>
+              <CardDescription>AI-suggested seed keywords from your URL analysis - edit as needed (minimum 2 words per keyword)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <Textarea
-                  placeholder="Enter seed keywords (one per line or comma-separated)"
+                  placeholder="Enter seed keywords with at least 2 words each (one per line)&#10;Example:&#10;digital marketing&#10;seo services&#10;web design agency"
                   value={seedKeywordsText}
                   onChange={(e) => setSeedKeywordsText(e.target.value)}
                   onBlur={() => {
                     const keywords = seedKeywordsText
                       .split(/[\n,]+/)
                       .map(k => k.trim())
-                      .filter(k => k.length > 0);
+                      .filter(k => k.length > 0 && k.split(/\s+/).length >= 2);
                     setCampaignData(prev => ({ ...prev, seedKeywords: keywords }));
                   }}
                   rows={6}
                   className="font-mono text-sm"
                 />
-                <p className="text-xs text-slate-500">
-                  💡 Press <kbd className="px-2 py-1 bg-slate-100 rounded">Enter</kbd> to go to next line. These {seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0).length} keywords will be used to generate 410-710 variations.
-                </p>
+                {(() => {
+                  const allKeywords = seedKeywordsText.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
+                  const validKeywords = allKeywords.filter(k => k.split(/\s+/).length >= 2);
+                  const singleWordKeywords = allKeywords.filter(k => k.split(/\s+/).length === 1);
+                  return (
+                    <>
+                      {singleWordKeywords.length > 0 && (
+                        <p className="text-xs text-amber-600 flex items-center gap-1">
+                          <span className="inline-block w-4 h-4 rounded-full bg-amber-100 text-amber-600 text-center leading-4 font-bold">!</span>
+                          Single-word keywords will be ignored: {singleWordKeywords.slice(0, 3).map(k => `"${k}"`).join(', ')}{singleWordKeywords.length > 3 ? ` (+${singleWordKeywords.length - 3} more)` : ''}
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-500">
+                        💡 Press <kbd className="px-2 py-1 bg-slate-100 rounded">Enter</kbd> to go to next line. {validKeywords.length} valid keywords (2+ words) will be used to generate 410-710 variations.
+                      </p>
+                    </>
+                  );
+                })()}
               </div>
           <Button 
                 onClick={() => {
                   const keywords = seedKeywordsText
                     .split(/[\n,]+/)
                     .map(k => k.trim())
-                    .filter(k => k.length > 0);
+                    .filter(k => k.length > 0 && k.split(/\s+/).length >= 2);
+                  if (keywords.length === 0) {
+                    notifications.error('Please enter at least one seed keyword with 2 or more words', { 
+                      title: 'Invalid Seed Keywords',
+                      description: 'Single-word keywords are not allowed. Example: "digital marketing" instead of "marketing"'
+                    });
+                    return;
+                  }
                   setCampaignData(prev => ({ ...prev, seedKeywords: keywords }));
                   setTimeout(() => handleGenerateKeywords(), 50);
                 }} 
-                disabled={loading || seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0).length === 0} 
+                disabled={loading || seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0 && k.trim().split(/\s+/).length >= 2).length === 0} 
                 className="mt-6 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
