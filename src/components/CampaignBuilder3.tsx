@@ -4934,7 +4934,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               Back
             </Button>
           <span className="text-sm text-slate-600">
-            Step {currentStep} of {steps.length}
+            Step {Math.min(currentStep, 6)} of {steps.length}
           </span>
             <Button
               onClick={handleNextStep}
@@ -4954,7 +4954,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         {currentStep === 3 && renderStep3()}
         {currentStep === 4 && renderStep4()}
         {currentStep === 5 && renderStep5()}
-        {currentStep === 6 && renderStep8()}
+        {currentStep >= 6 && renderStep8()}
       </div>
 
         
