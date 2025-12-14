@@ -3685,350 +3685,409 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
     const getCurrentSelection = () => {
       const { cities, states, zipCodes } = campaignData.locations;
-      if (cities.length > 0) return { type: 'Cities', count: cities.length };
-      if (states.length > 0) return { type: 'States', count: states.length };
-      if (zipCodes.length > 0) return { type: 'ZIP Codes', count: zipCodes.length };
+      if (cities.length > 0) return { type: 'Cities', count: cities.length, icon: Building2 };
+      if (states.length > 0) return { type: 'States', count: states.length, icon: MapPin };
+      if (zipCodes.length > 0) return { type: 'ZIP Codes', count: zipCodes.length, icon: Hash };
       return null;
     };
 
     const currentSelection = getCurrentSelection();
 
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">Geo Target</h2>
-          <p className="text-slate-600">Target specific locations or the entire country.</p>
+      <div className="max-w-5xl mx-auto p-6">
+        {/* Header with gradient */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-200/50 mb-4">
+            <MapPin className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+            Geo Targeting
+          </h2>
+          <p className="text-slate-600 max-w-xl mx-auto">
+            Define where your ads will appear. Target specific locations or reach your entire country.
+          </p>
         </div>
 
-        <div className="space-y-6">
-          {/* Target Country */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-indigo-600" />
-                <CardTitle>Target Country</CardTitle>
-              </div>
-              <CardDescription>
-                Select the base country for your campaign.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Select 
-                value={campaignData.targetCountry} 
-                onValueChange={(value: string) => {
-                  setCampaignData(prev => ({ ...prev, targetCountry: value }));
-                  autoSaveDraft();
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LOCATION_PRESETS.countries.map(country => (
-                    <SelectItem key={country} value={country}>{country}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Location Targeting Tabs */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-indigo-600" />
-                  <CardTitle>Location Targeting</CardTitle>
-                </div>
-                {currentSelection && (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-sm">
-                      {currentSelection.count} {currentSelection.type} selected
-                    </Badge>
-                    <Button variant="ghost" size="sm" onClick={clearLocations}>
-                      <X className="w-4 h-4" />
-                    </Button>
+        {/* Two-column layout on larger screens */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Country & Summary */}
+          <div className="space-y-6">
+            {/* Target Country Card */}
+            <div className="rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 p-1 shadow-xl">
+              <div className="bg-slate-900 rounded-lg p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
                   </div>
+                  <span className="text-slate-400 text-sm font-medium">Target Country</span>
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <Select 
+                      value={campaignData.targetCountry} 
+                      onValueChange={(value: string) => {
+                        setCampaignData(prev => ({ ...prev, targetCountry: value }));
+                        autoSaveDraft();
+                      }}
+                    >
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        {LOCATION_PRESETS.countries.map(country => (
+                          <SelectItem key={country} value={country} className="text-white hover:bg-slate-700">{country}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-slate-500 text-xs">
+                  Base country for your campaign targeting
+                </p>
+              </div>
+            </div>
+
+            {/* Live Summary Card */}
+            <div className="rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 p-1 shadow-xl">
+              <div className="bg-slate-900 rounded-lg p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  </div>
+                  <span className="text-slate-400 text-sm font-medium">Targeting Summary</span>
+                  {currentSelection && (
+                    <Badge className="ml-auto bg-green-500/20 text-green-400 border-green-500/30">
+                      <Check className="w-3 h-3 mr-1" />
+                      Active
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="space-y-3 font-mono text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">[geo]</span>
+                    <span className="text-green-400">Country:</span>
+                    <span className="text-white">{campaignData.targetCountry}</span>
+                  </div>
+                  
+                  {currentSelection ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500">[geo]</span>
+                        <span className="text-yellow-400">&gt;</span>
+                        <span className="text-white">{currentSelection.type}:</span>
+                        <span className="text-cyan-400">{currentSelection.count.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500">[geo]</span>
+                        <span className="text-green-400">✓</span>
+                        <span className="text-slate-300">Targeting configured</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500">[geo]</span>
+                      <span className="text-cyan-400">→</span>
+                      <span className="text-slate-300">Nationwide coverage</span>
+                    </div>
+                  )}
+                </div>
+                
+                {currentSelection && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearLocations}
+                    className="mt-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 w-full"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Clear All Locations
+                  </Button>
                 )}
               </div>
-              <CardDescription>
-                Choose to target specific cities, states, or ZIP codes within {campaignData.targetCountry}. 
-                Leave empty to target the entire country.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="cities" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-6">
-                  <TabsTrigger value="cities" className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    Cities
-                  </TabsTrigger>
-                  <TabsTrigger value="states" className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    States
-                  </TabsTrigger>
-                  <TabsTrigger value="zips" className="flex items-center gap-2">
-                    <Hash className="w-4 h-4" />
-                    ZIP Codes
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Cities Tab */}
-                <TabsContent value="cities" className="space-y-4">
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium text-slate-700">Quick Presets</Label>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={campaignData.locations.cities.length === 50 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('cities', 'top50')}
-                        className="text-sm"
-                      >
-                        Top 50 Cities
-                      </Button>
-                      <Button
-                        variant={campaignData.locations.cities.length === 250 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('cities', 'top250')}
-                        className="text-sm"
-                      >
-                        Top 250 Cities
-                      </Button>
-                      <Button
-                        variant={campaignData.locations.cities.length === 500 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('cities', 'top500')}
-                        className="text-sm"
-                      >
-                        Top 500 Cities
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-3 pt-4 border-t">
-                    <Label className="text-sm font-medium text-slate-700">Manual Entry</Label>
-                    <p className="text-xs text-slate-500">Enter city names separated by commas or new lines</p>
-                    <textarea
-                      className="w-full h-24 p-3 text-sm border rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="e.g., New York, Los Angeles, Chicago&#10;or one city per line"
-                      onChange={(e) => {
-                        const input = e.target.value;
-                        if (input.trim()) {
-                          const cities = input
-                            .split(/[,\n]/)
-                            .map(c => c.trim())
-                            .filter(c => c.length > 0);
-                          setCampaignData(prev => ({
-                            ...prev,
-                            locations: { ...prev.locations, cities, states: [], zipCodes: [] }
-                          }));
-                        }
-                      }}
-                    />
-                  </div>
-                  {campaignData.locations.cities.length > 0 && (
-                    <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                      <p className="text-sm text-slate-600 mb-2">
-                        <strong>{campaignData.locations.cities.length}</strong> cities selected
-                      </p>
-                      <ScrollArea className="h-24">
-                        <div className="flex flex-wrap gap-1">
-                          {campaignData.locations.cities.slice(0, 20).map((city, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">{city}</Badge>
-                          ))}
-                          {campaignData.locations.cities.length > 20 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{campaignData.locations.cities.length - 20} more
-                            </Badge>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  )}
-                </TabsContent>
-
-                {/* States Tab */}
-                <TabsContent value="states" className="space-y-4">
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium text-slate-700">Quick Presets</Label>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={campaignData.locations.states.length === 10 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('states', 'top10')}
-                        className="text-sm"
-                      >
-                        Top 10 States
-                      </Button>
-                      <Button
-                        variant={campaignData.locations.states.length === 25 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('states', 'top25')}
-                        className="text-sm"
-                      >
-                        Top 25 States
-                      </Button>
-                      <Button
-                        variant={campaignData.locations.states.length === 50 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('states', 'top50')}
-                        className="text-sm"
-                      >
-                        All 50 States
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-3 pt-4 border-t">
-                    <Label className="text-sm font-medium text-slate-700">Manual Entry</Label>
-                    <p className="text-xs text-slate-500">Enter state names or abbreviations separated by commas or new lines</p>
-                    <textarea
-                      className="w-full h-24 p-3 text-sm border rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="e.g., California, Texas, Florida&#10;or CA, TX, FL"
-                      onChange={(e) => {
-                        const input = e.target.value;
-                        if (input.trim()) {
-                          const states = input
-                            .split(/[,\n]/)
-                            .map(s => s.trim())
-                            .filter(s => s.length > 0);
-                          setCampaignData(prev => ({
-                            ...prev,
-                            locations: { ...prev.locations, states, cities: [], zipCodes: [] }
-                          }));
-                        }
-                      }}
-                    />
-                  </div>
-                  {campaignData.locations.states.length > 0 && (
-                    <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                      <p className="text-sm text-slate-600 mb-2">
-                        <strong>{campaignData.locations.states.length}</strong> states selected
-                      </p>
-                      <ScrollArea className="h-24">
-                        <div className="flex flex-wrap gap-1">
-                          {campaignData.locations.states.map((state, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">{state}</Badge>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  )}
-                </TabsContent>
-
-                {/* ZIP Codes Tab */}
-                <TabsContent value="zips" className="space-y-4">
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium text-slate-700">Quick Presets</Label>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={campaignData.locations.zipCodes.length === 1000 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('zips', 'top1000')}
-                        className="text-sm"
-                      >
-                        Top 1,000 ZIPs
-                      </Button>
-                      <Button
-                        variant={campaignData.locations.zipCodes.length === 5000 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('zips', 'top5000')}
-                        className="text-sm"
-                      >
-                        Top 5,000 ZIPs
-                      </Button>
-                      <Button
-                        variant={campaignData.locations.zipCodes.length === 15000 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('zips', 'top15000')}
-                        className="text-sm"
-                      >
-                        Top 15,000 ZIPs
-                      </Button>
-                      <Button
-                        variant={campaignData.locations.zipCodes.length >= 25000 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePresetSelect('zips', 'top25000')}
-                        className="text-sm"
-                      >
-                        Top 25,000 ZIPs
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-3 pt-4 border-t">
-                    <Label className="text-sm font-medium text-slate-700">Manual Entry</Label>
-                    <p className="text-xs text-slate-500">Enter ZIP codes separated by commas, spaces, or new lines</p>
-                    <textarea
-                      className="w-full h-24 p-3 text-sm border rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="e.g., 10001, 90210, 60601&#10;or one ZIP per line"
-                      onChange={(e) => {
-                        const input = e.target.value;
-                        if (input.trim()) {
-                          const zipCodes = input
-                            .split(/[,\s\n]+/)
-                            .map(z => z.trim())
-                            .filter(z => /^\d{5}(-\d{4})?$/.test(z));
-                          setCampaignData(prev => ({
-                            ...prev,
-                            locations: { ...prev.locations, zipCodes, cities: [], states: [] }
-                          }));
-                        }
-                      }}
-                    />
-                  </div>
-                  {campaignData.locations.zipCodes.length > 0 && (
-                    <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                      <p className="text-sm text-slate-600 mb-2">
-                        <strong>{campaignData.locations.zipCodes.length.toLocaleString()}</strong> ZIP codes selected
-                      </p>
-                      <ScrollArea className="h-24">
-                        <div className="flex flex-wrap gap-1">
-                          {campaignData.locations.zipCodes.slice(0, 30).map((zip, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">{zip}</Badge>
-                          ))}
-                          {campaignData.locations.zipCodes.length > 30 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{(campaignData.locations.zipCodes.length - 30).toLocaleString()} more
-                            </Badge>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          {/* Summary */}
-          <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <Target className="w-5 h-5 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-800">Targeting Summary</p>
-                  <p className="text-sm text-slate-600">
-                    {currentSelection 
-                      ? `${currentSelection.count.toLocaleString()} ${currentSelection.type} in ${campaignData.targetCountry}`
-                      : `All of ${campaignData.targetCountry} (nationwide)`
-                    }
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Inline Navigation */}
-          <div className="flex justify-between items-center pt-4 mt-6 border-t border-slate-200">
-            <Button variant="outline" onClick={() => setCurrentStep(4)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <Button onClick={() => { setCurrentStep(6); autoSaveDraft(); }}>
-              Next Step
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            </div>
           </div>
+
+          {/* Right Column - Location Tabs */}
+          <div className="lg:col-span-2">
+            <Card className="border-2 border-slate-200 shadow-xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                      <Target className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Location Targeting</CardTitle>
+                      <CardDescription className="text-xs">
+                        Choose cities, states, or ZIP codes within {campaignData.targetCountry}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  {currentSelection && (
+                    <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 shadow-lg">
+                      {currentSelection.count.toLocaleString()} {currentSelection.type}
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <Tabs defaultValue="cities" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl">
+                    <TabsTrigger value="cities" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md">
+                      <Building2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">Cities</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="states" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md">
+                      <MapPinIcon className="w-4 h-4" />
+                      <span className="hidden sm:inline">States</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="zips" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md">
+                      <Hash className="w-4 h-4" />
+                      <span className="hidden sm:inline">ZIP Codes</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Cities Tab */}
+                  <TabsContent value="cities" className="space-y-5">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <Label className="text-sm font-semibold text-slate-700">Quick Presets</Label>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: 'Top 50', value: 'top50', count: 50 },
+                          { label: 'Top 250', value: 'top250', count: 250 },
+                          { label: 'Top 500', value: 'top500', count: 500 },
+                        ].map(preset => (
+                          <Button
+                            key={preset.value}
+                            variant={campaignData.locations.cities.length === preset.count ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePresetSelect('cities', preset.value)}
+                            className={campaignData.locations.cities.length === preset.count 
+                              ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
+                              : "hover:border-indigo-300 hover:bg-indigo-50"}
+                          >
+                            <Building2 className="w-3 h-3 mr-1.5" />
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="w-4 h-4 text-slate-500" />
+                        <Label className="text-sm font-semibold text-slate-700">Manual Entry</Label>
+                      </div>
+                      <textarea
+                        className="w-full h-28 p-4 text-sm border-2 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50 hover:bg-white"
+                        placeholder="Enter city names separated by commas or new lines&#10;e.g., New York, Los Angeles, Chicago"
+                        onChange={(e) => {
+                          const input = e.target.value;
+                          if (input.trim()) {
+                            const cities = input.split(/[,\n]/).map(c => c.trim()).filter(c => c.length > 0);
+                            setCampaignData(prev => ({ ...prev, locations: { ...prev.locations, cities, states: [], zipCodes: [] } }));
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    {campaignData.locations.cities.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-800">
+                            {campaignData.locations.cities.length} cities selected
+                          </span>
+                        </div>
+                        <ScrollArea className="h-20">
+                          <div className="flex flex-wrap gap-1.5">
+                            {campaignData.locations.cities.slice(0, 15).map((city, idx) => (
+                              <Badge key={idx} className="bg-white text-slate-700 border border-slate-200 text-xs">{city}</Badge>
+                            ))}
+                            {campaignData.locations.cities.length > 15 && (
+                              <Badge className="bg-slate-100 text-slate-600 text-xs">
+                                +{campaignData.locations.cities.length - 15} more
+                              </Badge>
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* States Tab */}
+                  <TabsContent value="states" className="space-y-5">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <Label className="text-sm font-semibold text-slate-700">Quick Presets</Label>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: 'Top 10', value: 'top10', count: 10 },
+                          { label: 'Top 25', value: 'top25', count: 25 },
+                          { label: 'All 50', value: 'top50', count: 50 },
+                        ].map(preset => (
+                          <Button
+                            key={preset.value}
+                            variant={campaignData.locations.states.length === preset.count ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePresetSelect('states', preset.value)}
+                            className={campaignData.locations.states.length === preset.count 
+                              ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
+                              : "hover:border-indigo-300 hover:bg-indigo-50"}
+                          >
+                            <MapPinIcon className="w-3 h-3 mr-1.5" />
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="w-4 h-4 text-slate-500" />
+                        <Label className="text-sm font-semibold text-slate-700">Manual Entry</Label>
+                      </div>
+                      <textarea
+                        className="w-full h-28 p-4 text-sm border-2 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50 hover:bg-white"
+                        placeholder="Enter state names or abbreviations&#10;e.g., California, Texas, FL, NY"
+                        onChange={(e) => {
+                          const input = e.target.value;
+                          if (input.trim()) {
+                            const states = input.split(/[,\n]/).map(s => s.trim()).filter(s => s.length > 0);
+                            setCampaignData(prev => ({ ...prev, locations: { ...prev.locations, states, cities: [], zipCodes: [] } }));
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    {campaignData.locations.states.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-800">
+                            {campaignData.locations.states.length} states selected
+                          </span>
+                        </div>
+                        <ScrollArea className="h-20">
+                          <div className="flex flex-wrap gap-1.5">
+                            {campaignData.locations.states.map((state, idx) => (
+                              <Badge key={idx} className="bg-white text-slate-700 border border-slate-200 text-xs">{state}</Badge>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* ZIP Codes Tab */}
+                  <TabsContent value="zips" className="space-y-5">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <Label className="text-sm font-semibold text-slate-700">Quick Presets</Label>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { label: '1K ZIPs', value: 'top1000', count: 1000 },
+                          { label: '5K ZIPs', value: 'top5000', count: 5000 },
+                          { label: '15K ZIPs', value: 'top15000', count: 15000 },
+                          { label: '25K ZIPs', value: 'top25000', count: 25000 },
+                        ].map(preset => (
+                          <Button
+                            key={preset.value}
+                            variant={campaignData.locations.zipCodes.length === preset.count ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePresetSelect('zips', preset.value)}
+                            className={campaignData.locations.zipCodes.length === preset.count 
+                              ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
+                              : "hover:border-indigo-300 hover:bg-indigo-50"}
+                          >
+                            <Hash className="w-3 h-3 mr-1.5" />
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="w-4 h-4 text-slate-500" />
+                        <Label className="text-sm font-semibold text-slate-700">Manual Entry</Label>
+                      </div>
+                      <textarea
+                        className="w-full h-28 p-4 text-sm border-2 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50 hover:bg-white"
+                        placeholder="Enter ZIP codes separated by commas or new lines&#10;e.g., 10001, 90210, 60601"
+                        onChange={(e) => {
+                          const input = e.target.value;
+                          if (input.trim()) {
+                            const zipCodes = input.split(/[,\s\n]+/).map(z => z.trim()).filter(z => /^\d{5}(-\d{4})?$/.test(z));
+                            setCampaignData(prev => ({ ...prev, locations: { ...prev.locations, zipCodes, cities: [], states: [] } }));
+                          }
+                        }}
+                      />
+                    </div>
+                    
+                    {campaignData.locations.zipCodes.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-800">
+                            {campaignData.locations.zipCodes.length.toLocaleString()} ZIP codes selected
+                          </span>
+                        </div>
+                        <ScrollArea className="h-20">
+                          <div className="flex flex-wrap gap-1.5">
+                            {campaignData.locations.zipCodes.slice(0, 20).map((zip, idx) => (
+                              <Badge key={idx} className="bg-white text-slate-700 border border-slate-200 text-xs font-mono">{zip}</Badge>
+                            ))}
+                            {campaignData.locations.zipCodes.length > 20 && (
+                              <Badge className="bg-slate-100 text-slate-600 text-xs">
+                                +{(campaignData.locations.zipCodes.length - 20).toLocaleString()} more
+                              </Badge>
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Bottom Navigation */}
+        <div className="flex justify-between items-center pt-6 mt-8 border-t border-slate-200">
+          <Button variant="outline" onClick={() => setCurrentStep(4)} className="px-6">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Ads
+          </Button>
+          <Button 
+            onClick={() => { setCurrentStep(6); autoSaveDraft(); }}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 px-8 shadow-lg"
+          >
+            Generate CSV
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
       </div>
     );
