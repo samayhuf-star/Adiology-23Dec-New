@@ -353,7 +353,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
           {/* Sidebar Actions */}
           <div className="space-y-6">
             {/* Bug_69: Ensure all buttons are visible by removing overflow constraints */}
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+            <div className="bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
               <h3 className="text-base font-semibold mb-3">Ready to Launch</h3>
               <p className="text-sm text-indigo-100 mb-6">
                 This preset is optimized for high-intent pay-per-call campaigns. Review the details and export when ready.
@@ -433,7 +433,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
             placeholder="Search presets..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           />
           {/* Bug_68: Cross icon to reset search box */}
           {searchQuery && (
@@ -453,7 +453,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-md transition-all ${
                 viewMode === 'grid' 
-                  ? 'bg-white text-indigo-600 shadow-sm' 
+                  ? 'bg-white text-teal-600 shadow-sm' 
                   : 'text-slate-500 hover:text-slate-700'
               }`}
               title="Grid View"
@@ -464,7 +464,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-md transition-all ${
                 viewMode === 'list' 
-                  ? 'bg-white text-indigo-600 shadow-sm' 
+                  ? 'bg-white text-teal-600 shadow-sm' 
                   : 'text-slate-500 hover:text-slate-700'
               }`}
               title="List View"
@@ -494,7 +494,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
                     {/* Left: Title and Description */}
                     <div className="flex-1 pr-4 min-w-0">
                       <div className="flex items-start justify-between gap-4 mb-2">
-                        <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight flex-1 pr-16 break-words">
+                        <h3 className="text-xl font-bold text-slate-800 group-hover:text-teal-600 transition-colors leading-tight flex-1 pr-16 break-words">
                           {preset.title}
                         </h3>
                       </div>
@@ -549,7 +549,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-indigo-300 text-indigo-600 hover:bg-indigo-50 whitespace-nowrap"
+                        className="border-indigo-300 text-teal-600 hover:bg-indigo-50 whitespace-nowrap"
                         onClick={async (e: React.MouseEvent) => {
                           e.stopPropagation();
                           await historyService.save(
@@ -618,7 +618,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
             <div className="flex-1 flex flex-col">
               <div className="mb-2">
                 <div className="flex items-start justify-between gap-1.5 mb-0.5">
-                  <h3 className="text-xs font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight flex-1">
+                  <h3 className="text-xs font-semibold text-slate-800 group-hover:text-teal-600 transition-colors leading-tight flex-1">
                     {preset.title}
                   </h3>
                 </div>
@@ -672,7 +672,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-[10px] h-7 px-1.5"
+                    className="flex-1 border-indigo-300 text-teal-600 hover:bg-indigo-50 text-[10px] h-7 px-1.5"
                     onClick={async (e: React.MouseEvent) => {
                       e.stopPropagation();
                       await historyService.save(

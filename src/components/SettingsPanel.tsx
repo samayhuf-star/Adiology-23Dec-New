@@ -616,9 +616,9 @@ const ThemeSelector = () => {
   // Color mapping for theme previews
   const getColorClass = (colorName: string) => {
     const colorMap: Record<string, string> = {
-      'indigo-600': 'bg-indigo-600',
+      'indigo-600': 'bg-teal-600',
       'indigo-50': 'bg-indigo-50',
-      'purple-600': 'bg-purple-600',
+      'purple-600': 'bg-teal-600',
       'pink-600': 'bg-pink-600',
       'blue-600': 'bg-blue-600',
       'blue-50': 'bg-blue-50',

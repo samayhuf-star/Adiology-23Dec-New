@@ -390,7 +390,7 @@ export function OneClickCampaignBuilder() {
             <div className="space-y-4">
               <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 rounded-2xl border border-indigo-100 p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+                  <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
                     <Sparkles className="w-5 h-5 text-white" />
                   </div>
                   <h3 className="text-base font-semibold text-slate-800">AI will automatically:</h3>
@@ -472,7 +472,7 @@ export function OneClickCampaignBuilder() {
                     Complete
                   </Badge>
                 ) : (
-                  <Badge className="bg-purple-600 text-white flex items-center gap-1">
+                  <Badge className="bg-teal-600 text-white flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Building...
                   </Badge>

@@ -536,8 +536,8 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
       return <div className="w-4 h-4" />;
     }
     return sortDirection === 'asc' 
-      ? <ArrowUp className="w-4 h-4 text-indigo-600" />
-      : <ArrowDown className="w-4 h-4 text-indigo-600" />;
+      ? <ArrowUp className="w-4 h-4 text-teal-600" />
+      : <ArrowDown className="w-4 h-4 text-teal-600" />;
   };
 
   const loadCampaignData = (data: any) => {
@@ -679,7 +679,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className={`h-8 px-3 ${viewMode === 'grid' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'text-slate-600 hover:text-slate-900'}`}
+                  className={`h-8 px-3 ${viewMode === 'grid' ? 'bg-teal-600 text-white hover:bg-teal-700' : 'text-slate-600 hover:text-slate-900'}`}
                   title="Grid view"
                 >
                   <LayoutGrid className="w-4 h-4" />
@@ -688,7 +688,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className={`h-8 px-3 ${viewMode === 'list' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'text-slate-600 hover:text-slate-900'}`}
+                  className={`h-8 px-3 ${viewMode === 'list' ? 'bg-teal-600 text-white hover:bg-teal-700' : 'text-slate-600 hover:text-slate-900'}`}
                   title="List view"
                 >
                   <List className="w-4 h-4" />
@@ -770,7 +770,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 <Filter className="w-4 h-4" />
                 Filters
                 {hasActiveFilters && (
-                  <Badge className="bg-purple-600 text-white text-xs px-1.5 py-0 ml-1">
+                  <Badge className="bg-teal-600 text-white text-xs px-1.5 py-0 ml-1">
                     {[filterStructure !== 'all', filterStatus !== 'all', filterStep !== 'all'].filter(Boolean).length}
                   </Badge>
                 )}
@@ -879,7 +879,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
               <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500 opacity-50" />
               <p className="font-semibold mb-2 text-red-600">Failed to load campaigns</p>
               <p className="text-sm text-slate-500 mb-4">{error}</p>
-              <Button onClick={loadSavedCampaigns} className="bg-indigo-600 hover:bg-indigo-700">
+              <Button onClick={loadSavedCampaigns} className="bg-teal-600 hover:bg-teal-700">
                 Try Again
               </Button>
             </CardContent>
@@ -907,7 +907,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                     window.location.hash = '#builder-2';
                     window.location.reload();
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Campaign
@@ -999,7 +999,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                     <div className="flex gap-2 pt-1">
                       <Button 
                         onClick={() => loadCampaignData(data)}
-                        className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white min-w-0"
+                        className="flex-1 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-indigo-700 hover:to-purple-700 text-white min-w-0"
                       >
                         <Eye className="w-4 h-4 mr-2 flex-shrink-0" />
                         <span className="truncate">Continue</span>
@@ -1049,7 +1049,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 <div className="w-12 text-center">S.No</div>
                 <button 
                   onClick={() => handleSort('name')}
-                  className="flex-1 min-w-0 hover:text-indigo-600 transition-colors flex items-center justify-between gap-2 cursor-pointer"
+                  className="flex-1 min-w-0 hover:text-teal-600 transition-colors flex items-center justify-between gap-2 cursor-pointer"
                   title="Click to sort by campaign details"
                 >
                   <span>Campaign Details</span>
@@ -1057,7 +1057,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 </button>
                 <button 
                   onClick={() => handleSort('structure')}
-                  className="w-28 text-center hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-28 text-center hover:text-teal-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   title="Click to sort by structure"
                 >
                   <span>Structure</span>
@@ -1065,7 +1065,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 </button>
                 <button 
                   onClick={() => handleSort('step')}
-                  className="w-28 text-center hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-28 text-center hover:text-teal-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   title="Click to sort by step"
                 >
                   <span>Step</span>
@@ -1073,7 +1073,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 </button>
                 <button 
                   onClick={() => handleSort('keywords')}
-                  className="w-20 text-center hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-20 text-center hover:text-teal-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   title="Click to sort by keywords"
                 >
                   <span>Keywords</span>
@@ -1081,7 +1081,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 </button>
                 <button 
                   onClick={() => handleSort('ads')}
-                  className="w-16 text-center hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-16 text-center hover:text-teal-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   title="Click to sort by ads"
                 >
                   <span>Ads</span>
@@ -1089,7 +1089,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 </button>
                 <button 
                   onClick={() => handleSort('status')}
-                  className="w-24 text-center hover:text-indigo-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-24 text-center hover:text-teal-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   title="Click to sort by status"
                 >
                   <span>Status</span>
@@ -1169,7 +1169,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                           <Button 
                             onClick={() => loadCampaignData(data)}
                             size="sm"
-                            className="w-8 h-8 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                            className="w-8 h-8 p-0 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-indigo-700 hover:to-purple-700 text-white"
                             title="Continue editing campaign"
                           >
                             <Eye className="w-4 h-4" />
@@ -1250,7 +1250,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                           <Button 
                             onClick={() => loadCampaignData(data)}
                             size="sm"
-                            className="w-9 h-9 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                            className="w-9 h-9 p-0 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-indigo-700 hover:to-purple-700 text-white"
                             title="Continue editing campaign"
                           >
                             <Eye className="w-4 h-4" />
@@ -1305,7 +1305,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
             <Card className="border-slate-200/60 bg-white shadow-xl">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Clock className="w-5 h-5 text-indigo-600" />
+                  <Clock className="w-5 h-5 text-teal-600" />
                   Campaign History
                 </CardTitle>
                 <CardDescription>
@@ -1315,7 +1315,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
               <CardContent>
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-16">
-                    <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+                    <Loader2 className="w-10 h-10 text-teal-600 animate-spin mb-4" />
                     <p className="text-slate-600">Loading history...</p>
                   </div>
                 ) : savedCampaigns.length === 0 ? (
@@ -1349,7 +1349,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                           className="flex items-start gap-4 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                         >
                           <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-indigo-600" />
+                            <FileText className="w-5 h-5 text-teal-600" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -1378,7 +1378,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                             variant="ghost"
                             size="sm"
                             onClick={() => loadCampaignData(data)}
-                            className="flex-shrink-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                            className="flex-shrink-0 text-teal-600 hover:text-indigo-700 hover:bg-indigo-50"
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             View

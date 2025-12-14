@@ -2725,7 +2725,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               <div className="border-t border-slate-700 p-4 bg-slate-800/50">
                 <Button 
                   onClick={() => setCurrentStep(2)}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold"
+                  className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold"
                 >
                   Next: Select Campaign Structure →
                 </Button>
@@ -3193,7 +3193,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   setTimeout(() => handleGenerateKeywords(), 50);
                 }} 
                 disabled={loading || seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0 && k.trim().split(/\s+/).length >= 2).length === 0} 
-                className="mt-6 w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg"
+                className="mt-6 w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
                 Generate Keywords
@@ -4395,7 +4395,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
                   <Megaphone className="w-4 h-4 text-white" />
                 </div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-0.5">1</div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-0.5">1</div>
                 <div className="text-xs font-medium text-slate-700">Campaign</div>
               </CardContent>
             </Card>
@@ -4650,7 +4650,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     window.location.hash = '#campaign-history';
                   }
                 }}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-200/50 h-14 text-lg font-semibold"
+                className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-200/50 h-14 text-lg font-semibold"
           >
                 <FolderOpen className="w-5 h-5 mr-2" />
                 View Saved Campaigns
