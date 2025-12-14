@@ -97,9 +97,39 @@ export function OneClickCampaignBuilder() {
     setLogEntries([]);
     setAnalysisComplete(false);
     
-    addLogEntry('Initializing campaign builder...', 'info');
-    addLogEntry(`Target URL: ${formattedUrl}`, 'progress');
-    addLogEntry('Connecting to AI engine...', 'action');
+    const simulatedLogs = [
+      { delay: 0, message: 'Initializing campaign builder...', type: 'info' as const },
+      { delay: 300, message: `Target URL: ${formattedUrl}`, type: 'progress' as const },
+      { delay: 800, message: 'Connecting to AI engine...', type: 'action' as const },
+      { delay: 1500, message: 'AI connection established', type: 'success' as const },
+      { delay: 2200, message: 'Fetching landing page content...', type: 'action' as const },
+      { delay: 3000, message: 'Extracting page metadata...', type: 'progress' as const },
+      { delay: 3800, message: 'Analyzing business vertical...', type: 'action' as const },
+      { delay: 4500, message: 'Detecting campaign intent...', type: 'progress' as const },
+      { delay: 5500, message: 'Building campaign structure...', type: 'action' as const },
+      { delay: 6500, message: 'Generating seed keywords...', type: 'progress' as const },
+      { delay: 7500, message: 'Expanding keyword variations...', type: 'action' as const },
+      { delay: 8500, message: 'Building ad groups...', type: 'progress' as const },
+      { delay: 9500, message: 'Creating headline variations...', type: 'action' as const },
+      { delay: 10500, message: 'Writing ad descriptions...', type: 'progress' as const },
+      { delay: 11500, message: 'Optimizing ad copy...', type: 'action' as const },
+      { delay: 12500, message: 'Generating callout extensions...', type: 'progress' as const },
+      { delay: 13500, message: 'Building sitelink extensions...', type: 'action' as const },
+      { delay: 14500, message: 'Organizing campaign hierarchy...', type: 'progress' as const },
+      { delay: 15500, message: 'Validating keyword match types...', type: 'action' as const },
+      { delay: 16500, message: 'Optimizing bid strategies...', type: 'progress' as const },
+      { delay: 17500, message: 'Generating Google Ads CSV...', type: 'action' as const },
+      { delay: 18500, message: 'Validating CSV format...', type: 'progress' as const },
+      { delay: 19500, message: 'Finalizing campaign data...', type: 'action' as const },
+    ];
+    
+    const logTimeouts: NodeJS.Timeout[] = [];
+    simulatedLogs.forEach(log => {
+      const timeout = setTimeout(() => {
+        addLogEntry(log.message, log.type);
+      }, log.delay);
+      logTimeouts.push(timeout);
+    });
 
     try {
       const response = await fetch('/api/campaigns/one-click', {
