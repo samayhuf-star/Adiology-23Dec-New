@@ -332,14 +332,9 @@ export function OneClickCampaignBuilder() {
       {currentStep === 'input' && (
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-slate-800 rounded-lg">
-                <Zap className="w-6 h-6 text-amber-400" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-slate-800">1-Click Campaign Builder</h1>
-                <p className="text-slate-500">Paste your URL and let AI do the rest</p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-800">1-Click Campaign Builder</h1>
+              <p className="text-slate-500">Paste your URL and let AI do the rest</p>
             </div>
           </div>
 
