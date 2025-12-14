@@ -3021,23 +3021,37 @@ app.post('/api/campaigns/one-click', async (c) => {
         sendLog(writer, 'Using AI-powered detection...', 'progress');
         sendProgress(writer, { progress: 30, status: 'Building campaign structure...' });
 
-        const analysisPrompt = `Analyze this website content and generate a complete Google Ads campaign.
+        const analysisPrompt = `You are a Google Ads expert focused on generating HIGH-ROI campaigns. Analyze this website to extract business intelligence for maximum advertising performance.
 
 Website URL: ${websiteUrl}
 Title: ${pageTitle}
 Description: ${pageDescription}
 Content: ${pageContent}
 
+ANALYZE FOR HIGH-ROI CAMPAIGN GENERATION:
+1. Identify the EXACT products/services offered (be specific, not generic)
+2. Find unique selling propositions (USPs) that differentiate from competitors
+3. Detect pricing signals, guarantees, or trust factors
+4. Identify the ideal customer profile and their pain points
+5. Find action-oriented CTAs and conversion opportunities
+
 Return ONLY valid JSON (no markdown, no backticks) with this structure:
 {
-  "businessName": "extracted business name",
-  "mainValue": "main value proposition",
-  "keyBenefits": ["benefit1", "benefit2", "benefit3"],
-  "targetAudience": "who this is for",
-  "industry": "industry vertical",
-  "products": ["product/service 1", "product/service 2"],
-  "campaignName": "suggested campaign name",
-  "adGroupThemes": ["theme1", "theme2", "theme3", "theme4", "theme5"]
+  "businessName": "exact business name from website",
+  "mainValue": "primary USP - what makes them unique (specific, not generic)",
+  "keyBenefits": ["specific benefit 1", "specific benefit 2", "specific benefit 3", "specific benefit 4"],
+  "usps": ["unique differentiator 1", "unique differentiator 2"],
+  "priceSignals": ["any pricing, discounts, or value mentions"],
+  "trustFactors": ["years in business", "certifications", "guarantees", "reviews"],
+  "targetAudience": "specific ideal customer description",
+  "painPoints": ["customer problem 1", "customer problem 2"],
+  "industry": "specific industry vertical",
+  "products": ["specific product/service 1", "specific product/service 2", "specific product/service 3"],
+  "serviceAreas": ["geographic areas if mentioned"],
+  "campaignName": "Business Name - Primary Service",
+  "adGroupThemes": ["High-Intent Buyers", "Service-Specific", "Location-Based", "Problem-Solution", "Brand + Trust"],
+  "recommendedStructure": "SKAG or STAG with reasoning",
+  "conversionGoal": "calls, form fills, purchases, etc."
 }`;
 
         const analysisResponse = await openaiClient.chat.completions.create({
@@ -3073,23 +3087,50 @@ Return ONLY valid JSON (no markdown, no backticks) with this structure:
         sendLog(writer, 'Generating seed keywords...', 'action');
         sendProgress(writer, { progress: 50, status: 'Generating 100+ keywords...' });
 
-        const keywordPrompt = `Generate 100+ Google Ads keywords for this business:
+        const keywordPrompt = `You are a Google Ads keyword strategist. Generate HIGH-CONVERTING, BUYER-INTENT keywords that will drive ROI.
 
 Business: ${analysis.businessName}
 Industry: ${analysis.industry}
 Products/Services: ${analysis.products?.join(', ')}
 Target Audience: ${analysis.targetAudience}
-Ad Group Themes: ${analysis.adGroupThemes?.join(', ')}
+Pain Points: ${analysis.painPoints?.join(', ') || 'General problems they solve'}
+Service Areas: ${analysis.serviceAreas?.join(', ') || 'Not specified'}
+Conversion Goal: ${analysis.conversionGoal || 'leads/sales'}
 
-Return ONLY a JSON array of keyword strings (no markdown, no backticks). Include:
-- Exact match product/service terms
-- Long-tail variations
-- Location-based variations
-- Problem/solution keywords
-- Comparison keywords
-- Action keywords (buy, get, find, hire, etc.)
+KEYWORD STRATEGY FOR MAXIMUM ROI:
 
-Example format: ["keyword 1", "keyword 2", "keyword 3", ...]`;
+1. HIGH-INTENT BUYER KEYWORDS (40%):
+   - "[service] near me", "[product] for sale", "buy [product]"
+   - "hire [professional]", "best [service] company", "[service] quotes"
+   - Emergency/urgent: "emergency [service]", "same day [service]", "24 hour [service]"
+
+2. LONG-TAIL COMMERCIAL KEYWORDS (30%):
+   - 4+ word phrases that show buying intent
+   - "affordable [service] for [audience]", "professional [service] in [area]"
+   - Price-focused: "[service] cost", "[service] pricing", "cheap [service]"
+
+3. PROBLEM-SOLUTION KEYWORDS (15%):
+   - "how to fix [problem]", "[problem] repair service"
+   - "need [service] for [situation]"
+
+4. BRAND/TRUST KEYWORDS (10%):
+   - "top rated [service]", "certified [professional]"
+   - "licensed [service] contractor", "[service] with warranty"
+
+5. COMPETITOR ALTERNATIVE KEYWORDS (5%):
+   - "[competitor type] alternative", "better than [generic competitor]"
+
+Generate 120+ keywords focusing on COMMERCIAL and TRANSACTIONAL intent.
+DO NOT generate informational-only keywords like "what is [service]" or "history of [product]".
+
+Return ONLY a JSON object (no markdown, no backticks):
+{
+  "highIntent": ["keyword1", "keyword2", ...],
+  "longTail": ["keyword1", "keyword2", ...],
+  "problemSolution": ["keyword1", "keyword2", ...],
+  "brandTrust": ["keyword1", "keyword2", ...],
+  "negativeKeywords": ["free", "diy", "jobs", "career", "salary", "how to become", "course", "training", "youtube", "reddit"]
+}`;
 
         const keywordResponse = await openaiClient.chat.completions.create({
           model: 'gpt-4o-mini',
@@ -3099,104 +3140,212 @@ Example format: ["keyword 1", "keyword 2", "keyword 3", ...]`;
         });
 
         const keywordText = keywordResponse.choices[0]?.message?.content || '';
-        const keywordMatch = keywordText.match(/\[[\s\S]*\]/);
+        const keywordMatch = keywordText.match(/\{[\s\S]*\}/);
+        let keywordData: any = {};
         let keywords: string[] = [];
+        let negativeKeywords: string[] = [];
+        
         try {
-          keywords = keywordMatch ? JSON.parse(keywordMatch[0]) : [];
+          keywordData = keywordMatch ? JSON.parse(keywordMatch[0]) : {};
+          keywords = [
+            ...(keywordData.highIntent || []),
+            ...(keywordData.longTail || []),
+            ...(keywordData.problemSolution || []),
+            ...(keywordData.brandTrust || [])
+          ];
+          negativeKeywords = keywordData.negativeKeywords || ['free', 'diy', 'jobs', 'career', 'salary', 'training', 'course'];
         } catch {
           keywords = analysis.products?.map((p: string) => p) || ['service'];
+          negativeKeywords = ['free', 'diy', 'jobs', 'career', 'salary'];
         }
         
-        if (keywords.length < 20) {
+        if (keywords.length < 40) {
           const baseKeywords = analysis.products || [analysis.industry];
-          const modifiers = ['best', 'top', 'professional', 'affordable', 'local', 'near me', 'expert', 'quality'];
-          const actions = ['buy', 'get', 'find', 'hire', 'order', 'book'];
+          const buyerModifiers = ['best', 'top', 'professional', 'affordable', 'local', 'near me', 'certified', 'licensed'];
+          const actions = ['buy', 'get', 'hire', 'order', 'book', 'schedule', 'request'];
+          const urgency = ['emergency', 'same day', '24 hour', 'fast', 'quick'];
           
           baseKeywords.forEach((base: string) => {
-            modifiers.forEach(mod => keywords.push(`${mod} ${base}`));
+            buyerModifiers.forEach(mod => keywords.push(`${mod} ${base}`));
             actions.forEach(act => keywords.push(`${act} ${base}`));
+            urgency.forEach(urg => keywords.push(`${urg} ${base}`));
+            keywords.push(`${base} near me`);
+            keywords.push(`${base} cost`);
+            keywords.push(`${base} pricing`);
+            keywords.push(`${base} quotes`);
           });
         }
         
-        sendLog(writer, `Generated ${keywords.length} seed keywords`, 'success');
+        sendLog(writer, `Generated ${keywords.length} buyer-intent keywords`, 'success');
+        sendLog(writer, `Added ${negativeKeywords.length} negative keywords`, 'success');
         
-        // Rank campaign structures
-        sendLog(writer, 'Ranking campaign structures...', 'action');
-        const recommendedStructure = keywords.length > 50 ? 'SKAG' : 'STAG';
-        sendLog(writer, `Recommended structure: ${recommendedStructure}`, 'success');
+        // Smart campaign structure recommendation
+        sendLog(writer, 'Analyzing optimal structure...', 'action');
+        const hasHighValueKeywords = keywords.some(k => 
+          k.includes('emergency') || k.includes('near me') || k.includes('hire') || k.includes('buy')
+        );
+        const recommendedStructure = analysis.recommendedStructure || 
+          (hasHighValueKeywords && keywords.length > 30 ? 'SKAG' : 'STAG');
+        sendLog(writer, `Recommended structure: ${recommendedStructure} (optimized for ROI)`, 'success');
 
         // Step 4: Generate ad copy
         sendLog(writer, 'Creating ad copy...', 'action');
         sendProgress(writer, { progress: 65, status: 'Creating ad copy variations...' });
 
-        const adCopyPrompt = `Generate Google Ads copy for:
+        const adCopyPrompt = `You are a Google Ads copywriter specializing in HIGH-CONVERTING, CLICK-WORTHY ads. Generate ad copy that drives action.
 
 Business: ${analysis.businessName}
-Value Prop: ${analysis.mainValue}
-Benefits: ${analysis.keyBenefits?.join(', ')}
+Primary USP: ${analysis.mainValue}
+Key Benefits: ${analysis.keyBenefits?.join(', ')}
+Unique Differentiators: ${analysis.usps?.join(', ') || 'Quality service'}
+Trust Factors: ${analysis.trustFactors?.join(', ') || 'Experienced professionals'}
+Target Audience: ${analysis.targetAudience}
+Pain Points: ${analysis.painPoints?.join(', ') || 'Common customer challenges'}
+Conversion Goal: ${analysis.conversionGoal || 'leads'}
+
+HIGH-CONVERTING AD COPY RULES:
+1. Headlines MUST include: CTAs, Numbers/Stats, Urgency, or Benefits
+2. Use power words: Free, Save, Now, Today, Fast, Guaranteed, Proven, #1
+3. Include specific numbers when possible (e.g., "Save 30%", "24/7 Service")
+4. Create FOMO or urgency (e.g., "Limited Time", "Book Today")
+5. Address pain points directly in descriptions
+6. Each headline must be UNIQUE and substantially different
+
+Generate 15 headlines and 4 descriptions for RSA optimization.
 
 Return ONLY JSON (no markdown):
 {
   "headlines": [
-    {"text": "headline (max 30 chars)"},
-    {"text": "headline (max 30 chars)"},
-    {"text": "headline (max 30 chars)"},
-    {"text": "headline (max 30 chars)"},
-    {"text": "headline (max 30 chars)"}
+    {"text": "Business Name - 30 chars max", "type": "brand"},
+    {"text": "Strong CTA - Get Quote Now", "type": "cta"},
+    {"text": "Primary Benefit Statement", "type": "benefit"},
+    {"text": "Urgency - Limited Time Offer", "type": "urgency"},
+    {"text": "Trust - 20+ Years Experience", "type": "trust"},
+    {"text": "Save X% - Value Offer", "type": "value"},
+    {"text": "Free Consultation/Quote", "type": "cta"},
+    {"text": "Top Rated + Location", "type": "local"},
+    {"text": "Fast/Same Day Service", "type": "urgency"},
+    {"text": "Licensed & Insured Pros", "type": "trust"},
+    {"text": "Best [Service] Near You", "type": "local"},
+    {"text": "Quality Guaranteed", "type": "trust"},
+    {"text": "[Number] Happy Customers", "type": "social_proof"},
+    {"text": "Call Now - Open 24/7", "type": "cta"},
+    {"text": "Affordable [Service]", "type": "value"}
   ],
   "descriptions": [
-    {"text": "description (max 90 chars)"},
-    {"text": "description (max 90 chars)"},
-    {"text": "description (max 90 chars)"}
+    {"text": "Benefit-focused description with CTA. Include USP and what makes you different. End with action. Max 90 chars."},
+    {"text": "Address pain point directly. Explain how you solve it. Include trust factor. End with CTA. Max 90 chars."},
+    {"text": "Social proof + benefit. Mention experience/reviews. Create urgency. Call to action. Max 90 chars."},
+    {"text": "Value proposition + guarantee. What customer gets. Why choose you. Strong CTA. Max 90 chars."}
   ],
-  "callouts": ["callout1", "callout2", "callout3", "callout4"]
+  "callouts": ["Free Estimates", "24/7 Available", "Licensed & Insured", "Same Day Service", "5-Star Rated", "No Hidden Fees"],
+  "sitelinks": [
+    {"title": "Get Free Quote", "description": "Request your free estimate today"},
+    {"title": "Our Services", "description": "View all services we offer"},
+    {"title": "About Us", "description": "Learn why customers choose us"},
+    {"title": "Contact Us", "description": "Get in touch with our team"}
+  ]
 }`;
 
         const adCopyResponse = await openaiClient.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: adCopyPrompt }],
-          max_tokens: 600,
+          max_tokens: 1200,
           temperature: 0.7,
         });
 
         const adCopyText = adCopyResponse.choices[0]?.message?.content || '';
         const adCopyMatch = adCopyText.match(/\{[\s\S]*\}/);
-        const adCopy = adCopyMatch ? JSON.parse(adCopyMatch[0]) : {
-          headlines: [
-            { text: analysis.businessName?.substring(0, 30) || 'Quality Service' },
-            { text: 'Professional Results' },
-            { text: 'Get Started Today' },
-            { text: 'Free Consultation' },
-            { text: 'Trusted Experts' }
-          ],
-          descriptions: [
-            { text: 'Professional services you can trust. Contact us for a free quote today.' },
-            { text: 'Quality solutions for your needs. Fast, reliable service guaranteed.' },
-            { text: 'Experts ready to help. Call now for immediate assistance.' }
-          ],
-          callouts: ['Free Quote', '24/7 Support', 'Expert Team', 'Fast Service']
-        };
+        let adCopy;
+        try {
+          adCopy = adCopyMatch ? JSON.parse(adCopyMatch[0]) : null;
+        } catch {
+          adCopy = null;
+        }
+        
+        if (!adCopy) {
+          const businessShort = (analysis.businessName || 'Quality Service').substring(0, 30);
+          adCopy = {
+            headlines: [
+              { text: businessShort, type: 'brand' },
+              { text: 'Get Your Free Quote Now', type: 'cta' },
+              { text: 'Trusted Local Experts', type: 'trust' },
+              { text: 'Same Day Service', type: 'urgency' },
+              { text: '5-Star Rated Company', type: 'social_proof' },
+              { text: 'Licensed & Insured', type: 'trust' },
+              { text: 'Call Now - Save 20%', type: 'value' },
+              { text: 'Fast & Reliable Service', type: 'benefit' },
+              { text: 'Book Online Today', type: 'cta' },
+              { text: '24/7 Emergency Service', type: 'urgency' },
+              { text: 'Best Prices Guaranteed', type: 'value' },
+              { text: 'Professional Results', type: 'benefit' },
+              { text: '1000+ Happy Customers', type: 'social_proof' },
+              { text: 'Free Estimates', type: 'cta' },
+              { text: 'Top Rated Near You', type: 'local' }
+            ],
+            descriptions: [
+              { text: `${businessShort} - Professional service you can trust. Get your free quote today!` },
+              { text: 'Fast, reliable results guaranteed. Licensed experts ready to help. Call now!' },
+              { text: 'Top-rated by customers. Quality work at competitive prices. Book online today.' },
+              { text: 'Save time and money with our expert team. Satisfaction guaranteed. Contact us!' }
+            ],
+            callouts: ['Free Estimates', '24/7 Available', 'Licensed & Insured', 'Same Day Service', '5-Star Rated', 'No Hidden Fees'],
+            sitelinks: [
+              { title: 'Get Free Quote', description: 'Request your free estimate today' },
+              { title: 'Our Services', description: 'View all services we offer' },
+              { title: 'About Us', description: 'Learn why customers choose us' },
+              { title: 'Contact Us', description: 'Get in touch with our team' }
+            ]
+          };
+        }
 
-        sendLog(writer, `Created ${adCopy.headlines?.length || 5} headlines`, 'success');
-        sendLog(writer, `Created ${adCopy.descriptions?.length || 3} descriptions`, 'success');
+        sendLog(writer, `Created ${adCopy.headlines?.length || 15} high-converting headlines`, 'success');
+        sendLog(writer, `Created ${adCopy.descriptions?.length || 4} compelling descriptions`, 'success');
+        sendLog(writer, `Added ${adCopy.callouts?.length || 6} callout extensions`, 'success');
 
-        // Step 5: Create ad groups
-        sendLog(writer, 'Organizing ad groups...', 'action');
+        // Step 5: Create optimized ad groups
+        sendLog(writer, 'Creating ROI-optimized ad groups...', 'action');
         sendProgress(writer, { progress: 80, status: 'Organizing ad groups...' });
 
-        const themes = analysis.adGroupThemes || ['Core', 'Benefits', 'Brand', 'Offers', 'Info'];
-        const keywordsPerGroup = Math.ceil(keywords.length / themes.length);
+        // Organize keywords by intent for better Quality Score
+        const highIntentKws = keywordData.highIntent || [];
+        const longTailKws = keywordData.longTail || [];
+        const problemSolutionKws = keywordData.problemSolution || [];
+        const brandTrustKws = keywordData.brandTrust || [];
         
-        const adGroups = themes.map((theme: string, index: number) => ({
-          name: theme,
-          maxCpc: 1.5,
-          keywords: keywords.slice(index * keywordsPerGroup, (index + 1) * keywordsPerGroup)
-        }));
+        // Create intent-based ad groups for higher relevance
+        const adGroups = [
+          {
+            name: 'High Intent - Buyers',
+            maxCpc: 2.50,
+            matchType: 'Phrase',
+            keywords: highIntentKws.length > 0 ? highIntentKws : keywords.slice(0, Math.ceil(keywords.length * 0.4))
+          },
+          {
+            name: 'Long Tail - Specific',
+            maxCpc: 1.75,
+            matchType: 'Phrase',
+            keywords: longTailKws.length > 0 ? longTailKws : keywords.slice(Math.ceil(keywords.length * 0.4), Math.ceil(keywords.length * 0.7))
+          },
+          {
+            name: 'Problem Solution',
+            maxCpc: 1.50,
+            matchType: 'Broad',
+            keywords: problemSolutionKws.length > 0 ? problemSolutionKws : keywords.slice(Math.ceil(keywords.length * 0.7), Math.ceil(keywords.length * 0.85))
+          },
+          {
+            name: 'Brand Trust',
+            maxCpc: 1.25,
+            matchType: 'Broad',
+            keywords: brandTrustKws.length > 0 ? brandTrustKws : keywords.slice(Math.ceil(keywords.length * 0.85))
+          }
+        ].filter(g => g.keywords.length > 0);
 
-        sendLog(writer, `Created ${adGroups.length} ad groups`, 'success');
+        sendLog(writer, `Created ${adGroups.length} intent-based ad groups`, 'success');
+        sendLog(writer, 'Using tiered bidding strategy (High intent = higher bids)', 'success');
 
-        // Step 6: Generate CSV
-        sendLog(writer, 'Generating Google Ads CSV...', 'action');
+        // Step 6: Generate CSV (basic - client uses full 183-column template)
+        sendLog(writer, 'Preparing campaign data...', 'action');
         sendProgress(writer, { progress: 90, status: 'Generating Google Ads CSV...' });
 
         let csvData = 'Campaign,Ad Group,Keyword,Match Type,Max CPC,Headline 1,Headline 2,Headline 3,Description 1,Description 2,Final URL,Status\n';
@@ -3209,12 +3358,12 @@ Return ONLY JSON (no markdown):
             const d1 = adCopy.descriptions[0]?.text || '';
             const d2 = adCopy.descriptions[1]?.text || '';
             
-            csvData += `"${analysis.campaignName}","${group.name}","${kw}","Broad","${group.maxCpc}","${h1}","${h2}","${h3}","${d1}","${d2}","${websiteUrl}","Enabled"\n`;
+            csvData += `"${analysis.campaignName}","${group.name}","${kw}","${group.matchType}","${group.maxCpc}","${h1}","${h2}","${h3}","${d1}","${d2}","${websiteUrl}","Paused"\n`;
           });
         });
 
         // Step 7: Complete
-        sendProgress(writer, { progress: 100, status: 'Campaign ready!' });
+        sendProgress(writer, { progress: 100, status: 'High-ROI campaign ready!' });
 
         const campaign = {
           id: `campaign-${Date.now()}`,
@@ -3226,13 +3375,33 @@ Return ONLY JSON (no markdown):
           campaign_data: {
             analysis,
             structure: {
+              type: recommendedStructure,
               campaignName: analysis.campaignName,
               dailyBudget: 100,
-              adGroupThemes: themes
+              bidStrategy: 'Maximize Conversions',
+              adGroupThemes: adGroups.map(g => g.name)
             },
             keywords,
+            keywordCategories: {
+              highIntent: highIntentKws,
+              longTail: longTailKws,
+              problemSolution: problemSolutionKws,
+              brandTrust: brandTrustKws
+            },
+            negativeKeywords,
             adGroups,
-            adCopy
+            adCopy,
+            extensions: {
+              callouts: adCopy.callouts || [],
+              sitelinks: adCopy.sitelinks || []
+            },
+            optimizationNotes: [
+              'High-intent keywords have higher bids for better ROI',
+              'Using Phrase match for buyer keywords to reduce wasted spend',
+              'Negative keywords added to prevent irrelevant clicks',
+              `${negativeKeywords.length} negative keywords configured`,
+              'Campaigns set to PAUSED - review before enabling'
+            ]
           }
         };
 
