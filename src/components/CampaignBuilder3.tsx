@@ -2724,6 +2724,193 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         })}
       </div>
 
+      {/* Inline Structure Details */}
+      {campaignData.selectedStructure && (() => {
+        const selectedStruct = CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure);
+        const ranking = campaignData.structureRankings.findIndex(r => r.id === campaignData.selectedStructure);
+        const isBest = ranking === 0;
+        const Icon = selectedStruct?.icon || Target;
+        
+        const structureDetails: { [key: string]: { hierarchy: { name: string; desc: string; color: string }[]; benefits: string[]; bestFor: string } } = {
+          skag: {
+            hierarchy: [
+              { name: 'Ad Group 1', desc: '→ keyword 1', color: 'border-indigo-200 bg-indigo-50' },
+              { name: 'Ad Group 2', desc: '→ keyword 2', color: 'border-indigo-200 bg-indigo-50' },
+              { name: 'Ad Group 3', desc: '→ keyword 3', color: 'border-indigo-200 bg-indigo-50' },
+              { name: 'Ad Group 4', desc: '→ keyword 4', color: 'border-indigo-200 bg-indigo-50' },
+            ],
+            benefits: ['Maximum control & relevance', 'Highest Quality Score potential', 'Easy to optimize per keyword', 'Best for high-value keywords'],
+            bestFor: 'High-value keywords, maximum control, best performance'
+          },
+          stag: {
+            hierarchy: [
+              { name: 'Theme Group 1', desc: '5-10 related keywords', color: 'border-blue-200 bg-blue-50' },
+              { name: 'Theme Group 2', desc: '5-10 related keywords', color: 'border-blue-200 bg-blue-50' },
+              { name: 'Theme Group 3', desc: '5-10 related keywords', color: 'border-blue-200 bg-blue-50' },
+            ],
+            benefits: ['Organized by themes', 'Easier to manage at scale', 'Better ad relevance', 'Good balance of control'],
+            bestFor: 'Medium to large keyword sets, themed campaigns'
+          },
+          intent: {
+            hierarchy: [
+              { name: 'Informational Intent', desc: '"what is", "how to", "guide"', color: 'border-green-200 bg-green-50' },
+              { name: 'Commercial Intent', desc: '"best", "review", "compare"', color: 'border-blue-200 bg-blue-50' },
+              { name: 'Transactional Intent', desc: '"buy", "price", "deal"', color: 'border-purple-200 bg-purple-50' },
+            ],
+            benefits: ['Intent-aligned messaging', 'Better conversion rates', 'Targeted ad copy', 'Improved relevance'],
+            bestFor: 'Different messaging per search intent'
+          },
+          funnel: {
+            hierarchy: [
+              { name: 'Top of Funnel (Awareness)', desc: 'General keywords, educational content', color: 'border-cyan-200 bg-cyan-50' },
+              { name: 'Middle of Funnel (Consideration)', desc: 'Comparison keywords, features', color: 'border-blue-200 bg-blue-50' },
+              { name: 'Bottom of Funnel (Decision)', desc: 'Buy keywords, pricing, deals', color: 'border-indigo-200 bg-indigo-50' },
+            ],
+            benefits: ['Funnel-aligned messaging', 'Different goals per stage', 'Better conversion tracking', 'Optimized for each stage'],
+            bestFor: 'Full funnel strategy, different messaging per stage'
+          },
+          alpha_beta: {
+            hierarchy: [
+              { name: 'Alpha Campaign', desc: 'Proven winners, exact match', color: 'border-green-200 bg-green-50' },
+              { name: 'Beta Campaign', desc: 'Discovery, broad match', color: 'border-amber-200 bg-amber-50' },
+            ],
+            benefits: ['Test new keywords safely', 'Protect top performers', 'Systematic optimization', 'Clear budget allocation'],
+            bestFor: 'Continuous optimization, testing new keywords'
+          },
+          match_type: {
+            hierarchy: [
+              { name: 'Broad Match Campaign', desc: 'Maximum reach, discovery', color: 'border-amber-200 bg-amber-50' },
+              { name: 'Phrase Match Campaign', desc: 'Balanced reach & control', color: 'border-blue-200 bg-blue-50' },
+              { name: 'Exact Match Campaign', desc: 'Maximum control & relevance', color: 'border-green-200 bg-green-50' },
+            ],
+            benefits: ['Clear match type control', 'Easy budget allocation', 'Performance comparison', 'Bid optimization per type'],
+            bestFor: 'Match type testing, budget control per match type'
+          },
+          geo: {
+            hierarchy: [
+              { name: 'Location 1 Campaign', desc: 'City/Region specific', color: 'border-blue-200 bg-blue-50' },
+              { name: 'Location 2 Campaign', desc: 'City/Region specific', color: 'border-blue-200 bg-blue-50' },
+              { name: 'Location 3 Campaign', desc: 'City/Region specific', color: 'border-blue-200 bg-blue-50' },
+            ],
+            benefits: ['Location-specific messaging', 'Geo bid adjustments', 'Local relevance', 'Market-specific budgets'],
+            bestFor: 'Multi-location businesses, local services'
+          },
+          brand_split: {
+            hierarchy: [
+              { name: 'Brand Terms', desc: 'Your brand keywords', color: 'border-purple-200 bg-purple-50' },
+              { name: 'Non-Brand Terms', desc: 'Generic product/service keywords', color: 'border-slate-200 bg-slate-50' },
+            ],
+            benefits: ['Protect brand terms', 'Clear performance analysis', 'Budget allocation control', 'Competitor defense'],
+            bestFor: 'Established brands, brand protection'
+          },
+          competitor: {
+            hierarchy: [
+              { name: 'Competitor A Keywords', desc: 'Direct competitor terms', color: 'border-red-200 bg-red-50' },
+              { name: 'Competitor B Keywords', desc: 'Direct competitor terms', color: 'border-red-200 bg-red-50' },
+              { name: 'Generic Comparison', desc: '"alternatives to", "vs"', color: 'border-amber-200 bg-amber-50' },
+            ],
+            benefits: ['Capture competitor traffic', 'Comparison positioning', 'Market share growth', 'Competitive messaging'],
+            bestFor: 'Competitive markets, market share capture'
+          },
+          ngram: {
+            hierarchy: [
+              { name: 'Pattern Cluster 1', desc: 'Keywords with shared n-grams', color: 'border-violet-200 bg-violet-50' },
+              { name: 'Pattern Cluster 2', desc: 'Keywords with shared n-grams', color: 'border-violet-200 bg-violet-50' },
+              { name: 'Pattern Cluster 3', desc: 'Keywords with shared n-grams', color: 'border-violet-200 bg-violet-50' },
+            ],
+            benefits: ['Pattern-based grouping', 'Automated organization', 'Discover hidden themes', 'Smart clustering'],
+            bestFor: 'Large keyword sets, automated organization'
+          },
+          long_tail: {
+            hierarchy: [
+              { name: 'Long-Tail Group 1', desc: '4+ word specific keywords', color: 'border-teal-200 bg-teal-50' },
+              { name: 'Long-Tail Group 2', desc: '4+ word specific keywords', color: 'border-teal-200 bg-teal-50' },
+              { name: 'Long-Tail Group 3', desc: '4+ word specific keywords', color: 'border-teal-200 bg-teal-50' },
+            ],
+            benefits: ['Lower competition', 'Higher conversion rates', 'More specific intent', 'Cost-effective clicks'],
+            bestFor: 'Budget-conscious campaigns, specific intent targeting'
+          },
+          seasonal: {
+            hierarchy: [
+              { name: 'Pre-Season', desc: 'Build awareness early', color: 'border-cyan-200 bg-cyan-50' },
+              { name: 'Peak Season', desc: 'Maximum push, high bids', color: 'border-orange-200 bg-orange-50' },
+              { name: 'Post-Season', desc: 'Clearance, follow-up', color: 'border-slate-200 bg-slate-50' },
+            ],
+            benefits: ['Time-optimized messaging', 'Seasonal bid adjustments', 'Planned campaign phases', 'Event-aligned copy'],
+            bestFor: 'Seasonal products, holidays, events'
+          },
+          mix: {
+            hierarchy: [
+              { name: 'SKAG for Top Performers', desc: 'Single keyword precision', color: 'border-green-200 bg-green-50' },
+              { name: 'STAG for Volume', desc: 'Themed grouping', color: 'border-blue-200 bg-blue-50' },
+            ],
+            benefits: ['Best of both approaches', 'Flexible structure', 'Optimized by performance', 'Scalable'],
+            bestFor: 'Mixed keyword values, flexible optimization'
+          },
+          stag_plus: {
+            hierarchy: [
+              { name: 'ML Cluster 1', desc: 'AI-grouped similar keywords', color: 'border-purple-200 bg-purple-50' },
+              { name: 'ML Cluster 2', desc: 'AI-grouped similar keywords', color: 'border-purple-200 bg-purple-50' },
+              { name: 'ML Cluster 3', desc: 'AI-grouped similar keywords', color: 'border-purple-200 bg-purple-50' },
+            ],
+            benefits: ['AI-powered grouping', 'Semantic similarity', 'Automatic optimization', 'Smart scaling'],
+            bestFor: 'Large campaigns, automated optimization'
+          },
+        };
+        
+        const details = structureDetails[campaignData.selectedStructure] || structureDetails['skag'];
+        
+        return (
+          <Card className="mb-6 border-slate-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-indigo-100">
+                    <Icon className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800">{selectedStruct?.name}</h3>
+                    <p className="text-sm text-slate-500">{selectedStruct?.description}</p>
+                  </div>
+                </div>
+                {isBest && (
+                  <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">Best</Badge>
+                )}
+              </div>
+              
+              <div className="border border-slate-200 rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium text-slate-700 mb-3">Campaign</p>
+                <div className="space-y-2">
+                  {details.hierarchy.map((item, idx) => (
+                    <div key={idx} className={`border rounded-lg p-3 ${item.color}`}>
+                      <p className="text-sm font-medium text-slate-700">{item.name}</p>
+                      <p className="text-xs text-slate-500 font-mono">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm font-medium text-slate-700 mb-2">Key Benefits:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {details.benefits.map((benefit, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                      <span className="text-sm text-slate-600">{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <p className="text-sm">
+                <span className="font-medium text-pink-600">Best for:</span>{' '}
+                <span className="text-slate-600">{details.bestFor}</span>
+              </p>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {campaignData.selectedStructure === 'seasonal' && (
         <Card className="mb-6 border-orange-200 bg-orange-50">
           <CardHeader>
