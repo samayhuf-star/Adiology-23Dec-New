@@ -4,8 +4,10 @@ import { supabase } from '../utils/supabase/client';
 import { 
   User, Mail, Lock, Globe,
   Save, Eye, EyeOff,
-  CheckCircle2, AlertCircle, Palette, Loader
+  CheckCircle2, AlertCircle, Palette, Loader,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
+import { getUserPreferences, saveUserPreferences } from '../utils/userPreferences';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -49,6 +51,9 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
   const [googleAdsLoading, setGoogleAdsLoading] = useState(true);
   const [googleAdsAccounts, setGoogleAdsAccounts] = useState<GoogleAdsAccount[]>([]);
   const [defaultAccount, setDefaultAccount] = useState<string>('');
+  
+  // Sidebar auto-close preference
+  const [sidebarAutoClose, setSidebarAutoClose] = useState(() => getUserPreferences().sidebarAutoClose);
 
   useEffect(() => {
     // Load user data and Google Ads info
@@ -544,6 +549,55 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
 
       {/* Theme Settings */}
       <ThemeSelector />
+
+      {/* Sidebar Behavior */}
+      <Card className="p-8">
+        <CardHeader className="pb-6 mb-6 border-b border-slate-200">
+          <CardTitle className="flex items-center gap-3 text-2xl">
+            {sidebarAutoClose ? (
+              <PanelLeftClose className="w-6 h-6 text-blue-600" />
+            ) : (
+              <PanelLeftOpen className="w-6 h-6 text-blue-600" />
+            )}
+            Sidebar Behavior
+          </CardTitle>
+          <CardDescription className="text-base mt-2">Configure how the sidebar behaves when you select a menu item</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="space-y-1">
+              <p className="font-semibold text-slate-900">Auto-Close Sidebar</p>
+              <p className="text-sm text-slate-600">Automatically close the sidebar after selecting a menu item</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const newValue = !sidebarAutoClose;
+                setSidebarAutoClose(newValue);
+                saveUserPreferences({ sidebarAutoClose: newValue });
+              }}
+              className={`h-10 px-4 gap-2 ${
+                sidebarAutoClose 
+                  ? 'bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100' 
+                  : 'bg-slate-50 border-slate-300 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {sidebarAutoClose ? (
+                <>
+                  <PanelLeftClose className="w-4 h-4" />
+                  <span>ON</span>
+                </>
+              ) : (
+                <>
+                  <PanelLeftOpen className="w-4 h-4" />
+                  <span>OFF</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
         </TabsContent>
         

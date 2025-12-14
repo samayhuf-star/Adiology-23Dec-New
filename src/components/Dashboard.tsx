@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
-  TrendingUp, Users, DollarSign, Activity, Calendar, Zap, 
-  Clock, CheckCircle2, AlertCircle, ArrowUpRight, ArrowDownRight,
-  Sparkles, Package, Target, FileText, BarChart3, Globe, FolderOpen, Layers,
-  PanelLeftClose, PanelLeftOpen, Search, Terminal
+  Activity, Zap, Sparkles, Package, Target, Globe, FolderOpen, Terminal,
+  CheckCircle2, FileText
 } from 'lucide-react';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
 import { supabase } from '../utils/supabase/client';
@@ -299,51 +295,16 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
       '--user-spacing-multiplier': preferences.spacing,
       '--user-font-size-multiplier': preferences.fontSize
     } as React.CSSProperties}>
-      {/* Header with Controls */}
+      {/* Header */}
       <div className="flex flex-col gap-6 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl sm:text-4xl font-bold theme-gradient-text">
-                Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}!
-              </h1>
-              <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-1 rounded-full tracking-wide uppercase">Beta</span>
-            </div>
-            <p className="text-base text-slate-600">Here's what's happening with your campaigns today.</p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl font-bold theme-gradient-text">
+              Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}!
+            </h1>
+            <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-1 rounded-full tracking-wide uppercase">Beta</span>
           </div>
-          <Button
-            onClick={() => onNavigate('builder-2')}
-            className="theme-button-primary shadow-lg hover:shadow-xl transition-all px-6 py-3"
-          >
-            <Sparkles className="w-5 h-5 mr-2" />
-            New Campaign
-          </Button>
-        </div>
-
-        {/* Auto-Close Sidebar Toggle */}
-        <div className="flex items-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSidebarAutoCloseToggle}
-            className={`h-8 px-3 gap-2 ${
-              preferences.sidebarAutoClose 
-                ? 'bg-indigo-50 border-indigo-300 text-indigo-700' 
-                : 'bg-slate-50 border-slate-300 text-slate-600'
-            }`}
-          >
-            {preferences.sidebarAutoClose ? (
-              <>
-                <PanelLeftClose className="w-4 h-4" />
-                <span className="text-xs">Auto-Close ON</span>
-              </>
-            ) : (
-              <>
-                <PanelLeftOpen className="w-4 h-4" />
-                <span className="text-xs">Auto-Close OFF</span>
-              </>
-            )}
-          </Button>
+          <p className="text-base text-slate-600">Here's what's happening with your campaigns today.</p>
         </div>
       </div>
 
@@ -368,78 +329,6 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
             <TerminalLine prefix=">" label="last_activity:" value={formatRelativeTime(stats?.activity?.lastLogin || null)} valueColor="slate" />
           </div>
         </TerminalCard>
-      </div>
-
-      {/* My Resources */}
-      <div className="space-y-6">
-        <h2 className={`${getResponsiveFontSize(screenSize, 'lg')} font-semibold text-slate-800 flex items-center gap-3`}>
-          <FolderOpen className={`${getResponsiveIconSize(screenSize)} text-indigo-600`} />
-          My Resources
-        </h2>
-        <div className={`grid ${getResponsiveGridCols(screenSize)} ${getResponsiveGap(screenSize)}`}>
-          {/* My Campaigns */}
-          <Card className={`relative overflow-hidden border-2 hover:shadow-xl transition-all duration-300 group ${getResponsivePadding(screenSize)}`}>
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-5 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative space-y-6">
-              <div className="flex items-center justify-between">
-                <div className={`${screenSize.isMobile ? 'w-10 h-10' : screenSize.isTablet ? 'w-12 h-12' : 'w-14 h-14'} rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg`}>
-                  <Layers className={`${getResponsiveIconSize(screenSize)} text-white`} />
-                </div>
-                <Badge className="bg-purple-100 text-purple-700 border-purple-300 px-3 py-1">
-                  Total
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-3xl font-bold text-slate-800">
-                  {(stats?.userResources?.myCampaigns || 0).toLocaleString()}
-                </h3>
-                <p className="text-base text-slate-600">My Campaigns</p>
-              </div>
-            </div>
-          </Card>
-
-          {/* My Presets */}
-          <Card className={`relative overflow-hidden border-2 hover:shadow-xl transition-all duration-300 group ${getResponsivePadding(screenSize)}`}>
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 opacity-5 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
-                  <Package className="w-7 h-7 text-white" />
-                </div>
-                <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 px-3 py-1">
-                  Saved
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-3xl font-bold text-slate-800">
-                  {(stats?.userResources?.myPresets || 0).toLocaleString()}
-                </h3>
-                <p className="text-base text-slate-600">My Presets</p>
-              </div>
-            </div>
-          </Card>
-
-          {/* My Domains */}
-          <Card className={`relative overflow-hidden border-2 hover:shadow-xl transition-all duration-300 group ${getResponsivePadding(screenSize)}`}>
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-500 opacity-5 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
-                  <Globe className="w-7 h-7 text-white" />
-                </div>
-                <Badge className="bg-amber-100 text-amber-700 border-amber-300 px-3 py-1">
-                  Active
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-3xl font-bold text-slate-800">
-                  {(stats?.userResources?.myDomains || 0).toLocaleString()}
-                </h3>
-                <p className="text-base text-slate-600">My Domains</p>
-              </div>
-            </div>
-          </Card>
-        </div>
       </div>
 
       {/* Quick Actions - Small Buttons */}
