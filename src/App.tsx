@@ -20,6 +20,7 @@ import {
   SheetTitle,
 } from './components/ui/sheet';
 import { CampaignBuilder3 } from './components/CampaignBuilder3';
+import { OneClickCampaignBuilder } from './components/OneClickCampaignBuilder';
 import { GoogleAdsCSVExport } from './components/GoogleAdsCSVExport';
 import { KeywordPlanner } from './components/KeywordPlanner';
 import { KeywordMixer } from './components/KeywordMixer';
@@ -121,6 +122,7 @@ const App = () => {
     'dashboard',
     'preset-campaigns',
     'builder-3',
+    'one-click-builder',
     'campaign-history',
     'keyword-planner',
     'keyword-mixer',
@@ -763,7 +765,8 @@ const App = () => {
       label: 'Campaigns', 
       icon: Sparkles,
       submenu: [
-        { id: 'builder-3', label: 'Builder 3.0', icon: Zap },
+        { id: 'one-click-builder', label: '1 Click Builder', icon: Zap },
+        { id: 'builder-3', label: 'Builder 3.0', icon: Sparkles },
         { id: 'preset-campaigns', label: 'Preset Campaigns', icon: Package },
         { id: 'campaign-history', label: 'Campaign History', icon: Clock },
       ]
@@ -1151,6 +1154,8 @@ const App = () => {
         }} />;
       case 'builder-3':
         return <CampaignBuilder3 initialData={activeTab === 'builder-3' ? historyData : null} />;
+      case 'one-click-builder':
+        return <OneClickCampaignBuilder />;
       case 'campaign-history':
         // Campaign History - Show only saved campaigns, not all activity history
         return <CampaignHistoryView onLoadCampaign={(data) => {

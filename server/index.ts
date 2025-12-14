@@ -2953,6 +2953,307 @@ Return ONLY a JSON object (no markdown, no backticks) with this exact structure:
   }
 });
 
+// One-Click Campaign Builder API
+app.post('/api/campaigns/one-click', async (c) => {
+  const encoder = new TextEncoder();
+  
+  const sendProgress = (writer: WritableStreamDefaultWriter, data: any) => {
+    const message = `data: ${JSON.stringify(data)}\n\n`;
+    writer.write(encoder.encode(message));
+  };
+
+  try {
+    const { websiteUrl } = await c.req.json();
+    
+    if (!websiteUrl) {
+      return c.json({ error: 'Website URL is required' }, 400);
+    }
+
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
+
+    (async () => {
+      try {
+        sendProgress(writer, { progress: 5, status: 'Starting campaign generation...' });
+
+        // Step 1: Fetch and analyze website
+        sendProgress(writer, { progress: 15, status: 'Analyzing landing page...' });
+        
+        let pageContent = '';
+        let pageTitle = 'Unknown Business';
+        let pageDescription = '';
+        
+        try {
+          const response = await fetch(websiteUrl, { 
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AdiologyBot/1.0)' }
+          });
+          const html = await response.text();
+          
+          const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+          const descMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
+          const h1Match = html.match(/<h1[^>]*>(.*?)<\/h1>/is);
+          
+          pageTitle = titleMatch?.[1]?.replace(/<[^>]*>/g, '').trim() || 'Unknown Business';
+          pageDescription = descMatch?.[1] || '';
+          
+          pageContent = html
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .substring(0, 4000);
+        } catch (fetchError) {
+          console.error('Error fetching website:', fetchError);
+          pageContent = `Website: ${websiteUrl}`;
+        }
+
+        // Step 2: Use AI to analyze and generate campaign
+        sendProgress(writer, { progress: 30, status: 'Building campaign structure...' });
+
+        const analysisPrompt = `Analyze this website content and generate a complete Google Ads campaign.
+
+Website URL: ${websiteUrl}
+Title: ${pageTitle}
+Description: ${pageDescription}
+Content: ${pageContent}
+
+Return ONLY valid JSON (no markdown, no backticks) with this structure:
+{
+  "businessName": "extracted business name",
+  "mainValue": "main value proposition",
+  "keyBenefits": ["benefit1", "benefit2", "benefit3"],
+  "targetAudience": "who this is for",
+  "industry": "industry vertical",
+  "products": ["product/service 1", "product/service 2"],
+  "campaignName": "suggested campaign name",
+  "adGroupThemes": ["theme1", "theme2", "theme3", "theme4", "theme5"]
+}`;
+
+        const analysisResponse = await openaiClient.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: analysisPrompt }],
+          max_tokens: 800,
+          temperature: 0.7,
+        });
+
+        const analysisText = analysisResponse.choices[0]?.message?.content || '';
+        const analysisMatch = analysisText.match(/\{[\s\S]*\}/);
+        const analysis = analysisMatch ? JSON.parse(analysisMatch[0]) : {
+          businessName: pageTitle,
+          mainValue: 'Quality products and services',
+          keyBenefits: ['Professional', 'Reliable', 'Affordable'],
+          targetAudience: 'Local customers',
+          industry: 'General Business',
+          products: ['Services'],
+          campaignName: `${pageTitle} Campaign`,
+          adGroupThemes: ['Core Services', 'Benefits', 'Brand', 'Offers', 'Info']
+        };
+
+        // Step 3: Generate keywords
+        sendProgress(writer, { progress: 50, status: 'Generating 100+ keywords...' });
+
+        const keywordPrompt = `Generate 100+ Google Ads keywords for this business:
+
+Business: ${analysis.businessName}
+Industry: ${analysis.industry}
+Products/Services: ${analysis.products?.join(', ')}
+Target Audience: ${analysis.targetAudience}
+Ad Group Themes: ${analysis.adGroupThemes?.join(', ')}
+
+Return ONLY a JSON array of keyword strings (no markdown, no backticks). Include:
+- Exact match product/service terms
+- Long-tail variations
+- Location-based variations
+- Problem/solution keywords
+- Comparison keywords
+- Action keywords (buy, get, find, hire, etc.)
+
+Example format: ["keyword 1", "keyword 2", "keyword 3", ...]`;
+
+        const keywordResponse = await openaiClient.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: keywordPrompt }],
+          max_tokens: 2000,
+          temperature: 0.8,
+        });
+
+        const keywordText = keywordResponse.choices[0]?.message?.content || '';
+        const keywordMatch = keywordText.match(/\[[\s\S]*\]/);
+        let keywords: string[] = [];
+        try {
+          keywords = keywordMatch ? JSON.parse(keywordMatch[0]) : [];
+        } catch {
+          keywords = analysis.products?.map((p: string) => p) || ['service'];
+        }
+        
+        if (keywords.length < 20) {
+          const baseKeywords = analysis.products || [analysis.industry];
+          const modifiers = ['best', 'top', 'professional', 'affordable', 'local', 'near me', 'expert', 'quality'];
+          const actions = ['buy', 'get', 'find', 'hire', 'order', 'book'];
+          
+          baseKeywords.forEach((base: string) => {
+            modifiers.forEach(mod => keywords.push(`${mod} ${base}`));
+            actions.forEach(act => keywords.push(`${act} ${base}`));
+          });
+        }
+
+        // Step 4: Generate ad copy
+        sendProgress(writer, { progress: 65, status: 'Creating ad copy variations...' });
+
+        const adCopyPrompt = `Generate Google Ads copy for:
+
+Business: ${analysis.businessName}
+Value Prop: ${analysis.mainValue}
+Benefits: ${analysis.keyBenefits?.join(', ')}
+
+Return ONLY JSON (no markdown):
+{
+  "headlines": [
+    {"text": "headline (max 30 chars)"},
+    {"text": "headline (max 30 chars)"},
+    {"text": "headline (max 30 chars)"},
+    {"text": "headline (max 30 chars)"},
+    {"text": "headline (max 30 chars)"}
+  ],
+  "descriptions": [
+    {"text": "description (max 90 chars)"},
+    {"text": "description (max 90 chars)"},
+    {"text": "description (max 90 chars)"}
+  ],
+  "callouts": ["callout1", "callout2", "callout3", "callout4"]
+}`;
+
+        const adCopyResponse = await openaiClient.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: adCopyPrompt }],
+          max_tokens: 600,
+          temperature: 0.7,
+        });
+
+        const adCopyText = adCopyResponse.choices[0]?.message?.content || '';
+        const adCopyMatch = adCopyText.match(/\{[\s\S]*\}/);
+        const adCopy = adCopyMatch ? JSON.parse(adCopyMatch[0]) : {
+          headlines: [
+            { text: analysis.businessName?.substring(0, 30) || 'Quality Service' },
+            { text: 'Professional Results' },
+            { text: 'Get Started Today' },
+            { text: 'Free Consultation' },
+            { text: 'Trusted Experts' }
+          ],
+          descriptions: [
+            { text: 'Professional services you can trust. Contact us for a free quote today.' },
+            { text: 'Quality solutions for your needs. Fast, reliable service guaranteed.' },
+            { text: 'Experts ready to help. Call now for immediate assistance.' }
+          ],
+          callouts: ['Free Quote', '24/7 Support', 'Expert Team', 'Fast Service']
+        };
+
+        // Step 5: Create ad groups
+        sendProgress(writer, { progress: 80, status: 'Organizing ad groups...' });
+
+        const themes = analysis.adGroupThemes || ['Core', 'Benefits', 'Brand', 'Offers', 'Info'];
+        const keywordsPerGroup = Math.ceil(keywords.length / themes.length);
+        
+        const adGroups = themes.map((theme: string, index: number) => ({
+          name: theme,
+          maxCpc: 1.5,
+          keywords: keywords.slice(index * keywordsPerGroup, (index + 1) * keywordsPerGroup)
+        }));
+
+        // Step 6: Generate CSV
+        sendProgress(writer, { progress: 90, status: 'Generating Google Ads CSV...' });
+
+        let csvData = 'Campaign,Ad Group,Keyword,Match Type,Max CPC,Headline 1,Headline 2,Headline 3,Description 1,Description 2,Final URL,Status\n';
+        
+        adGroups.forEach((group: any) => {
+          group.keywords.forEach((kw: string) => {
+            const h1 = adCopy.headlines[0]?.text || '';
+            const h2 = adCopy.headlines[1]?.text || '';
+            const h3 = adCopy.headlines[2]?.text || '';
+            const d1 = adCopy.descriptions[0]?.text || '';
+            const d2 = adCopy.descriptions[1]?.text || '';
+            
+            csvData += `"${analysis.campaignName}","${group.name}","${kw}","Broad","${group.maxCpc}","${h1}","${h2}","${h3}","${d1}","${d2}","${websiteUrl}","Enabled"\n`;
+          });
+        });
+
+        // Step 7: Complete
+        sendProgress(writer, { progress: 100, status: 'Campaign ready!' });
+
+        const campaign = {
+          id: `campaign-${Date.now()}`,
+          campaign_name: analysis.campaignName,
+          business_name: analysis.businessName,
+          website_url: websiteUrl,
+          monthly_budget: 2000,
+          csvData,
+          campaign_data: {
+            analysis,
+            structure: {
+              campaignName: analysis.campaignName,
+              dailyBudget: 100,
+              adGroupThemes: themes
+            },
+            keywords,
+            adGroups,
+            adCopy
+          }
+        };
+
+        sendProgress(writer, { complete: true, campaign });
+        writer.close();
+      } catch (error: any) {
+        console.error('One-click campaign error:', error);
+        sendProgress(writer, { error: error.message || 'Failed to generate campaign' });
+        writer.close();
+      }
+    })();
+
+    return new Response(stream.readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+  } catch (error: any) {
+    console.error('One-click campaign error:', error);
+    return c.json({ error: error.message || 'Failed to generate campaign' }, 500);
+  }
+});
+
+// Save campaign from one-click builder
+app.post('/api/campaigns/save', async (c) => {
+  try {
+    const campaignData = await c.req.json();
+    
+    const result = await pool.query(
+      `INSERT INTO campaign_history (
+        campaign_name, business_name, website_url, status, 
+        campaign_data, created_at, updated_at, source
+      ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), $6)
+      RETURNING id`,
+      [
+        campaignData.campaign_name,
+        campaignData.business_name,
+        campaignData.website_url,
+        'draft',
+        JSON.stringify(campaignData.campaign_data),
+        campaignData.source || 'one-click-builder'
+      ]
+    );
+
+    return c.json({ 
+      success: true, 
+      id: result.rows[0]?.id,
+      message: 'Campaign saved successfully' 
+    });
+  } catch (error: any) {
+    console.error('Error saving campaign:', error);
+    return c.json({ error: error.message || 'Failed to save campaign' }, 500);
+  }
+});
+
 // Start cron scheduler - DISABLED per user request
 // startCronScheduler();
 
