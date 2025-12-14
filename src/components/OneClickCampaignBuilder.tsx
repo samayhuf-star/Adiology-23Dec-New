@@ -457,7 +457,7 @@ export function OneClickCampaignBuilder() {
               </div>
               <div className="flex items-center gap-2">
                 {analysisComplete ? (
-                  <Badge className="bg-green-600 text-white flex items-center gap-1">
+                  <Badge className="bg-blue-600 text-white flex items-center gap-1">
                     <Check className="w-3 h-3" />
                     Complete
                   </Badge>
@@ -478,14 +478,14 @@ export function OneClickCampaignBuilder() {
                 <div key={index} className="flex gap-2 py-0.5">
                   <span className="text-slate-500 shrink-0">[{entry.timestamp}]</span>
                   <span className={`
-                    ${entry.type === 'success' ? 'text-green-400' : ''}
+                    ${entry.type === 'success' ? 'text-blue-400' : ''}
                     ${entry.type === 'action' ? 'text-blue-400' : ''}
-                    ${entry.type === 'progress' ? 'text-blue-300' : ''}
+                    ${entry.type === 'progress' ? 'text-slate-400' : ''}
                     ${entry.type === 'info' ? 'text-slate-400' : ''}
                   `}>
-                    {entry.type === 'success' && <span className="text-green-400 mr-1">{'\u2713'}</span>}
+                    {entry.type === 'success' && <span className="text-blue-400 mr-1">{'\u2713'}</span>}
                     {entry.type === 'action' && <span className="text-blue-400 mr-1">{'>'}</span>}
-                    {entry.type === 'progress' && <span className="text-blue-300 mr-1">{'\u2192'}</span>}
+                    {entry.type === 'progress' && <span className="text-slate-400 mr-1">{'\u2192'}</span>}
                     {entry.message}
                   </span>
                 </div>
@@ -502,7 +502,7 @@ export function OneClickCampaignBuilder() {
               <div className="p-4 border-t border-slate-700">
                 <Button
                   onClick={proceedToResults}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 text-base font-medium"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 text-base font-medium"
                 >
                   Next: View Campaign Details
                   <ArrowRight className="w-5 h-5 ml-2" />
