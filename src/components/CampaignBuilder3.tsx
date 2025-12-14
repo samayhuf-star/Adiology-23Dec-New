@@ -2633,7 +2633,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 variant="outline"
                 size="icon"
                 onClick={() => setEditingCampaignName(!editingCampaignName)}
-                className={`shrink-0 ${editingCampaignName ? 'border-indigo-500 text-teal-600' : 'text-slate-500'}`}
+                className={`shrink-0 ${editingCampaignName ? 'border-teal-500 text-teal-600' : 'text-slate-500'}`}
                 title={editingCampaignName ? 'Done editing' : 'Edit campaign name'}
               >
                 {editingCampaignName ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
@@ -2701,13 +2701,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     ${log.type === 'step' ? 'text-cyan-400 font-semibold' : ''}
                     ${log.type === 'success' ? 'text-green-400' : ''}
                     ${log.type === 'data' ? 'text-yellow-300' : ''}
-                    ${log.type === 'ai' ? 'text-purple-400' : ''}
+                    ${log.type === 'ai' ? 'text-teal-400' : ''}
                     ${log.type === 'info' ? 'text-slate-400' : ''}
                   `}>
                     {log.type === 'step' && <span className="text-cyan-500 mr-1">{'>'}</span>}
                     {log.type === 'success' && <span className="text-green-500 mr-1">✓</span>}
                     {log.type === 'data' && <span className="text-yellow-500 mr-1">•</span>}
-                    {log.type === 'ai' && <span className="text-purple-500 mr-1">★</span>}
+                    {log.type === 'ai' && <span className="text-teal-500 mr-1">★</span>}
                     {log.type === 'info' && <span className="text-slate-500 mr-1">→</span>}
                     {log.message}
                   </span>
@@ -2831,7 +2831,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             hierarchy: [
               { name: 'Informational Intent', desc: '"what is", "how to", "guide"', color: 'border-green-200 bg-green-50' },
               { name: 'Commercial Intent', desc: '"best", "review", "compare"', color: 'border-blue-200 bg-blue-50' },
-              { name: 'Transactional Intent', desc: '"buy", "price", "deal"', color: 'border-purple-200 bg-purple-50' },
+              { name: 'Transactional Intent', desc: '"buy", "price", "deal"', color: 'border-teal-200 bg-teal-50' },
             ],
             benefits: ['Intent-aligned messaging', 'Better conversion rates', 'Targeted ad copy', 'Improved relevance'],
             bestFor: 'Different messaging per search intent'
@@ -2873,7 +2873,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           },
           brand_split: {
             hierarchy: [
-              { name: 'Brand Terms', desc: 'Your brand keywords', color: 'border-purple-200 bg-purple-50' },
+              { name: 'Brand Terms', desc: 'Your brand keywords', color: 'border-teal-200 bg-teal-50' },
               { name: 'Non-Brand Terms', desc: 'Generic product/service keywords', color: 'border-slate-200 bg-slate-50' },
             ],
             benefits: ['Protect brand terms', 'Clear performance analysis', 'Budget allocation control', 'Competitor defense'],
@@ -2925,9 +2925,9 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           },
           stag_plus: {
             hierarchy: [
-              { name: 'ML Cluster 1', desc: 'AI-grouped similar keywords', color: 'border-purple-200 bg-purple-50' },
-              { name: 'ML Cluster 2', desc: 'AI-grouped similar keywords', color: 'border-purple-200 bg-purple-50' },
-              { name: 'ML Cluster 3', desc: 'AI-grouped similar keywords', color: 'border-purple-200 bg-purple-50' },
+              { name: 'ML Cluster 1', desc: 'AI-grouped similar keywords', color: 'border-teal-200 bg-teal-50' },
+              { name: 'ML Cluster 2', desc: 'AI-grouped similar keywords', color: 'border-teal-200 bg-teal-50' },
+              { name: 'ML Cluster 3', desc: 'AI-grouped similar keywords', color: 'border-teal-200 bg-teal-50' },
             ],
             benefits: ['AI-powered grouping', 'Semantic similarity', 'Automatic optimization', 'Smart scaling'],
             bestFor: 'Large campaigns, automated optimization'
@@ -3122,7 +3122,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             <TerminalLine prefix="$" label="seed_keywords:" value={`${seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0 && k.trim().split(/\s+/).length >= 2).length}`} valueColor="cyan" />
             <TerminalLine prefix="$" label="generated:" value={`${campaignData.selectedKeywords.length}`} valueColor="green" />
             <TerminalLine prefix="$" label="negative:" value={`${campaignData.negativeKeywords.length}`} valueColor="yellow" />
-            <TerminalLine prefix="$" label="match_types:" value="[BROAD, PHRASE, EXACT]" valueColor="purple" />
+            <TerminalLine prefix="$" label="match_types:" value="[BROAD, PHRASE, EXACT]" valueColor="teal" />
           </div>
         </TerminalCard>
 
@@ -3131,7 +3131,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             <TerminalLine prefix=">" label="structure:" value={CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG'} valueColor="cyan" />
             <TerminalLine prefix=">" label="ad_groups:" value={`${campaignData.adGroups.length}`} valueColor="green" />
             <TerminalLine prefix=">" label="status:" value={loading ? 'GENERATING...' : campaignData.selectedKeywords.length > 0 ? 'READY' : 'PENDING'} valueColor={loading ? 'yellow' : campaignData.selectedKeywords.length > 0 ? 'green' : 'slate'} />
-            <TerminalLine prefix=">" label="target_range:" value="410-710 keywords" valueColor="purple" />
+            <TerminalLine prefix=">" label="target_range:" value="410-710 keywords" valueColor="teal" />
           </div>
         </TerminalCard>
       </div>
@@ -3433,7 +3433,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               <TerminalLine prefix="$" label="ads_created:" value={`${campaignData.ads.length}/3`} valueColor={campaignData.ads.length > 0 ? 'green' : 'slate'} />
               <TerminalLine prefix="$" label="ad_types:" value={campaignData.ads.map(ad => ad.type?.toUpperCase() || ad.adType || 'RSA').join(', ') || 'NONE'} valueColor="cyan" />
               <TerminalLine prefix="$" label="extensions:" value={`${campaignData.ads.reduce((total, ad) => total + (ad.extensions?.length || 0), 0)}`} valueColor="yellow" />
-              <TerminalLine prefix="$" label="ad_groups:" value={`${campaignData.adGroups.length}`} valueColor="purple" />
+              <TerminalLine prefix="$" label="ad_groups:" value={`${campaignData.adGroups.length}`} valueColor="teal" />
             </div>
           </TerminalCard>
 
@@ -3441,7 +3441,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             <div className="space-y-1.5">
               <TerminalLine prefix=">" label="landing_page:" value={campaignData.url ? 'SET' : 'NOT_SET'} valueColor={campaignData.url ? 'green' : 'yellow'} />
               <TerminalLine prefix=">" label="keywords:" value={`${campaignData.selectedKeywords.length}`} valueColor="cyan" />
-              <TerminalLine prefix=">" label="structure:" value={CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG'} valueColor="purple" />
+              <TerminalLine prefix=">" label="structure:" value={CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG'} valueColor="teal" />
               <TerminalLine prefix=">" label="status:" value={loading ? 'GENERATING...' : campaignData.ads.length >= 3 ? 'COMPLETE' : 'IN_PROGRESS'} valueColor={loading ? 'yellow' : campaignData.ads.length >= 3 ? 'green' : 'cyan'} />
             </div>
           </TerminalCard>
@@ -3479,7 +3479,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             </div>
             
             <div className="flex items-center flex-wrap gap-1">
-              <span className="text-sm font-semibold text-purple-700 whitespace-nowrap">Extensions:</span>
+              <span className="text-sm font-semibold text-teal-700 whitespace-nowrap">Extensions:</span>
               {extensionTypes.map(ext => {
                 const Icon = ext.icon;
                 const shortLabel = ext.label.replace(' EXTENSION', '');
@@ -3488,7 +3488,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     key={ext.id}
                     variant="outline"
                     size="sm"
-                    className="border-purple-200 hover:bg-purple-50 text-xs px-1.5 py-1 h-7"
+                    className="border-teal-200 hover:bg-teal-50 text-xs px-1.5 py-1 h-7"
                     onClick={() => handleAddExtensionToAllAds(ext.id)}
                   >
                     <Plus className="mr-0.5 w-2.5 h-2.5" />
@@ -3549,15 +3549,15 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                         {ad.type?.toUpperCase() || ad.adType || 'RSA'}
                       </Badge>
                         <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditAd(ad.id)} className="text-purple-600 hover:text-purple-700">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditAd(ad.id)} className="text-teal-600 hover:text-teal-700">
                           <Edit3 className="w-4 h-4 mr-1" />
                           EDIT
                           </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDuplicateAd(ad.id)} className="text-purple-600 hover:text-purple-700">
+                        <Button variant="ghost" size="sm" onClick={() => handleDuplicateAd(ad.id)} className="text-teal-600 hover:text-teal-700">
                           <Copy className="w-4 h-4 mr-1" />
                           DUPLICATE
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteAd(ad.id)} className="text-purple-600 hover:text-purple-700">
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteAd(ad.id)} className="text-teal-600 hover:text-teal-700">
                           <Trash2 className="w-4 h-4 mr-1" />
                           DELETE
                           </Button>
@@ -3648,13 +3648,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                                 <div key={ext.id} className="flex items-center justify-between p-3 bg-slate-50 rounded border border-slate-200">
                                   <div className="flex items-center gap-3 flex-1">
                                     {ext.type === 'snippet' && <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />}
-                                    {ext.type === 'callout' && <MessageSquare className="w-4 h-4 text-purple-600 flex-shrink-0" />}
+                                    {ext.type === 'callout' && <MessageSquare className="w-4 h-4 text-teal-600 flex-shrink-0" />}
                                     {ext.type === 'sitelink' && <Link2 className="w-4 h-4 text-teal-600 flex-shrink-0" />}
                                     {ext.type === 'call' && <Phone className="w-4 h-4 text-green-600 flex-shrink-0" />}
                                     {ext.type === 'price' && <DollarSign className="w-4 h-4 text-yellow-600 flex-shrink-0" />}
                                     {ext.type === 'app' && <Smartphone className="w-4 h-4 text-cyan-600 flex-shrink-0" />}
                                     {ext.type === 'location' && <MapPinIcon className="w-4 h-4 text-red-600 flex-shrink-0" />}
-                                    {ext.type === 'message' && <MessageSquare className="w-4 h-4 text-purple-600 flex-shrink-0" />}
+                                    {ext.type === 'message' && <MessageSquare className="w-4 h-4 text-teal-600 flex-shrink-0" />}
                                     {ext.type === 'leadform' && <FileText className="w-4 h-4 text-orange-600 flex-shrink-0" />}
                                     {ext.type === 'promotion' && <Gift className="w-4 h-4 text-pink-600 flex-shrink-0" />}
                                     {ext.type === 'image' && <ImageIcon className="w-4 h-4 text-teal-600 flex-shrink-0" />}
@@ -4025,10 +4025,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       <div className="max-w-5xl mx-auto p-6">
         {/* Header with gradient */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-indigo-200/50 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-200/50 mb-4">
             <MapPin className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
             Geo Targeting
           </h2>
           <p className="text-slate-600 max-w-xl mx-auto">
@@ -4202,8 +4202,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                             size="sm"
                             onClick={() => handlePresetSelect('cities', preset.value)}
                             className={campaignData.locations.cities.length === preset.count 
-                              ? "bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
-                              : "hover:border-indigo-300 hover:bg-teal-50"}
+                              ? "bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 border-0 shadow-lg" 
+                              : "hover:border-teal-300 hover:bg-teal-50"}
                           >
                             <Building2 className="w-3 h-3 mr-1.5" />
                             {preset.label}
@@ -4255,8 +4255,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                             size="sm"
                             onClick={() => handlePresetSelect('states', preset.value)}
                             className={campaignData.locations.states.length === preset.count 
-                              ? "bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
-                              : "hover:border-indigo-300 hover:bg-teal-50"}
+                              ? "bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 border-0 shadow-lg" 
+                              : "hover:border-teal-300 hover:bg-teal-50"}
                           >
                             <MapPinIcon className="w-3 h-3 mr-1.5" />
                             {preset.label}
@@ -4303,8 +4303,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                             size="sm"
                             onClick={() => handlePresetSelect('zips', preset.value)}
                             className={campaignData.locations.zipCodes.length === preset.count 
-                              ? "bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
-                              : "hover:border-indigo-300 hover:bg-teal-50"}
+                              ? "bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 border-0 shadow-lg" 
+                              : "hover:border-teal-300 hover:bg-teal-50"}
                           >
                             <Hash className="w-3 h-3 mr-1.5" />
                             {preset.label}
@@ -4372,14 +4372,14 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       : `${campaignData.targetCountry} (${locationInfo.type})`;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/30 to-emerald-50/30 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 shadow-lg shadow-green-200/50 mb-4 animate-in fade-in zoom-in duration-500">
               <CheckCircle2 className="w-8 h-8 text-white" />
           </div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
               Campaign Created Successfully!
             </h1>
             <p className="text-sm text-slate-600 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-900">
@@ -4595,9 +4595,9 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 </div>
 
                 {/* Keywords Logic */}
-                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
                   <h4 className="font-semibold text-purple-800 mb-2">{campaignData.selectedKeywords.length} Keywords</h4>
-                  <p className="text-sm text-purple-700">
+                  <p className="text-sm text-teal-700">
                     Generated from {campaignData.seedKeywords.length} seed keywords using pattern expansion (modifiers, locations, intents). 
                     Match types: Broad, Phrase, Exact. Excludes {campaignData.negativeKeywords.length} negative keywords.
                   </p>
@@ -4650,7 +4650,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     window.location.hash = '#campaign-history';
                   }
                 }}
-                className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-200/50 h-14 text-lg font-semibold"
+                className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-teal-200/50 h-14 text-lg font-semibold"
           >
                 <FolderOpen className="w-5 h-5 mr-2" />
                 View Saved Campaigns
