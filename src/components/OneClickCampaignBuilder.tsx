@@ -340,8 +340,8 @@ export function OneClickCampaignBuilder() {
                 disabled
                 className="flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4" />
-                Analyze
+                <Zap className="w-4 h-4" />
+                Build
               </Button>
             </div>
           </div>
@@ -354,7 +354,7 @@ export function OneClickCampaignBuilder() {
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
-                <span className="text-slate-300 text-sm font-medium">Website Analysis Console</span>
+                <span className="text-slate-300 text-sm font-medium">Building Campaign Console</span>
               </div>
               <div className="flex items-center gap-2">
                 {analysisComplete ? (
@@ -365,7 +365,7 @@ export function OneClickCampaignBuilder() {
                 ) : (
                   <Badge className="bg-purple-600 text-white flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Analyzing...
+                    Building...
                   </Badge>
                 )}
               </div>
@@ -394,7 +394,7 @@ export function OneClickCampaignBuilder() {
               {!analysisComplete && logEntries.length > 0 && (
                 <div className="flex items-center gap-2 py-0.5 text-purple-400">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  <span className="animate-pulse">Processing...</span>
+                  <span className="animate-pulse">Building campaign...</span>
                 </div>
               )}
             </div>
