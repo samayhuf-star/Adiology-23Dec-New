@@ -2136,6 +2136,896 @@ export const campaignPresets: CampaignPreset[] = [
       { text: "Warranty Included" },
       { text: "Free Estimates" }
     ]
+  },
+  {
+    slug: "tree-service-skag",
+    title: "Tree Service",
+    campaign_name: "Tree Service - SKAG",
+    structure: "SKAG",
+    landing_page_url: "/landing-pages/tree-service.html",
+    ad_groups: [
+      { name: "tree removal near me" },
+      { name: "tree trimming near me" },
+      { name: "stump grinding near me" },
+      { name: "emergency tree service" },
+      { name: "tree pruning near me" },
+      { name: "tree cutting near me" }
+    ],
+    keywords: [
+      "tree removal near me", "tree trimming near me", "stump grinding near me",
+      "emergency tree service", "tree pruning near me", "tree cutting near me",
+      "arborist near me", "tree service near me", "dead tree removal",
+      "storm damage tree removal", "tree removal cost"
+    ],
+    negative_keywords: ["tree planting", "buy trees", "nursery", "jobs", "how to cut tree", "DIY"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 4.5,
+    daily_budget: 130,
+    ads: [{
+      headline1: "Tree Removal & Trimming — Call Now",
+      headline2: "Licensed Arborists — Free Quotes",
+      headline3: "Emergency Storm Service",
+      headline4: "Stump Grinding Available",
+      headline5: "Fully Insured",
+      description1: "Professional tree removal, trimming & stump grinding. Licensed & insured arborists.",
+      description2: "Storm damage cleanup & emergency service. Free estimates. Call today."
+    }],
+    final_url: "https://adiology.online/tree-service?utm_source=adiology&utm_medium=ads&utm_campaign=tree_skag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Tree Removal", description1: "Safe & efficient", description2: "Any size tree", finalUrl: "https://adiology.online/tree-service/removal" },
+      { text: "Tree Trimming", description1: "Shape & maintain", description2: "Improve health", finalUrl: "https://adiology.online/tree-service/trimming" },
+      { text: "Stump Grinding", description1: "Complete removal", description2: "No trace left", finalUrl: "https://adiology.online/tree-service/stump" },
+      { text: "Emergency Service", description1: "Storm damage", description2: "Fast response", finalUrl: "https://adiology.online/tree-service/emergency" }
+    ],
+    callouts: [
+      { text: "Licensed Arborists" },
+      { text: "Fully Insured" },
+      { text: "Free Estimates" },
+      { text: "Same-Day Service" }
+    ]
+  },
+  {
+    slug: "fence-installation-stag",
+    title: "Fence Installation",
+    campaign_name: "Fence Installation - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/fence.html",
+    ad_groups: [
+      { name: "Wood Fence" },
+      { name: "Vinyl Fence" },
+      { name: "Chain Link Fence" },
+      { name: "Fence Repair" }
+    ],
+    keywords: [
+      "fence installation near me", "fence company near me", "wood fence installation",
+      "vinyl fence installation", "chain link fence near me", "fence repair near me",
+      "privacy fence installation", "fence contractor near me", "fence quote near me"
+    ],
+    negative_keywords: ["fence panels for sale", "DIY fence", "how to build fence", "jobs", "fence materials"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 3.5,
+    daily_budget: 100,
+    ads: [{
+      headline1: "Fence Installation — Free Quote",
+      headline2: "Wood, Vinyl & Chain Link",
+      headline3: "Licensed Fence Contractors",
+      headline4: "Quality Materials & Workmanship",
+      headline5: "Fast Installation",
+      description1: "Professional fence installation & repair. Wood, vinyl, chain link & more.",
+      description2: "Free on-site estimates. Quality workmanship guaranteed. Call today."
+    }],
+    final_url: "https://adiology.online/fence?utm_source=adiology&utm_medium=ads&utm_campaign=fence_stag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Wood Fences", description1: "Classic & durable", description2: "Custom designs", finalUrl: "https://adiology.online/fence/wood" },
+      { text: "Vinyl Fences", description1: "Low maintenance", description2: "Long-lasting", finalUrl: "https://adiology.online/fence/vinyl" },
+      { text: "Chain Link", description1: "Affordable option", description2: "Quick install", finalUrl: "https://adiology.online/fence/chain-link" },
+      { text: "Fence Repair", description1: "All fence types", description2: "Fast service", finalUrl: "https://adiology.online/fence/repair" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Licensed & Insured" },
+      { text: "Quality Materials" },
+      { text: "Warranty Included" }
+    ]
+  },
+  {
+    slug: "window-installation-ibag",
+    title: "Window Installation",
+    campaign_name: "Window Installation - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/window.html",
+    ad_groups: [
+      { name: "Replacement Windows Intent" },
+      { name: "Energy Efficient Intent" },
+      { name: "Window Repair Intent" }
+    ],
+    keywords: [
+      "window installation near me", "window replacement near me", "new windows near me",
+      "energy efficient windows", "window repair near me", "vinyl window installation",
+      "double pane window replacement", "window contractor near me", "window glass replacement"
+    ],
+    negative_keywords: ["windows for sale", "DIY window", "how to install window", "jobs", "window blinds"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 5.0,
+    daily_budget: 150,
+    ads: [{
+      headline1: "Window Replacement — Free Quote",
+      headline2: "Energy Efficient Windows",
+      headline3: "Licensed Window Installers",
+      headline4: "Lower Your Energy Bills",
+      headline5: "Lifetime Warranty",
+      description1: "Professional window installation & replacement. Energy efficient options available.",
+      description2: "Free in-home estimates. Reduce energy costs. Financing available."
+    }],
+    final_url: "https://adiology.online/window?utm_source=adiology&utm_medium=ads&utm_campaign=window_ibag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Vinyl Windows", description1: "Low maintenance", description2: "Energy efficient", finalUrl: "https://adiology.online/window/vinyl" },
+      { text: "Double Pane", description1: "Better insulation", description2: "Reduce noise", finalUrl: "https://adiology.online/window/double-pane" },
+      { text: "Window Repair", description1: "All window types", description2: "Fast service", finalUrl: "https://adiology.online/window/repair" },
+      { text: "Free Estimate", description1: "No obligation", description2: "In-home consult", finalUrl: "https://adiology.online/window/estimate" }
+    ],
+    callouts: [
+      { text: "Lifetime Warranty" },
+      { text: "Energy Efficient" },
+      { text: "Free Estimates" },
+      { text: "Financing Available" }
+    ]
+  },
+  {
+    slug: "siding-installation-stag",
+    title: "Siding Installation",
+    campaign_name: "Siding Installation - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/siding.html",
+    ad_groups: [
+      { name: "Vinyl Siding" },
+      { name: "Fiber Cement Siding" },
+      { name: "Siding Repair" }
+    ],
+    keywords: [
+      "siding installation near me", "siding contractor near me", "vinyl siding installation",
+      "siding repair near me", "siding replacement near me", "fiber cement siding near me",
+      "exterior siding near me", "house siding near me", "siding company near me"
+    ],
+    negative_keywords: ["siding for sale", "DIY siding", "how to install siding", "jobs", "siding materials"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 4.0,
+    daily_budget: 120,
+    ads: [{
+      headline1: "Siding Installation — Free Quote",
+      headline2: "Vinyl & Fiber Cement Options",
+      headline3: "Licensed Siding Contractors",
+      headline4: "Transform Your Home's Exterior",
+      headline5: "Quality Workmanship",
+      description1: "Professional siding installation & repair. Vinyl, fiber cement & more.",
+      description2: "Free estimates. Improve curb appeal & protect your home. Call today."
+    }],
+    final_url: "https://adiology.online/siding?utm_source=adiology&utm_medium=ads&utm_campaign=siding_stag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Vinyl Siding", description1: "Low maintenance", description2: "Many colors", finalUrl: "https://adiology.online/siding/vinyl" },
+      { text: "Fiber Cement", description1: "Durable & stylish", description2: "Fire resistant", finalUrl: "https://adiology.online/siding/fiber-cement" },
+      { text: "Siding Repair", description1: "All types", description2: "Fast turnaround", finalUrl: "https://adiology.online/siding/repair" },
+      { text: "Free Estimate", description1: "In-home consult", description2: "No obligation", finalUrl: "https://adiology.online/siding/estimate" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Licensed Contractors" },
+      { text: "Quality Materials" },
+      { text: "Warranty Included" }
+    ]
+  },
+  {
+    slug: "deck-building-mix",
+    title: "Deck Building",
+    campaign_name: "Deck Building - MIX",
+    structure: "MIX",
+    landing_page_url: "/landing-pages/deck.html",
+    ad_groups: [
+      { name: "Wood Decks" },
+      { name: "Composite Decks" },
+      { name: "Deck Repair" },
+      { name: "Deck Design" }
+    ],
+    keywords: [
+      "deck builder near me", "deck installation near me", "custom deck builder",
+      "composite deck installation", "wood deck builder near me", "deck repair near me",
+      "deck contractor near me", "deck design near me", "patio deck builder"
+    ],
+    negative_keywords: ["deck materials for sale", "DIY deck", "how to build deck", "jobs", "deck boards sale"],
+    match_distribution: { exact: 0.2, phrase: 0.5, broad_mod: 0.3 },
+    max_cpc: 4.0,
+    daily_budget: 110,
+    ads: [{
+      headline1: "Custom Deck Builder — Free Quote",
+      headline2: "Wood & Composite Options",
+      headline3: "Licensed Deck Contractors",
+      headline4: "Extend Your Living Space",
+      headline5: "Quality Craftsmanship",
+      description1: "Professional deck building & repair. Custom designs, wood & composite materials.",
+      description2: "Free design consultation. Transform your backyard. Call today."
+    }],
+    final_url: "https://adiology.online/deck?utm_source=adiology&utm_medium=ads&utm_campaign=deck_mix",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Wood Decks", description1: "Natural beauty", description2: "Classic style", finalUrl: "https://adiology.online/deck/wood" },
+      { text: "Composite Decks", description1: "Low maintenance", description2: "Long lasting", finalUrl: "https://adiology.online/deck/composite" },
+      { text: "Deck Repair", description1: "Fix & restore", description2: "All deck types", finalUrl: "https://adiology.online/deck/repair" },
+      { text: "Free Design", description1: "Custom plans", description2: "3D rendering", finalUrl: "https://adiology.online/deck/design" }
+    ],
+    callouts: [
+      { text: "Custom Designs" },
+      { text: "Licensed & Insured" },
+      { text: "Free Estimates" },
+      { text: "Quality Materials" }
+    ]
+  },
+  {
+    slug: "concrete-driveway-stag",
+    title: "Concrete & Driveway",
+    campaign_name: "Concrete - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/concrete.html",
+    ad_groups: [
+      { name: "Driveway Installation" },
+      { name: "Concrete Repair" },
+      { name: "Stamped Concrete" }
+    ],
+    keywords: [
+      "concrete contractor near me", "driveway installation near me", "concrete driveway near me",
+      "concrete repair near me", "stamped concrete near me", "concrete patio near me",
+      "driveway replacement near me", "concrete work near me", "concrete company near me"
+    ],
+    negative_keywords: ["concrete for sale", "DIY concrete", "how to pour concrete", "jobs", "concrete mix"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 3.5,
+    daily_budget: 100,
+    ads: [{
+      headline1: "Concrete Contractor — Free Quote",
+      headline2: "Driveways, Patios & More",
+      headline3: "Licensed Concrete Experts",
+      headline4: "Quality Workmanship",
+      headline5: "Stamped Concrete Available",
+      description1: "Professional concrete installation & repair. Driveways, patios, walkways & more.",
+      description2: "Free estimates. Quality concrete work. Stamped & decorative options. Call today."
+    }],
+    final_url: "https://adiology.online/concrete?utm_source=adiology&utm_medium=ads&utm_campaign=concrete_stag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Driveways", description1: "New & replacement", description2: "Quality concrete", finalUrl: "https://adiology.online/concrete/driveway" },
+      { text: "Patios", description1: "Extend living space", description2: "Custom designs", finalUrl: "https://adiology.online/concrete/patio" },
+      { text: "Stamped Concrete", description1: "Decorative options", description2: "Many patterns", finalUrl: "https://adiology.online/concrete/stamped" },
+      { text: "Concrete Repair", description1: "Cracks & damage", description2: "Restore & level", finalUrl: "https://adiology.online/concrete/repair" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Licensed Contractors" },
+      { text: "Quality Concrete" },
+      { text: "Fast Turnaround" }
+    ]
+  },
+  {
+    slug: "locksmith-ibag",
+    title: "Locksmith Services",
+    campaign_name: "Locksmith - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/locksmith.html",
+    ad_groups: [
+      { name: "Emergency Lockout Intent" },
+      { name: "Lock Change Intent" },
+      { name: "Key Making Intent" }
+    ],
+    keywords: [
+      "locksmith near me", "emergency locksmith", "24 hour locksmith near me",
+      "car lockout near me", "house lockout near me", "lock change near me",
+      "key copy near me", "locksmith service near me", "auto locksmith near me"
+    ],
+    negative_keywords: ["locksmith training", "become locksmith", "lock for sale", "jobs", "how to pick lock"],
+    match_distribution: { exact: 0.3, phrase: 0.45, broad_mod: 0.25 },
+    max_cpc: 4.5,
+    daily_budget: 130,
+    ads: [{
+      headline1: "Locksmith — 24/7 Emergency",
+      headline2: "Locked Out? Fast Response",
+      headline3: "Licensed & Insured",
+      headline4: "Car, Home & Business",
+      headline5: "Upfront Pricing",
+      description1: "Emergency locksmith service 24/7. Car lockouts, home lockouts, lock changes & more.",
+      description2: "Fast response. Upfront pricing. No hidden fees. Call now for immediate help."
+    }],
+    final_url: "https://adiology.online/locksmith?utm_source=adiology&utm_medium=ads&utm_campaign=locksmith_ibag",
+    cta: "Call Now",
+    sitelinks: [
+      { text: "Car Lockout", description1: "Locked out of car?", description2: "Fast response", finalUrl: "https://adiology.online/locksmith/car" },
+      { text: "Home Lockout", description1: "Get back inside", description2: "No damage", finalUrl: "https://adiology.online/locksmith/home" },
+      { text: "Lock Change", description1: "New locks installed", description2: "Same day", finalUrl: "https://adiology.online/locksmith/change" },
+      { text: "Key Copy", description1: "Fast key duplication", description2: "All key types", finalUrl: "https://adiology.online/locksmith/keys" }
+    ],
+    callouts: [
+      { text: "24/7 Emergency" },
+      { text: "Fast Response" },
+      { text: "Upfront Pricing" },
+      { text: "Licensed & Insured" }
+    ]
+  },
+  {
+    slug: "water-damage-restoration-ibag",
+    title: "Water Damage Restoration",
+    campaign_name: "Water Damage - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/water-damage.html",
+    ad_groups: [
+      { name: "Emergency Water Removal Intent" },
+      { name: "Flood Damage Intent" },
+      { name: "Mold Prevention Intent" }
+    ],
+    keywords: [
+      "water damage restoration near me", "flood cleanup near me", "water removal near me",
+      "emergency water damage", "basement flooding near me", "water damage repair near me",
+      "flood restoration near me", "water extraction near me", "burst pipe cleanup"
+    ],
+    negative_keywords: ["water damage insurance claim", "DIY water damage", "how to dry", "jobs", "dehumidifier sale"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 6.0,
+    daily_budget: 180,
+    ads: [{
+      headline1: "Water Damage Restoration — 24/7",
+      headline2: "Fast Water Removal",
+      headline3: "Emergency Flood Cleanup",
+      headline4: "Insurance Claim Help",
+      headline5: "Prevent Mold Growth",
+      description1: "Emergency water damage restoration. Fast response, water extraction & drying.",
+      description2: "Insurance claim assistance. Prevent mold damage. Call now for immediate help."
+    }],
+    final_url: "https://adiology.online/water-damage?utm_source=adiology&utm_medium=ads&utm_campaign=waterdamage_ibag",
+    cta: "Call Now",
+    sitelinks: [
+      { text: "Water Removal", description1: "Fast extraction", description2: "24/7 emergency", finalUrl: "https://adiology.online/water-damage/removal" },
+      { text: "Flood Cleanup", description1: "Complete restoration", description2: "Basement floods", finalUrl: "https://adiology.online/water-damage/flood" },
+      { text: "Drying Services", description1: "Industrial equipment", description2: "Fast drying", finalUrl: "https://adiology.online/water-damage/drying" },
+      { text: "Insurance Help", description1: "Claim assistance", description2: "Documentation", finalUrl: "https://adiology.online/water-damage/insurance" }
+    ],
+    callouts: [
+      { text: "24/7 Emergency" },
+      { text: "Fast Response" },
+      { text: "Insurance Help" },
+      { text: "Mold Prevention" }
+    ]
+  },
+  {
+    slug: "foundation-repair-stag",
+    title: "Foundation Repair",
+    campaign_name: "Foundation Repair - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/foundation.html",
+    ad_groups: [
+      { name: "Foundation Crack Repair" },
+      { name: "Foundation Leveling" },
+      { name: "Basement Waterproofing" }
+    ],
+    keywords: [
+      "foundation repair near me", "foundation crack repair near me", "foundation leveling near me",
+      "house foundation repair near me", "basement foundation repair", "foundation contractor near me",
+      "slab foundation repair near me", "pier foundation repair", "foundation inspection near me"
+    ],
+    negative_keywords: ["foundation DIY", "how to fix foundation", "foundation jobs", "training"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 7.0,
+    daily_budget: 200,
+    ads: [{
+      headline1: "Foundation Repair — Free Inspection",
+      headline2: "Crack & Leveling Specialists",
+      headline3: "Licensed Foundation Experts",
+      headline4: "Transferable Warranty",
+      headline5: "Financing Available",
+      description1: "Professional foundation repair. Cracks, leveling, waterproofing & more.",
+      description2: "Free inspection. Lifetime warranty. Protect your home's value. Call today."
+    }],
+    final_url: "https://adiology.online/foundation?utm_source=adiology&utm_medium=ads&utm_campaign=foundation_stag",
+    cta: "Get Free Inspection",
+    sitelinks: [
+      { text: "Crack Repair", description1: "Fix foundation cracks", description2: "Prevent damage", finalUrl: "https://adiology.online/foundation/cracks" },
+      { text: "Foundation Leveling", description1: "Stabilize your home", description2: "Expert solutions", finalUrl: "https://adiology.online/foundation/leveling" },
+      { text: "Waterproofing", description1: "Stop water intrusion", description2: "Protect basement", finalUrl: "https://adiology.online/foundation/waterproofing" },
+      { text: "Free Inspection", description1: "No obligation", description2: "Expert assessment", finalUrl: "https://adiology.online/foundation/inspection" }
+    ],
+    callouts: [
+      { text: "Free Inspection" },
+      { text: "Lifetime Warranty" },
+      { text: "Financing Available" },
+      { text: "Licensed Experts" }
+    ]
+  },
+  {
+    slug: "cabinet-installation-skag",
+    title: "Cabinet Installation",
+    campaign_name: "Cabinet Installation - SKAG",
+    structure: "SKAG",
+    landing_page_url: "/landing-pages/cabinets.html",
+    ad_groups: [
+      { name: "kitchen cabinet installation near me" },
+      { name: "cabinet refacing near me" },
+      { name: "custom cabinets near me" },
+      { name: "bathroom cabinet installation" }
+    ],
+    keywords: [
+      "cabinet installation near me", "kitchen cabinet installation near me", "cabinet refacing near me",
+      "custom cabinets near me", "bathroom cabinet installation", "cabinet contractor near me",
+      "kitchen remodel cabinets near me", "cabinet maker near me"
+    ],
+    negative_keywords: ["cabinets for sale", "DIY cabinet", "how to install cabinet", "jobs", "cabinet hardware"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 4.0,
+    daily_budget: 110,
+    ads: [{
+      headline1: "Cabinet Installation — Free Quote",
+      headline2: "Kitchen & Bathroom Cabinets",
+      headline3: "Custom & Refacing Options",
+      headline4: "Licensed Cabinet Installers",
+      headline5: "Quality Craftsmanship",
+      description1: "Professional cabinet installation, refacing & custom cabinetry. Kitchen & bath experts.",
+      description2: "Free in-home estimate. Transform your space. Quality materials. Call today."
+    }],
+    final_url: "https://adiology.online/cabinets?utm_source=adiology&utm_medium=ads&utm_campaign=cabinet_skag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Kitchen Cabinets", description1: "New installation", description2: "Custom designs", finalUrl: "https://adiology.online/cabinets/kitchen" },
+      { text: "Cabinet Refacing", description1: "Update look", description2: "Save money", finalUrl: "https://adiology.online/cabinets/refacing" },
+      { text: "Custom Cabinets", description1: "Made to order", description2: "Your style", finalUrl: "https://adiology.online/cabinets/custom" },
+      { text: "Free Estimate", description1: "In-home consult", description2: "No obligation", finalUrl: "https://adiology.online/cabinets/estimate" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Licensed Installers" },
+      { text: "Quality Materials" },
+      { text: "Custom Options" }
+    ]
+  },
+  {
+    slug: "countertop-installation-stag",
+    title: "Countertop Installation",
+    campaign_name: "Countertop Installation - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/countertops.html",
+    ad_groups: [
+      { name: "Granite Countertops" },
+      { name: "Quartz Countertops" },
+      { name: "Marble Countertops" }
+    ],
+    keywords: [
+      "countertop installation near me", "granite countertops near me", "quartz countertops near me",
+      "marble countertops near me", "kitchen countertop replacement", "countertop contractor near me",
+      "bathroom countertops near me", "countertop fabricator near me"
+    ],
+    negative_keywords: ["countertop for sale", "DIY countertop", "how to install countertop", "jobs", "countertop remnants"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 4.5,
+    daily_budget: 130,
+    ads: [{
+      headline1: "Countertop Installation — Free Quote",
+      headline2: "Granite, Quartz & Marble",
+      headline3: "Professional Fabrication",
+      headline4: "Transform Your Kitchen",
+      headline5: "Fast Turnaround",
+      description1: "Professional countertop installation. Granite, quartz, marble & more.",
+      description2: "Free in-home measurement. Quality fabrication. Fast installation. Call today."
+    }],
+    final_url: "https://adiology.online/countertops?utm_source=adiology&utm_medium=ads&utm_campaign=countertop_stag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Granite", description1: "Natural stone beauty", description2: "Durable choice", finalUrl: "https://adiology.online/countertops/granite" },
+      { text: "Quartz", description1: "Engineered stone", description2: "Low maintenance", finalUrl: "https://adiology.online/countertops/quartz" },
+      { text: "Marble", description1: "Elegant & timeless", description2: "Premium option", finalUrl: "https://adiology.online/countertops/marble" },
+      { text: "Free Estimate", description1: "In-home measurement", description2: "No obligation", finalUrl: "https://adiology.online/countertops/estimate" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Fast Installation" },
+      { text: "Quality Materials" },
+      { text: "Expert Fabrication" }
+    ]
+  },
+  {
+    slug: "insulation-installation-ibag",
+    title: "Insulation Services",
+    campaign_name: "Insulation - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/insulation.html",
+    ad_groups: [
+      { name: "Attic Insulation Intent" },
+      { name: "Spray Foam Intent" },
+      { name: "Energy Savings Intent" }
+    ],
+    keywords: [
+      "insulation installation near me", "attic insulation near me", "spray foam insulation near me",
+      "insulation contractor near me", "blown-in insulation near me", "home insulation near me",
+      "insulation removal near me", "insulation company near me"
+    ],
+    negative_keywords: ["insulation for sale", "DIY insulation", "how to install insulation", "jobs", "fiberglass rolls"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 3.5,
+    daily_budget: 100,
+    ads: [{
+      headline1: "Insulation Installation — Free Quote",
+      headline2: "Lower Energy Bills",
+      headline3: "Attic & Spray Foam Experts",
+      headline4: "Licensed Insulation Pros",
+      headline5: "Improve Home Comfort",
+      description1: "Professional insulation installation. Attic, spray foam, blown-in & more.",
+      description2: "Free energy assessment. Reduce heating & cooling costs. Call today."
+    }],
+    final_url: "https://adiology.online/insulation?utm_source=adiology&utm_medium=ads&utm_campaign=insulation_ibag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Attic Insulation", description1: "Improve efficiency", description2: "All attic types", finalUrl: "https://adiology.online/insulation/attic" },
+      { text: "Spray Foam", description1: "Superior sealing", description2: "Energy savings", finalUrl: "https://adiology.online/insulation/spray-foam" },
+      { text: "Blown-In", description1: "Quick install", description2: "Cost effective", finalUrl: "https://adiology.online/insulation/blown-in" },
+      { text: "Free Assessment", description1: "Energy audit", description2: "No obligation", finalUrl: "https://adiology.online/insulation/assessment" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Energy Savings" },
+      { text: "Licensed Pros" },
+      { text: "Rebates Available" }
+    ]
+  },
+  {
+    slug: "home-security-mix",
+    title: "Home Security",
+    campaign_name: "Home Security - MIX",
+    structure: "MIX",
+    landing_page_url: "/landing-pages/security.html",
+    ad_groups: [
+      { name: "Security System Install" },
+      { name: "Security Cameras" },
+      { name: "Smart Home Security" }
+    ],
+    keywords: [
+      "home security installation near me", "security system near me", "security cameras near me",
+      "home alarm installation near me", "smart home security near me", "surveillance cameras near me",
+      "home security company near me", "security monitoring near me"
+    ],
+    negative_keywords: ["security camera for sale", "DIY security", "how to install camera", "jobs", "cheap cameras"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 5.5,
+    daily_budget: 160,
+    ads: [{
+      headline1: "Home Security — Free Quote",
+      headline2: "Professional Installation",
+      headline3: "24/7 Monitoring Available",
+      headline4: "Smart Home Integration",
+      headline5: "Protect Your Family",
+      description1: "Professional home security installation. Alarms, cameras & smart systems.",
+      description2: "Free security assessment. 24/7 monitoring options. Protect what matters. Call today."
+    }],
+    final_url: "https://adiology.online/security?utm_source=adiology&utm_medium=ads&utm_campaign=security_mix",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Security Systems", description1: "Complete protection", description2: "Pro installation", finalUrl: "https://adiology.online/security/systems" },
+      { text: "Security Cameras", description1: "HD surveillance", description2: "Remote viewing", finalUrl: "https://adiology.online/security/cameras" },
+      { text: "24/7 Monitoring", description1: "Always protected", description2: "Fast response", finalUrl: "https://adiology.online/security/monitoring" },
+      { text: "Free Assessment", description1: "Security audit", description2: "No obligation", finalUrl: "https://adiology.online/security/assessment" }
+    ],
+    callouts: [
+      { text: "Free Assessment" },
+      { text: "24/7 Monitoring" },
+      { text: "Smart Integration" },
+      { text: "Pro Installation" }
+    ]
+  },
+  {
+    slug: "junk-removal-skag",
+    title: "Junk Removal",
+    campaign_name: "Junk Removal - SKAG",
+    structure: "SKAG",
+    landing_page_url: "/landing-pages/junk-removal.html",
+    ad_groups: [
+      { name: "junk removal near me" },
+      { name: "furniture removal near me" },
+      { name: "appliance removal near me" },
+      { name: "debris removal near me" },
+      { name: "estate cleanout near me" }
+    ],
+    keywords: [
+      "junk removal near me", "furniture removal near me", "appliance removal near me",
+      "debris removal near me", "estate cleanout near me", "trash removal near me",
+      "hauling service near me", "junk pickup near me", "same day junk removal"
+    ],
+    negative_keywords: ["junk car", "jobs", "how to dispose", "dumpster rental", "free junk removal"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 3.0,
+    daily_budget: 90,
+    ads: [{
+      headline1: "Junk Removal — Same Day Service",
+      headline2: "We Haul It All — Free Quote",
+      headline3: "Fast & Affordable",
+      headline4: "Furniture, Appliances & Debris",
+      headline5: "Eco-Friendly Disposal",
+      description1: "Professional junk removal service. Furniture, appliances, debris & more.",
+      description2: "Same-day service available. Upfront pricing. Eco-friendly disposal. Call now."
+    }],
+    final_url: "https://adiology.online/junk-removal?utm_source=adiology&utm_medium=ads&utm_campaign=junk_skag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Furniture Removal", description1: "Old couches, beds", description2: "We do the lifting", finalUrl: "https://adiology.online/junk-removal/furniture" },
+      { text: "Appliance Removal", description1: "Safe disposal", description2: "Fridges, washers", finalUrl: "https://adiology.online/junk-removal/appliances" },
+      { text: "Estate Cleanout", description1: "Full cleanouts", description2: "Respectful service", finalUrl: "https://adiology.online/junk-removal/estate" },
+      { text: "Same Day Service", description1: "Fast pickup", description2: "Call now", finalUrl: "https://adiology.online/junk-removal/same-day" }
+    ],
+    callouts: [
+      { text: "Same Day Service" },
+      { text: "Upfront Pricing" },
+      { text: "Eco-Friendly" },
+      { text: "We Do the Lifting" }
+    ]
+  },
+  {
+    slug: "pool-service-stag",
+    title: "Pool Service",
+    campaign_name: "Pool Service - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/pool.html",
+    ad_groups: [
+      { name: "Pool Cleaning" },
+      { name: "Pool Repair" },
+      { name: "Pool Maintenance" }
+    ],
+    keywords: [
+      "pool service near me", "pool cleaning near me", "pool repair near me",
+      "pool maintenance near me", "pool pump repair near me", "pool heater repair near me",
+      "pool company near me", "weekly pool service near me"
+    ],
+    negative_keywords: ["pool for sale", "DIY pool", "pool supplies", "jobs", "how to clean pool"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 3.0,
+    daily_budget: 85,
+    ads: [{
+      headline1: "Pool Service — Free Quote",
+      headline2: "Cleaning, Repair & Maintenance",
+      headline3: "Certified Pool Technicians",
+      headline4: "Weekly Service Plans",
+      headline5: "Crystal Clear Water",
+      description1: "Professional pool service. Cleaning, chemical balance, repairs & equipment service.",
+      description2: "Free estimate. Weekly & monthly plans available. Keep your pool perfect. Call today."
+    }],
+    final_url: "https://adiology.online/pool?utm_source=adiology&utm_medium=ads&utm_campaign=pool_stag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Pool Cleaning", description1: "Regular service", description2: "Crystal clear", finalUrl: "https://adiology.online/pool/cleaning" },
+      { text: "Pool Repair", description1: "Pumps, heaters, more", description2: "Expert repair", finalUrl: "https://adiology.online/pool/repair" },
+      { text: "Weekly Plans", description1: "Hassle-free", description2: "Consistent care", finalUrl: "https://adiology.online/pool/weekly" },
+      { text: "Pool Opening", description1: "Seasonal service", description2: "Get swim ready", finalUrl: "https://adiology.online/pool/opening" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Certified Techs" },
+      { text: "Weekly Plans" },
+      { text: "Equipment Repair" }
+    ]
+  },
+  {
+    slug: "pressure-washing-skag",
+    title: "Pressure Washing",
+    campaign_name: "Pressure Washing - SKAG",
+    structure: "SKAG",
+    landing_page_url: "/landing-pages/pressure-washing.html",
+    ad_groups: [
+      { name: "pressure washing near me" },
+      { name: "driveway cleaning near me" },
+      { name: "house washing near me" },
+      { name: "deck cleaning near me" }
+    ],
+    keywords: [
+      "pressure washing near me", "power washing near me", "driveway pressure washing",
+      "house washing near me", "deck cleaning near me", "patio cleaning near me",
+      "pressure washing service near me", "commercial pressure washing"
+    ],
+    negative_keywords: ["pressure washer for sale", "DIY pressure washing", "rent pressure washer", "jobs", "how to pressure wash"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 2.5,
+    daily_budget: 75,
+    ads: [{
+      headline1: "Pressure Washing — Free Quote",
+      headline2: "Driveways, Decks & Houses",
+      headline3: "Professional Power Washing",
+      headline4: "Restore Your Property",
+      headline5: "Affordable Rates",
+      description1: "Professional pressure washing service. Driveways, decks, patios, siding & more.",
+      description2: "Free estimates. Transform your property's appearance. Fast service. Call today."
+    }],
+    final_url: "https://adiology.online/pressure-washing?utm_source=adiology&utm_medium=ads&utm_campaign=pressure_skag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Driveway Cleaning", description1: "Remove stains", description2: "Look like new", finalUrl: "https://adiology.online/pressure-washing/driveway" },
+      { text: "House Washing", description1: "Siding & exterior", description2: "Curb appeal", finalUrl: "https://adiology.online/pressure-washing/house" },
+      { text: "Deck Cleaning", description1: "Restore wood", description2: "Remove mold", finalUrl: "https://adiology.online/pressure-washing/deck" },
+      { text: "Free Estimate", description1: "No obligation", description2: "Fast quote", finalUrl: "https://adiology.online/pressure-washing/estimate" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Fast Service" },
+      { text: "Eco-Friendly" },
+      { text: "Affordable Rates" }
+    ]
+  },
+  {
+    slug: "handyman-services-mix",
+    title: "Handyman Services",
+    campaign_name: "Handyman - MIX",
+    structure: "MIX",
+    landing_page_url: "/landing-pages/handyman.html",
+    ad_groups: [
+      { name: "General Repairs" },
+      { name: "Home Maintenance" },
+      { name: "Small Projects" }
+    ],
+    keywords: [
+      "handyman near me", "handyman services near me", "home repair near me",
+      "local handyman near me", "fix it man near me", "odd jobs near me",
+      "home maintenance near me", "small repairs near me"
+    ],
+    negative_keywords: ["handyman jobs", "become handyman", "handyman tools", "how to", "DIY"],
+    match_distribution: { exact: 0.2, phrase: 0.55, broad_mod: 0.25 },
+    max_cpc: 2.5,
+    daily_budget: 70,
+    ads: [{
+      headline1: "Handyman Services — Call Now",
+      headline2: "No Job Too Small",
+      headline3: "Licensed & Reliable",
+      headline4: "Home Repairs & Maintenance",
+      headline5: "Same Day Available",
+      description1: "Professional handyman services. Repairs, installations, maintenance & more.",
+      description2: "Free estimates. Honest pricing. Get your to-do list done. Call today."
+    }],
+    final_url: "https://adiology.online/handyman?utm_source=adiology&utm_medium=ads&utm_campaign=handyman_mix",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Home Repairs", description1: "Fix anything", description2: "Skilled pros", finalUrl: "https://adiology.online/handyman/repairs" },
+      { text: "Installations", description1: "TV mounting, shelves", description2: "Done right", finalUrl: "https://adiology.online/handyman/install" },
+      { text: "Maintenance", description1: "Keep home perfect", description2: "Regular service", finalUrl: "https://adiology.online/handyman/maintenance" },
+      { text: "Get Quote", description1: "Fast estimate", description2: "No obligation", finalUrl: "https://adiology.online/handyman/quote" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "No Job Too Small" },
+      { text: "Licensed Pros" },
+      { text: "Same Day Service" }
+    ]
+  },
+  {
+    slug: "glass-repair-ibag",
+    title: "Glass Repair & Replacement",
+    campaign_name: "Glass Repair - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/glass.html",
+    ad_groups: [
+      { name: "Window Glass Intent" },
+      { name: "Door Glass Intent" },
+      { name: "Emergency Glass Intent" }
+    ],
+    keywords: [
+      "glass repair near me", "window glass repair near me", "glass replacement near me",
+      "broken window repair near me", "door glass replacement near me", "emergency glass repair",
+      "glass company near me", "storefront glass repair"
+    ],
+    negative_keywords: ["glass for sale", "DIY glass", "how to replace glass", "jobs", "glass cutter"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 3.5,
+    daily_budget: 100,
+    ads: [{
+      headline1: "Glass Repair — Fast Service",
+      headline2: "Window & Door Glass",
+      headline3: "Emergency Service Available",
+      headline4: "Licensed Glass Experts",
+      headline5: "Free Estimates",
+      description1: "Professional glass repair & replacement. Windows, doors, storefronts & more.",
+      description2: "Fast service. Emergency repairs available. Quality glass. Call now."
+    }],
+    final_url: "https://adiology.online/glass?utm_source=adiology&utm_medium=ads&utm_campaign=glass_ibag",
+    cta: "Call Now",
+    sitelinks: [
+      { text: "Window Glass", description1: "All window types", description2: "Fast repair", finalUrl: "https://adiology.online/glass/windows" },
+      { text: "Door Glass", description1: "Patio, entry doors", description2: "Expert install", finalUrl: "https://adiology.online/glass/doors" },
+      { text: "Emergency Glass", description1: "Broken glass?", description2: "Fast response", finalUrl: "https://adiology.online/glass/emergency" },
+      { text: "Free Estimate", description1: "Quick quote", description2: "No obligation", finalUrl: "https://adiology.online/glass/estimate" }
+    ],
+    callouts: [
+      { text: "Free Estimates" },
+      { text: "Fast Service" },
+      { text: "Emergency Repairs" },
+      { text: "Quality Glass" }
+    ]
+  },
+  {
+    slug: "mold-remediation-ibag",
+    title: "Mold Remediation",
+    campaign_name: "Mold Remediation - IBAG",
+    structure: "IBAG",
+    landing_page_url: "/landing-pages/mold.html",
+    ad_groups: [
+      { name: "Mold Removal Intent" },
+      { name: "Mold Testing Intent" },
+      { name: "Black Mold Intent" }
+    ],
+    keywords: [
+      "mold remediation near me", "mold removal near me", "mold inspection near me",
+      "black mold removal near me", "mold testing near me", "mold cleanup near me",
+      "mold abatement near me", "mold specialist near me"
+    ],
+    negative_keywords: ["mold killer spray", "DIY mold", "how to remove mold", "jobs", "mold test kit"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 5.5,
+    daily_budget: 160,
+    ads: [{
+      headline1: "Mold Remediation — Free Inspection",
+      headline2: "Certified Mold Specialists",
+      headline3: "Safe & Thorough Removal",
+      headline4: "Protect Your Health",
+      headline5: "Insurance Claim Help",
+      description1: "Professional mold remediation & testing. Certified specialists, safe removal.",
+      description2: "Free mold inspection. Protect your family's health. Insurance claim help. Call today."
+    }],
+    final_url: "https://adiology.online/mold?utm_source=adiology&utm_medium=ads&utm_campaign=mold_ibag",
+    cta: "Get Free Inspection",
+    sitelinks: [
+      { text: "Mold Testing", description1: "Identify mold types", description2: "Lab analysis", finalUrl: "https://adiology.online/mold/testing" },
+      { text: "Mold Removal", description1: "Safe remediation", description2: "Thorough cleanup", finalUrl: "https://adiology.online/mold/removal" },
+      { text: "Black Mold", description1: "Dangerous mold", description2: "Expert removal", finalUrl: "https://adiology.online/mold/black-mold" },
+      { text: "Free Inspection", description1: "Assess your home", description2: "No obligation", finalUrl: "https://adiology.online/mold/inspection" }
+    ],
+    callouts: [
+      { text: "Free Inspection" },
+      { text: "Certified Pros" },
+      { text: "Insurance Help" },
+      { text: "Health Protection" }
+    ]
+  },
+  {
+    slug: "basement-waterproofing-stag",
+    title: "Basement Waterproofing",
+    campaign_name: "Basement Waterproofing - STAG",
+    structure: "STAG",
+    landing_page_url: "/landing-pages/waterproofing.html",
+    ad_groups: [
+      { name: "Interior Waterproofing" },
+      { name: "Exterior Waterproofing" },
+      { name: "Sump Pump Installation" }
+    ],
+    keywords: [
+      "basement waterproofing near me", "waterproofing contractor near me", "wet basement repair",
+      "basement leak repair near me", "sump pump installation near me", "basement sealing near me",
+      "foundation waterproofing near me", "basement drainage near me"
+    ],
+    negative_keywords: ["waterproofing paint", "DIY waterproofing", "how to waterproof", "jobs", "sump pump for sale"],
+    match_distribution: { exact: 0.25, phrase: 0.5, broad_mod: 0.25 },
+    max_cpc: 6.0,
+    daily_budget: 170,
+    ads: [{
+      headline1: "Basement Waterproofing — Free Quote",
+      headline2: "Stop Leaks Permanently",
+      headline3: "Licensed Waterproofing Experts",
+      headline4: "Lifetime Warranty",
+      headline5: "Financing Available",
+      description1: "Professional basement waterproofing. Interior, exterior & sump pump solutions.",
+      description2: "Free inspection. Lifetime warranty. Protect your basement. Call today."
+    }],
+    final_url: "https://adiology.online/waterproofing?utm_source=adiology&utm_medium=ads&utm_campaign=waterproofing_stag",
+    cta: "Get Free Quote",
+    sitelinks: [
+      { text: "Interior Solutions", description1: "Drain systems", description2: "Vapor barriers", finalUrl: "https://adiology.online/waterproofing/interior" },
+      { text: "Exterior Solutions", description1: "Foundation coating", description2: "Drainage", finalUrl: "https://adiology.online/waterproofing/exterior" },
+      { text: "Sump Pumps", description1: "Installation & repair", description2: "Battery backup", finalUrl: "https://adiology.online/waterproofing/sump-pump" },
+      { text: "Free Inspection", description1: "Assess your basement", description2: "No obligation", finalUrl: "https://adiology.online/waterproofing/inspection" }
+    ],
+    callouts: [
+      { text: "Free Inspection" },
+      { text: "Lifetime Warranty" },
+      { text: "Financing Available" },
+      { text: "Licensed Experts" }
+    ]
   }
 ];
 
