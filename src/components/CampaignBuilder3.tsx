@@ -55,6 +55,7 @@ import { GEO_PRESETS, US_STATES_ALL, US_CITIES_TOP_500, US_ZIP_CODES_EXTENDED, g
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { generateDKIAdWithAI } from '../utils/dkiAdGeneratorAI';
 import { CampaignFlowDiagram } from './CampaignFlowDiagram';
+import { TerminalCard, TerminalLine } from './ui/terminal-card';
 
 // Campaign Structure Types (14 structures)
 const CAMPAIGN_STRUCTURES = [
@@ -2958,6 +2959,27 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         <p className="text-slate-600">Generate 410-710 keywords based on your seed keywords and campaign structure</p>
       </div>
 
+      {/* Terminal-Style Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <TerminalCard title="Keyword Statistics" showDots={true} variant="compact">
+          <div className="space-y-1.5">
+            <TerminalLine prefix="$" label="seed_keywords:" value={`${seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0).length}`} valueColor="cyan" />
+            <TerminalLine prefix="$" label="generated:" value={`${campaignData.selectedKeywords.length}`} valueColor="green" />
+            <TerminalLine prefix="$" label="negative:" value={`${campaignData.negativeKeywords.length}`} valueColor="yellow" />
+            <TerminalLine prefix="$" label="match_types:" value="[BROAD, PHRASE, EXACT]" valueColor="purple" />
+          </div>
+        </TerminalCard>
+
+        <TerminalCard title="Generation Status" showDots={true} variant="compact">
+          <div className="space-y-1.5">
+            <TerminalLine prefix=">" label="structure:" value={CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG'} valueColor="cyan" />
+            <TerminalLine prefix=">" label="ad_groups:" value={`${campaignData.adGroups.length}`} valueColor="green" />
+            <TerminalLine prefix=">" label="status:" value={loading ? 'GENERATING...' : campaignData.selectedKeywords.length > 0 ? 'READY' : 'PENDING'} valueColor={loading ? 'yellow' : campaignData.selectedKeywords.length > 0 ? 'green' : 'slate'} />
+            <TerminalLine prefix=">" label="target_range:" value="410-710 keywords" valueColor="purple" />
+          </div>
+        </TerminalCard>
+      </div>
+
       <Card className="mb-6">
             <CardHeader>
               <CardTitle>Seed Keywords</CardTitle>
@@ -3224,6 +3246,27 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-slate-800 mb-2">Ads & Extensions</h3>
+        </div>
+
+        {/* Terminal-Style Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <TerminalCard title="Ad Statistics" showDots={true} variant="compact">
+            <div className="space-y-1.5">
+              <TerminalLine prefix="$" label="ads_created:" value={`${campaignData.ads.length}/3`} valueColor={campaignData.ads.length > 0 ? 'green' : 'slate'} />
+              <TerminalLine prefix="$" label="ad_types:" value={campaignData.ads.map(ad => ad.type?.toUpperCase() || ad.adType || 'RSA').join(', ') || 'NONE'} valueColor="cyan" />
+              <TerminalLine prefix="$" label="extensions:" value={`${campaignData.ads.reduce((total, ad) => total + (ad.extensions?.length || 0), 0)}`} valueColor="yellow" />
+              <TerminalLine prefix="$" label="ad_groups:" value={`${campaignData.adGroups.length}`} valueColor="purple" />
+            </div>
+          </TerminalCard>
+
+          <TerminalCard title="Campaign Context" showDots={true} variant="compact">
+            <div className="space-y-1.5">
+              <TerminalLine prefix=">" label="landing_page:" value={campaignData.url ? 'SET' : 'NOT_SET'} valueColor={campaignData.url ? 'green' : 'yellow'} />
+              <TerminalLine prefix=">" label="keywords:" value={`${campaignData.selectedKeywords.length}`} valueColor="cyan" />
+              <TerminalLine prefix=">" label="structure:" value={CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG'} valueColor="purple" />
+              <TerminalLine prefix=">" label="status:" value={loading ? 'GENERATING...' : campaignData.ads.length >= 3 ? 'COMPLETE' : 'IN_PROGRESS'} valueColor={loading ? 'yellow' : campaignData.ads.length >= 3 ? 'green' : 'cyan'} />
+            </div>
+          </TerminalCard>
         </div>
 
         {/* Campaign Info Card - URL (greyed out) and Keywords */}

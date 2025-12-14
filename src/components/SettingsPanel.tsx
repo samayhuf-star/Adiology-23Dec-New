@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { BillingPanel } from './BillingPanel';
 import { notifications } from '../utils/notifications';
+import { TerminalCard, TerminalLine } from './ui/terminal-card';
 
 interface GoogleAdsAccount {
   id: string;
@@ -290,6 +291,27 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
           Settings
         </h1>
         <p className="text-slate-600 text-lg">Manage your account settings, billing, and preferences</p>
+      </div>
+
+      {/* Terminal-Style Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <TerminalCard title="Account Status" showDots={true} variant="compact">
+          <div className="space-y-1.5">
+            <TerminalLine prefix="$" label="user:" value={name || 'NOT_SET'} valueColor={name ? 'green' : 'yellow'} />
+            <TerminalLine prefix="$" label="email:" value={email ? email.substring(0, 20) + (email.length > 20 ? '...' : '') : 'NOT_SET'} valueColor={email ? 'cyan' : 'yellow'} />
+            <TerminalLine prefix="$" label="auth_provider:" value="SUPABASE" valueColor="purple" />
+            <TerminalLine prefix="$" label="status:" value={user ? 'AUTHENTICATED' : 'NOT_LOGGED_IN'} valueColor={user ? 'green' : 'yellow'} />
+          </div>
+        </TerminalCard>
+
+        <TerminalCard title="Integrations" showDots={true} variant="compact">
+          <div className="space-y-1.5">
+            <TerminalLine prefix=">" label="google_ads:" value={googleAdsConnected ? 'CONNECTED' : googleAdsLoading ? 'CHECKING...' : 'DISCONNECTED'} valueColor={googleAdsConnected ? 'green' : googleAdsLoading ? 'slate' : 'yellow'} />
+            <TerminalLine prefix=">" label="accounts:" value={`${googleAdsAccounts.length}`} valueColor="cyan" />
+            <TerminalLine prefix=">" label="default_account:" value={defaultAccount ? defaultAccount.substring(0, 12) + '...' : 'NONE'} valueColor={defaultAccount ? 'green' : 'slate'} />
+            <TerminalLine prefix=">" label="tab:" value={activeTab.toUpperCase()} valueColor="purple" />
+          </div>
+        </TerminalCard>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

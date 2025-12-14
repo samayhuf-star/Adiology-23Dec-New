@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Clock, CheckCircle, AlertCircle, RefreshCw, Plus, FolderOpen, Trash2, Eye, Link2, Globe, MapPin, Calendar, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { TerminalCard, TerminalLine } from './ui/terminal-card';
 
 interface GoogleAdsSearchProps {
   user: any;
@@ -227,6 +228,27 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
             <p className="text-sm text-gray-600">Research competitor ads from Google Ads Transparency Center</p>
           </div>
         </div>
+      </div>
+
+      {/* Terminal-Style Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TerminalCard title="Search Statistics" showDots={true} variant="compact">
+          <div className="space-y-1.5">
+            <TerminalLine prefix="$" label="keywords:" value={`${keywords.filter(k => k.trim()).length}/5`} valueColor="cyan" />
+            <TerminalLine prefix="$" label="results:" value={`${results.length}`} valueColor="green" />
+            <TerminalLine prefix="$" label="saved_searches:" value={`${previousRequests.length}`} valueColor="yellow" />
+            <TerminalLine prefix="$" label="active_tab:" value={activeTab.toUpperCase()} valueColor="purple" />
+          </div>
+        </TerminalCard>
+
+        <TerminalCard title="Request Status" showDots={true} variant="compact">
+          <div className="space-y-1.5">
+            <TerminalLine prefix=">" label="status:" value={searchStatus.toUpperCase()} valueColor={searchStatus === 'completed' ? 'green' : searchStatus === 'failed' ? 'yellow' : searchStatus === 'processing' ? 'cyan' : 'slate'} />
+            <TerminalLine prefix=">" label="ad_data:" value={adData ? 'LOADED' : 'NONE'} valueColor={adData ? 'green' : 'slate'} />
+            <TerminalLine prefix=">" label="date_range:" value={`${dateRange} DAYS`} valueColor="cyan" />
+            <TerminalLine prefix=">" label="api:" value={loading ? 'FETCHING...' : 'READY'} valueColor={loading ? 'yellow' : 'green'} />
+          </div>
+        </TerminalCard>
       </div>
 
       {/* Tabs */}
