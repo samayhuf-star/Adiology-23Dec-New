@@ -2705,19 +2705,20 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     <span className="text-xs font-medium">Selected</span>
                   </div>
                 )}
+                <button
+                  type="button"
+                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setSelectedStructureForDiagram({ id: structure.id, name: structure.name });
+                    setShowFlowDiagram(true);
+                  }}
+                  title="View structure diagram"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </button>
               </Card>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs h-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedStructureForDiagram({ id: structure.id, name: structure.name });
-                  setShowFlowDiagram(true);
-                }}
-              >
-                View Structure
-              </Button>
             </div>
           );
         })}
@@ -4885,6 +4886,16 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Campaign Structure Flow Diagram */}
+        {selectedStructureForDiagram && (
+          <CampaignFlowDiagram
+            open={showFlowDiagram}
+            onOpenChange={setShowFlowDiagram}
+            structureName={selectedStructureForDiagram.name}
+            structureId={selectedStructureForDiagram.id}
+          />
+        )}
     </div>
   );
 };

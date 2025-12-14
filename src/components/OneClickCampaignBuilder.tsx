@@ -63,6 +63,7 @@ export function OneClickCampaignBuilder() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [resultsTimestamp, setResultsTimestamp] = useState<string>('');
   const logContainerRef = useRef<HTMLDivElement>(null);
 
   const addLogEntry = (message: string, type: LogEntry['type'] = 'info') => {
@@ -164,6 +165,7 @@ export function OneClickCampaignBuilder() {
 
   const proceedToResults = () => {
     if (generatedCampaign) {
+      setResultsTimestamp(new Date().toLocaleTimeString('en-US', { hour12: false }));
       setCurrentStep('results');
       notifications.success('Campaign generated successfully!', {
         title: 'Success',
@@ -421,93 +423,190 @@ export function OneClickCampaignBuilder() {
       )}
 
       {currentStep === 'results' && generatedCampaign && (
-        <div className="max-w-6xl mx-auto">
-          <Card className="border-green-200 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700">
               <div className="flex items-center gap-3">
-                <Check className="w-8 h-8" />
-                <div>
-                  <CardTitle className="text-2xl">Campaign Generated Successfully!</CardTitle>
-                  <CardDescription className="text-green-100">
-                    Your campaign is ready to download and import
-                  </CardDescription>
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
+                <span className="text-slate-300 text-sm font-medium">Campaign Export Console</span>
               </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard
-                  label="Campaign Name"
-                  value={generatedCampaign.campaign_name}
-                />
-                <StatCard
-                  label="Keywords Generated"
-                  value={String(generatedCampaign.campaign_data?.keywords?.length || '100+')}
-                />
-                <StatCard
-                  label="Ad Groups"
-                  value={String(generatedCampaign.campaign_data?.adGroups?.length || '5')}
-                />
-                <StatCard
-                  label="Daily Budget"
-                  value={`$${generatedCampaign.campaign_data?.structure?.dailyBudget || '100'}`}
-                />
+              <Badge className="bg-green-600 text-white flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                Ready to Export
+              </Badge>
+            </div>
+            
+            <div className="p-4 font-mono text-sm space-y-1">
+              <div className="flex gap-2 py-0.5">
+                <span className="text-slate-500 shrink-0">[{resultsTimestamp}]</span>
+                <span className="text-green-400">
+                  <span className="mr-1">{'\u2713'}</span>
+                  Campaign generation complete
+                </span>
               </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <DetailSection
-                  title="Website Analysis"
-                  icon="🔍"
-                  data={generatedCampaign.campaign_data?.analysis}
-                />
-                <DetailSection
-                  title="Campaign Structure"
-                  icon="📊"
-                  data={generatedCampaign.campaign_data?.structure}
-                />
-                <DetailSection
-                  title="Sample Keywords"
-                  icon="🔑"
-                  data={{
-                    total: generatedCampaign.campaign_data?.keywords?.length,
-                    samples: generatedCampaign.campaign_data?.keywords?.slice(0, 15)
-                  }}
-                />
-                <DetailSection
-                  title="Ad Copy"
-                  icon="📝"
-                  data={generatedCampaign.campaign_data?.adCopy}
-                />
+              <div className="flex gap-2 py-0.5">
+                <span className="text-slate-500 shrink-0">[{resultsTimestamp}]</span>
+                <span className="text-cyan-400">
+                  <span className="mr-1">{'\u2192'}</span>
+                  Campaign: <span className="text-yellow-300">{generatedCampaign.campaign_name}</span>
+                </span>
               </div>
-
-              <div className="flex gap-4 flex-wrap pt-4 border-t">
-                <Button
-                  onClick={downloadCSV}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Download CSV for Google Ads
-                </Button>
-
-                <Button
-                  onClick={saveCampaign}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Save className="w-5 h-5 mr-2" />
-                  Save to Saved Campaigns
-                </Button>
-
-                <Button
-                  onClick={resetBuilder}
-                  variant="outline"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  Generate Another
-                </Button>
+              <div className="flex gap-2 py-0.5">
+                <span className="text-slate-500 shrink-0">[{resultsTimestamp}]</span>
+                <span className="text-cyan-400">
+                  <span className="mr-1">{'\u2192'}</span>
+                  Keywords: <span className="text-yellow-300">{generatedCampaign.campaign_data?.keywords?.length || '100+'}</span>
+                </span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex gap-2 py-0.5">
+                <span className="text-slate-500 shrink-0">[{resultsTimestamp}]</span>
+                <span className="text-cyan-400">
+                  <span className="mr-1">{'\u2192'}</span>
+                  Ad Groups: <span className="text-yellow-300">{generatedCampaign.campaign_data?.adGroups?.length || '5'}</span>
+                </span>
+              </div>
+              <div className="flex gap-2 py-0.5">
+                <span className="text-slate-500 shrink-0">[{resultsTimestamp}]</span>
+                <span className="text-cyan-400">
+                  <span className="mr-1">{'\u2192'}</span>
+                  Daily Budget: <span className="text-yellow-300">${generatedCampaign.campaign_data?.structure?.dailyBudget || '100'}</span>
+                </span>
+              </div>
+              <div className="flex gap-2 py-0.5">
+                <span className="text-slate-500 shrink-0">[{resultsTimestamp}]</span>
+                <span className="text-green-400">
+                  <span className="mr-1">{'\u2713'}</span>
+                  CSV file ready for Google Ads Editor import
+                </span>
+              </div>
+              <div className="flex gap-2 py-0.5 mt-2">
+                <span className="text-slate-500 shrink-0">[{resultsTimestamp}]</span>
+                <span className="text-purple-400 animate-pulse">
+                  <span className="mr-1">{'>'}</span>
+                  Awaiting export command...
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-700 flex gap-3 flex-wrap">
+              <Button
+                onClick={downloadCSV}
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                Download CSV for Google Ads
+              </Button>
+
+              <Button
+                onClick={saveCampaign}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+              >
+                <Save className="w-5 h-5 mr-2" />
+                Save to Saved Campaigns
+              </Button>
+
+              <Button
+                onClick={resetBuilder}
+                variant="outline"
+                className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Generate Another
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-slate-900 rounded-xl shadow-xl overflow-hidden border border-slate-700">
+              <div className="flex items-center gap-3 px-4 py-3 bg-slate-800 border-b border-slate-700">
+                <div className="flex gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                </div>
+                <span className="text-slate-300 text-sm font-medium">Website Analysis</span>
+              </div>
+              <ScrollArea className="h-48 p-4">
+                <pre className="text-xs text-slate-400 font-mono whitespace-pre-wrap">
+                  {JSON.stringify(generatedCampaign.campaign_data?.analysis, null, 2)}
+                </pre>
+              </ScrollArea>
+            </div>
+
+            <div className="bg-slate-900 rounded-xl shadow-xl overflow-hidden border border-slate-700">
+              <div className="flex items-center gap-3 px-4 py-3 bg-slate-800 border-b border-slate-700">
+                <div className="flex gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                </div>
+                <span className="text-slate-300 text-sm font-medium">Campaign Structure</span>
+              </div>
+              <ScrollArea className="h-48 p-4">
+                <pre className="text-xs text-slate-400 font-mono whitespace-pre-wrap">
+                  {JSON.stringify(generatedCampaign.campaign_data?.structure, null, 2)}
+                </pre>
+              </ScrollArea>
+            </div>
+
+            <div className="bg-slate-900 rounded-xl shadow-xl overflow-hidden border border-slate-700">
+              <div className="flex items-center gap-3 px-4 py-3 bg-slate-800 border-b border-slate-700">
+                <div className="flex gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                </div>
+                <span className="text-slate-300 text-sm font-medium">Sample Keywords ({generatedCampaign.campaign_data?.keywords?.length || 0} total)</span>
+              </div>
+              <ScrollArea className="h-48 p-4">
+                <div className="space-y-1 font-mono text-xs">
+                  {generatedCampaign.campaign_data?.keywords?.slice(0, 20).map((kw: string, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-green-400">{'\u2713'}</span>
+                      <span className="text-slate-300">{kw}</span>
+                    </div>
+                  ))}
+                  {(generatedCampaign.campaign_data?.keywords?.length || 0) > 20 && (
+                    <div className="text-slate-500 mt-2">
+                      ... and {(generatedCampaign.campaign_data?.keywords?.length || 0) - 20} more keywords
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+
+            <div className="bg-slate-900 rounded-xl shadow-xl overflow-hidden border border-slate-700">
+              <div className="flex items-center gap-3 px-4 py-3 bg-slate-800 border-b border-slate-700">
+                <div className="flex gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                </div>
+                <span className="text-slate-300 text-sm font-medium">Ad Copy Preview</span>
+              </div>
+              <ScrollArea className="h-48 p-4">
+                <div className="space-y-3 font-mono text-xs">
+                  {generatedCampaign.campaign_data?.adCopy?.headlines?.slice(0, 5).map((h: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="text-yellow-400 shrink-0">H{idx + 1}:</span>
+                      <span className="text-slate-300">{h.text || h}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-slate-700 my-2 pt-2" />
+                  {generatedCampaign.campaign_data?.adCopy?.descriptions?.slice(0, 3).map((d: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="text-cyan-400 shrink-0">D{idx + 1}:</span>
+                      <span className="text-slate-300">{d.text || d}</span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
         </div>
       )}
     </div>
