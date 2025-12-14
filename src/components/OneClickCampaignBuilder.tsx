@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Zap, Check, AlertCircle, Download, Save, Loader2, ArrowLeft } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Zap, Check, AlertCircle, Download, Save, Loader2, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -47,6 +47,12 @@ interface ProgressStep {
   progress: number;
 }
 
+interface LogEntry {
+  timestamp: string;
+  message: string;
+  type: 'info' | 'success' | 'action' | 'progress';
+}
+
 export function OneClickCampaignBuilder() {
   const [currentStep, setCurrentStep] = useState<'input' | 'generating' | 'results'>('input');
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -55,6 +61,21 @@ export function OneClickCampaignBuilder() {
   const [currentStatus, setCurrentStatus] = useState('');
   const [generatedCampaign, setGeneratedCampaign] = useState<GeneratedCampaign | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const logContainerRef = useRef<HTMLDivElement>(null);
+
+  const addLogEntry = (message: string, type: LogEntry['type'] = 'info') => {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString('en-US', { hour12: false });
+    setLogEntries(prev => [...prev, { timestamp, message, type }]);
+  };
+
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [logEntries]);
 
   const handleAnalyze = async () => {
     if (!websiteUrl) {
@@ -72,6 +93,8 @@ export function OneClickCampaignBuilder() {
     setCurrentStep('generating');
     setProgress(0);
     setIsGenerating(true);
+    setLogEntries([]);
+    setAnalysisComplete(false);
 
     try {
       const response = await fetch('/api/campaigns/one-click', {
@@ -108,13 +131,13 @@ export function OneClickCampaignBuilder() {
                   setProgress(data.progress);
                   setCurrentStatus(data.status || '');
                 }
+                if (data.log) {
+                  addLogEntry(data.log.message, data.log.type || 'info');
+                }
                 if (data.complete && data.campaign) {
+                  setAnalysisComplete(true);
                   setGeneratedCampaign(data.campaign);
-                  setCurrentStep('results');
-                  notifications.success('Campaign generated successfully!', {
-                    title: 'Success',
-                    description: `Generated ${data.campaign.campaign_data?.keywords?.length || 100}+ keywords`
-                  });
+                  addLogEntry('Analysis complete! Ready to proceed.', 'success');
                 }
                 if (data.error) {
                   throw new Error(data.error);
@@ -136,6 +159,16 @@ export function OneClickCampaignBuilder() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const proceedToResults = () => {
+    if (generatedCampaign) {
+      setCurrentStep('results');
+      notifications.success('Campaign generated successfully!', {
+        title: 'Success',
+        description: `Generated ${generatedCampaign.campaign_data?.keywords?.length || 100}+ keywords`
+      });
     }
   };
 
@@ -194,6 +227,8 @@ export function OneClickCampaignBuilder() {
     setCurrentStatus('');
     setGeneratedCampaign(null);
     setError('');
+    setLogEntries([]);
+    setAnalysisComplete(false);
   };
 
   return (
@@ -288,43 +323,100 @@ export function OneClickCampaignBuilder() {
       )}
 
       {currentStep === 'generating' && (
-        <div className="max-w-2xl mx-auto">
-          <Card className="border-purple-200 shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-2xl text-slate-800">Generating Campaign...</CardTitle>
-              <CardDescription>Please wait while AI analyzes your website</CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-slate-600 font-medium">Progress</span>
-                  <span className="text-purple-600 font-bold">{progress}%</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 h-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Website URL</label>
+            <div className="flex items-center gap-3">
+              <Input
+                type="url"
+                value={websiteUrl}
+                disabled
+                className="flex-1 bg-white border-slate-300"
+              />
+              <Button
+                variant="outline"
+                disabled
+                className="flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Analyze
+              </Button>
+            </div>
+          </div>
 
-              <div className="space-y-3">
-                <GenerationStep step={1} title="Analyzing landing page" progress={progress} threshold={15} />
-                <GenerationStep step={2} title="Building campaign structure" progress={progress} threshold={30} />
-                <GenerationStep step={3} title="Generating 100+ keywords" progress={progress} threshold={50} />
-                <GenerationStep step={4} title="Creating ad copy variations" progress={progress} threshold={65} />
-                <GenerationStep step={5} title="Organizing ad groups" progress={progress} threshold={80} />
-                <GenerationStep step={6} title="Generating Google Ads CSV" progress={progress} threshold={90} />
-                <GenerationStep step={7} title="Finalizing campaign" progress={progress} threshold={100} />
+          <div className="bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                </div>
+                <span className="text-slate-300 text-sm font-medium">Website Analysis Console</span>
               </div>
-
-              {currentStatus && (
-                <div className="p-4 bg-purple-50 border border-purple-100 rounded-lg">
-                  <p className="text-sm text-purple-700">{currentStatus}</p>
+              <div className="flex items-center gap-2">
+                {analysisComplete ? (
+                  <Badge className="bg-green-600 text-white flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    Complete
+                  </Badge>
+                ) : (
+                  <Badge className="bg-purple-600 text-white flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Analyzing...
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            <div 
+              ref={logContainerRef}
+              className="p-4 h-80 overflow-y-auto font-mono text-sm"
+            >
+              {logEntries.map((entry, index) => (
+                <div key={index} className="flex gap-2 py-0.5">
+                  <span className="text-slate-500 shrink-0">[{entry.timestamp}]</span>
+                  <span className={`
+                    ${entry.type === 'success' ? 'text-green-400' : ''}
+                    ${entry.type === 'action' ? 'text-yellow-400' : ''}
+                    ${entry.type === 'progress' ? 'text-cyan-400' : ''}
+                    ${entry.type === 'info' ? 'text-slate-400' : ''}
+                  `}>
+                    {entry.type === 'success' && <span className="text-green-400 mr-1">{'\u2713'}</span>}
+                    {entry.type === 'action' && <span className="text-yellow-400 mr-1">{'>'}</span>}
+                    {entry.type === 'progress' && <span className="text-cyan-400 mr-1">{'\u2192'}</span>}
+                    {entry.message}
+                  </span>
+                </div>
+              ))}
+              {!analysisComplete && logEntries.length > 0 && (
+                <div className="flex items-center gap-2 py-0.5 text-purple-400">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span className="animate-pulse">Processing...</span>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+
+            {analysisComplete && (
+              <div className="p-4 border-t border-slate-700">
+                <Button
+                  onClick={proceedToResults}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-5 text-base font-medium"
+                >
+                  Next: View Campaign Details
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {!analysisComplete && (
+            <div className="text-center">
+              <p className="text-sm text-slate-500">
+                This usually takes 30-60 seconds depending on website complexity
+              </p>
+            </div>
+          )}
         </div>
       )}
 

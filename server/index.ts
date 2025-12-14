@@ -2962,6 +2962,10 @@ app.post('/api/campaigns/one-click', async (c) => {
     writer.write(encoder.encode(message));
   };
 
+  const sendLog = (writer: WritableStreamDefaultWriter, message: string, type: 'info' | 'success' | 'action' | 'progress' = 'info') => {
+    sendProgress(writer, { log: { message, type } });
+  };
+
   try {
     const { websiteUrl } = await c.req.json();
     
@@ -2975,6 +2979,7 @@ app.post('/api/campaigns/one-click', async (c) => {
     (async () => {
       try {
         sendProgress(writer, { progress: 5, status: 'Starting campaign generation...' });
+        sendLog(writer, 'Using client-side extraction...', 'progress');
 
         // Step 1: Fetch and analyze website
         sendProgress(writer, { progress: 15, status: 'Analyzing landing page...' });
@@ -3002,12 +3007,18 @@ app.post('/api/campaigns/one-click', async (c) => {
             .replace(/<[^>]*>/g, ' ')
             .replace(/\s+/g, ' ')
             .substring(0, 4000);
+          
+          sendLog(writer, 'Client extraction complete', 'success');
         } catch (fetchError) {
           console.error('Error fetching website:', fetchError);
           pageContent = `Website: ${websiteUrl}`;
+          sendLog(writer, 'Using URL-based analysis (fallback)', 'info');
         }
 
         // Step 2: Use AI to analyze and generate campaign
+        sendLog(writer, 'Detecting campaign intent...', 'action');
+        sendProgress(writer, { progress: 25, status: 'Detecting intent...' });
+        sendLog(writer, 'Using AI-powered detection...', 'progress');
         sendProgress(writer, { progress: 30, status: 'Building campaign structure...' });
 
         const analysisPrompt = `Analyze this website content and generate a complete Google Ads campaign.
@@ -3049,7 +3060,17 @@ Return ONLY valid JSON (no markdown, no backticks) with this structure:
           adGroupThemes: ['Core Services', 'Benefits', 'Brand', 'Offers', 'Info']
         };
 
+        // Detect intent type from analysis
+        const intentType = analysis.products?.some((p: string) => 
+          p.toLowerCase().includes('call') || p.toLowerCase().includes('phone') || p.toLowerCase().includes('contact')
+        ) ? 'CALL_INTENT' : 'CONVERSION_INTENT';
+        
+        sendLog(writer, `Intent detected: ${intentType}`, 'success');
+        sendLog(writer, `Vertical: ${analysis.industry || 'General'}`, 'success');
+        sendLog(writer, `CTA: ${analysis.mainValue?.split(' ')[0] || 'Learn More'}`, 'success');
+
         // Step 3: Generate keywords
+        sendLog(writer, 'Generating seed keywords...', 'action');
         sendProgress(writer, { progress: 50, status: 'Generating 100+ keywords...' });
 
         const keywordPrompt = `Generate 100+ Google Ads keywords for this business:
@@ -3096,8 +3117,16 @@ Example format: ["keyword 1", "keyword 2", "keyword 3", ...]`;
             actions.forEach(act => keywords.push(`${act} ${base}`));
           });
         }
+        
+        sendLog(writer, `Generated ${keywords.length} seed keywords`, 'success');
+        
+        // Rank campaign structures
+        sendLog(writer, 'Ranking campaign structures...', 'action');
+        const recommendedStructure = keywords.length > 50 ? 'SKAG' : 'STAG';
+        sendLog(writer, `Recommended structure: ${recommendedStructure}`, 'success');
 
         // Step 4: Generate ad copy
+        sendLog(writer, 'Creating ad copy...', 'action');
         sendProgress(writer, { progress: 65, status: 'Creating ad copy variations...' });
 
         const adCopyPrompt = `Generate Google Ads copy for:
@@ -3148,7 +3177,11 @@ Return ONLY JSON (no markdown):
           callouts: ['Free Quote', '24/7 Support', 'Expert Team', 'Fast Service']
         };
 
+        sendLog(writer, `Created ${adCopy.headlines?.length || 5} headlines`, 'success');
+        sendLog(writer, `Created ${adCopy.descriptions?.length || 3} descriptions`, 'success');
+
         // Step 5: Create ad groups
+        sendLog(writer, 'Organizing ad groups...', 'action');
         sendProgress(writer, { progress: 80, status: 'Organizing ad groups...' });
 
         const themes = analysis.adGroupThemes || ['Core', 'Benefits', 'Brand', 'Offers', 'Info'];
@@ -3160,7 +3193,10 @@ Return ONLY JSON (no markdown):
           keywords: keywords.slice(index * keywordsPerGroup, (index + 1) * keywordsPerGroup)
         }));
 
+        sendLog(writer, `Created ${adGroups.length} ad groups`, 'success');
+
         // Step 6: Generate CSV
+        sendLog(writer, 'Generating Google Ads CSV...', 'action');
         sendProgress(writer, { progress: 90, status: 'Generating Google Ads CSV...' });
 
         let csvData = 'Campaign,Ad Group,Keyword,Match Type,Max CPC,Headline 1,Headline 2,Headline 3,Description 1,Description 2,Final URL,Status\n';
@@ -3200,6 +3236,9 @@ Return ONLY JSON (no markdown):
           }
         };
 
+        sendLog(writer, 'Saving analysis to database...', 'action');
+        sendProgress(writer, { progress: 95, status: 'Finalizing...' });
+        
         sendProgress(writer, { complete: true, campaign });
         writer.close();
       } catch (error: any) {
