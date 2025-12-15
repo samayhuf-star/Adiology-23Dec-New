@@ -218,7 +218,7 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
               {selectedPreset.adTemplate.headlines.map((headline, idx) => (
                 <div
                   key={idx}
-                  className="text-sm p-3 bg-teal-50 rounded-lg text-teal-800 border border-teal-100"
+                  className="text-sm p-3 bg-indigo-50 rounded-lg text-teal-800 border border-teal-100"
                 >
                   {idx + 1}. {headline}
                 </div>
@@ -235,7 +235,7 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
               {selectedPreset.adTemplate.descriptions.map((desc, idx) => (
                 <div
                   key={idx}
-                  className="text-sm p-4 bg-emerald-50 rounded-lg text-emerald-800 border border-emerald-100"
+                  className="text-sm p-4 bg-indigo-50 rounded-lg text-emerald-800 border border-emerald-100"
                 >
                   {idx + 1}. {desc}
                 </div>
@@ -328,11 +328,11 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shrink-0">
             <Package className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Home Service Campaign Presets
             </h1>
             <p className="text-sm text-slate-600 mt-1">
@@ -447,7 +447,7 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
                 </Badge>
               </div>
 
-              <CardTitle className="text-lg font-bold text-slate-800 group-hover:text-teal-600 transition-colors">
+              <CardTitle className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
                 {preset.name}
               </CardTitle>
               <CardDescription className="text-sm text-slate-500 line-clamp-2 mt-1">

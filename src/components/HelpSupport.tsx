@@ -555,22 +555,22 @@ export const HelpSupport = () => {
                                 </div>
 
                                 {/* Quick Tips Box */}
-                                <div className="mt-8 p-6 bg-emerald-50 rounded-xl border-2 border-emerald-200">
+                                <div className="mt-8 p-6 bg-indigo-50 rounded-xl border-2 border-indigo-200">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <Zap className="w-5 h-5 text-emerald-600" />
+                                        <Zap className="w-5 h-5 text-indigo-600" />
                                         <h4 className="font-normal text-emerald-800">Quick Tips</h4>
                                     </div>
                                     <ul className="space-y-2 text-sm text-emerald-800">
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
                                             Take your time to explore each feature as you go
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
                                             Use the search bar if you need to find specific tools quickly
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
                                             Check the FAQ section if you have additional questions
                                         </li>
                                     </ul>

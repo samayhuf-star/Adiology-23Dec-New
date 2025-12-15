@@ -675,7 +675,7 @@ function TemplatesPresetsSection({ onGetStarted }: { onGetStarted?: () => void }
                   transition={{ delay: index * 0.1 }}
                   className="flex items-start gap-3"
                 >
-                  <div className="w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Check className="w-4 h-4 text-white" />
                   </div>
                   <div>
@@ -791,7 +791,7 @@ function TemplatesPresetsSection({ onGetStarted }: { onGetStarted?: () => void }
         >
           <span className="text-gray-500 text-sm">Available for:</span>
           {industries.map((industry) => (
-            <span key={industry} className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-teal-300 hover:text-teal-600 transition-colors cursor-default">
+            <span key={industry} className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors cursor-default">
               {industry}
             </span>
           ))}

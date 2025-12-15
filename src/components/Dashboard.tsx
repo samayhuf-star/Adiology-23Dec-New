@@ -263,7 +263,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
     if (action.includes('create')) return 'text-green-600 bg-green-50';
     if (action.includes('export')) return 'text-blue-600 bg-blue-50';
     if (action.includes('generate')) return 'text-purple-600 bg-purple-50';
-    if (action.includes('validate')) return 'text-emerald-600 bg-emerald-50';
+    if (action.includes('validate')) return 'text-indigo-600 bg-indigo-50';
     return 'text-slate-600 bg-slate-50';
   };
 
@@ -307,7 +307,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
             Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Admin'}!
           </h1>
-          <span className="text-xs font-medium text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full uppercase">Beta</span>
+          <span className="text-xs font-medium text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full uppercase">Beta</span>
         </div>
         <p className="text-sm text-slate-500">Here's what's happening with your campaigns today.</p>
       </div>
@@ -338,7 +338,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
       {/* My Resources Section */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-          <Layers className="w-5 h-5 text-teal-600" />
+          <Layers className="w-5 h-5 text-indigo-600" />
           My Resources
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -365,13 +365,13 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center shadow-sm">
                 <Package className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xs font-medium text-teal-500 bg-teal-50 px-2 py-1 rounded-full">Saved</span>
+              <span className="text-xs font-medium text-teal-500 bg-indigo-50 px-2 py-1 rounded-full">Saved</span>
             </div>
             <div className="space-y-1">
               <h3 className="text-3xl font-bold text-slate-800">{stats?.userResources?.myPresets || 0}</h3>
               <p className="text-sm text-slate-500">My Presets</p>
             </div>
-            <div className="mt-4 h-1 bg-teal-100 rounded-full overflow-hidden">
+            <div className="mt-4 h-1 bg-indigo-100 rounded-full overflow-hidden">
               <div className="h-full bg-teal-400 rounded-full" style={{ width: '30%' }}></div>
             </div>
           </Card>
@@ -431,7 +431,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
       {/* Quick Actions */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-teal-600" />
+          <Zap className="w-5 h-5 text-indigo-600" />
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-3">
@@ -442,7 +442,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
                 key={action.id}
                 variant="outline"
                 onClick={() => onNavigate(action.id)}
-                className="h-9 px-4 gap-2 bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 transition-all"
+                className="h-9 px-4 gap-2 bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-all"
               >
                 <Icon className="w-4 h-4" />
                 <span className="text-sm font-medium">{action.title}</span>

@@ -480,7 +480,7 @@ const SECTION_TYPES = [
   { type: 'blog', name: 'Blog', color: 'bg-cyan-50', icon: '📝' },
   { type: 'partners', name: 'Partners', color: 'bg-lime-50', icon: '🤝' },
   { type: 'cta', name: 'Call to Action', color: 'bg-amber-50', icon: '🚀' },
-  { type: 'contact', name: 'Contact', color: 'bg-teal-50', icon: '📧' },
+  { type: 'contact', name: 'Contact', color: 'bg-indigo-50', icon: '📧' },
   { type: 'about', name: 'About Us', color: 'bg-fuchsia-50', icon: '📖' },
   { type: 'form', name: 'Lead Form', color: 'bg-rose-50', icon: '📋' },
   { type: 'policies', name: 'Policies', color: 'bg-slate-50', icon: '📜' },

@@ -55,7 +55,7 @@ export const PaymentSuccess: React.FC<PaymentSuccessProps> = ({
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Success Details */}
-            <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-green-200">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-700">Plan</span>

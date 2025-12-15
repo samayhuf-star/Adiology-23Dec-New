@@ -475,7 +475,7 @@ export const KeywordPlannerSelectable = ({
     return (
         <div className="p-8">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
                     AI Keyword Planner and Negative List Builder
                 </h1>
                 <p className="text-slate-500">
@@ -486,7 +486,7 @@ export const KeywordPlannerSelectable = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Panel: Define Your Strategy */}
                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-slate-200/60 shadow-xl">
-                    <h2 className="text-xl font-bold text-teal-600 mb-6">
+                    <h2 className="text-xl font-bold text-indigo-600 mb-6">
                         1. Define Your Strategy
                     </h2>
 
@@ -520,7 +520,7 @@ export const KeywordPlannerSelectable = ({
                                     onChange={(e) => {
                                         setMatchTypes(prev => ({...prev, broad: e.target.checked}));
                                     }}
-                                    className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2 cursor-pointer"
+                                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2 cursor-pointer"
                                 />
                                 <label htmlFor="broad-planner" className="text-sm text-slate-600 cursor-pointer select-none">
                                     Broad Match
@@ -534,7 +534,7 @@ export const KeywordPlannerSelectable = ({
                                     onChange={(e) => {
                                         setMatchTypes(prev => ({...prev, phrase: e.target.checked}));
                                     }}
-                                    className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2 cursor-pointer"
+                                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2 cursor-pointer"
                                 />
                                 <label htmlFor="phrase-planner" className="text-sm text-slate-600 cursor-pointer select-none">
                                     Phrase Match "keyword"
@@ -548,7 +548,7 @@ export const KeywordPlannerSelectable = ({
                                     onChange={(e) => {
                                         setMatchTypes(prev => ({...prev, exact: e.target.checked}));
                                     }}
-                                    className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2 cursor-pointer"
+                                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2 cursor-pointer"
                                 />
                                 <label htmlFor="exact-planner" className="text-sm text-slate-600 cursor-pointer select-none">
                                     Exact Match [keyword]
@@ -572,7 +572,7 @@ export const KeywordPlannerSelectable = ({
                         <div className="mb-3">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs text-slate-600">Keywords to Generate:</span>
-                                <span className="text-xs font-semibold text-teal-600">{negativeKeywordsCount}</span>
+                                <span className="text-xs font-semibold text-indigo-600">{negativeKeywordsCount}</span>
                             </div>
                             <Slider
                                 value={[negativeKeywordsCount]}
@@ -684,7 +684,7 @@ export const KeywordPlannerSelectable = ({
                 {/* Right Panel: Generated Keyword List with Selection */}
                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-slate-200/60 shadow-xl flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold text-teal-600">
+                        <h2 className="text-xl font-bold text-indigo-600">
                             2. Generated Keyword List
                         </h2>
                         {generatedKeywords.length > 0 && (
@@ -738,7 +738,7 @@ export const KeywordPlannerSelectable = ({
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                                     <div className="bg-white/80 rounded-lg p-3 border border-indigo-100">
                                         <div className="text-xs text-slate-500 mb-1">Total Keywords</div>
-                                        <div className="text-xl font-bold text-teal-600">{generatedKeywords.length}</div>
+                                        <div className="text-xl font-bold text-indigo-600">{generatedKeywords.length}</div>
                                     </div>
                                     <div className="bg-white/80 rounded-lg p-3 border border-indigo-100">
                                         <div className="text-xs text-slate-500 mb-1">Selected</div>
@@ -877,7 +877,7 @@ export const KeywordPlannerSelectable = ({
                                                         toggleKeyword(keyword);
                                                     }
                                                 }}
-                                                className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2 cursor-pointer"
+                                                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2 cursor-pointer"
                                             />
                                             <label 
                                                 htmlFor={`keyword-checkbox-${idx}`}

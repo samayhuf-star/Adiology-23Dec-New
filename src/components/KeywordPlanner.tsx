@@ -1062,7 +1062,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                     onClick={() => setMatchTypes(prev => ({...prev, exact: !prev.exact}))}
                                                     className={`cursor-pointer p-3 rounded-xl border transition-all duration-300 ${
                                                         matchTypes.exact 
-                                                            ? 'bg-emerald-50 border-emerald-400 shadow-lg shadow-emerald-500/10' 
+                                                            ? 'bg-indigo-50 border-emerald-400 shadow-lg shadow-emerald-500/10' 
                                                             : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                                                     }`}
                                                 >
@@ -1071,10 +1071,10 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                             id="exact-planner" 
                                                             checked={matchTypes.exact}
                                                             onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, exact: c as boolean}))}
-                                                            className="border-emerald-400 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                                                            className="border-emerald-400 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-emerald-500"
                                                         />
                                                     </div>
-                                                    <span className={`text-xs font-medium ${matchTypes.exact ? 'text-emerald-700' : 'text-gray-500'}`}>
+                                                    <span className={`text-xs font-medium ${matchTypes.exact ? 'text-indigo-700' : 'text-gray-500'}`}>
                                                         [Exact]
                                                     </span>
                                                 </div>
@@ -1162,7 +1162,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                     </Button>
                                                     <Badge className={`text-xs px-2.5 py-1 rounded-full font-medium border-0 ${
                                                         dataSource === 'google_ads_api' 
-                                                            ? 'bg-emerald-100 text-emerald-700' 
+                                                            ? 'bg-indigo-100 text-indigo-700' 
                                                             : dataSource === 'fallback' 
                                                                 ? 'bg-amber-100 text-amber-700' 
                                                                 : 'bg-gray-100 text-gray-600'
@@ -1304,7 +1304,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                                                 ? 'bg-rose-100 text-rose-700' 
                                                                                 : metrics.competition === 'MEDIUM' 
                                                                                     ? 'bg-amber-100 text-amber-700' 
-                                                                                    : 'bg-emerald-100 text-emerald-700'
+                                                                                    : 'bg-indigo-100 text-indigo-700'
                                                                         }`}>
                                                                             {metrics.competition || 'Low'}
                                                                         </span>
