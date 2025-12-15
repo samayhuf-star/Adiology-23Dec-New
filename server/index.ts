@@ -2125,15 +2125,9 @@ app.get('/api/google-ads/requests', async (c) => {
   }
 });
 
-// Manually trigger the scraper (for testing/admin)
+// Manually trigger the scraper (for testing/admin) - Currently disabled
 app.post('/api/google-ads/trigger-scraper', async (c) => {
-  try {
-    await triggerManualRun();
-    return c.json({ success: true, message: 'Scraper triggered manually' });
-  } catch (error: any) {
-    console.error('Error triggering scraper:', error);
-    return c.json({ error: error.message, success: false });
-  }
+  return c.json({ success: false, message: 'Scraper is currently disabled' }, 503);
 });
 
 // RapidAPI - Fetch ad details from Google Ads Transparency Center
@@ -2813,7 +2807,7 @@ app.get('/api/dashboard/:userId', async (c) => {
     
     // Get campaign history count
     const campaignsResult = await pool.query(
-      `SELECT COUNT(*) as count FROM adiology_campaigns WHERE user_id = $1`,
+      `SELECT COUNT(*) as count FROM campaign_history WHERE user_id = $1`,
       [userId]
     );
     
@@ -2826,7 +2820,7 @@ app.get('/api/dashboard/:userId', async (c) => {
     // Get recent campaigns (last 10)
     const recentCampaignsResult = await pool.query(
       `SELECT id, campaign_name, structure_type, step, created_at, updated_at
-       FROM adiology_campaigns 
+       FROM campaign_history 
        WHERE user_id = $1 
        ORDER BY updated_at DESC 
        LIMIT 10`,
