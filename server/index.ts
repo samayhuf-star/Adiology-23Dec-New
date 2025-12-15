@@ -76,28 +76,38 @@ async function seedStripeProducts() {
     
     const products = [
       {
-        name: 'Lifetime Limited',
-        description: '15 campaigns per month with all features included',
+        name: 'Basic Monthly',
+        description: '25 campaigns per month with email support',
+        priceAmount: 6999, // $69.99
+        priceType: 'recurring' as const,
+        interval: 'month' as const,
+      },
+      {
+        name: 'Basic Yearly',
+        description: '25 campaigns per month - Save 20% with annual billing',
+        priceAmount: 67190, // $671.90
+        priceType: 'recurring' as const,
+        interval: 'year' as const,
+      },
+      {
+        name: 'Pro Monthly',
+        description: 'Unlimited campaigns with 24/7 priority support',
+        priceAmount: 12999, // $129.99
+        priceType: 'recurring' as const,
+        interval: 'month' as const,
+      },
+      {
+        name: 'Pro Yearly',
+        description: 'Unlimited campaigns - Save 20% with annual billing',
+        priceAmount: 124790, // $1,247.90
+        priceType: 'recurring' as const,
+        interval: 'year' as const,
+      },
+      {
+        name: 'Lifetime',
+        description: 'Unlimited campaigns forever with lifetime access',
         priceAmount: 9999, // $99.99
         priceType: 'one_time' as const,
-      },
-      {
-        name: 'Lifetime Unlimited',
-        description: 'Unlimited campaigns with lifetime access to all tools',
-        priceAmount: 19900, // $199
-        priceType: 'one_time' as const,
-      },
-      {
-        name: 'Monthly Limited',
-        description: '25 campaigns per month with monthly billing',
-        priceAmount: 4999, // $49.99
-        priceType: 'recurring' as const,
-      },
-      {
-        name: 'Monthly Unlimited',
-        description: 'Unlimited campaigns with monthly billing',
-        priceAmount: 9900, // $99
-        priceType: 'recurring' as const,
       },
     ];
     
@@ -119,7 +129,7 @@ async function seedStripeProducts() {
       };
       
       if (productDef.priceType === 'recurring') {
-        priceData.recurring = { interval: 'month' };
+        priceData.recurring = { interval: (productDef as any).interval || 'month' };
       }
       
       const price = await stripe.prices.create(priceData);
