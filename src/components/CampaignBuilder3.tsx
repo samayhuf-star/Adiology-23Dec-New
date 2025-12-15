@@ -2354,25 +2354,57 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       
       // Add ads to ALL ad groups - each ad group should have the same ads
       // This ensures every ad group has RSAs for proper campaign structure
-      const adsToDistribute = (campaignData.ads || []).map((ad: any) => ({
-        type: ad.type === 'call_only' ? 'CallOnly' : 
-              ad.type === 'dki' ? 'DKI' : 'RSA',
-        headlines: [
-          ad.headline1 || '',
-          ad.headline2 || '',
-          ad.headline3 || '',
-          ad.headline4 || '',
-          ad.headline5 || ''
-        ].filter((h: string) => h),
-        descriptions: [
-          ad.description1 || '',
-          ad.description2 || ''
-        ].filter((d: string) => d),
-        finalUrl: ad.finalUrl || campaignData.url || '',
-        path1: ad.path1 || '',
-        path2: ad.path2 || '',
-        status: 'Enabled'
-      }));
+      const adsToDistribute = (campaignData.ads || []).map((ad: any) => {
+        // Handle both structures: headlines array OR headline1/headline2/etc properties
+        let headlines: string[] = [];
+        if (ad.headlines && Array.isArray(ad.headlines)) {
+          // RSA ads with headlines array
+          headlines = ad.headlines.map((h: any) => typeof h === 'string' ? h : (h.text || '')).filter((h: string) => h);
+        } else {
+          // DKI/Call ads with headline1, headline2, etc.
+          headlines = [
+            ad.headline1 || '',
+            ad.headline2 || '',
+            ad.headline3 || '',
+            ad.headline4 || '',
+            ad.headline5 || '',
+            ad.headline6 || '',
+            ad.headline7 || '',
+            ad.headline8 || '',
+            ad.headline9 || '',
+            ad.headline10 || '',
+            ad.headline11 || '',
+            ad.headline12 || '',
+            ad.headline13 || '',
+            ad.headline14 || '',
+            ad.headline15 || ''
+          ].filter((h: string) => h);
+        }
+        
+        // Handle both structures: descriptions array OR description1/description2/etc properties
+        let descriptions: string[] = [];
+        if (ad.descriptions && Array.isArray(ad.descriptions)) {
+          descriptions = ad.descriptions.map((d: any) => typeof d === 'string' ? d : (d.text || '')).filter((d: string) => d);
+        } else {
+          descriptions = [
+            ad.description1 || '',
+            ad.description2 || '',
+            ad.description3 || '',
+            ad.description4 || ''
+          ].filter((d: string) => d);
+        }
+        
+        return {
+          type: ad.type === 'call_only' ? 'CallOnly' : 
+                ad.type === 'dki' ? 'DKI' : 'RSA',
+          headlines,
+          descriptions,
+          finalUrl: ad.finalUrl || campaignData.url || '',
+          path1: ad.path1 || '',
+          path2: ad.path2 || '',
+          status: 'Enabled'
+        };
+      });
       
       // Distribute ads to ALL ad groups
       v5CampaignData.adGroups.forEach((group: any) => {
@@ -2396,20 +2428,26 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         
         if (existingAd) return; // Already added
         
+        // Handle both structures for legacy code
+        let legacyHeadlines: string[] = [];
+        if (ad.headlines && Array.isArray(ad.headlines)) {
+          legacyHeadlines = ad.headlines.map((h: any) => typeof h === 'string' ? h : (h.text || '')).filter((h: string) => h);
+        } else {
+          legacyHeadlines = [ad.headline1, ad.headline2, ad.headline3, ad.headline4, ad.headline5].filter((h: string) => h);
+        }
+        
+        let legacyDescriptions: string[] = [];
+        if (ad.descriptions && Array.isArray(ad.descriptions)) {
+          legacyDescriptions = ad.descriptions.map((d: any) => typeof d === 'string' ? d : (d.text || '')).filter((d: string) => d);
+        } else {
+          legacyDescriptions = [ad.description1, ad.description2].filter((d: string) => d);
+        }
+        
         targetGroup.ads.push({
             type: ad.type === 'call_only' ? 'CallOnly' : 
                   ad.type === 'dki' ? 'DKI' : 'RSA',
-            headlines: [
-              ad.headline1 || '',
-              ad.headline2 || '',
-              ad.headline3 || '',
-              ad.headline4 || '',
-              ad.headline5 || ''
-            ].filter((h: string) => h),
-            descriptions: [
-              ad.description1 || '',
-              ad.description2 || ''
-            ].filter((d: string) => d),
+            headlines: legacyHeadlines,
+            descriptions: legacyDescriptions,
             path1: ad.path1 || '',
             path2: ad.path2 || '',
             finalUrl: ad.finalUrl || campaignData.url || '',

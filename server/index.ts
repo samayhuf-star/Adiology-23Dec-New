@@ -3312,36 +3312,80 @@ Return ONLY JSON (no markdown):
         const problemSolutionKws = keywordData.problemSolution || [];
         const brandTrustKws = keywordData.brandTrust || [];
         
+        // Create 3 different ads for each ad group using different headline/description combinations
+        const allHeadlines = adCopy.headlines?.map((h: any) => h.text || h) || [];
+        const allDescriptions = adCopy.descriptions?.map((d: any) => d.text || d) || [];
+        
+        const createAdsForGroup = () => {
+          const ads = [];
+          // Ad 1: Headlines 1-5, Descriptions 1-2
+          ads.push({
+            type: 'RSA',
+            headlines: allHeadlines.slice(0, 5).filter((h: string) => h),
+            descriptions: allDescriptions.slice(0, 2).filter((d: string) => d),
+            finalUrl: websiteUrl,
+            path1: (analysis.industry || '').substring(0, 15).replace(/[^a-zA-Z0-9]/g, ''),
+            path2: '',
+            status: 'Enabled'
+          });
+          // Ad 2: Headlines 5-10, Descriptions 2-4
+          ads.push({
+            type: 'RSA',
+            headlines: allHeadlines.slice(5, 10).length >= 3 ? allHeadlines.slice(5, 10) : allHeadlines.slice(0, 5),
+            descriptions: allDescriptions.slice(2, 4).length >= 2 ? allDescriptions.slice(2, 4) : allDescriptions.slice(0, 2),
+            finalUrl: websiteUrl,
+            path1: (analysis.industry || '').substring(0, 15).replace(/[^a-zA-Z0-9]/g, ''),
+            path2: 'info',
+            status: 'Enabled'
+          });
+          // Ad 3: Headlines 10-15 (or mix), Descriptions 1,3
+          ads.push({
+            type: 'RSA',
+            headlines: allHeadlines.slice(10, 15).length >= 3 ? allHeadlines.slice(10, 15) : [...allHeadlines.slice(0, 3), ...allHeadlines.slice(7, 9)].filter((h: string) => h),
+            descriptions: [allDescriptions[0], allDescriptions[2]].filter((d: string) => d).length >= 2 ? [allDescriptions[0], allDescriptions[2]].filter((d: string) => d) : allDescriptions.slice(0, 2),
+            finalUrl: websiteUrl,
+            path1: (analysis.industry || '').substring(0, 15).replace(/[^a-zA-Z0-9]/g, ''),
+            path2: 'contact',
+            status: 'Enabled'
+          });
+          return ads;
+        };
+        
         // Create intent-based ad groups for higher relevance
         const adGroups = [
           {
             name: 'High Intent - Buyers',
             maxCpc: 2.50,
             matchType: 'Phrase',
-            keywords: highIntentKws.length > 0 ? highIntentKws : keywords.slice(0, Math.ceil(keywords.length * 0.4))
+            keywords: highIntentKws.length > 0 ? highIntentKws : keywords.slice(0, Math.ceil(keywords.length * 0.4)),
+            ads: createAdsForGroup()
           },
           {
             name: 'Long Tail - Specific',
             maxCpc: 1.75,
             matchType: 'Phrase',
-            keywords: longTailKws.length > 0 ? longTailKws : keywords.slice(Math.ceil(keywords.length * 0.4), Math.ceil(keywords.length * 0.7))
+            keywords: longTailKws.length > 0 ? longTailKws : keywords.slice(Math.ceil(keywords.length * 0.4), Math.ceil(keywords.length * 0.7)),
+            ads: createAdsForGroup()
           },
           {
             name: 'Problem Solution',
             maxCpc: 1.50,
             matchType: 'Broad',
-            keywords: problemSolutionKws.length > 0 ? problemSolutionKws : keywords.slice(Math.ceil(keywords.length * 0.7), Math.ceil(keywords.length * 0.85))
+            keywords: problemSolutionKws.length > 0 ? problemSolutionKws : keywords.slice(Math.ceil(keywords.length * 0.7), Math.ceil(keywords.length * 0.85)),
+            ads: createAdsForGroup()
           },
           {
             name: 'Brand Trust',
             maxCpc: 1.25,
             matchType: 'Broad',
-            keywords: brandTrustKws.length > 0 ? brandTrustKws : keywords.slice(Math.ceil(keywords.length * 0.85))
+            keywords: brandTrustKws.length > 0 ? brandTrustKws : keywords.slice(Math.ceil(keywords.length * 0.85)),
+            ads: createAdsForGroup()
           }
         ].filter(g => g.keywords.length > 0);
 
-        sendLog(writer, `Created ${adGroups.length} intent-based ad groups`, 'success');
+        sendLog(writer, `Created ${adGroups.length} intent-based ad groups with 3 ads each`, 'success');
         sendLog(writer, 'Using tiered bidding strategy (High intent = higher bids)', 'success');
+        sendLog(writer, `Each ad group has 3 unique RSA ad variations`, 'success');
 
         // Step 6: Generate CSV (basic - client uses full 183-column template)
         sendLog(writer, 'Preparing campaign data...', 'action');
