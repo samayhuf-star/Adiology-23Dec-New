@@ -3065,7 +3065,7 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
             </button>
             <button
               onClick={() => window.open('https://www.youtube.com/results?search_query=how+to+add+dns+records', '_blank')}
-              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition font-medium"
             >
               Watch Tutorial
             </button>
@@ -3524,7 +3524,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
           onClick={() => setActiveTab('templates')}
           className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
             activeTab === 'templates'
-              ? 'bg-indigo-600 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -3535,7 +3535,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
           onClick={() => setActiveTab('saved')}
           className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
             activeTab === 'saved'
-              ? 'bg-indigo-600 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -3551,7 +3551,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
           onClick={() => setActiveTab('connected')}
           className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
             activeTab === 'connected'
-              ? 'bg-indigo-600 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -3574,7 +3574,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                 onClick={() => setSelectedCategory(category)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   selectedCategory === category
-                    ? 'bg-indigo-600 text-white shadow-lg'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -3611,7 +3611,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                     </button>
                     <button
                       onClick={() => handleEditTemplate(template)}
-                      className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:from-indigo-700 hover:to-purple-700 transition-colors"
                     >
                       <Edit3 className="w-4 h-4" />
                       Edit Template
@@ -3640,7 +3640,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                     </button>
                     <button
                       onClick={() => handleEditTemplate(template)}
-                      className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors"
+                      className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-1.5 rounded-lg font-medium text-sm hover:from-indigo-700 hover:to-purple-700 transition-colors"
                     >
                       <Sparkles className="w-4 h-4" />
                       Edit with AI
@@ -3670,7 +3670,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
               <p className="text-gray-500 mb-6">Start by editing a template to create your first website</p>
               <button
                 onClick={() => setActiveTab('templates')}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Browse Templates
@@ -3733,7 +3733,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                           <div className="flex items-center gap-2 ml-4">
                             <button
                               onClick={() => handleEditSavedWebsite(website)}
-                              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors"
+                              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:from-indigo-700 hover:to-purple-700 transition-colors"
                             >
                               <Sparkles className="w-4 h-4" />
                               Edit
@@ -3789,7 +3789,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => handleEditSavedWebsite(website)}
-                              className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-3 py-2 rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors w-full"
+                              className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-2 rounded-lg font-medium text-sm hover:from-indigo-700 hover:to-purple-700 transition-colors w-full"
                             >
                               <Sparkles className="w-4 h-4" />
                               Edit
@@ -3841,7 +3841,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                   <p className="text-gray-500 mb-6">Connect a custom domain to your saved websites to see them here</p>
                   <button
                     onClick={() => setActiveTab('saved')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors"
                   >
                     <FolderOpen className="w-4 h-4" />
                     View Saved Websites
