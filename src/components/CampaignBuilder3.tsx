@@ -2352,17 +2352,51 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         snippets: snippets.slice(0, 2)
       };
       
-      // Add ads to their respective ad groups
+      // Add ads to ALL ad groups - each ad group should have the same ads
+      // This ensures every ad group has RSAs for proper campaign structure
+      const adsToDistribute = (campaignData.ads || []).map((ad: any) => ({
+        type: ad.type === 'call_only' ? 'CallOnly' : 
+              ad.type === 'dki' ? 'DKI' : 'RSA',
+        headlines: [
+          ad.headline1 || '',
+          ad.headline2 || '',
+          ad.headline3 || '',
+          ad.headline4 || '',
+          ad.headline5 || ''
+        ].filter((h: string) => h),
+        descriptions: [
+          ad.description1 || '',
+          ad.description2 || ''
+        ].filter((d: string) => d),
+        finalUrl: ad.finalUrl || campaignData.url || '',
+        path1: ad.path1 || '',
+        path2: ad.path2 || '',
+        status: 'Enabled'
+      }));
+      
+      // Distribute ads to ALL ad groups
+      v5CampaignData.adGroups.forEach((group: any) => {
+        group.ads = [...adsToDistribute];
+      });
+      
+      // Legacy code kept for backwards compatibility - adds any ads with specific ad group assignments
       (campaignData.ads || []).forEach((ad: any) => {
-        const adGroupName = ad.adGroup || 'Ad Group 1';
+        const adGroupName = ad.adGroup || '';
+        if (!adGroupName) return; // Skip if no specific ad group assigned
+        
         let targetGroup = v5CampaignData.adGroups.find((ag: any) => ag.name === adGroupName);
         
-        if (!targetGroup && v5CampaignData.adGroups.length > 0) {
-          targetGroup = v5CampaignData.adGroups[0];
-        }
+        if (!targetGroup) return; // Skip if ad group not found
         
-        if (targetGroup) {
-          targetGroup.ads.push({
+        // Check if this ad is already added (avoid duplicates)
+        const adKey = `${ad.headline1}::${ad.headline2}::${ad.description1}`;
+        const existingAd = targetGroup.ads.find((existing: any) => 
+          `${existing.headlines[0]}::${existing.headlines[1]}::${existing.descriptions[0]}` === adKey
+        );
+        
+        if (existingAd) return; // Already added
+        
+        targetGroup.ads.push({
             type: ad.type === 'call_only' ? 'CallOnly' : 
                   ad.type === 'dki' ? 'DKI' : 'RSA',
             headlines: [
