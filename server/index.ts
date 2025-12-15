@@ -7,6 +7,7 @@ import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync, getStripePublishableKey, getUncachableStripeClient } from './stripeClient';
 import { WebhookHandlers } from './webhookHandlers';
 import { stripeService } from './stripeService';
+import { analyzeUrlWithCheerio } from './urlAnalyzerLite';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
@@ -621,7 +622,7 @@ app.delete('/api/admin/expenses/:id', async (c) => {
   }
 });
 
-// Comprehensive Website Analyzer Endpoint
+// Comprehensive Website Analyzer Endpoint (Cheerio-based - works in production)
 app.post('/api/analyze-url', async (c) => {
   try {
     const { url, extractionDepth = 'comprehensive' } = await c.req.json();
@@ -642,223 +643,9 @@ app.post('/api/analyze-url', async (c) => {
       return c.json({ error: 'Invalid URL format' }, 400);
     }
 
-    // Use Playwright for comprehensive extraction (only available in development)
-    let chromium;
+    // Use Cheerio-based analyzer (works in both development and production)
     try {
-      const playwright = await import('playwright');
-      chromium = playwright.chromium;
-    } catch (playwrightError) {
-      console.warn('Playwright not available - web scraping disabled');
-      return c.json({ 
-        error: 'Web analysis is not available in production. Please use the development environment.',
-        code: 'PLAYWRIGHT_UNAVAILABLE'
-      }, 503);
-    }
-    
-    let browser;
-    try {
-      browser = await chromium.launch({ 
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-      
-      const context = await browser.newContext({
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      });
-      
-      const page = await context.newPage();
-      
-      // Navigate to the page with timeout
-      await page.goto(cleanUrl, { 
-        waitUntil: 'domcontentloaded',
-        timeout: 30000 
-      });
-      
-      // Wait a bit for dynamic content
-      await page.waitForTimeout(2000);
-
-      // Extract comprehensive data from the page using string evaluation to avoid tsx transpilation issues
-      const pageScript = `
-        (function() {
-          function cleanText(text) {
-            return (text || '').trim().replace(/\\s+/g, ' ').slice(0, 500);
-          }
-
-          var headings = [];
-          document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function(h) {
-            var text = cleanText(h.textContent);
-            if (text && text.length > 2) {
-              headings.push({ level: h.tagName.toLowerCase(), text: text });
-            }
-          });
-
-          var ctaElements = [];
-          var ctaSelectors = 'button, [role="button"], a.btn, a.button, a.cta, .cta, [class*="cta"], [class*="btn-"], input[type="submit"], a[href*="contact"], a[href*="quote"], a[href*="book"], a[href*="call"]';
-          document.querySelectorAll(ctaSelectors).forEach(function(el) {
-            var text = cleanText(el.textContent);
-            var href = el.href || '';
-            if (text && text.length > 1 && text.length < 100) {
-              ctaElements.push({
-                text: text,
-                type: el.tagName.toLowerCase(),
-                href: href.startsWith('http') ? href : undefined
-              });
-            }
-          });
-
-          var forms = [];
-          document.querySelectorAll('form').forEach(function(form) {
-            var fields = [];
-            form.querySelectorAll('input, select, textarea').forEach(function(field) {
-              var name = field.name || field.placeholder || field.getAttribute('aria-label') || '';
-              var type = field.type || field.tagName.toLowerCase();
-              if (name) fields.push(type + ': ' + name);
-            });
-            if (fields.length > 0) {
-              forms.push({
-                action: form.action || '',
-                method: form.method || 'get',
-                fields: fields
-              });
-            }
-          });
-
-          var images = [];
-          document.querySelectorAll('img').forEach(function(img) {
-            var src = img.src || '';
-            var alt = img.alt || '';
-            if (src && !src.includes('data:image')) {
-              images.push({ src: src.slice(0, 200), alt: alt.slice(0, 100) });
-            }
-          });
-
-          var navigation = [];
-          document.querySelectorAll('nav a, header a, [role="navigation"] a').forEach(function(link) {
-            var text = cleanText(link.textContent);
-            if (text && text.length > 1 && text.length < 50) {
-              navigation.push(text);
-            }
-          });
-
-          var schemas = [];
-          document.querySelectorAll('script[type="application/ld+json"]').forEach(function(script) {
-            try {
-              var data = JSON.parse(script.textContent || '{}');
-              schemas.push(data);
-            } catch(e) {}
-          });
-
-          var metaDesc = document.querySelector('meta[name="description"]');
-          var canonical = document.querySelector('link[rel="canonical"]');
-          var robots = document.querySelector('meta[name="robots"]');
-          var viewport = document.querySelector('meta[name="viewport"]');
-          var ogTitle = document.querySelector('meta[property="og:title"]');
-          var ogDesc = document.querySelector('meta[property="og:description"]');
-          var ogImage = document.querySelector('meta[property="og:image"]');
-          var seoSignals = {
-            title: document.title || '',
-            metaDescription: metaDesc ? metaDesc.getAttribute('content') : '',
-            canonical: canonical ? canonical.getAttribute('href') : '',
-            robots: robots ? robots.getAttribute('content') : '',
-            viewport: viewport ? viewport.getAttribute('content') : '',
-            ogTitle: ogTitle ? ogTitle.getAttribute('content') : '',
-            ogDescription: ogDesc ? ogDesc.getAttribute('content') : '',
-            ogImage: ogImage ? ogImage.getAttribute('content') : '',
-            h1Count: document.querySelectorAll('h1').length,
-            wordCount: (document.body.innerText || '').split(/\\s+/).filter(function(w) { return w.length > 0; }).length
-          };
-
-          var keyMessaging = [];
-          var heroSections = document.querySelectorAll('.hero, [class*="hero"], .banner, [class*="banner"], section:first-of-type');
-          heroSections.forEach(function(section) {
-            var text = cleanText(section.textContent);
-            if (text && text.length > 20) {
-              keyMessaging.push(text.slice(0, 300));
-            }
-          });
-
-          var testimonials = [];
-          var testimonialSelectors = '.testimonial, [class*="testimonial"], .review, [class*="review"], blockquote, .quote';
-          document.querySelectorAll(testimonialSelectors).forEach(function(el) {
-            var text = cleanText(el.textContent);
-            if (text && text.length > 20 && text.length < 500) {
-              testimonials.push({ text: text });
-            }
-          });
-
-          var faqs = [];
-          var faqSelectors = '.faq, [class*="faq"], .accordion, details, [itemtype*="FAQPage"]';
-          document.querySelectorAll(faqSelectors).forEach(function(el) {
-            var questionEl = el.querySelector('summary, .question, dt, h3, h4, [itemprop="name"]');
-            var answerEl = el.querySelector('.answer, dd, p, [itemprop="text"]');
-            var question = questionEl ? (questionEl.textContent || '').trim() : '';
-            var answer = answerEl ? (answerEl.textContent || '').trim() : '';
-            if (question && answer) {
-              faqs.push({ question: question.slice(0, 200), answer: answer.slice(0, 500) });
-            }
-          });
-
-          var contactInfo = { phones: [], emails: [], addresses: [] };
-          var phoneRegex = /(?:\\+?1[-.\s]?)?\\(?\\d{3}\\)?[-.\s]?\\d{3}[-.\s]?\\d{4}/g;
-          var bodyText = document.body.innerText || '';
-          var phoneMatches = bodyText.match(phoneRegex);
-          if (phoneMatches) {
-            contactInfo.phones = Array.from(new Set(phoneMatches)).slice(0, 5);
-          }
-          var emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;
-          var emailMatches = bodyText.match(emailRegex);
-          if (emailMatches) {
-            contactInfo.emails = Array.from(new Set(emailMatches)).slice(0, 5);
-          }
-
-          var services = [];
-          var serviceSections = document.querySelectorAll('[class*="service"], .services, section');
-          serviceSections.forEach(function(section) {
-            section.querySelectorAll('li, h3, h4, .service-item').forEach(function(item) {
-              var text = cleanText(item.textContent);
-              if (text && text.length > 3 && text.length < 100) {
-                services.push(text);
-              }
-            });
-          });
-
-          var mainContent = cleanText(document.body.innerText).slice(0, 3000);
-
-          var links = { internal: [], external: [] };
-          document.querySelectorAll('a[href]').forEach(function(a) {
-            var href = a.href || '';
-            if (href.startsWith(window.location.origin)) {
-              links.internal.push(href);
-            } else if (href.startsWith('http')) {
-              links.external.push(href);
-            }
-          });
-
-          return {
-            headings: headings.slice(0, 30),
-            ctaElements: ctaElements.slice(0, 20),
-            forms: forms.slice(0, 5),
-            images: images.slice(0, 20),
-            navigation: Array.from(new Set(navigation)).slice(0, 20),
-            schemas: schemas,
-            seoSignals: seoSignals,
-            keyMessaging: keyMessaging.slice(0, 5),
-            testimonials: testimonials.slice(0, 10),
-            faqs: faqs.slice(0, 10),
-            contactInfo: contactInfo,
-            services: Array.from(new Set(services)).slice(0, 30),
-            mainContent: mainContent,
-            links: {
-              internal: Array.from(new Set(links.internal)).slice(0, 20),
-              external: Array.from(new Set(links.external)).slice(0, 20)
-            }
-          };
-        })()
-      `;
-      
-      const analysisResult = await page.evaluate(pageScript) as any;
-
-      await browser.close();
+      const analysisResult = await analyzeUrlWithCheerio(cleanUrl);
 
       // Use AI to analyze and provide insights
       const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
@@ -870,9 +657,9 @@ app.post('/api/analyze-url', async (c) => {
 
 Title: ${analysisResult.seoSignals.title}
 Description: ${analysisResult.seoSignals.metaDescription}
-H1: ${analysisResult.headings.find(h => h.level === 'h1')?.text || ''}
+H1: ${analysisResult.headings.find((h: any) => h.level === 'h1')?.text || ''}
 Services: ${analysisResult.services.slice(0, 10).join(', ')}
-CTAs: ${analysisResult.ctaElements.slice(0, 5).map(c => c.text).join(', ')}
+CTAs: ${analysisResult.ctaElements.slice(0, 5).map((c: any) => c.text).join(', ')}
 Content Preview: ${analysisResult.mainContent.slice(0, 500)}
 
 Provide JSON with:
@@ -904,7 +691,7 @@ Provide JSON with:
 
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
-            const content = aiData.choices?.[0]?.message?.content || '';
+            const content = (aiData as any).choices?.[0]?.message?.content || '';
             try {
               const jsonMatch = content.match(/\{[\s\S]*\}/);
               if (jsonMatch) {
@@ -921,12 +708,13 @@ Provide JSON with:
         success: true,
         url: cleanUrl,
         extractedAt: new Date().toISOString(),
+        analysisMethod: 'cheerio',
         data: analysisResult,
         aiInsights,
         summary: {
           title: analysisResult.seoSignals.title,
           description: analysisResult.seoSignals.metaDescription,
-          h1: analysisResult.headings.find(h => h.level === 'h1')?.text || null,
+          h1: analysisResult.headings.find((h: any) => h.level === 'h1')?.text || null,
           wordCount: analysisResult.seoSignals.wordCount,
           headingCount: analysisResult.headings.length,
           ctaCount: analysisResult.ctaElements.length,
@@ -939,7 +727,6 @@ Provide JSON with:
       });
 
     } catch (pageError: any) {
-      if (browser) await browser.close();
       console.error('Page analysis error:', pageError);
       return c.json({
         success: false,
