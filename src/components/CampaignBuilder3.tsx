@@ -2704,7 +2704,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 variant="outline"
                 size="icon"
                 onClick={() => setEditingCampaignName(!editingCampaignName)}
-                className={`shrink-0 ${editingCampaignName ? 'border-teal-500 text-indigo-600' : 'text-slate-500'}`}
+                className={`shrink-0 ${editingCampaignName ? 'border-indigo-500 text-indigo-600' : 'text-slate-500'}`}
                 title={editingCampaignName ? 'Done editing' : 'Edit campaign name'}
               >
                 {editingCampaignName ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
@@ -2772,13 +2772,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     ${log.type === 'step' ? 'text-cyan-400 font-semibold' : ''}
                     ${log.type === 'success' ? 'text-green-400' : ''}
                     ${log.type === 'data' ? 'text-yellow-300' : ''}
-                    ${log.type === 'ai' ? 'text-teal-400' : ''}
+                    ${log.type === 'ai' ? 'text-indigo-400' : ''}
                     ${log.type === 'info' ? 'text-slate-400' : ''}
                   `}>
                     {log.type === 'step' && <span className="text-cyan-500 mr-1">{'>'}</span>}
                     {log.type === 'success' && <span className="text-green-500 mr-1">✓</span>}
                     {log.type === 'data' && <span className="text-yellow-500 mr-1">•</span>}
-                    {log.type === 'ai' && <span className="text-teal-500 mr-1">★</span>}
+                    {log.type === 'ai' && <span className="text-indigo-500 mr-1">★</span>}
                     {log.type === 'info' && <span className="text-slate-500 mr-1">→</span>}
                     {log.message}
                   </span>
@@ -2829,7 +2829,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               <Card
                 className={`cursor-pointer transition-all p-2 ${
                   isSelected
-                    ? 'ring-2 ring-teal-500 bg-indigo-50'
+                    ? 'ring-2 ring-indigo-500 bg-indigo-50'
                     : 'hover:shadow-md hover:border-indigo-200'
                 }`}
                 onClick={() => handleStructureSelect(structure.id)}
@@ -3525,7 +3525,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">Create Ads (Max 3):</span>
               <Button 
                 size="sm"
-                className="bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
                 onClick={() => handleAddNewAd('rsa')}
                 disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'rsa' || ad.adType === 'RSA')}
               >
@@ -3533,7 +3533,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               </Button>
               <Button 
                 size="sm"
-                className="bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
                 onClick={() => handleAddNewAd('dki')}
                 disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'dki' || ad.adType === 'DKI')}
               >
@@ -3541,7 +3541,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               </Button>
               <Button 
                 size="sm"
-                className="bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
                 onClick={() => handleAddNewAd('call')}
                 disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'call' || ad.adType === 'CallOnly')}
               >
@@ -4096,10 +4096,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       <div className="max-w-5xl mx-auto p-6">
         {/* Header with gradient */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-teal-200/50 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-indigo-200/50 mb-4">
             <MapPin className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
             Geo Targeting
           </h2>
           <p className="text-slate-600 max-w-xl mx-auto">
@@ -4217,7 +4217,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           {/* Right Column - Location Tabs */}
           <div className="lg:col-span-2">
             <Card className="border-2 border-slate-200 shadow-xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-teal-50 via-emerald-50 to-cyan-50 border-b">
+              <CardHeader className="bg-gradient-to-r from-slate-50 via-indigo-50/30 to-purple-50/30 border-b">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg">
@@ -4273,7 +4273,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                             size="sm"
                             onClick={() => handlePresetSelect('cities', preset.value)}
                             className={campaignData.locations.cities.length === preset.count 
-                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-teal-600 hover:to-emerald-700 border-0 shadow-lg" 
+                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
                               : "hover:border-indigo-300 hover:bg-indigo-50"}
                           >
                             <Building2 className="w-3 h-3 mr-1.5" />
@@ -4326,7 +4326,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                             size="sm"
                             onClick={() => handlePresetSelect('states', preset.value)}
                             className={campaignData.locations.states.length === preset.count 
-                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-teal-600 hover:to-emerald-700 border-0 shadow-lg" 
+                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
                               : "hover:border-indigo-300 hover:bg-indigo-50"}
                           >
                             <MapPinIcon className="w-3 h-3 mr-1.5" />
@@ -4374,7 +4374,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                             size="sm"
                             onClick={() => handlePresetSelect('zips', preset.value)}
                             className={campaignData.locations.zipCodes.length === preset.count 
-                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-teal-600 hover:to-emerald-700 border-0 shadow-lg" 
+                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
                               : "hover:border-indigo-300 hover:bg-indigo-50"}
                           >
                             <Hash className="w-3 h-3 mr-1.5" />
@@ -4443,14 +4443,14 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       : `${campaignData.targetCountry} (${locationInfo.type})`;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/30 to-emerald-50/30 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 shadow-lg shadow-green-200/50 mb-4 animate-in fade-in zoom-in duration-500">
               <CheckCircle2 className="w-8 h-8 text-white" />
           </div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
               Campaign Created Successfully!
             </h1>
             <p className="text-sm text-slate-600 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-900">
@@ -4473,10 +4473,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             {/* 2. Ad Groups */}
             <Card className="text-center border-2 border-blue-100 bg-gradient-to-br from-white to-blue-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
               <CardContent className="p-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
                   <Layers className="w-4 h-4 text-white" />
                 </div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-0.5">{campaignData.adGroups.length}</div>
+                <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-0.5">{campaignData.adGroups.length}</div>
                 <div className="text-xs font-medium text-slate-700">Ad Groups</div>
               </CardContent>
             </Card>
@@ -4511,12 +4511,12 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               </CardContent>
             </Card>
             {/* 6. Assets */}
-            <Card className="text-center border-2 border-teal-100 bg-gradient-to-br from-white to-teal-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <Card className="text-center border-2 border-indigo-100 bg-gradient-to-br from-white to-indigo-50/50 shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
               <CardContent className="p-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-500 flex items-center justify-center mx-auto mb-2 shadow-lg">
                   <Link2 className="w-4 h-4 text-white" />
                 </div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent mb-0.5">
+                <div className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-0.5">
                   {campaignData.ads.reduce((total, ad) => total + (ad.extensions?.length || 0), 0)}
                 </div>
                 <div className="text-xs font-medium text-slate-700">Assets</div>
@@ -4574,7 +4574,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   <div className="pt-6 border-t border-slate-200">
                     <div className="bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 border-2 border-blue-200/60 rounded-xl p-5 shadow-sm">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0 shadow-md">
                           <Building2 className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
@@ -4676,7 +4676,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
                 {/* Assets Logic */}
                 <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                  <h4 className="font-semibold text-teal-800 mb-2">{campaignData.ads.reduce((total, ad) => total + (ad.extensions?.length || 0), 0)} Assets</h4>
+                  <h4 className="font-semibold text-indigo-800 mb-2">{campaignData.ads.reduce((total, ad) => total + (ad.extensions?.length || 0), 0)} Assets</h4>
                   <p className="text-sm text-indigo-700">
                     Ad extensions including sitelinks, callouts, structured snippets, and call extensions. 
                     These enhance ad visibility and click-through rates.
@@ -4704,7 +4704,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             <div className="flex flex-col sm:flex-row gap-3">
           <Button
             onClick={handleDownloadCSV}
-            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-200/50 h-14 text-lg font-semibold"
+            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-purple-700 text-white shadow-lg shadow-green-200/50 h-14 text-lg font-semibold"
           >
             <Download className="w-5 h-5 mr-2" />
             Download CSV for Google Ads Editor
@@ -4721,7 +4721,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     window.location.hash = '#campaign-history';
                   }
                 }}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-teal-200/50 h-14 text-lg font-semibold"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-200/50 h-14 text-lg font-semibold"
           >
                 <FolderOpen className="w-5 h-5 mr-2" />
                 View Saved Campaigns
@@ -4946,7 +4946,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30">
       {/* Navigation Above Wizard */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-3">
@@ -4974,7 +4974,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 onClick={handleNextStep}
                 disabled={loading || currentStep === 6}
                 size="sm"
-                className="bg-teal-600 hover:bg-teal-700 text-white"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 {currentStep === 5 ? 'Save & Finish' : currentStep === 6 ? 'Download CSV' : 'Next Step'}
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -4996,7 +4996,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                       currentStep > step.id
                         ? 'bg-indigo-500 text-white'
                         : currentStep === step.id
-                        ? 'bg-teal-600 text-white'
+                        ? 'bg-indigo-600 text-white'
                         : 'bg-slate-200 text-slate-600'
                     }`}
                   >
@@ -5125,7 +5125,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               <Button 
                 onClick={handleCreateCallAd}
                 disabled={!callAdPhone.trim()}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-purple-700"
               >
                 <Phone className="w-4 h-4 mr-2" />
                 Create Ad
@@ -5191,7 +5191,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               <Button variant="outline" onClick={() => setShowExportDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={confirmDownloadCSV} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+              <Button onClick={confirmDownloadCSV} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-purple-700">
                 <Download className="w-4 h-4 mr-2" />
                 Download CSV
               </Button>

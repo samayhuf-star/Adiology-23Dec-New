@@ -1232,7 +1232,7 @@ const App = () => {
       <aside 
         className={`hidden md:flex md:flex-col ${
           (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'md:w-64' : 'md:w-20'
-        } transition-all duration-300 bg-white/80 backdrop-blur-xl border-r border-teal-100/60 shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto`}
+        } transition-all duration-300 bg-white/80 backdrop-blur-xl border-r border-indigo-100/60 shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto`}
         style={{
           background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240, 253, 250, 0.95) 100%)'
         }}
@@ -1248,7 +1248,7 @@ const App = () => {
         }}
       >
         {/* Logo Section */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-teal-100/60 theme-sidebar-header">
+        <div className="h-16 flex items-center justify-between px-5 border-b border-indigo-100/60 theme-sidebar-header">
           {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
             <div className="flex items-center gap-2">
               <div 
