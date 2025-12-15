@@ -37,7 +37,7 @@ import { PaymentSuccess } from './components/PaymentSuccess';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SupportHelpCombined } from './components/SupportHelpCombined';
 import { ResetPassword } from './components/ResetPassword';
-import { PresetCampaigns } from './components/PresetCampaigns';
+import { CampaignPresets } from './components/CampaignPresets';
 import { Dashboard } from './components/Dashboard';
 import { HistoryPanel } from './components/HistoryPanel';
 import { CampaignHistoryView } from './components/CampaignHistoryView';
@@ -1148,7 +1148,7 @@ const App = () => {
     
     switch (activeTab) {
       case 'preset-campaigns':
-        return <PresetCampaigns onLoadPreset={(presetData) => {
+        return <CampaignPresets onLoadPreset={(presetData) => {
           setHistoryData(presetData);
           setActiveTabSafe('builder-3');
         }} />;
