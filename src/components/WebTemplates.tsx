@@ -3090,6 +3090,11 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent');
   const [domainModalWebsite, setDomainModalWebsite] = useState<SavedWebsite | null>(null);
+  
+  // Update activeTab when initialTab prop changes (for menu navigation)
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const templates = [
     {
