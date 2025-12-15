@@ -470,7 +470,7 @@ function generateCss(): string {
 
 const SECTION_TYPES = [
   { type: 'hero', name: 'Hero Section', color: 'bg-blue-50', icon: '🎯' },
-  { type: 'features', name: 'Features', color: 'bg-green-50', icon: '⭐' },
+  { type: 'features', name: 'Features', color: 'bg-indigo-50', icon: '⭐' },
   { type: 'services', name: 'Services', color: 'bg-purple-50', icon: '🔧' },
   { type: 'testimonials', name: 'Testimonials', color: 'bg-yellow-50', icon: '💬' },
   { type: 'team', name: 'Team', color: 'bg-pink-50', icon: '👥' },

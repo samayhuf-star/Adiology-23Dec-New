@@ -517,7 +517,7 @@ export const HelpSupport = () => {
                                                 <ul className="space-y-2 ml-4">
                                                     {paragraph.split('\n').filter(line => line.trim()).map((line, i) => (
                                                         <li key={i} className="flex items-start gap-3 text-slate-700">
-                                                            <CheckCircle2 className="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                                                            <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                                                             <span>{line.replace(/^[-\d.]\s*/, '')}</span>
                                                         </li>
                                                     ))}
@@ -562,15 +562,15 @@ export const HelpSupport = () => {
                                     </div>
                                     <ul className="space-y-2 text-sm text-emerald-800">
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                                             Take your time to explore each feature as you go
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                                             Use the search bar if you need to find specific tools quickly
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                                             Check the FAQ section if you have additional questions
                                         </li>
                                     </ul>

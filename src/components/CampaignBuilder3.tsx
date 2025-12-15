@@ -2741,7 +2741,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
                 </div>
                 <span className="text-slate-400 text-sm font-mono">Website Analysis Console</span>
               </div>
@@ -2900,7 +2900,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           },
           intent: {
             hierarchy: [
-              { name: 'Informational Intent', desc: '"what is", "how to", "guide"', color: 'border-green-200 bg-green-50' },
+              { name: 'Informational Intent', desc: '"what is", "how to", "guide"', color: 'border-indigo-200 bg-indigo-50' },
               { name: 'Commercial Intent', desc: '"best", "review", "compare"', color: 'border-blue-200 bg-blue-50' },
               { name: 'Transactional Intent', desc: '"buy", "price", "deal"', color: 'border-indigo-200 bg-indigo-50' },
             ],
@@ -2918,7 +2918,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           },
           alpha_beta: {
             hierarchy: [
-              { name: 'Alpha Campaign', desc: 'Proven winners, exact match', color: 'border-green-200 bg-green-50' },
+              { name: 'Alpha Campaign', desc: 'Proven winners, exact match', color: 'border-indigo-200 bg-indigo-50' },
               { name: 'Beta Campaign', desc: 'Discovery, broad match', color: 'border-amber-200 bg-amber-50' },
             ],
             benefits: ['Test new keywords safely', 'Protect top performers', 'Systematic optimization', 'Clear budget allocation'],
@@ -2928,7 +2928,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             hierarchy: [
               { name: 'Broad Match Campaign', desc: 'Maximum reach, discovery', color: 'border-amber-200 bg-amber-50' },
               { name: 'Phrase Match Campaign', desc: 'Balanced reach & control', color: 'border-blue-200 bg-blue-50' },
-              { name: 'Exact Match Campaign', desc: 'Maximum control & relevance', color: 'border-green-200 bg-green-50' },
+              { name: 'Exact Match Campaign', desc: 'Maximum control & relevance', color: 'border-indigo-200 bg-indigo-50' },
             ],
             benefits: ['Clear match type control', 'Easy budget allocation', 'Performance comparison', 'Bid optimization per type'],
             bestFor: 'Match type testing, budget control per match type'
@@ -2988,7 +2988,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           },
           mix: {
             hierarchy: [
-              { name: 'SKAG for Top Performers', desc: 'Single keyword precision', color: 'border-green-200 bg-green-50' },
+              { name: 'SKAG for Top Performers', desc: 'Single keyword precision', color: 'border-indigo-200 bg-indigo-50' },
               { name: 'STAG for Volume', desc: 'Themed grouping', color: 'border-blue-200 bg-blue-50' },
             ],
             benefits: ['Best of both approaches', 'Flexible structure', 'Optimized by performance', 'Scalable'],
@@ -3360,7 +3360,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     <span className="text-slate-500">Data Source:</span>
                     <Badge variant="outline" className={`text-xs ${
                       keywordDataSource === 'google_ads_api' 
-                        ? 'bg-green-50 text-green-700 border-green-200' 
+                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200' 
                         : (keywordDataSource === 'fallback' || keywordDataSource === 'estimated')
                           ? 'bg-yellow-50 text-yellow-700 border-yellow-200' 
                           : 'bg-slate-50 text-slate-600 border-slate-200'
@@ -3414,7 +3414,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                           
                           const getCompetitionStyle = (comp: string | null | undefined) => {
                             switch (comp) {
-                              case 'LOW': return 'bg-green-50 text-green-700 border-green-200';
+                              case 'LOW': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
                               case 'MEDIUM': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
                               case 'HIGH': return 'bg-red-50 text-red-700 border-red-200';
                               default: return 'bg-slate-50 text-slate-500 border-slate-200';
@@ -3436,7 +3436,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                                 <span className="text-xs text-slate-400 block md:hidden">vol</span>
                               </div>
                               <div className="col-span-3 md:col-span-2 text-center">
-                                <span className="text-sm font-medium text-green-700">{formatCpc(cpc)}</span>
+                                <span className="text-sm font-medium text-indigo-700">{formatCpc(cpc)}</span>
                                 <span className="text-xs text-slate-400 block md:hidden">cpc</span>
                               </div>
                               <div className="col-span-3 md:col-span-2 flex justify-center">
@@ -3685,7 +3685,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                         {ad.headline2 && <p className="font-semibold text-sm">{ad.headline2}</p>}
                           {ad.phoneNumber && (
                             <div className="flex items-center gap-2">
-                            <Phone className="w-5 h-5 text-green-600" />
+                            <Phone className="w-5 h-5 text-indigo-600" />
                             <span className="text-lg font-medium">{ad.phoneNumber}</span>
                             </div>
                           )}
@@ -3721,7 +3721,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                                     {ext.type === 'snippet' && <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />}
                                     {ext.type === 'callout' && <MessageSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
                                     {ext.type === 'sitelink' && <Link2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
-                                    {ext.type === 'call' && <Phone className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                    {ext.type === 'call' && <Phone className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
                                     {ext.type === 'price' && <DollarSign className="w-4 h-4 text-yellow-600 flex-shrink-0" />}
                                     {ext.type === 'app' && <Smartphone className="w-4 h-4 text-cyan-600 flex-shrink-0" />}
                                     {ext.type === 'location' && <MapPinIcon className="w-4 h-4 text-red-600 flex-shrink-0" />}
@@ -4118,7 +4118,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
                     <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
                   </div>
                   <span className="text-slate-400 text-sm font-medium">Target Country</span>
                 </div>
@@ -4158,11 +4158,11 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
                     <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
                   </div>
                   <span className="text-slate-400 text-sm font-medium">Targeting Summary</span>
                   {currentSelection && (
-                    <Badge className="ml-auto bg-green-500/20 text-green-400 border-green-500/30">
+                    <Badge className="ml-auto bg-indigo-500/20 text-green-400 border-green-500/30">
                       <Check className="w-3 h-3 mr-1" />
                       Active
                     </Badge>
@@ -4284,7 +4284,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     </div>
                     
                     {campaignData.locations.cities.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-green-200">
+                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
                           <span className="text-sm font-semibold text-green-800">
@@ -4337,7 +4337,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     </div>
                     
                     {campaignData.locations.states.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-green-200">
+                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
                           <span className="text-sm font-semibold text-green-800">
@@ -4385,7 +4385,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     </div>
                     
                     {campaignData.locations.zipCodes.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-green-200">
+                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
                         <div className="flex items-center gap-2 mb-3">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
                           <span className="text-sm font-semibold text-green-800">
@@ -4685,12 +4685,12 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               </div>
 
               {/* CSV Export Info */}
-              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+              <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
                 <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
                   <Download className="w-4 h-4" />
                   CSV Export Format
                 </h4>
-                <p className="text-sm text-green-700">
+                <p className="text-sm text-indigo-700">
                   Master 183-column Google Ads Editor format. Includes campaign settings, ad groups, keywords, RSA ads, 
                   location targeting ({locationInfo.count} {locationInfo.type.toLowerCase()}), and all extensions. 
                   Ready for direct import into Google Ads Editor.
@@ -4815,11 +4815,11 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       </Card>
 
       {campaignData.csvData && (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-indigo-200 bg-indigo-50">
           <CardHeader>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-6 h-6 text-green-600" />
-            <CardTitle className="text-green-600">CSV Ready</CardTitle>
+            <CardTitle className="text-indigo-600">CSV Ready</CardTitle>
             </div>
             <CardDescription>Your CSV is ready for export</CardDescription>
           </CardHeader>
@@ -4994,7 +4994,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
                       currentStep > step.id
-                        ? 'bg-green-500 text-white'
+                        ? 'bg-indigo-500 text-white'
                         : currentStep === step.id
                         ? 'bg-teal-600 text-white'
                         : 'bg-slate-200 text-slate-600'
@@ -5014,7 +5014,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 </div>
                 {idx < steps.length - 1 && (
                   <div className={`flex-1 h-0.5 mx-2 min-w-[16px] ${
-                    currentStep > step.id ? 'bg-green-500' : 'bg-slate-200'
+                    currentStep > step.id ? 'bg-indigo-500' : 'bg-slate-200'
                   }`} />
                 )}
               </React.Fragment>
@@ -5065,7 +5065,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Phone className="w-5 h-5 text-green-600" />
+                <Phone className="w-5 h-5 text-indigo-600" />
                 Call Only Ad Details
               </DialogTitle>
               <DialogDescription>

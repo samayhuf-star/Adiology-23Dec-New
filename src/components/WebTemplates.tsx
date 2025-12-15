@@ -2999,7 +2999,7 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
                       className="p-1 hover:bg-gray-200 rounded transition text-gray-500 hover:text-indigo-600"
                       title="Copy record"
                     >
-                      {copied === record.type + idx ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                      {copied === record.type + idx ? <Check className="w-4 h-4 text-indigo-600" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -3016,7 +3016,7 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
           {verificationStatus !== 'idle' && (
             <div className={`rounded-lg p-4 flex items-start gap-3 ${
               verificationStatus === 'verified' 
-                ? 'bg-green-50 border border-green-200' 
+                ? 'bg-indigo-50 border border-indigo-200' 
                 : 'bg-red-50 border border-red-200'
             }`}>
               {verificationStatus === 'verified' ? (
@@ -3024,7 +3024,7 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm text-green-800 font-semibold">DNS Verified Successfully!</p>
-                    <p className="text-sm text-green-700 mt-1">{verificationMessage}</p>
+                    <p className="text-sm text-indigo-700 mt-1">{verificationMessage}</p>
                   </div>
                 </>
               ) : (
@@ -3558,7 +3558,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
           <Globe className="w-4 h-4" />
           Connected Websites
           {savedWebsites.filter(w => (w as any).customDomain).length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'connected' ? 'bg-white/20' : 'bg-green-100 text-green-700'}`}>
+            <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'connected' ? 'bg-white/20' : 'bg-indigo-100 text-indigo-700'}`}>
               {savedWebsites.filter(w => (w as any).customDomain).length}
             </span>
           )}
@@ -3633,7 +3633,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <button
                       onClick={() => setPreviewTemplate(template.data)}
-                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium text-sm transition-colors"
+                      className="flex items-center gap-2 text-indigo-600 hover:text-green-700 font-medium text-sm transition-colors"
                     >
                       <Eye className="w-4 h-4" />
                       View Live
@@ -3866,7 +3866,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
                               <h3 className="font-bold text-lg text-gray-800">{website.name}</h3>
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
                                 <CheckCircle className="w-3 h-3" />
                                 Connected
                               </span>
@@ -3876,7 +3876,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
                                 href={`https://${(website as any).customDomain}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 font-medium text-sm"
+                                className="flex items-center gap-1 text-indigo-600 hover:text-green-700 font-medium text-sm"
                               >
                                 <Globe className="w-4 h-4" />
                                 {(website as any).customDomain}

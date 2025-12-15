@@ -755,7 +755,7 @@ export const KeywordPlannerSelectable = ({
                                     </div>
                                     <div className="bg-white/80 rounded-lg p-3 border border-indigo-100">
                                         <div className="text-xs text-slate-500 mb-1">Phrase/Exact</div>
-                                        <div className="text-xl font-bold text-green-600">
+                                        <div className="text-xl font-bold text-indigo-600">
                                             {generatedKeywords.filter(k => {
                                                 const kw = typeof k === 'string' ? k : (k?.text || k?.keyword || String(k || ''));
                                                 return kw.startsWith('"') || kw.startsWith('[');
@@ -774,7 +774,7 @@ export const KeywordPlannerSelectable = ({
                                             </span>
                                         )}
                                         {matchTypes.phrase && (
-                                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
                                                 Phrase Match
                                             </span>
                                         )}
@@ -881,7 +881,7 @@ export const KeywordPlannerSelectable = ({
                                             />
                                             <label 
                                                 htmlFor={`keyword-checkbox-${idx}`}
-                                                className={`flex-1 cursor-pointer select-none ${isSelected ? 'text-indigo-700 font-medium' : 'text-slate-700'}`}
+                                                className={`flex-1 cursor-pointer select-none ${isSelected ? 'text-green-700 font-medium' : 'text-slate-700'}`}
                                             >
                                                 {typeof keyword === 'string' ? keyword : (keyword?.text || keyword?.keyword || String(keyword || ''))}
                                             </label>

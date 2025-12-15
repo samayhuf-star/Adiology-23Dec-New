@@ -290,7 +290,7 @@ export const FeedbackButton: React.FC<FeedbackButtonProps> = ({
                     className="w-full h-32 object-contain rounded"
                   />
                   <div className="mt-2 text-xs text-slate-500 flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">Captured</span>
+                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded">Captured</span>
                     <span>{currentPage}</span>
                   </div>
                 </div>

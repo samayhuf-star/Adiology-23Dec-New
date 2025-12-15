@@ -185,7 +185,7 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
                 {selectedPreset.targetIntent}
               </span>
             </Badge>
-            <span className="text-sm text-green-600 font-medium">
+            <span className="text-sm text-indigo-600 font-medium">
               {selectedPreset.estimatedCPC} CPC
             </span>
           </div>
@@ -463,7 +463,7 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
                   {preset.keywords.length} keywords
                 </span>
                 <span className="text-slate-300">|</span>
-                <span className="font-medium text-green-600">
+                <span className="font-medium text-indigo-600">
                   {preset.estimatedCPC} CPC
                 </span>
               </div>

@@ -784,7 +784,7 @@ Generated on ${new Date().toLocaleDateString()}`;
                             <Card className="border-2 border-slate-200 hover:border-indigo-300 transition-all hover:shadow-lg relative flex flex-col h-full">
                                 <CardHeader className="flex-shrink-0 pb-3">
                                     <div className="text-center">
-                                        <Badge className="mb-2 bg-green-100 text-green-700 border-green-200 text-xs">Monthly</Badge>
+                                        <Badge className="mb-2 bg-indigo-100 text-indigo-700 border-indigo-200 text-xs">Monthly</Badge>
                                         <CardTitle className="text-lg mb-2">Monthly Limited</CardTitle>
                                         <div className="text-2xl font-bold text-slate-800 mb-1">$49.99</div>
                                         <div className="text-xs text-slate-600">per month</div>
@@ -903,7 +903,7 @@ Generated on ${new Date().toLocaleDateString()}`;
                                     </div>
                                     <div className="flex items-center gap-3 sm:gap-4 justify-between sm:justify-end">
                                         <span className="font-mono text-slate-600 text-sm sm:text-base">{inv.amount}</span>
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">{inv.status}</Badge>
+                                        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs">{inv.status}</Badge>
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 

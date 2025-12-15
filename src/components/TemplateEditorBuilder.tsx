@@ -342,7 +342,7 @@ ${exportedHtml || templateData.rawHtml || ''}
                       Verify Domain
                     </button>
                     {domainVerified && (
-                      <div className="flex items-center gap-2 text-green-600 text-sm">
+                      <div className="flex items-center gap-2 text-indigo-600 text-sm">
                         <CheckCircle className="w-4 h-4" />
                         Domain verified and connected!
                       </div>

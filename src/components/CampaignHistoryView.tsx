@@ -565,15 +565,15 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Google Ads Connection Card */}
-        <Card className={`mb-6 border-2 ${googleAdsConnected ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'}`}>
+        <Card className={`mb-6 border-2 ${googleAdsConnected ? 'border-indigo-200 bg-indigo-50' : 'border-blue-200 bg-blue-50'}`}>
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${googleAdsConnected ? 'bg-green-100' : 'bg-blue-100'}`}>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${googleAdsConnected ? 'bg-indigo-100' : 'bg-blue-100'}`}>
                   {googleAdsLoading ? (
                     <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
                   ) : googleAdsConnected ? (
-                    <Link2 className="w-6 h-6 text-green-600" />
+                    <Link2 className="w-6 h-6 text-indigo-600" />
                   ) : (
                     <Unlink className="w-6 h-6 text-blue-600" />
                   )}
@@ -582,7 +582,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                   <h3 className={`font-semibold ${googleAdsConnected ? 'text-green-800' : 'text-blue-800'}`}>
                     {googleAdsLoading ? 'Checking Connection...' : googleAdsConnected ? 'Google Ads Connected' : 'Connect Google Ads'}
                   </h3>
-                  <p className={`text-sm ${googleAdsConnected ? 'text-green-600' : 'text-blue-600'}`}>
+                  <p className={`text-sm ${googleAdsConnected ? 'text-indigo-600' : 'text-blue-600'}`}>
                     {googleAdsConnected 
                       ? 'Push campaigns directly to your Google Ads account' 
                       : 'Connect your Google Ads account to push campaigns with one click'}
@@ -605,24 +605,16 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 )}
                 
                 {!googleAdsLoading && (
-                  <Button
-                    onClick={googleAdsConnected ? () => checkGoogleAdsConnection() : connectGoogleAds}
-                    className={googleAdsConnected 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'}
-                  >
-                    {googleAdsConnected ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Refresh
-                      </>
-                    ) : (
-                      <>
-                        <Link2 className="w-4 h-4 mr-2" />
-                        Connect Account
-                      </>
-                    )}
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      disabled
+                      className="bg-gray-400 cursor-not-allowed text-white opacity-70"
+                    >
+                      <Link2 className="w-4 h-4 mr-2" />
+                      Connect Account
+                    </Button>
+                    <Badge className="absolute -top-2 -right-2 bg-amber-500 text-white text-xs px-2 py-0.5">Coming Soon</Badge>
+                  </div>
                 )}
               </div>
             </div>
@@ -646,7 +638,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium text-green-800">Campaign Pushed Successfully</p>
-                  <p className="text-sm text-green-700">{pushSuccess.message}</p>
+                  <p className="text-sm text-indigo-700">{pushSuccess.message}</p>
                 </div>
                 <button onClick={() => setPushSuccess(null)} className="ml-auto text-green-600 hover:text-green-800">
                   <X className="w-4 h-4" />
@@ -1003,7 +995,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                           variant="outline"
                           onClick={() => pushCampaignToGoogleAds(campaign)}
                           disabled={pushingCampaign === campaign.id}
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50 flex-shrink-0 px-3"
+                          className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 flex-shrink-0 px-3"
                           title="Push to Google Ads (Paused)"
                         >
                           {pushingCampaign === campaign.id ? (
@@ -1174,7 +1166,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                               size="sm"
                               onClick={() => pushCampaignToGoogleAds(campaign)}
                               disabled={pushingCampaign === campaign.id}
-                              className="w-8 h-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="w-8 h-8 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                               title="Push to Google Ads (Paused)"
                             >
                               {pushingCampaign === campaign.id ? (
@@ -1255,7 +1247,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                               size="sm"
                               onClick={() => pushCampaignToGoogleAds(campaign)}
                               disabled={pushingCampaign === campaign.id}
-                              className="w-9 h-9 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="w-9 h-9 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                               title="Push to Google Ads (Paused)"
                             >
                               {pushingCampaign === campaign.id ? (

@@ -412,9 +412,9 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
             )}
 
             {/* Info Box */}
-            <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="mt-6 bg-indigo-50 border border-indigo-200 rounded-lg p-4">
               <h4 className="font-medium text-green-800 mb-2">Instant Results via RapidAPI</h4>
-              <ul className="text-sm text-green-700 space-y-1">
+              <ul className="text-sm text-indigo-700 space-y-1">
                 <li>• Enter keywords to search for competitor ads</li>
                 <li>• Get instant results from Google Ads Transparency Center</li>
                 <li>• View headlines, descriptions, and landing pages</li>
@@ -460,7 +460,7 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                        req.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        req.status === 'completed' ? 'bg-indigo-100 text-indigo-700' :
                         req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                         req.status === 'processing' ? 'bg-blue-100 text-blue-700' :
                         'bg-red-100 text-red-700'
@@ -660,7 +660,7 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">Competitor Ads ({results.length})</h3>
-            <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
+            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full flex items-center gap-1">
               <CheckCircle className="w-3 h-3" />
               Live Data from Google Ads Transparency
             </span>
@@ -717,7 +717,7 @@ export function GoogleAdsSearch({ user }: GoogleAdsSearchProps) {
                           </span>
                         )}
                         {ad.region && (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                          <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded">
                             {ad.region}
                           </span>
                         )}

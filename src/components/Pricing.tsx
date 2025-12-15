@@ -44,8 +44,8 @@ const pricingPlans = [
     period: 'per month',
     icon: '📈',
     color: 'from-green-400 to-green-600',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
+    bgColor: 'bg-indigo-50',
+    borderColor: 'border-indigo-200',
     features: [
       '25/month campaigns',
       'AI keyword generation',

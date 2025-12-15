@@ -461,7 +461,7 @@ export function OneClickCampaignBuilder() {
                 <div className="flex gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                  <div className="w-3 h-3 rounded-full bg-indigo-500" />
                 </div>
                 <span className="text-slate-300 text-sm font-medium">Building Campaign Console</span>
               </div>
@@ -539,7 +539,7 @@ export function OneClickCampaignBuilder() {
                 <div className="flex gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                  <div className="w-3 h-3 rounded-full bg-indigo-500" />
                 </div>
                 <span className="text-slate-300 text-sm font-medium">Campaign Export Console</span>
               </div>
@@ -635,7 +635,7 @@ export function OneClickCampaignBuilder() {
                 <div className="flex gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
                 </div>
                 <span className="text-slate-300 text-sm font-medium">Website Analysis</span>
               </div>
@@ -651,7 +651,7 @@ export function OneClickCampaignBuilder() {
                 <div className="flex gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
                 </div>
                 <span className="text-slate-300 text-sm font-medium">Campaign Structure</span>
               </div>
@@ -667,7 +667,7 @@ export function OneClickCampaignBuilder() {
                 <div className="flex gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
                 </div>
                 <span className="text-slate-300 text-sm font-medium">Sample Keywords ({generatedCampaign.campaign_data?.keywords?.length || 0} total)</span>
               </div>
@@ -693,7 +693,7 @@ export function OneClickCampaignBuilder() {
                 <div className="flex gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
                 </div>
                 <span className="text-slate-300 text-sm font-medium">Ad Copy Preview</span>
               </div>
@@ -731,7 +731,7 @@ function GenerationStep({ step, title, progress, threshold }: { step: number; ti
       <div className={`
         w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors
         ${isComplete
-          ? 'bg-green-500 text-white'
+          ? 'bg-indigo-500 text-white'
           : isActive
             ? 'bg-purple-500 text-white animate-pulse'
             : 'bg-slate-200 text-slate-500'
@@ -739,7 +739,7 @@ function GenerationStep({ step, title, progress, threshold }: { step: number; ti
       `}>
         {isComplete ? <Check className="w-4 h-4" /> : step}
       </div>
-      <span className={`text-sm ${isComplete ? 'text-green-600 font-medium' : isActive ? 'text-purple-600 font-medium' : 'text-slate-500'}`}>
+      <span className={`text-sm ${isComplete ? 'text-indigo-600 font-medium' : isActive ? 'text-purple-600 font-medium' : 'text-slate-500'}`}>
         {title}
       </span>
       {isActive && <Loader2 className="w-4 h-4 text-purple-500 animate-spin" />}

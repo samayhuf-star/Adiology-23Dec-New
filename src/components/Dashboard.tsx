@@ -220,7 +220,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
       case 'professional':
         return 'bg-blue-100 text-blue-700 border-blue-300';
       case 'starter':
-        return 'bg-green-100 text-green-700 border-green-300';
+        return 'bg-indigo-100 text-indigo-700 border-indigo-300';
       default:
         return 'bg-slate-100 text-slate-700 border-slate-300';
     }
@@ -260,7 +260,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
   };
 
   const getActionColor = (action: string) => {
-    if (action.includes('create')) return 'text-green-600 bg-green-50';
+    if (action.includes('create')) return 'text-indigo-600 bg-indigo-50';
     if (action.includes('export')) return 'text-blue-600 bg-blue-50';
     if (action.includes('generate')) return 'text-purple-600 bg-purple-50';
     if (action.includes('validate')) return 'text-indigo-600 bg-indigo-50';
