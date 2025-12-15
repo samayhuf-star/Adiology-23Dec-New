@@ -642,8 +642,18 @@ app.post('/api/analyze-url', async (c) => {
       return c.json({ error: 'Invalid URL format' }, 400);
     }
 
-    // Use Playwright for comprehensive extraction
-    const { chromium } = await import('playwright');
+    // Use Playwright for comprehensive extraction (only available in development)
+    let chromium;
+    try {
+      const playwright = await import('playwright');
+      chromium = playwright.chromium;
+    } catch (playwrightError) {
+      console.warn('Playwright not available - web scraping disabled');
+      return c.json({ 
+        error: 'Web analysis is not available in production. Please use the development environment.',
+        code: 'PLAYWRIGHT_UNAVAILABLE'
+      }, 503);
+    }
     
     let browser;
     try {
@@ -3522,16 +3532,71 @@ app.post('/api/campaigns/save', async (c) => {
 // Start cron scheduler - DISABLED per user request
 // startCronScheduler();
 
-// Backend API runs on port 3001 (frontend runs on PORT 5000)
-const port = 3001;
+// Determine ports - in production, use PORT env var; in development, use 3001 for API
+const isProduction = process.env.NODE_ENV === 'production';
+const apiPort = isProduction ? parseInt(process.env.PORT || '5000', 10) : 3001;
+
+// In production, serve static files from dist/
+if (isProduction) {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  app.get('*', async (c) => {
+    const reqPath = c.req.path;
+    const distPath = path.join(process.cwd(), 'build');
+    
+    // Try to serve the exact file
+    let filePath = path.join(distPath, reqPath);
+    
+    // Check if it's a file that exists
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const content = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+      };
+      return new Response(content, {
+        headers: { 
+          'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=31536000'
+        }
+      });
+    }
+    
+    // For SPA routing, serve index.html for non-file requests
+    const indexPath = path.join(process.cwd(), 'build', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      const content = fs.readFileSync(indexPath, 'utf-8');
+      return new Response(content, {
+        headers: { 
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache'
+        }
+      });
+    }
+    
+    return c.text('Not Found', 404);
+  });
+}
 
 // Start server FIRST to satisfy port binding requirements
 const server = serve({
   fetch: app.fetch,
-  port,
+  port: apiPort,
 });
 
-console.log(`Admin API Server running on port ${port}`);
+console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
 
 // Initialize Stripe in the background AFTER server is running (non-blocking)
 initStripe().catch(err => console.error('Stripe init error:', err));
