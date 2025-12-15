@@ -63,7 +63,7 @@ async function initStripe() {
   }
 }
 
-initStripe();
+// Initialize Stripe in the background AFTER server starts (non-blocking)
 
 // Seed Stripe products if they don't exist
 async function seedStripeProducts() {
@@ -3512,10 +3512,16 @@ app.post('/api/campaigns/save', async (c) => {
 // Start cron scheduler - DISABLED per user request
 // startCronScheduler();
 
+// Backend API runs on port 3001 (frontend runs on PORT 5000)
 const port = 3001;
-console.log(`Admin API Server running on port ${port}`);
 
-serve({
+// Start server FIRST to satisfy port binding requirements
+const server = serve({
   fetch: app.fetch,
   port,
 });
+
+console.log(`Admin API Server running on port ${port}`);
+
+// Initialize Stripe in the background AFTER server is running (non-blocking)
+initStripe().catch(err => console.error('Stripe init error:', err));
