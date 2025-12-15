@@ -2417,7 +2417,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             verificationUrl: ad.verificationUrl || '',
             businessName: ad.businessName || ''
           });
-        }
       });
       
       // If no specific locations, add the target country
@@ -3156,7 +3155,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             <TerminalLine prefix="$" label="seed_keywords:" value={`${seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0 && k.trim().split(/\s+/).length >= 2).length}`} valueColor="cyan" />
             <TerminalLine prefix="$" label="generated:" value={`${campaignData.selectedKeywords.length}`} valueColor="green" />
             <TerminalLine prefix="$" label="negative:" value={`${campaignData.negativeKeywords.length}`} valueColor="yellow" />
-            <TerminalLine prefix="$" label="match_types:" value="[BROAD, PHRASE, EXACT]" valueColor="teal" />
+            <TerminalLine prefix="$" label="match_types:" value="[BROAD, PHRASE, EXACT]" valueColor="cyan" />
           </div>
         </TerminalCard>
 
@@ -3165,7 +3164,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             <TerminalLine prefix=">" label="structure:" value={CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG'} valueColor="cyan" />
             <TerminalLine prefix=">" label="ad_groups:" value={`${campaignData.adGroups.length}`} valueColor="green" />
             <TerminalLine prefix=">" label="status:" value={loading ? 'GENERATING...' : campaignData.selectedKeywords.length > 0 ? 'READY' : 'PENDING'} valueColor={loading ? 'yellow' : campaignData.selectedKeywords.length > 0 ? 'green' : 'slate'} />
-            <TerminalLine prefix=">" label="target_range:" value="410-710 keywords" valueColor="teal" />
+            <TerminalLine prefix=">" label="target_range:" value="410-710 keywords" valueColor="cyan" />
           </div>
         </TerminalCard>
       </div>
@@ -3467,7 +3466,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               <TerminalLine prefix="$" label="ads_created:" value={`${campaignData.ads.length}/3`} valueColor={campaignData.ads.length > 0 ? 'green' : 'slate'} />
               <TerminalLine prefix="$" label="ad_types:" value={campaignData.ads.map(ad => ad.type?.toUpperCase() || ad.adType || 'RSA').join(', ') || 'NONE'} valueColor="cyan" />
               <TerminalLine prefix="$" label="extensions:" value={`${campaignData.ads.reduce((total, ad) => total + (ad.extensions?.length || 0), 0)}`} valueColor="yellow" />
-              <TerminalLine prefix="$" label="ad_groups:" value={`${campaignData.adGroups.length}`} valueColor="teal" />
+              <TerminalLine prefix="$" label="ad_groups:" value={`${campaignData.adGroups.length}`} valueColor="cyan" />
             </div>
           </TerminalCard>
 
@@ -3475,7 +3474,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             <div className="space-y-1.5">
               <TerminalLine prefix=">" label="landing_page:" value={campaignData.url ? 'SET' : 'NOT_SET'} valueColor={campaignData.url ? 'green' : 'yellow'} />
               <TerminalLine prefix=">" label="keywords:" value={`${campaignData.selectedKeywords.length}`} valueColor="cyan" />
-              <TerminalLine prefix=">" label="structure:" value={CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG'} valueColor="teal" />
+              <TerminalLine prefix=">" label="structure:" value={CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure)?.name || 'SKAG'} valueColor="cyan" />
               <TerminalLine prefix=">" label="status:" value={loading ? 'GENERATING...' : campaignData.ads.length >= 3 ? 'COMPLETE' : 'IN_PROGRESS'} valueColor={loading ? 'yellow' : campaignData.ads.length >= 3 ? 'green' : 'cyan'} />
             </div>
           </TerminalCard>
