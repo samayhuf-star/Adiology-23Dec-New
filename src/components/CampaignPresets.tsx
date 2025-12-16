@@ -506,7 +506,7 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
 
       {/* Presets Grid/List - Simple flat display */}
       <div className={viewMode === 'grid' 
-        ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3' 
+        ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' 
         : 'space-y-3'
       }>
         {filteredPresets.map((preset) => {
