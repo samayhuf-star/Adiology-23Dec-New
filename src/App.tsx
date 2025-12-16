@@ -1364,8 +1364,14 @@ const App = () => {
           })}
         </nav>
 
-        {/* Bottom Section - Billing & Logout */}
+        {/* Bottom Section - Feedback, Billing & Logout */}
         <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
+          <FeedbackButton 
+            variant="sidebar" 
+            sidebarOpen={sidebarOpen} 
+            sidebarHovered={userPrefs.sidebarAutoClose && sidebarHovered}
+            currentPage={activeTab}
+          />
           <button
             onClick={() => setActiveTabSafe('billing')}
             className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
@@ -1673,11 +1679,6 @@ const App = () => {
         </main>
       </div>
 
-      {/* Floating Feedback Button */}
-      {appView === 'user' && (
-        <FeedbackButton variant="floating" />
-      )}
-      
     </div>
   );
 };
