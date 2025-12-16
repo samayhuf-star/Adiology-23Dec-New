@@ -85,20 +85,20 @@ html[data-homepage="true"] #root {
   overflow-x: hidden !important;
 }
 
-/* Theme System CSS Variables - Teal Theme */
+/* Theme System CSS Variables - Indigo/Purple Theme */
 :root {
-  --theme-primary: #14b8a6;
-  --theme-primary-light: #f0fdfa;
-  --theme-primary-dark: #0d9488;
-  --theme-secondary: #2dd4bf;
-  --theme-secondary-light: #f0fdfa;
-  --theme-accent: #06b6d4;
-  --theme-accent-light: #ecfeff;
-  --theme-gradient-from: #14b8a6;
-  --theme-gradient-to: #0d9488;
-  --theme-sidebar-bg: #14b8a6;
+  --theme-primary: #6366f1;
+  --theme-primary-light: #eef2ff;
+  --theme-primary-dark: #4f46e5;
+  --theme-secondary: #818cf8;
+  --theme-secondary-light: #e0e7ff;
+  --theme-accent: #8b5cf6;
+  --theme-accent-light: #f5f3ff;
+  --theme-gradient-from: #6366f1;
+  --theme-gradient-to: #4f46e5;
+  --theme-sidebar-bg: #6366f1;
   --theme-sidebar-text: #ffffff;
-  --theme-sidebar-hover: #0d9488;
+  --theme-sidebar-hover: #4f46e5;
 }
 
 /* Theme-aware sidebar styling */
