@@ -472,7 +472,7 @@ export function OneClickCampaignBuilder() {
                     Complete
                   </Badge>
                 ) : (
-                  <Badge className="bg-teal-600 text-white flex items-center gap-1">
+                  <Badge className="bg-indigo-600 text-white flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Building...
                   </Badge>

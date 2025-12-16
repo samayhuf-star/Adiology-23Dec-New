@@ -665,7 +665,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className={`h-8 px-3 ${viewMode === 'grid' ? 'bg-teal-600 text-white hover:bg-teal-700' : 'text-slate-600 hover:text-slate-900'}`}
+                  className={`h-8 px-3 ${viewMode === 'grid' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'text-slate-600 hover:text-slate-900'}`}
                   title="Grid view"
                 >
                   <LayoutGrid className="w-4 h-4" />
@@ -674,7 +674,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className={`h-8 px-3 ${viewMode === 'list' ? 'bg-teal-600 text-white hover:bg-teal-700' : 'text-slate-600 hover:text-slate-900'}`}
+                  className={`h-8 px-3 ${viewMode === 'list' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'text-slate-600 hover:text-slate-900'}`}
                   title="List view"
                 >
                   <List className="w-4 h-4" />
@@ -756,7 +756,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                 <Filter className="w-4 h-4" />
                 Filters
                 {hasActiveFilters && (
-                  <Badge className="bg-teal-600 text-white text-xs px-1.5 py-0 ml-1">
+                  <Badge className="bg-indigo-600 text-white text-xs px-1.5 py-0 ml-1">
                     {[filterStructure !== 'all', filterStatus !== 'all', filterStep !== 'all'].filter(Boolean).length}
                   </Badge>
                 )}
@@ -865,7 +865,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
               <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500 opacity-50" />
               <p className="font-semibold mb-2 text-red-600">Failed to load campaigns</p>
               <p className="text-sm text-slate-500 mb-4">{error}</p>
-              <Button onClick={loadSavedCampaigns} className="bg-teal-600 hover:bg-teal-700">
+              <Button onClick={loadSavedCampaigns} className="bg-indigo-600 hover:bg-indigo-700">
                 Try Again
               </Button>
             </CardContent>
@@ -893,7 +893,7 @@ export const CampaignHistoryView: React.FC<CampaignHistoryViewProps> = ({ onLoad
                     window.location.hash = '#builder-2';
                     window.location.reload();
                   }}
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Campaign

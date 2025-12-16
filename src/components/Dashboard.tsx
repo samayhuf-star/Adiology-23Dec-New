@@ -362,17 +362,17 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
           {/* My Presets Card */}
           <Card className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-500 flex items-center justify-center shadow-sm">
                 <Package className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xs font-medium text-teal-500 bg-indigo-50 px-2 py-1 rounded-full">Saved</span>
+              <span className="text-xs font-medium text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full">Saved</span>
             </div>
             <div className="space-y-1">
               <h3 className="text-3xl font-bold text-slate-800">{stats?.userResources?.myPresets || 0}</h3>
               <p className="text-sm text-slate-500">My Presets</p>
             </div>
             <div className="mt-4 h-1 bg-indigo-100 rounded-full overflow-hidden">
-              <div className="h-full bg-teal-400 rounded-full" style={{ width: '30%' }}></div>
+              <div className="h-full bg-indigo-400 rounded-full" style={{ width: '30%' }}></div>
             </div>
           </Card>
 
@@ -397,8 +397,8 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
 
       {/* Colorful Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Keywords Generated - Teal */}
-        <div className="rounded-xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #3BBFB3 0%, #2DA399 100%)' }}>
+        {/* Keywords Generated - Indigo */}
+        <div className="rounded-xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' }}>
           <h3 className="text-3xl font-bold mb-1">{keywordsGenerated.toLocaleString()}</h3>
           <p className="text-sm font-medium opacity-90 mb-3">Keywords Generated</p>
           <div className="flex items-center gap-1 text-xs opacity-80">

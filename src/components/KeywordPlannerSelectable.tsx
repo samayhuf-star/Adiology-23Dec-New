@@ -653,7 +653,7 @@ export const KeywordPlannerSelectable = ({
                                 handleGenerate(false);
                             }}
                             disabled={isGenerating || !seedKeywords.trim()}
-                            className="w-full bg-teal-600 hover:bg-teal-700 text-white py-6"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-6"
                         >
                             {isGenerating ? (
                                 <>
