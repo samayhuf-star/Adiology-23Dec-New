@@ -1455,7 +1455,7 @@ function Footer({ onNavigateToPolicy, onNavigateToApp }: { onNavigateToPolicy?: 
     resources: [
       { label: 'Documentation', tab: 'support-help', type: 'app' as const },
       { label: 'Help Center', tab: 'support-help', type: 'app' as const },
-      { label: 'Blog', href: 'https://blog.adiology.io', type: 'external' as const },
+      { label: 'Blog', tab: 'blog', type: 'app' as const },
       { label: 'API Reference', href: 'https://docs.adiology.io/api', type: 'external' as const },
       { label: 'Tutorials', tab: 'support-help', type: 'app' as const },
     ],
