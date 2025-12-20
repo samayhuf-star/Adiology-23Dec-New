@@ -4344,53 +4344,106 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
                   {/* ZIP Codes Tab */}
                   <TabsContent value="zips" className="space-y-5">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-amber-500" />
-                        <Label className="text-sm font-semibold text-slate-700">Quick Presets</Label>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {[
-                          { label: '1K ZIPs', value: 'top1000', count: 1000 },
-                          { label: '5K ZIPs', value: 'top5000', count: 5000 },
-                          { label: '15K ZIPs', value: 'top15000', count: 15000 },
-                        ].map(preset => (
-                          <Button
-                            key={preset.value}
-                            variant={campaignData.locations.zipCodes.length === preset.count ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handlePresetSelect('zips', preset.value)}
-                            className={campaignData.locations.zipCodes.length === preset.count 
-                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
-                              : "hover:border-indigo-300 hover:bg-indigo-50"}
-                          >
-                            <Hash className="w-3 h-3 mr-1.5" />
-                            {preset.label}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {campaignData.locations.zipCodes.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
-                        <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-semibold text-green-800">
-                            {campaignData.locations.zipCodes.length.toLocaleString()} ZIP codes selected
-                          </span>
-                        </div>
-                        <ScrollArea className="h-20">
-                          <div className="flex flex-wrap gap-1.5">
-                            {campaignData.locations.zipCodes.slice(0, 20).map((zip, idx) => (
-                              <Badge key={idx} className="bg-white text-slate-700 border border-slate-200 text-xs font-mono">{zip}</Badge>
-                            ))}
-                            {campaignData.locations.zipCodes.length > 20 && (
-                              <Badge className="bg-slate-100 text-slate-600 text-xs">
-                                +{(campaignData.locations.zipCodes.length - 20).toLocaleString()} more
-                              </Badge>
-                            )}
+                    {campaignData.targetCountry === 'United States' ? (
+                      <>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-amber-500" />
+                            <Label className="text-sm font-semibold text-slate-700">Quick Presets</Label>
                           </div>
-                        </ScrollArea>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {[
+                              { label: '1K ZIPs', value: 'top1000', count: 1000 },
+                              { label: '5K ZIPs', value: 'top5000', count: 5000 },
+                              { label: '15K ZIPs', value: 'top15000', count: 15000 },
+                            ].map(preset => (
+                              <Button
+                                key={preset.value}
+                                variant={campaignData.locations.zipCodes.length === preset.count ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePresetSelect('zips', preset.value)}
+                                className={campaignData.locations.zipCodes.length === preset.count 
+                                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
+                                  : "hover:border-indigo-300 hover:bg-indigo-50"}
+                              >
+                                <Hash className="w-3 h-3 mr-1.5" />
+                                {preset.label}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {campaignData.locations.zipCodes.length > 0 && (
+                          <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                            <div className="flex items-center gap-2 mb-3">
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              <span className="text-sm font-semibold text-green-800">
+                                {campaignData.locations.zipCodes.length.toLocaleString()} ZIP codes selected
+                              </span>
+                            </div>
+                            <ScrollArea className="h-20">
+                              <div className="flex flex-wrap gap-1.5">
+                                {campaignData.locations.zipCodes.slice(0, 20).map((zip, idx) => (
+                                  <Badge key={idx} className="bg-white text-slate-700 border border-slate-200 text-xs font-mono">{zip}</Badge>
+                                ))}
+                                {campaignData.locations.zipCodes.length > 20 && (
+                                  <Badge className="bg-slate-100 text-slate-600 text-xs">
+                                    +{(campaignData.locations.zipCodes.length - 20).toLocaleString()} more
+                                  </Badge>
+                                )}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 rounded-full bg-amber-100">
+                            <AlertCircle className="w-6 h-6 text-amber-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-amber-900 mb-2">
+                              ZIP Code Presets Not Available for {campaignData.targetCountry}
+                            </h4>
+                            <p className="text-sm text-amber-700 mb-4">
+                              Pre-configured postal code presets are currently only available for the United States. 
+                              For {campaignData.targetCountry}, please use <strong>Cities</strong> or <strong>States/Regions</strong> targeting instead.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const tabsElement = document.querySelector('[data-state="active"][value="zips"]');
+                                  if (tabsElement) {
+                                    const citiesTab = tabsElement.closest('[role="tabpanel"]')?.parentElement?.querySelector('[value="cities"]');
+                                    (citiesTab as HTMLElement)?.click();
+                                  }
+                                }}
+                                className="bg-white hover:bg-amber-50 border-amber-300 text-amber-800"
+                              >
+                                <Building2 className="w-4 h-4 mr-2" />
+                                Use Cities Instead
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const tabsElement = document.querySelector('[data-state="active"][value="zips"]');
+                                  if (tabsElement) {
+                                    const statesTab = tabsElement.closest('[role="tabpanel"]')?.parentElement?.querySelector('[value="states"]');
+                                    (statesTab as HTMLElement)?.click();
+                                  }
+                                }}
+                                className="bg-white hover:bg-amber-50 border-amber-300 text-amber-800"
+                              >
+                                <MapPinIcon className="w-4 h-4 mr-2" />
+                                Use States/Regions Instead
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </TabsContent>
