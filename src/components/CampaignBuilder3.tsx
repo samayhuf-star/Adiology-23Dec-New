@@ -2736,6 +2736,59 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         </button>
       </div>
 
+      {/* Shell View - Campaign Builder Info */}
+      <Card className="mb-6 border-slate-700 bg-slate-900 shadow-xl">
+        <CardHeader className="pb-2 border-b border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
+            </div>
+            <span className="text-slate-400 text-sm font-mono">Campaign Builder 3.0</span>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="font-mono text-sm space-y-2">
+            <div className="flex items-start gap-3">
+              <span className="text-slate-500 text-xs shrink-0">[{new Date().toLocaleTimeString()}]</span>
+              <span className="text-cyan-400">
+                <span className="text-cyan-500 mr-1">{'>'}</span>
+                Initializing Campaign Builder...
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-slate-500 text-xs shrink-0">[{new Date().toLocaleTimeString()}]</span>
+              <span className="text-green-400">
+                <span className="text-green-500 mr-1">✓</span>
+                14 Campaign Structures Available
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-slate-500 text-xs shrink-0">[{new Date().toLocaleTimeString()}]</span>
+              <span className="text-yellow-300">
+                <span className="text-yellow-500 mr-1">•</span>
+                Supported: SKAG, STAG, Intent-Based, Alpha-Beta, Funnel, GEO-Segmented & more
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-slate-500 text-xs shrink-0">[{new Date().toLocaleTimeString()}]</span>
+              <span className="text-indigo-400">
+                <span className="text-indigo-500 mr-1">★</span>
+                AI-Powered Analysis Ready
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-slate-500 text-xs shrink-0">[{new Date().toLocaleTimeString()}]</span>
+              <span className="text-slate-400">
+                <span className="text-slate-500 mr-1">→</span>
+                Enter your website URL below to begin analysis
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-slate-800 mb-2">Enter Your Website URL</h3>
         <p className="text-slate-600">AI will analyze your website to identify intent, CTA, and vertical</p>
