@@ -64,8 +64,9 @@ import { PlanSelection } from './components/PlanSelection';
 import { Teams } from './components/Teams';
 import { Blog } from './components/Blog';
 import { PromoLandingPage } from './components/PromoLandingPage';
+import { SuperAdminPanel } from './components/SuperAdminPanel';
 
-type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo';
+type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel';
 
 const App = () => {
   const { theme } = useTheme();
@@ -729,6 +730,26 @@ const App = () => {
         return;
       }
 
+      // Admin panel - detect subdomain or /admin path
+      const hostname = window.location.hostname;
+      const isAdminSubdomain = hostname.startsWith('admin.') || hostname === 'admin.adiology.io';
+      if (isAdminSubdomain || path.startsWith('/admin')) {
+        // Check if user is super admin
+        if (user && (user.email === 'd@d.com' || user.role === 'superadmin' || user.role === 'super_admin')) {
+          setView('admin-panel');
+          return;
+        }
+        // If not logged in or not admin, redirect to auth
+        if (!user) {
+          setAuthMode('login');
+          setView('auth');
+          return;
+        }
+        // If logged in but not admin, show homepage
+        setView('homepage');
+        return;
+      }
+
       // Show homepage on root path
       if (path === '/' || path === '') {
         // If user is logged in, check subscription status
@@ -1203,6 +1224,24 @@ const App = () => {
           } else {
             setAppView(page as AppView);
           }
+        }}
+      />
+    );
+  }
+
+  if (appView === 'admin-panel') {
+    return (
+      <SuperAdminPanel
+        user={user}
+        onLogout={() => {
+          signOut().then(() => {
+            setUser(null);
+            window.history.pushState({}, '', '/');
+            setAppView('homepage');
+          }).catch((err) => {
+            console.error('Signout error:', err);
+            setAppView('homepage');
+          });
         }}
       />
     );

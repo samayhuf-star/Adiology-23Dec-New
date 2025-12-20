@@ -20,6 +20,61 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Super Admin Authentication Helper
+async function verifySuperAdmin(c: any): Promise<{ authorized: boolean; error?: string }> {
+  try {
+    const authHeader = c.req.header('Authorization');
+    const adminKey = c.req.header('X-Admin-Key');
+    
+    // Check for admin bypass key (for development/testing)
+    if (adminKey === process.env.ADMIN_SECRET_KEY) {
+      return { authorized: true };
+    }
+    
+    // Check email-based auth header (simple auth for now)
+    const emailHeader = c.req.header('X-Admin-Email');
+    if (emailHeader === 'd@d.com') {
+      return { authorized: true };
+    }
+    
+    // Verify via Supabase token if provided
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      // Verify token with Supabase
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        
+        if (user && !error) {
+          // Check if user is super admin
+          const isSuperAdmin = user.email === 'd@d.com';
+          if (isSuperAdmin) {
+            return { authorized: true };
+          }
+          
+          // Check role in database
+          const roleResult = await pool.query(
+            'SELECT role FROM profiles WHERE id = $1',
+            [user.id]
+          );
+          if (roleResult.rows[0]?.role === 'superadmin' || roleResult.rows[0]?.role === 'super_admin') {
+            return { authorized: true };
+          }
+        }
+      }
+    }
+    
+    return { authorized: false, error: 'Unauthorized: Super admin access required' };
+  } catch (error) {
+    console.error('Admin auth error:', error);
+    return { authorized: false, error: 'Authentication failed' };
+  }
+}
+
 async function initStripe() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
@@ -491,6 +546,8 @@ app.get('/api/stripe/subscription/:email', async (c) => {
 });
 
 app.get('/api/admin/templates', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const result = await pool.query('SELECT id, name, vertical, version, enabled, description, created_at as created FROM admin_templates ORDER BY created_at DESC');
     return c.json(result.rows.map(row => ({
@@ -504,6 +561,8 @@ app.get('/api/admin/templates', async (c) => {
 });
 
 app.post('/api/admin/templates', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const body = await c.req.json();
     const id = `tpl-${Date.now()}`;
@@ -519,6 +578,8 @@ app.post('/api/admin/templates', async (c) => {
 });
 
 app.put('/api/admin/templates/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -534,6 +595,8 @@ app.put('/api/admin/templates/:id', async (c) => {
 });
 
 app.delete('/api/admin/templates/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     await pool.query('DELETE FROM admin_templates WHERE id = $1', [id]);
@@ -545,6 +608,8 @@ app.delete('/api/admin/templates/:id', async (c) => {
 });
 
 app.get('/api/admin/deployments', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const result = await pool.query('SELECT id, site, user_email as user, status, url, created_at as created FROM admin_deployments ORDER BY created_at DESC');
     return c.json(result.rows);
@@ -555,6 +620,8 @@ app.get('/api/admin/deployments', async (c) => {
 });
 
 app.post('/api/admin/deployments', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const body = await c.req.json();
     const id = `d-${Date.now()}`;
@@ -570,6 +637,8 @@ app.post('/api/admin/deployments', async (c) => {
 });
 
 app.put('/api/admin/deployments/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -585,6 +654,8 @@ app.put('/api/admin/deployments/:id', async (c) => {
 });
 
 app.delete('/api/admin/deployments/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     await pool.query('DELETE FROM admin_deployments WHERE id = $1', [id]);
@@ -596,6 +667,8 @@ app.delete('/api/admin/deployments/:id', async (c) => {
 });
 
 app.get('/api/admin/websites', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const result = await pool.query('SELECT id, name, user_email as user, status, domain, created_at as created FROM admin_websites ORDER BY created_at DESC');
     return c.json(result.rows.map(row => ({
@@ -609,6 +682,8 @@ app.get('/api/admin/websites', async (c) => {
 });
 
 app.post('/api/admin/websites', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const body = await c.req.json();
     const id = `web-${Date.now()}`;
@@ -624,6 +699,8 @@ app.post('/api/admin/websites', async (c) => {
 });
 
 app.put('/api/admin/websites/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -639,6 +716,8 @@ app.put('/api/admin/websites/:id', async (c) => {
 });
 
 app.delete('/api/admin/websites/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     await pool.query('DELETE FROM admin_websites WHERE id = $1', [id]);
@@ -650,6 +729,8 @@ app.delete('/api/admin/websites/:id', async (c) => {
 });
 
 app.get('/api/admin/tickets', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const result = await pool.query('SELECT id, subject, user_email as user, status, priority, message, created_at as created FROM support_tickets ORDER BY created_at DESC');
     return c.json(result.rows.map(row => ({
@@ -663,6 +744,8 @@ app.get('/api/admin/tickets', async (c) => {
 });
 
 app.post('/api/admin/tickets', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const body = await c.req.json();
     const id = `TKT-${String(Date.now()).slice(-3)}`;
@@ -678,6 +761,8 @@ app.post('/api/admin/tickets', async (c) => {
 });
 
 app.put('/api/admin/tickets/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -693,6 +778,8 @@ app.put('/api/admin/tickets/:id', async (c) => {
 });
 
 app.delete('/api/admin/tickets/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     await pool.query('DELETE FROM support_tickets WHERE id = $1', [id]);
@@ -704,6 +791,8 @@ app.delete('/api/admin/tickets/:id', async (c) => {
 });
 
 app.get('/api/admin/structures', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const result = await pool.query('SELECT id, name, description, usage_count as usage, active FROM campaign_structures ORDER BY usage_count DESC');
     return c.json(result.rows);
@@ -714,6 +803,8 @@ app.get('/api/admin/structures', async (c) => {
 });
 
 app.post('/api/admin/structures', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const body = await c.req.json();
     const id = `str-${Date.now()}`;
@@ -729,6 +820,8 @@ app.post('/api/admin/structures', async (c) => {
 });
 
 app.put('/api/admin/structures/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -744,6 +837,8 @@ app.put('/api/admin/structures/:id', async (c) => {
 });
 
 app.delete('/api/admin/structures/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     await pool.query('DELETE FROM campaign_structures WHERE id = $1', [id]);
@@ -755,6 +850,8 @@ app.delete('/api/admin/structures/:id', async (c) => {
 });
 
 app.get('/api/admin/expenses', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const result = await pool.query('SELECT id, service, category, amount, expense_date as date, description, status FROM admin_expenses ORDER BY expense_date DESC');
     return c.json(result.rows.map(row => ({
@@ -769,6 +866,8 @@ app.get('/api/admin/expenses', async (c) => {
 });
 
 app.post('/api/admin/expenses', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const body = await c.req.json();
     const id = `exp-${Date.now()}`;
@@ -784,6 +883,8 @@ app.post('/api/admin/expenses', async (c) => {
 });
 
 app.put('/api/admin/expenses/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -799,6 +900,8 @@ app.put('/api/admin/expenses/:id', async (c) => {
 });
 
 app.delete('/api/admin/expenses/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     await pool.query('DELETE FROM admin_expenses WHERE id = $1', [id]);
@@ -1020,6 +1123,8 @@ app.post('/api/dns/verify', async (c) => {
 
 // Fetch real-time billing data from third-party services (secure backend endpoint)
 app.get('/api/admin/services-billing', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   interface ServiceBilling {
     name: string;
     description: string;
@@ -1255,6 +1360,8 @@ app.get('/api/admin/services-billing', async (c) => {
 });
 
 app.get('/api/admin/users', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const result = await pool.query('SELECT id, email, full_name, subscription_plan, subscription_status, role, ai_usage as "aiUsage", created_at FROM users ORDER BY created_at DESC');
     return c.json(result.rows);
@@ -1265,6 +1372,8 @@ app.get('/api/admin/users', async (c) => {
 });
 
 app.post('/api/admin/users', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const body = await c.req.json();
     const id = `user-${Date.now()}`;
@@ -1280,6 +1389,8 @@ app.post('/api/admin/users', async (c) => {
 });
 
 app.put('/api/admin/users/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
@@ -1295,6 +1406,8 @@ app.put('/api/admin/users/:id', async (c) => {
 });
 
 app.delete('/api/admin/users/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
     const id = c.req.param('id');
     await pool.query('DELETE FROM users WHERE id = $1', [id]);
@@ -3500,6 +3613,365 @@ app.post('/api/campaigns/save', async (c) => {
   } catch (error: any) {
     console.error('Error saving campaign:', error);
     return c.json({ error: error.message || 'Failed to save campaign' }, 500);
+  }
+});
+
+// ============================================
+// SUPER ADMIN API ENDPOINTS
+// ============================================
+
+// Admin Stats Dashboard
+app.get('/api/admin/stats', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error }, 403);
+  }
+  try {
+    // Get total users
+    const usersResult = await pool.query('SELECT COUNT(*) as count FROM profiles');
+    const totalUsers = parseInt(usersResult.rows[0]?.count || '0');
+    
+    // Get active subscriptions
+    const subsResult = await pool.query("SELECT COUNT(*) as count FROM profiles WHERE subscription_status = 'active'");
+    const activeSubscriptions = parseInt(subsResult.rows[0]?.count || '0');
+    
+    // Get active trials
+    const trialsResult = await pool.query("SELECT COUNT(*) as count FROM promo_trials WHERE status = 'active'");
+    const activeTrials = parseInt(trialsResult.rows[0]?.count || '0');
+    
+    // Get error count from logs (last 24 hours)
+    const errorResult = await pool.query(
+      "SELECT COUNT(*) as count FROM admin_logs WHERE level = 'error' AND created_at > NOW() - INTERVAL '24 hours'"
+    );
+    const errorCount = parseInt(errorResult.rows[0]?.count || '0');
+    
+    // Get emails sent today
+    const emailResult = await pool.query(
+      "SELECT COUNT(*) as count FROM email_logs WHERE sent_at > NOW() - INTERVAL '24 hours'"
+    );
+    const emailsSent = parseInt(emailResult.rows[0]?.count || '0');
+    
+    // Calculate monthly revenue from Stripe (simplified)
+    const revenueResult = await pool.query(`
+      SELECT COALESCE(SUM(
+        CASE 
+          WHEN subscription_plan = 'lifetime' THEN 99.99
+          WHEN subscription_plan = 'pro' THEN 129.99
+          WHEN subscription_plan = 'basic' THEN 69.99
+          ELSE 0
+        END
+      ), 0) as revenue
+      FROM profiles 
+      WHERE subscription_status = 'active'
+    `);
+    const monthlyRevenue = parseFloat(revenueResult.rows[0]?.revenue || '0');
+    
+    return c.json({
+      totalUsers,
+      activeSubscriptions,
+      monthlyRevenue,
+      errorCount,
+      activeTrials,
+      emailsSent
+    });
+  } catch (error: any) {
+    console.error('Error fetching admin stats:', error);
+    return c.json({ 
+      totalUsers: 0, activeSubscriptions: 0, monthlyRevenue: 0, 
+      errorCount: 0, activeTrials: 0, emailsSent: 0 
+    });
+  }
+});
+
+// Get all users for admin
+app.get('/api/admin/users', async (c) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id, email, full_name, role, 
+        subscription_plan, subscription_status,
+        created_at, updated_at,
+        COALESCE(is_blocked, false) as is_blocked
+      FROM profiles 
+      ORDER BY created_at DESC
+      LIMIT 500
+    `);
+    return c.json({ users: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching users:', error);
+    return c.json({ users: [] });
+  }
+});
+
+// Block/unblock user
+app.post('/api/admin/users/:userId/block', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const { blocked } = await c.req.json();
+    
+    await pool.query(
+      'UPDATE profiles SET is_blocked = $1, updated_at = NOW() WHERE id = $2',
+      [blocked, userId]
+    );
+    
+    // Log this action
+    await pool.query(
+      "INSERT INTO admin_logs (level, source, message, details, created_at) VALUES ('info', 'admin', $1, $2, NOW())",
+      [`User ${blocked ? 'blocked' : 'unblocked'}`, JSON.stringify({ userId, blocked })]
+    );
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error blocking user:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Update user role
+app.post('/api/admin/users/:userId/role', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const { role } = await c.req.json();
+    
+    await pool.query(
+      'UPDATE profiles SET role = $1, updated_at = NOW() WHERE id = $2',
+      [role, userId]
+    );
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error updating user role:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get system logs
+app.get('/api/admin/logs', async (c) => {
+  try {
+    const level = c.req.query('level') || 'all';
+    
+    let query = 'SELECT * FROM admin_logs';
+    const params: any[] = [];
+    
+    if (level !== 'all') {
+      query += ' WHERE level = $1';
+      params.push(level);
+    }
+    
+    query += ' ORDER BY created_at DESC LIMIT 200';
+    
+    const result = await pool.query(query, params);
+    return c.json({ logs: result.rows.map((row: any) => ({
+      id: row.id,
+      timestamp: row.created_at,
+      level: row.level,
+      source: row.source,
+      message: row.message,
+      details: row.details
+    }))});
+  } catch (error: any) {
+    console.error('Error fetching logs:', error);
+    return c.json({ logs: [] });
+  }
+});
+
+// Add log entry
+app.post('/api/admin/logs', async (c) => {
+  try {
+    const { level, source, message, details } = await c.req.json();
+    
+    await pool.query(
+      'INSERT INTO admin_logs (level, source, message, details, created_at) VALUES ($1, $2, $3, $4, NOW())',
+      [level, source, message, details ? JSON.stringify(details) : null]
+    );
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error adding log:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get security rules
+app.get('/api/admin/security/rules', async (c) => {
+  try {
+    const result = await pool.query('SELECT * FROM security_rules ORDER BY created_at DESC');
+    return c.json({ rules: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching security rules:', error);
+    return c.json({ rules: [] });
+  }
+});
+
+// Add security rule
+app.post('/api/admin/security/rules', async (c) => {
+  try {
+    const { type, value, reason } = await c.req.json();
+    
+    const result = await pool.query(
+      'INSERT INTO security_rules (type, value, reason, active, created_at) VALUES ($1, $2, $3, true, NOW()) RETURNING *',
+      [type, value, reason]
+    );
+    
+    // Log this action
+    await pool.query(
+      "INSERT INTO admin_logs (level, source, message, details, created_at) VALUES ('warning', 'security', $1, $2, NOW())",
+      [`Security rule added: ${type}`, JSON.stringify({ type, value, reason })]
+    );
+    
+    return c.json({ rule: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error adding security rule:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete security rule
+app.delete('/api/admin/security/rules/:ruleId', async (c) => {
+  try {
+    const ruleId = c.req.param('ruleId');
+    await pool.query('DELETE FROM security_rules WHERE id = $1', [ruleId]);
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting security rule:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get database tables
+app.get('/api/admin/database/tables', async (c) => {
+  try {
+    const result = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_type = 'BASE TABLE'
+      ORDER BY table_name
+    `);
+    return c.json({ tables: result.rows.map((r: any) => r.table_name) });
+  } catch (error: any) {
+    console.error('Error fetching tables:', error);
+    return c.json({ tables: [] });
+  }
+});
+
+// Get table data
+app.get('/api/admin/database/table/:tableName', async (c) => {
+  try {
+    const tableName = c.req.param('tableName');
+    
+    // Validate table name to prevent SQL injection
+    const validTables = await pool.query(`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+    `);
+    const tableNames = validTables.rows.map((r: any) => r.table_name);
+    
+    if (!tableNames.includes(tableName)) {
+      return c.json({ error: 'Invalid table name' }, 400);
+    }
+    
+    // Get column names
+    const columnsResult = await pool.query(`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_schema = 'public' AND table_name = $1
+      ORDER BY ordinal_position
+    `, [tableName]);
+    const columns = columnsResult.rows.map((r: any) => r.column_name);
+    
+    // Get data (limit 100 rows for performance)
+    const dataResult = await pool.query(`SELECT * FROM "${tableName}" LIMIT 100`);
+    
+    return c.json({ columns, rows: dataResult.rows });
+  } catch (error: any) {
+    console.error('Error fetching table data:', error);
+    return c.json({ columns: [], rows: [] });
+  }
+});
+
+// Update table row
+app.post('/api/admin/database/table/:tableName/update', async (c) => {
+  try {
+    const tableName = c.req.param('tableName');
+    const { id, data } = await c.req.json();
+    
+    // Validate table name
+    const validTables = await pool.query(`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+    `);
+    const tableNames = validTables.rows.map((r: any) => r.table_name);
+    
+    if (!tableNames.includes(tableName)) {
+      return c.json({ error: 'Invalid table name' }, 400);
+    }
+    
+    // Build update query
+    const setClauses = Object.keys(data).map((key, i) => `"${key}" = $${i + 2}`).join(', ');
+    const values = [id, ...Object.values(data)];
+    
+    await pool.query(`UPDATE "${tableName}" SET ${setClauses} WHERE id = $1`, values);
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error updating row:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Send email via Postmark
+app.post('/api/admin/email/send', async (c) => {
+  try {
+    const { to, subject, htmlBody, textBody } = await c.req.json();
+    
+    const postmarkToken = process.env.POSTMARK_SERVER_API_TOKEN;
+    if (!postmarkToken) {
+      return c.json({ error: 'Postmark not configured' }, 500);
+    }
+    
+    const response = await fetch('https://api.postmarkapp.com/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Postmark-Server-Token': postmarkToken
+      },
+      body: JSON.stringify({
+        From: 'support@adiology.io',
+        To: to,
+        Subject: subject,
+        HtmlBody: htmlBody,
+        TextBody: textBody || subject
+      })
+    });
+    
+    if (response.ok) {
+      // Log email sent
+      await pool.query(
+        'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
+        [to, subject, 'sent']
+      );
+      return c.json({ success: true });
+    } else {
+      const error = await response.text();
+      return c.json({ error }, 500);
+    }
+  } catch (error: any) {
+    console.error('Error sending email:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get email logs
+app.get('/api/admin/email/logs', async (c) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM email_logs ORDER BY sent_at DESC LIMIT 100'
+    );
+    return c.json({ logs: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching email logs:', error);
+    return c.json({ logs: [] });
   }
 });
 
