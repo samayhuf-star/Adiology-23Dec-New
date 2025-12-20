@@ -1096,7 +1096,8 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                         <Checkbox 
                                                             id="broad-planner" 
                                                             checked={matchTypes.broad}
-                                                            onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, broad: c as boolean}))}
+                                                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                                            onCheckedChange={(c: boolean | 'indeterminate') => setMatchTypes(prev => ({...prev, broad: c === true}))}
                                                             className="border-amber-400 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                                                         />
                                                     </div>
@@ -1116,7 +1117,8 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                         <Checkbox 
                                                             id="phrase-planner" 
                                                             checked={matchTypes.phrase}
-                                                            onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, phrase: c as boolean}))}
+                                                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                                            onCheckedChange={(c: boolean | 'indeterminate') => setMatchTypes(prev => ({...prev, phrase: c === true}))}
                                                             className="border-blue-400 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                                                         />
                                                     </div>
@@ -1128,7 +1130,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                     onClick={() => setMatchTypes(prev => ({...prev, exact: !prev.exact}))}
                                                     className={`cursor-pointer p-3 rounded-xl border transition-all duration-300 ${
                                                         matchTypes.exact 
-                                                            ? 'bg-indigo-50 border-emerald-400 shadow-lg shadow-emerald-500/10' 
+                                                            ? 'bg-indigo-50 border-indigo-400 shadow-lg shadow-indigo-500/10' 
                                                             : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                                                     }`}
                                                 >
@@ -1136,8 +1138,9 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                         <Checkbox 
                                                             id="exact-planner" 
                                                             checked={matchTypes.exact}
-                                                            onCheckedChange={(c: boolean) => setMatchTypes(prev => ({...prev, exact: c as boolean}))}
-                                                            className="border-emerald-400 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-emerald-500"
+                                                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                                            onCheckedChange={(c: boolean | 'indeterminate') => setMatchTypes(prev => ({...prev, exact: c === true}))}
+                                                            className="border-indigo-400 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
                                                         />
                                                     </div>
                                                     <span className={`text-xs font-medium ${matchTypes.exact ? 'text-indigo-700' : 'text-gray-500'}`}>
