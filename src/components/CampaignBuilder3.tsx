@@ -4350,6 +4350,23 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           </p>
         </div>
 
+        {/* Info Banner */}
+        <div className="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <Info className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="text-sm text-slate-700">
+              <p className="font-medium text-indigo-900 mb-1">How Geo Targeting Works</p>
+              <ul className="space-y-1 text-slate-600">
+                <li><span className="text-indigo-600 font-medium">Nationwide by default:</span> Your ads will show across the entire selected country.</li>
+                <li><span className="text-indigo-600 font-medium">Change country:</span> Use the dropdown on the left to select a different country.</li>
+                <li><span className="text-indigo-600 font-medium">Target specific areas:</span> Click <span className="font-semibold">Cities</span>, <span className="font-semibold">States</span>, or <span className="font-semibold">ZIP Codes</span> on the right to narrow your targeting.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Two-column layout on larger screens */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Country & Summary */}
