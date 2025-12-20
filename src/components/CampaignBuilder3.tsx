@@ -2789,61 +2789,44 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         </CardContent>
       </Card>
 
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">Enter Your Website URL</h3>
-        <p className="text-slate-600">AI will analyze your website to identify intent, CTA, and vertical</p>
+      {/* Simple 2-row form: Campaign Name + URL */}
+      <div className="space-y-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Input
+            id="campaignName"
+            type="text"
+            placeholder="Campaign Name"
+            value={campaignData.campaignName}
+            onChange={(e) => setCampaignData(prev => ({ ...prev, campaignName: e.target.value }))}
+            disabled={!editingCampaignName}
+            className={`flex-1 ${!editingCampaignName ? 'bg-slate-100 text-slate-500' : ''}`}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setEditingCampaignName(!editingCampaignName)}
+            className={`shrink-0 ${editingCampaignName ? 'border-indigo-500 text-indigo-600' : 'text-slate-500'}`}
+            title={editingCampaignName ? 'Done editing' : 'Edit campaign name'}
+          >
+            {editingCampaignName ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+          </Button>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            id="websiteUrl"
+            type="url"
+            placeholder="https://www.example.com"
+            value={campaignData.url}
+            onChange={(e) => setCampaignData(prev => ({ ...prev, url: e.target.value }))}
+            className="flex-1"
+          />
+          <Button onClick={handleUrlSubmit} disabled={loading}>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            Analyze
+          </Button>
+        </div>
       </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Campaign Details</CardTitle>
-          <CardDescription>Enter your campaign name and landing page URL</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="campaignName" className="text-sm font-medium text-slate-700 mb-1.5 block">Campaign Name</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="campaignName"
-                type="text"
-                placeholder="Campaign-Search-Dec 12, 2025 4:30 PM"
-                value={campaignData.campaignName}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, campaignName: e.target.value }))}
-                disabled={!editingCampaignName}
-                className={`flex-1 ${!editingCampaignName ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setEditingCampaignName(!editingCampaignName)}
-                className={`shrink-0 ${editingCampaignName ? 'border-indigo-500 text-indigo-600' : 'text-slate-500'}`}
-                title={editingCampaignName ? 'Done editing' : 'Edit campaign name'}
-              >
-                {editingCampaignName ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-              </Button>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">Auto-generated name. Click edit icon to customize.</p>
-          </div>
-          <div>
-            <Label htmlFor="websiteUrl" className="text-sm font-medium text-slate-700 mb-1.5 block">Website URL</Label>
-            <div className="flex gap-4">
-              <Input
-                id="websiteUrl"
-                type="url"
-                placeholder="https://www.example.com"
-                value={campaignData.url}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, url: e.target.value }))}
-                className="flex-1"
-              />
-              <Button onClick={handleUrlSubmit} disabled={loading}>
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                Analyze
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Live Analysis Logs - Terminal Style */}
       {(isAnalyzing || analysisLogs.length > 0) && (
