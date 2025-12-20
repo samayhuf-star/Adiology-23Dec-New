@@ -7,8 +7,9 @@ import {
   Phone, Mail, Calendar, Clock, Eye, FileSpreadsheet, Copy,
   MessageSquare, Gift, Image as ImageIcon, DollarSign, MapPin as MapPinIcon,
   Star, RefreshCw, Smartphone, Megaphone, FolderOpen,
-  Type, ChevronUp, ChevronDown, ChevronRight, MousePointerClick, Briefcase
+  Type, ChevronUp, ChevronDown, ChevronRight, MousePointerClick, Briefcase, Info
 } from 'lucide-react';
+import JSZip from 'jszip';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -769,16 +770,20 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
       if (comprehensiveData?.aiInsights) {
         const ai = comprehensiveData.aiInsights;
-        intentResult = {
-          intentId: ai.primaryIntent?.toLowerCase()?.includes('call') ? IntentId.CALL 
+        const detectedIntentId = ai.primaryIntent?.toLowerCase()?.includes('call') ? IntentId.CALL 
             : ai.primaryIntent?.toLowerCase()?.includes('lead') ? IntentId.LEAD
             : ai.primaryIntent?.toLowerCase()?.includes('purchase') ? IntentId.PURCHASE
-            : IntentId.VISIT,
-          intentLabel: ai.primaryIntent || 'Visit',
-          score: 0.9
+            : IntentId.TRAFFIC;
+        intentResult = {
+          intentId: detectedIntentId,
+          intentLabel: ai.primaryIntent || 'Traffic',
+          confidence: 0.9,
+          recommendedDevice: 'any',
+          primaryKPIs: ['clicks', 'impressions'],
+          suggestedAdTypes: ['RSA']
         };
         vertical = ai.businessType || detectVertical(landingData);
-        cta = ai.conversionGoal || detectCTA(landingData, vertical);
+        cta = ai.conversionGoal || detectCTA(landingData, vertical ?? undefined);
         const rawKeywords = ai.suggestedKeywords?.slice(0, 5) || await generateSeedKeywords(landingData, intentResult);
         seedKeywords = filterValidSeedKeywords(rawKeywords);
         
@@ -818,13 +823,14 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
       // Auto-select best campaign structures
       addAnalysisLog('Ranking campaign structures...', 'step');
-      const rankings = rankCampaignStructures(intentResult, vertical);
+      const rankings = rankCampaignStructures(intentResult, vertical ?? 'general');
       setCampaignData(prev => ({
         ...prev,
         structureRankings: rankings,
         selectedStructure: rankings[0]?.id || 'skag',
       }));
-      addAnalysisLog(`Recommended structure: ${rankings[0]?.name || 'SKAG'}`, 'success');
+      const topStructure = CAMPAIGN_STRUCTURES.find(s => s.id === rankings[0]?.id);
+      addAnalysisLog(`Recommended structure: ${topStructure?.name || 'SKAG'}`, 'success');
 
       // Save analysis to database (non-blocking)
       addAnalysisLog('Saving analysis to cache...', 'step');
@@ -3647,7 +3653,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                                 <Checkbox
                                   checked={isSelected}
                                   onCheckedChange={toggleKeywordSelection}
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                   className="data-[state=checked]:bg-indigo-600"
                                 />
                               </div>
