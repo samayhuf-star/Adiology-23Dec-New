@@ -579,6 +579,498 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
         </div>
       </section>
 
+      {/* COMPREHENSIVE FEATURE SHOWCASE */}
+      <section className="py-20 px-6 bg-gradient-to-b from-slate-900 to-slate-950">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-500/30">
+              Complete Platform Tour
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              Everything You Need to <span className="text-purple-400">Dominate Google Ads</span>
+            </h2>
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+              Explore every feature of Adiology. From campaign creation to keyword research, 
+              ad generation to website building - see exactly what you're getting.
+            </p>
+          </div>
+
+          {/* PILLAR 1: CAMPAIGN BUILDERS */}
+          <div className="mb-20">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <Rocket className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-3xl font-bold text-white">Campaign Builders</h3>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* 1-Click Campaign */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-2xl p-6 hover:border-purple-500/50 transition-all">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                    <MousePointer className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white">1-Click Campaign Builder</h4>
+                </div>
+                <p className="text-gray-400 mb-4">
+                  The fastest way to create a complete Google Ads campaign. Just enter your website URL and let our AI 
+                  analyze your business, generate keywords, create ads, and structure your campaign - all in one click.
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> AI-powered website analysis
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> Automatic keyword generation (500+ keywords)
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> Smart campaign structure selection
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> Instant CSV export for Google Ads Editor
+                  </li>
+                </ul>
+              </div>
+
+              {/* Campaign Builder 3.0 */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-2xl p-6 hover:border-purple-500/50 transition-all">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                    <Layers className="w-5 h-5 text-pink-400" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white">Campaign Builder 3.0 (7-Step Wizard)</h4>
+                </div>
+                <p className="text-gray-400 mb-4">
+                  Our most powerful campaign builder. A guided 7-step wizard that walks you through every aspect 
+                  of campaign creation with full control and customization.
+                </p>
+                <div className="bg-slate-900/50 rounded-lg p-3 mb-4">
+                  <p className="text-xs text-gray-500 mb-2">The 7 Steps:</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <span className="text-purple-300">1. URL Analysis</span>
+                    <span className="text-purple-300">2. Structure Selection</span>
+                    <span className="text-purple-300">3. Keywords</span>
+                    <span className="text-purple-300">4. Ads & Extensions</span>
+                    <span className="text-purple-300">5. Geo Targeting</span>
+                    <span className="text-purple-300">6. CSV Generation</span>
+                    <span className="text-purple-300">7. Success & Export</span>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> 14 campaign structures (SKAG, STAG, Alpha-Beta, etc.)
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> Real-time ad preview with policy compliance
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> 15,000+ geo-targeting locations
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Campaign Structures */}
+            <div className="mt-8 bg-slate-800/30 border border-white/10 rounded-2xl p-6">
+              <h4 className="text-lg font-bold text-white mb-4">14 Proven Campaign Structures</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                {['SKAG', 'STAG', 'Alpha-Beta', 'Intent-Based', 'Hybrid', 'Location-Based', 'Service-Based', 
+                  'Product-Based', 'Brand vs Non-Brand', 'Funnel-Based', 'Match Type', 'Theme-Based', 
+                  'Competitor', 'Seasonal'].map((structure, i) => (
+                  <div key={i} className="bg-slate-900/50 rounded-lg px-3 py-2 text-center">
+                    <span className="text-sm text-gray-300">{structure}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* PILLAR 2: KEYWORD TOOLS */}
+          <div className="mb-20">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-3xl font-bold text-white">Keyword Tools</h3>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Keywords Planner */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mb-4">
+                  <BarChart3 className="w-5 h-5 text-blue-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-2">Keywords Planner</h4>
+                <p className="text-gray-400 text-sm mb-3">
+                  Generate hundreds of targeted keywords based on your seed terms. Filter by intent, 
+                  match type, and relevance.
+                </p>
+                <ul className="space-y-1 text-xs text-gray-400">
+                  <li>- AI-powered suggestions</li>
+                  <li>- Intent classification</li>
+                  <li>- Bulk generation</li>
+                  <li>- Export to campaigns</li>
+                </ul>
+              </div>
+
+              {/* Keyword Mixer */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
+                <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center mb-4">
+                  <Sparkles className="w-5 h-5 text-cyan-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-2">Keyword Mixer</h4>
+                <p className="text-gray-400 text-sm mb-3">
+                  Combine multiple keyword lists to create comprehensive targeting. 
+                  Mix modifiers, locations, and services.
+                </p>
+                <ul className="space-y-1 text-xs text-gray-400">
+                  <li>- Multi-list combination</li>
+                  <li>- Modifier templates</li>
+                  <li>- Location insertion</li>
+                  <li>- Instant preview</li>
+                </ul>
+              </div>
+
+              {/* Negative Keywords */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
+                <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center mb-4">
+                  <AlertCircle className="w-5 h-5 text-red-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-2">Negative Keywords</h4>
+                <p className="text-gray-400 text-sm mb-3">
+                  Protect your budget by excluding irrelevant searches. 
+                  AI-suggested negatives based on your industry.
+                </p>
+                <ul className="space-y-1 text-xs text-gray-400">
+                  <li>- Industry templates</li>
+                  <li>- AI suggestions</li>
+                  <li>- Bulk import/export</li>
+                  <li>- Campaign integration</li>
+                </ul>
+              </div>
+
+              {/* Long Tail Keywords */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
+                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center mb-4">
+                  <TrendingUp className="w-5 h-5 text-green-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-2">Long Tail Keywords</h4>
+                <p className="text-gray-400 text-sm mb-3">
+                  Discover high-intent, low-competition long tail opportunities 
+                  that drive quality conversions.
+                </p>
+                <ul className="space-y-1 text-xs text-gray-400">
+                  <li>- Question keywords</li>
+                  <li>- Intent-focused</li>
+                  <li>- Competition analysis</li>
+                  <li>- Conversion potential</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* PILLAR 3: AD CREATION & EXTENSIONS */}
+          <div className="mb-20">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-3xl font-bold text-white">AI Ad Creation & Extensions</h3>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* AI Ad Generator */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-2xl p-6">
+                <h4 className="text-xl font-bold text-white mb-4">AI-Powered Ad Generator</h4>
+                <p className="text-gray-400 mb-4">
+                  Create compelling RSA (Responsive Search Ads), DKI (Dynamic Keyword Insertion) ads, 
+                  and Call-Only ads with our AI engine. Fully compliant with Google Ads policies.
+                </p>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-amber-400">15</div>
+                    <div className="text-xs text-gray-400">Headlines</div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-amber-400">4</div>
+                    <div className="text-xs text-gray-400">Descriptions</div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-amber-400">100%</div>
+                    <div className="text-xs text-gray-400">Compliant</div>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> Real-time character count validation
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> Ad strength scoring
+                  </li>
+                  <li className="flex items-center gap-2 text-gray-300">
+                    <Check className="w-4 h-4 text-green-400" /> Live preview as you type
+                  </li>
+                </ul>
+              </div>
+
+              {/* Ad Extensions */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-2xl p-6">
+                <h4 className="text-xl font-bold text-white mb-4">10+ Ad Extensions</h4>
+                <p className="text-gray-400 mb-4">
+                  Maximize your ad real estate with comprehensive extensions. 
+                  Pre-built templates for every extension type.
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {['Sitelinks', 'Callouts', 'Structured Snippets', 'Call Extensions', 
+                    'Location Extensions', 'Price Extensions', 'Promotion Extensions', 
+                    'App Extensions', 'Lead Form Extensions', 'Image Assets'].map((ext, i) => (
+                    <div key={i} className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-3 h-3 text-green-400" />
+                      <span>{ext}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* PILLAR 4: WEBSITE BUILDER */}
+          <div className="mb-20">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
+                <Globe className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-3xl font-bold text-white">Website Builder & Templates</h3>
+            </div>
+
+            <div className="bg-slate-800/50 border border-white/10 rounded-2xl p-6 mb-6">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <h4 className="text-xl font-bold text-white mb-4">Drag-and-Drop Website Editor</h4>
+                  <p className="text-gray-400 mb-4">
+                    Create stunning landing pages that convert. Our sections-based editor lets you 
+                    build professional websites without any coding knowledge.
+                  </p>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-green-400" /> 13+ pre-built section types
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-green-400" /> Mobile-responsive designs
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-green-400" /> Custom colors and branding
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-green-400" /> One-click publishing
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-green-400" /> HTML export available
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-white mb-3">Section Types Available:</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {['Hero', 'Features', 'Services', 'Testimonials', 'Team', 'FAQ', 
+                      'Pricing', 'Gallery', 'Blog', 'Partners', 'CTA', 'Contact', 'About'].map((section, i) => (
+                      <div key={i} className="bg-slate-900/50 rounded px-3 py-2 text-gray-300 text-center">
+                        {section}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 50+ Templates */}
+            <div className="bg-gradient-to-r from-green-900/30 to-teal-900/30 border border-green-500/30 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Award className="w-8 h-8 text-green-400" />
+                <h4 className="text-xl font-bold text-white">50+ Ready-Made Templates</h4>
+              </div>
+              <p className="text-gray-300 mb-4">
+                Professional templates for every industry. Just pick one, customize, and publish!
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {['Legal', 'Dental', 'HVAC', 'Plumbing', 'Real Estate', 'Medical', 'Automotive', 
+                  'Restaurant', 'Fitness', 'E-commerce', 'SaaS', 'Agency', 'Consulting', 'Photography'].map((industry, i) => (
+                  <Badge key={i} className="bg-green-500/20 text-green-300 border-green-500/30">
+                    {industry}
+                  </Badge>
+                ))}
+                <Badge className="bg-white/10 text-white border-white/20">+36 more</Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* PILLAR 5: CAMPAIGN MANAGEMENT */}
+          <div className="mb-20">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-3xl font-bold text-white">Campaign Management & Export</h3>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Campaign History */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center mb-4">
+                  <Clock className="w-5 h-5 text-indigo-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-2">Campaign History</h4>
+                <p className="text-gray-400 text-sm">
+                  All your campaigns saved and organized. Search, filter, and access any 
+                  campaign you've ever created. Grid and list views available.
+                </p>
+              </div>
+
+              {/* Google Ads Integration */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
+                <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center mb-4">
+                  <TrendingUp className="w-5 h-5 text-violet-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-2">Google Ads Integration</h4>
+                <p className="text-gray-400 text-sm">
+                  Connect your Google Ads account and push campaigns directly. 
+                  OAuth integration with one-click campaign deployment.
+                </p>
+              </div>
+
+              {/* CSV Export */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center mb-4">
+                  <FileText className="w-5 h-5 text-purple-400" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-2">Google Ads Editor CSV</h4>
+                <p className="text-gray-400 text-sm">
+                  Export in the exact format Google Ads Editor expects. 
+                  183-column master format for immediate import.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* PILLAR 6: GEO TARGETING & PRESETS */}
+          <div className="mb-20">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center">
+                <Globe className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-3xl font-bold text-white">Geo Targeting & Campaign Presets</h3>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Geo Targeting */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-2xl p-6">
+                <h4 className="text-xl font-bold text-white mb-4">15,000+ Locations</h4>
+                <p className="text-gray-400 mb-4">
+                  Target your ads with precision. From countries to cities, states to ZIP codes - 
+                  reach exactly the audience you want.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-900/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-rose-400">195+</div>
+                    <div className="text-xs text-gray-400">Countries</div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-rose-400">50</div>
+                    <div className="text-xs text-gray-400">US States</div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-rose-400">10K+</div>
+                    <div className="text-xs text-gray-400">Cities</div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-rose-400">40K+</div>
+                    <div className="text-xs text-gray-400">ZIP Codes</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 50+ Campaign Presets */}
+              <div className="bg-slate-800/50 border border-white/10 rounded-2xl p-6">
+                <h4 className="text-xl font-bold text-white mb-4">50+ Campaign Presets</h4>
+                <p className="text-gray-400 mb-4">
+                  Industry-specific campaign templates with pre-configured keywords, 
+                  ad copy, and targeting. Just customize and launch.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {['Personal Injury Lawyer', 'Dentist', 'HVAC Repair', 'Plumber', 'Roofer', 
+                    'Real Estate Agent', 'Car Dealership', 'Moving Company', 'Landscaping'].map((preset, i) => (
+                    <span key={i} className="text-xs bg-rose-500/20 text-rose-300 px-2 py-1 rounded">
+                      {preset}
+                    </span>
+                  ))}
+                  <span className="text-xs bg-white/10 text-white px-2 py-1 rounded">+41 more</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* PILLAR 7: BLOG & RESOURCES */}
+          <div className="mb-12">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center">
+                <FileText className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-3xl font-bold text-white">Blog & Learning Resources</h3>
+            </div>
+
+            <div className="bg-gradient-to-r from-sky-900/30 to-blue-900/30 border border-sky-500/30 rounded-2xl p-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-xl font-bold text-white mb-4">Stay Updated with Our Blog</h4>
+                  <p className="text-gray-300 mb-4">
+                    Access tutorials, industry insights, Google Ads best practices, and platform updates. 
+                    Learn how to get the most out of Adiology and stay ahead of the competition.
+                  </p>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-sky-400" /> Google Ads tutorials & guides
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-sky-400" /> Industry-specific strategies
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-sky-400" /> Platform tips & tricks
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-sky-400" /> Case studies & success stories
+                    </li>
+                  </ul>
+                </div>
+                <div className="flex items-center justify-center">
+                  <div className="bg-slate-800/80 rounded-xl p-6 text-center">
+                    <div className="text-5xl font-bold text-sky-400 mb-2">50+</div>
+                    <div className="text-gray-400">Articles & Tutorials</div>
+                    <p className="text-sm text-gray-500 mt-2">New content added weekly</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary CTA */}
+          <div className="text-center py-8 border-t border-white/10">
+            <p className="text-xl text-gray-300 mb-4">
+              All these features included in the <span className="text-green-400 font-bold">Lifetime Plan</span> for just <span className="text-white font-bold">$69.99</span>
+            </p>
+            <Button
+              onClick={handleStartTrial}
+              disabled={isLoading}
+              size="lg"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-10 py-5 text-lg font-bold rounded-xl shadow-xl transition-all hover:scale-105"
+            >
+              Start $5 Trial Now
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* LIFETIME OFFER - BOTTOM OF PAGE - LAST CHANCE */}
       <section className="py-16 px-6 bg-gradient-to-b from-slate-900 via-green-950/30 to-slate-900">
         <div className="max-w-4xl mx-auto">
