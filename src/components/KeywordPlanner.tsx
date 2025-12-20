@@ -1225,6 +1225,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                 onDownloadCSV={handleDownloadKeywords}
                                                 onSave={handleSave}
                                                 onCopy={handleCopyAll}
+                                                onAppendMore={() => handleGenerate(true)}
                                                 onGenerateAnother={() => {
                                                     setShowResultsConsole(false);
                                                     setGeneratedKeywords([]);
@@ -1233,9 +1234,11 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                 showDownload={true}
                                                 showSave={true}
                                                 showCopy={true}
+                                                showAppendMore={true}
                                                 downloadButtonText="Download CSV for Google Ads"
                                                 saveButtonText="Save to Saved Lists"
                                                 copyButtonText="Copy Keywords"
+                                                appendMoreButtonText={`Append More (${generatedKeywords.length} total)`}
                                                 isSaving={isSaving}
                                             />
                                         </div>
