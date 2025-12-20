@@ -341,7 +341,7 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
               </div>
             </motion.div>
 
-            {/* SKIP TRIAL - BUY NOW WITH 20% DISCOUNT */}
+            {/* SKIP TRIAL - BUY NOW WITH 20% DISCOUNT - LAST CHANCE OFFER */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -349,57 +349,79 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
               className="max-w-3xl mx-auto mb-8"
             >
               <div className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 rounded-2xl blur opacity-40" />
-                <div className="relative bg-gradient-to-br from-green-950/90 to-emerald-950/90 border-2 border-green-500/50 rounded-2xl p-6">
-                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="text-center md:text-left">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Zap className="w-6 h-6 text-green-400" />
-                        <span className="text-lg font-bold text-green-300">SKIP THE TRIAL - GET 20% OFF!</span>
-                      </div>
-                      <p className="text-white text-lg mb-1">
-                        Ready to commit? Buy Lifetime Plan NOW for only
-                      </p>
-                      <div className="flex items-baseline gap-3">
-                        <span className="text-4xl font-bold text-white">$69.99</span>
-                        <span className="text-gray-400 line-through text-xl">$99.99</span>
-                        <Badge className="bg-green-500/30 text-green-300 border-green-500/50">Save 30%</Badge>
-                      </div>
-                      <p className="text-green-200 text-sm mt-2">
-                        Instant lifetime access. No trial waiting. Best deal ever!
-                      </p>
+                {/* Pulsing glow effect for urgency */}
+                <div className="absolute -inset-2 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 rounded-2xl blur-lg opacity-60 animate-pulse" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 rounded-2xl blur opacity-50" />
+                <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 border-2 border-red-500/70 rounded-2xl overflow-hidden">
+                  {/* Last Chance Banner */}
+                  <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-600 py-2 px-4 text-center">
+                    <div className="flex items-center justify-center gap-2 text-white font-bold">
+                      <AlertCircle className="w-5 h-5 animate-pulse" />
+                      <span>LAST CHANCE OFFER - ONLY ON THIS PAGE!</span>
+                      <AlertCircle className="w-5 h-5 animate-pulse" />
                     </div>
-                    <Button
-                      onClick={async () => {
-                        setIsLoading(true);
-                        try {
-                          const response = await fetch('/api/promo/lifetime-direct', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({})
-                          });
-                          if (response.ok) {
-                            const data = await response.json();
-                            if (data.checkoutUrl) {
-                              window.location.href = data.checkoutUrl;
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="text-center md:text-left">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Zap className="w-6 h-6 text-green-400" />
+                          <span className="text-xl font-bold text-green-300">SKIP THE TRIAL - GET 20% OFF!</span>
+                        </div>
+                        <p className="text-white text-lg mb-2">
+                          Buy Lifetime Plan NOW and save instantly:
+                        </p>
+                        <div className="flex items-baseline gap-3 mb-2">
+                          <span className="text-5xl font-bold text-white">$69.99</span>
+                          <span className="text-gray-400 line-through text-2xl">$99.99</span>
+                          <Badge className="bg-red-500/30 text-red-300 border-red-500/50 text-lg px-3 py-1">Save 30%</Badge>
+                        </div>
+                        <div className="bg-red-950/50 border border-red-500/30 rounded-lg p-3 mt-3">
+                          <p className="text-red-300 text-sm font-medium">
+                            <AlertCircle className="w-4 h-4 inline mr-1" />
+                            <strong>This offer will NOT be shown again.</strong> If you leave this page, 
+                            you'll only see the regular $99.99 price. Decide now!
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center gap-3">
+                        <Button
+                          onClick={async () => {
+                            setIsLoading(true);
+                            try {
+                              const response = await fetch('/api/promo/lifetime-direct', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({})
+                              });
+                              if (response.ok) {
+                                const data = await response.json();
+                                if (data.checkoutUrl) {
+                                  window.location.href = data.checkoutUrl;
+                                }
+                              } else {
+                                const error = await response.json();
+                                alert(error.message || 'Failed to process. Please try again.');
+                              }
+                            } catch (error) {
+                              alert('Something went wrong. Please try again.');
+                            } finally {
+                              setIsLoading(false);
                             }
-                          } else {
-                            const error = await response.json();
-                            alert(error.message || 'Failed to process. Please try again.');
-                          }
-                        } catch (error) {
-                          alert('Something went wrong. Please try again.');
-                        } finally {
-                          setIsLoading(false);
-                        }
-                      }}
-                      disabled={isLoading}
-                      size="lg"
-                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-8 py-5 text-lg font-bold rounded-xl shadow-xl shadow-green-500/30 transition-all hover:scale-105 whitespace-nowrap"
-                    >
-                      {isLoading ? 'Processing...' : 'Buy Now $69.99'}
-                      <Rocket className="w-5 h-5 ml-2" />
-                    </Button>
+                          }}
+                          disabled={isLoading}
+                          size="lg"
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-10 py-6 text-xl font-bold rounded-xl shadow-2xl shadow-green-500/40 transition-all hover:scale-105 whitespace-nowrap"
+                        >
+                          {isLoading ? 'Processing...' : 'Buy Now $69.99'}
+                          <Rocket className="w-6 h-6 ml-2" />
+                        </Button>
+                        <span className="text-green-300 text-sm font-medium">
+                          Instant lifetime access. Best deal ever!
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
