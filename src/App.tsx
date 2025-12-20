@@ -1195,6 +1195,15 @@ const App = () => {
         onStartTrial={() => {
           // Trial start is handled within the component via API
         }}
+        onNavigate={(page) => {
+          setPreviousView('promo');
+          if (page === 'blog') {
+            setActiveTab('blog');
+            setAppView('user');
+          } else {
+            setAppView(page as AppView);
+          }
+        }}
       />
     );
   }

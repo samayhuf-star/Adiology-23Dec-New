@@ -11,9 +11,10 @@ import { Badge } from './ui/badge';
 
 interface PromoLandingPageProps {
   onStartTrial: () => void;
+  onNavigate?: (page: 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'blog') => void;
 }
 
-export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
+export function PromoLandingPage({ onStartTrial, onNavigate }: PromoLandingPageProps) {
   const [timeLeft, setTimeLeft] = useState({
     days: 6,
     hours: 23,
@@ -1177,12 +1178,173 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-6 border-t border-white/10">
-        <div className="max-w-6xl mx-auto text-center text-gray-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} Adiology. All rights reserved.</p>
-          <p className="mt-2">
-            Questions? Email us at <a href="mailto:support@adiology.io" className="text-purple-400 hover:underline">support@adiology.io</a>
-          </p>
+      <footer className="py-12 px-6 border-t border-white/10 bg-slate-950">
+        <div className="max-w-6xl mx-auto">
+          {/* Footer Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+            {/* Company */}
+            <div>
+              <h4 className="text-white font-bold mb-4">Company</h4>
+              <ul className="space-y-2">
+                <li>
+                  <a href="https://adiology.io" className="text-gray-400 hover:text-purple-400 transition-colors text-sm">
+                    About Us
+                  </a>
+                </li>
+                <li>
+                  <a href="mailto:support@adiology.io" className="text-gray-400 hover:text-purple-400 transition-colors text-sm">
+                    Contact
+                  </a>
+                </li>
+                <li>
+                  <a href="mailto:careers@adiology.io" className="text-gray-400 hover:text-purple-400 transition-colors text-sm">
+                    Careers
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <h4 className="text-white font-bold mb-4">Resources</h4>
+              <ul className="space-y-2">
+                <li>
+                  <button 
+                    onClick={() => onNavigate?.('blog')}
+                    className="text-gray-400 hover:text-purple-400 transition-colors text-sm text-left"
+                  >
+                    Blog
+                  </button>
+                </li>
+                <li>
+                  <a href="https://adiology.io/docs" className="text-gray-400 hover:text-purple-400 transition-colors text-sm">
+                    Documentation
+                  </a>
+                </li>
+                <li>
+                  <a href="https://adiology.io/help" className="text-gray-400 hover:text-purple-400 transition-colors text-sm">
+                    Help Center
+                  </a>
+                </li>
+                <li>
+                  <a href="https://adiology.io/tutorials" className="text-gray-400 hover:text-purple-400 transition-colors text-sm">
+                    Tutorials
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="text-white font-bold mb-4">Legal</h4>
+              <ul className="space-y-2">
+                <li>
+                  <button 
+                    onClick={() => onNavigate?.('privacy-policy')}
+                    className="text-gray-400 hover:text-purple-400 transition-colors text-sm text-left"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => onNavigate?.('terms-of-service')}
+                    className="text-gray-400 hover:text-purple-400 transition-colors text-sm text-left"
+                  >
+                    Terms of Service
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => onNavigate?.('cookie-policy')}
+                    className="text-gray-400 hover:text-purple-400 transition-colors text-sm text-left"
+                  >
+                    Cookie Policy
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => onNavigate?.('gdpr-compliance')}
+                    className="text-gray-400 hover:text-purple-400 transition-colors text-sm text-left"
+                  >
+                    GDPR Compliance
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => onNavigate?.('refund-policy')}
+                    className="text-gray-400 hover:text-purple-400 transition-colors text-sm text-left"
+                  >
+                    Refund Policy
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h4 className="text-white font-bold mb-4">Get in Touch</h4>
+              <ul className="space-y-2">
+                <li>
+                  <a href="mailto:support@adiology.io" className="text-gray-400 hover:text-purple-400 transition-colors text-sm">
+                    support@adiology.io
+                  </a>
+                </li>
+                <li>
+                  <a href="mailto:sales@adiology.io" className="text-gray-400 hover:text-purple-400 transition-colors text-sm">
+                    sales@adiology.io
+                  </a>
+                </li>
+              </ul>
+              <div className="mt-4">
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                  Online Support
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="border-t border-white/10 pt-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              {/* Copyright */}
+              <p className="text-gray-500 text-sm">
+                &copy; {new Date().getFullYear()} Adiology. All rights reserved.
+              </p>
+
+              {/* Quick Legal Links */}
+              <div className="flex items-center gap-4 text-sm">
+                <button 
+                  onClick={() => onNavigate?.('privacy-policy')}
+                  className="text-gray-500 hover:text-purple-400 transition-colors"
+                >
+                  Privacy
+                </button>
+                <span className="text-gray-700">|</span>
+                <button 
+                  onClick={() => onNavigate?.('terms-of-service')}
+                  className="text-gray-500 hover:text-purple-400 transition-colors"
+                >
+                  Terms
+                </button>
+                <span className="text-gray-700">|</span>
+                <button 
+                  onClick={() => onNavigate?.('cookie-policy')}
+                  className="text-gray-500 hover:text-purple-400 transition-colors"
+                >
+                  Cookies
+                </button>
+              </div>
+
+              {/* Payment Badges */}
+              <div className="flex items-center gap-3 text-gray-500">
+                <Shield className="w-4 h-4" />
+                <span className="text-xs">Secure Payments</span>
+                <CreditCard className="w-4 h-4" />
+                <span className="text-xs">Stripe</span>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
