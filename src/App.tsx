@@ -63,8 +63,9 @@ import { WebTemplates } from './components/WebTemplates';
 import { PlanSelection } from './components/PlanSelection';
 import { Teams } from './components/Teams';
 import { Blog } from './components/Blog';
+import { PromoLandingPage } from './components/PromoLandingPage';
 
-type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy';
+type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo';
 
 const App = () => {
   const { theme } = useTheme();
@@ -722,6 +723,12 @@ const App = () => {
         return;
       }
 
+      // Promo landing page - public access
+      if (path.startsWith('/promo')) {
+        setView('promo');
+        return;
+      }
+
       // Show homepage on root path
       if (path === '/' || path === '') {
         // If user is logged in, check subscription status
@@ -776,7 +783,7 @@ const App = () => {
   useEffect(() => {
     if (!loading && !user && (window.location.pathname === '/' || window.location.pathname === '')) {
       // Only set to homepage if we're not already on a specific route
-      if (appView !== 'homepage' && appView !== 'auth' && appView !== 'reset-password' && appView !== 'verify-email' && appView !== 'payment' && appView !== 'payment-success' && appView !== 'plan-selection') {
+      if (appView !== 'homepage' && appView !== 'auth' && appView !== 'reset-password' && appView !== 'verify-email' && appView !== 'payment' && appView !== 'payment-success' && appView !== 'plan-selection' && appView !== 'promo') {
         setAppView('homepage');
       }
     }
@@ -1177,6 +1184,16 @@ const App = () => {
             setAppView('auth');
             setAuthMode('login');
           });
+        }}
+      />
+    );
+  }
+
+  if (appView === 'promo') {
+    return (
+      <PromoLandingPage
+        onStartTrial={() => {
+          // Trial start is handled within the component via API
         }}
       />
     );

@@ -282,6 +282,155 @@ app.post('/api/stripe/portal', async (c) => {
   }
 });
 
+// Promo Trial Endpoints
+const PROMO_CONFIG = {
+  trialPrice: 500, // $5.00 in cents
+  monthlyPrice: 6999, // $69.99 in cents
+  trialDays: 5,
+  totalSlots: 50,
+  offerDays: 7,
+};
+
+// Get promo status (slots remaining, offer validity)
+app.get('/api/promo/status', async (c) => {
+  try {
+    // Check how many trial slots have been used
+    const result = await pool.query(`
+      SELECT COUNT(*) as used_slots 
+      FROM promo_trials 
+      WHERE created_at > NOW() - INTERVAL '7 days'
+    `);
+    
+    const usedSlots = parseInt(result.rows[0]?.used_slots || '0');
+    const slotsRemaining = Math.max(0, PROMO_CONFIG.totalSlots - usedSlots);
+    
+    return c.json({
+      slotsRemaining,
+      totalSlots: PROMO_CONFIG.totalSlots,
+      trialPrice: PROMO_CONFIG.trialPrice,
+      monthlyPrice: PROMO_CONFIG.monthlyPrice,
+      trialDays: PROMO_CONFIG.trialDays,
+      offerActive: slotsRemaining > 0
+    });
+  } catch (error) {
+    console.error('Promo status error:', error);
+    // Return default values if table doesn't exist yet
+    return c.json({
+      slotsRemaining: 5,
+      totalSlots: 50,
+      trialPrice: 500,
+      monthlyPrice: 6999,
+      trialDays: 5,
+      offerActive: true
+    });
+  }
+});
+
+// Create promo trial checkout session
+app.post('/api/promo/trial', async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const { email } = body;
+    
+    // Check slot availability first
+    let slotsRemaining = PROMO_CONFIG.totalSlots;
+    try {
+      const result = await pool.query(`
+        SELECT COUNT(*) as used_slots 
+        FROM promo_trials 
+        WHERE created_at > NOW() - INTERVAL '7 days' AND status != 'canceled'
+      `);
+      const usedSlots = parseInt(result.rows[0]?.used_slots || '0');
+      slotsRemaining = Math.max(0, PROMO_CONFIG.totalSlots - usedSlots);
+    } catch (dbError) {
+      console.warn('Could not check slots:', dbError);
+    }
+    
+    if (slotsRemaining <= 0) {
+      return c.json({ 
+        error: 'All promotional slots have been claimed',
+        message: 'Sorry, this offer has expired. All 50 slots have been taken.'
+      }, 409);
+    }
+    
+    const stripe = await getUncachableStripeClient();
+    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const protocol = domain.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${domain}`;
+    
+    // Create a checkout session with $5 upfront + subscription with trial
+    // The $5 is collected immediately via a one-time item
+    // The subscription starts after 5 days at $69.99/mo
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [
+        // $5 one-time trial fee (collected immediately)
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Adiology Pro - 5 Day Trial',
+              description: 'Full access trial fee - credited to first month if you continue',
+            },
+            unit_amount: PROMO_CONFIG.trialPrice, // $5.00
+          },
+          quantity: 1,
+        },
+        // Monthly subscription (starts after trial)
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Adiology Pro Monthly',
+              description: 'Monthly subscription - first month discounted by $5 trial credit',
+            },
+            unit_amount: PROMO_CONFIG.monthlyPrice - PROMO_CONFIG.trialPrice, // $64.99 (with $5 credit)
+            recurring: {
+              interval: 'month',
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      subscription_data: {
+        trial_period_days: PROMO_CONFIG.trialDays,
+        metadata: {
+          promo_trial: 'true',
+          trial_amount: PROMO_CONFIG.trialPrice.toString(),
+        },
+      },
+      success_url: `${baseUrl}/?trial=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/promo?canceled=true`,
+      metadata: {
+        promo_trial: 'true',
+      },
+    });
+    
+    // Track the trial slot
+    try {
+      await pool.query(`
+        INSERT INTO promo_trials (session_id, email, status, created_at)
+        VALUES ($1, $2, 'pending', NOW())
+        ON CONFLICT DO NOTHING
+      `, [session.id, email || 'anonymous']);
+    } catch (dbError) {
+      console.warn('Could not track promo trial (table may not exist):', dbError);
+    }
+    
+    return c.json({ 
+      checkoutUrl: session.url,
+      sessionId: session.id 
+    });
+  } catch (error: any) {
+    console.error('Promo trial error:', error);
+    return c.json({ 
+      error: error.message || 'Failed to create trial checkout',
+      message: 'Failed to start trial. Please try again.'
+    }, 500);
+  }
+});
+
 app.get('/api/stripe/subscription/:email', async (c) => {
   try {
     const email = c.req.param('email');
