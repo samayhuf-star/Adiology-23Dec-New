@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users, BookOpen
 } from 'lucide-react';
 
 declare global {
@@ -62,6 +62,7 @@ import { notifications as notificationService } from './utils/notifications';
 import { WebTemplates } from './components/WebTemplates';
 import { PlanSelection } from './components/PlanSelection';
 import { Teams } from './components/Teams';
+import { Blog } from './components/Blog';
 
 type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy';
 
@@ -907,6 +908,7 @@ const App = () => {
       ]
     },
     { id: 'teams', label: 'Teams', icon: Users },
+    { id: 'blog', label: 'Blog', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
   ];
@@ -1381,6 +1383,8 @@ const App = () => {
         return <SupportPanel />;
       case 'teams':
         return <Teams />;
+      case 'blog':
+        return <Blog />;
       case 'settings':
         return <SettingsPanel />;
       case 'billing':
