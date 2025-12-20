@@ -25,6 +25,7 @@ import { GoogleAdsCSVExport } from './components/GoogleAdsCSVExport';
 import { KeywordPlanner } from './components/KeywordPlanner';
 import { KeywordMixer } from './components/KeywordMixer';
 import { NegativeKeywordsBuilder } from './components/NegativeKeywordsBuilder';
+import { LongTailKeywords } from './components/LongTailKeywords';
 import { KeywordSavedLists } from './components/KeywordSavedLists';
 import { BillingPanel } from './components/BillingPanel';
 import { SupportPanel } from './components/SupportPanel';
@@ -127,6 +128,7 @@ const App = () => {
     'keyword-planner',
     'keyword-mixer',
     'negative-keywords',
+    'long-tail-keywords',
     'settings',
     'billing',
     'support',
@@ -884,6 +886,7 @@ const App = () => {
         { id: 'keyword-planner', label: 'Planner', icon: Lightbulb },
         { id: 'keyword-mixer', label: 'Mixer', icon: Shuffle },
         { id: 'negative-keywords', label: 'Negatives', icon: MinusCircle },
+        { id: 'long-tail-keywords', label: 'Long Tail', icon: Sparkles },
       ]
     },
     { 
@@ -1278,6 +1281,8 @@ const App = () => {
         return <KeywordMixer initialData={activeTab === 'keyword-mixer' ? historyData : null} />;
       case 'negative-keywords':
         return <NegativeKeywordsBuilder initialData={activeTab === 'negative-keywords' ? historyData : null} />;
+      case 'long-tail-keywords':
+        return <LongTailKeywords />;
       case 'keyword-saved-lists':
         return <KeywordSavedLists />;
       case 'web-templates':
