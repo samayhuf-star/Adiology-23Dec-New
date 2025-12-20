@@ -60,14 +60,24 @@ Preferred communication style: Simple, everyday language.
 - **Authentication Provider**: Supabase Auth with email/password, verification, and password reset. Signup is invite-only.
 - **Authorization**: Role-based access for regular users, paid users, and super admins, with Row Level Security (RLS), API key authentication, CORS, and Content Security Policy.
 
-## Super Admin Features
+## Super Admin Panel
+- **Access**: Via admin.adiology.io subdomain or /admin path. Restricted to d@d.com and users with role='superadmin' or 'super_admin'.
+- **Authentication**: Server-side verifySuperAdmin() middleware protects all /api/admin/* endpoints. Accepts Supabase Bearer token, X-Admin-Email header (for d@d.com), or ADMIN_SECRET_KEY environment variable.
+- **Dashboard**: Real-time stats showing total users, active subscriptions, monthly revenue, error count, active trials, and emails sent.
+- **User Management**: View all users, block/unblock accounts, edit roles (user/admin/superadmin), view subscription status.
+- **Subscriptions & Billing**: Stripe sync, view subscription details, manage billing.
+- **Database Management**: Browse all database tables, view/edit records with two-way sync.
+- **System Logs**: View error logs, activity logs, API logs with filtering by level (info/warning/error).
+- **Email Management**: Postmark integration for sending emails, view email logs.
+- **Security & Firewall**: IP blocking rules, rate limiting configuration, access rules management.
+- **Database Tables**: admin_logs (system logging), security_rules (firewall), email_logs (tracking).
+
+## Additional Super Admin Features
 - **Documentation Manager**: Load existing documentation from Supabase, create, edit, and publish help documentation with rich text, images, and video URLs. Super admins can upload images as base64-encoded attachments and embed YouTube/Vimeo videos. Supports draft/published status for content visibility control. Data persists to Supabase support_tickets table with documentation type flag.
-- **User Management**: Create, edit, impersonate, and block users
 - **Template Management**: Manage templates, versions, and enable/disable status
 - **Campaign Structures**: Manage campaign structure templates
 - **Website Management**: Track deployed websites and domains
 - **Real-time Expenses**: Load real expenses from APIs (Stripe, OpenAI, Supabase, Vercel, GitHub, etc.), parse Mercury CSV transactions, sync with service APIs. Uses realExpensesService.ts for parsing CSV and calculating actual usage costs. Removed all hardcoded/sample expenses - all data is production-real.
-- **Support Tickets**: Manage user support requests and tickets
 - **AI Usage Tracking**: Monitor AI token consumption across users
 - **Database Admin (React-Admin)**: Full CRUD interface for all database tables using React-Admin + ra-supabase (MIT licensed). Access via /superadmin/db-admin route. Features include:
   - Browse, search, filter all tables (users, admin_templates, admin_websites, admin_deployments, admin_expenses, campaign_structures, support_tickets)
