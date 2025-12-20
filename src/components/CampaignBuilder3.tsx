@@ -4295,36 +4295,46 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const renderStep5 = () => {
     const handlePresetSelect = (type: 'cities' | 'states' | 'zips', preset: string) => {
       let items: string[] = [];
+      let requestedCount = 0;
       const countryPresets = getGeoPresetsForCountry(campaignData.targetCountry);
       
       if (type === 'cities') {
-        if (preset === 'top50') items = countryPresets.cities.top50;
-        else if (preset === 'top250') items = countryPresets.cities.top250;
-        else if (preset === 'top500') items = countryPresets.cities.top500;
+        if (preset === 'top50') { items = countryPresets.cities.top50; requestedCount = 50; }
+        else if (preset === 'top250') { items = countryPresets.cities.top250; requestedCount = 250; }
+        else if (preset === 'top500') { items = countryPresets.cities.top500; requestedCount = 500; }
         setCampaignData(prev => ({ 
           ...prev, 
           locations: { ...prev.locations, cities: items, states: [], zipCodes: [] }
         }));
       } else if (type === 'states') {
-        if (preset === 'top10') items = countryPresets.states.top10;
-        else if (preset === 'top25') items = countryPresets.states.top25;
-        else if (preset === 'top50') items = countryPresets.states.top50;
+        if (preset === 'top10') { items = countryPresets.states.top10; requestedCount = 10; }
+        else if (preset === 'top25') { items = countryPresets.states.top25; requestedCount = 25; }
+        else if (preset === 'top50') { items = countryPresets.states.top50; requestedCount = 50; }
         setCampaignData(prev => ({ 
           ...prev, 
           locations: { ...prev.locations, states: items, cities: [], zipCodes: [] }
         }));
       } else if (type === 'zips') {
-        if (preset === 'top1000') items = countryPresets.zips.top1000;
-        else if (preset === 'top5000') items = countryPresets.zips.top5000;
-        else if (preset === 'top15000') items = countryPresets.zips.top15000;
-        else if (preset === 'top25000') items = countryPresets.zips.top25000;
+        if (preset === 'top1000') { items = countryPresets.zips.top1000; requestedCount = 1000; }
+        else if (preset === 'top5000') { items = countryPresets.zips.top5000; requestedCount = 5000; }
+        else if (preset === 'top15000') { items = countryPresets.zips.top15000; requestedCount = 15000; }
+        else if (preset === 'top25000') { items = countryPresets.zips.top25000; requestedCount = 25000; }
         setCampaignData(prev => ({ 
           ...prev, 
           locations: { ...prev.locations, zipCodes: items, cities: [], states: [] }
         }));
       }
       autoSaveDraft();
-      notifications.success(`Selected ${items.length} ${type}`, { title: 'Geo Targeting Updated' });
+      
+      const typeLabel = type === 'zips' ? 'ZIP codes' : type;
+      if (items.length < requestedCount) {
+        notifications.info(`${campaignData.targetCountry} only has ${items.length.toLocaleString()} ${typeLabel} available (max)`, { 
+          title: 'Geo Targeting Updated',
+          description: `Selected all ${items.length.toLocaleString()} available ${typeLabel}`
+        });
+      } else {
+        notifications.success(`Selected ${items.length.toLocaleString()} ${typeLabel}`, { title: 'Geo Targeting Updated' });
+      }
     };
 
     const clearLocations = () => {
