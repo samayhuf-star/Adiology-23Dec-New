@@ -5334,15 +5334,15 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           </DialogContent>
         </Dialog>
 
-        {/* Campaign Structure Flow Diagram */}
-        {selectedStructureForDiagram && (
+        {/* Campaign Structure Flow Diagram - Hidden per user request */}
+        {/* {selectedStructureForDiagram && (
           <CampaignFlowDiagram
             open={showFlowDiagram}
             onOpenChange={setShowFlowDiagram}
             structureName={selectedStructureForDiagram.name}
             structureId={selectedStructureForDiagram.id}
           />
-        )}
+        )} */}
     </div>
   );
 };
