@@ -1297,6 +1297,34 @@ const App = () => {
         isAdminLogin={isAdminPath}
         onLoginSuccess={async () => {
           try {
+            // Check for test admin mode first (bypasses Supabase)
+            const isTestAdminMode = sessionStorage.getItem('test_admin_mode') === 'true';
+            const testAdminEmail = sessionStorage.getItem('test_admin_email');
+            
+            if (isTestAdminMode && testAdminEmail) {
+              // Create a mock super admin user for test mode
+              const testAdminUser = {
+                id: 'test-admin-id',
+                email: testAdminEmail,
+                full_name: 'Test Super Admin',
+                role: 'superadmin' as const,
+                subscription_plan: 'lifetime',
+                subscription_status: 'active' as const,
+              };
+              
+              setUser(testAdminUser);
+              
+              // Test admin goes directly to admin panel or dashboard
+              if (isAdminPath) {
+                setAppView('user');
+                setActiveTabSafe('admin');
+              } else {
+                setAppView('user');
+                setActiveTabSafe('dashboard');
+              }
+              return;
+            }
+            
             // Get auth user immediately and set minimal user object FIRST
             const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
             
