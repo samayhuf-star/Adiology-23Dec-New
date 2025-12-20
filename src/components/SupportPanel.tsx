@@ -79,55 +79,63 @@ export const SupportPanel = () => {
         if (!subject.trim() || !message.trim()) return;
 
         setIsSubmitting(true);
+        
+        // Create ticket object
+        const ticket: Ticket = {
+            id: crypto.randomUUID(),
+            subject,
+            message,
+            priority: priority as any,
+            status: 'Open',
+            timestamp: new Date().toISOString()
+        };
+        
+        let saved = false;
+        
+        // Try API first
         try {
-            // Try API first
+            await api.post('/tickets/create', { subject, message, priority });
+            saved = true;
+            notifications.success('Ticket submitted successfully! Our team will respond soon.', {
+                title: 'Ticket Submitted'
+            });
+        } catch (apiError) {
+            console.log('ℹ️ API unavailable, trying local storage');
+        }
+        
+        // If API failed, try localStorage
+        if (!saved) {
             try {
-                await api.post('/tickets/create', { subject, message, priority });
-                // Success - refresh tickets
-                setSubject('');
-                setMessage('');
-                setPriority('Medium');
-                await fetchTickets();
-                // Show success message
-                notifications.success('Ticket submitted successfully! Our team will respond soon.', {
-                    title: 'Ticket Submitted'
-                });
-            } catch (apiError) {
-                // Fallback to localStorage - work silently
-                console.log('ℹ️ Saving ticket to local storage (API unavailable)');
-                const ticket: Ticket = {
-                    id: crypto.randomUUID(),
-                    subject,
-                    message,
-                    priority: priority as any,
-                    status: 'Open',
-                    timestamp: new Date().toISOString()
-                };
                 const existing = JSON.parse(localStorage.getItem('support-tickets') || '[]');
                 existing.unshift(ticket);
                 localStorage.setItem('support-tickets', JSON.stringify(existing));
-                
-                // Clear form
-                setSubject('');
-                setMessage('');
-                setPriority('Medium');
-                
-                // Refresh tickets list
-                await fetchTickets();
-                
-                // Show success message (not error)
-                notifications.success('Ticket saved successfully! Your ticket has been recorded and our team will review it.', {
+                saved = true;
+                notifications.success('Ticket saved locally! Your ticket has been recorded.', {
                     title: 'Ticket Saved'
                 });
+            } catch (storageError) {
+                console.log('ℹ️ localStorage unavailable, saving to state');
             }
-        } catch (error) {
-            console.error("Create ticket error", error);
-            notifications.error('Failed to submit ticket. Please try again.', {
-                title: 'Submission Failed'
-            });
-        } finally {
-            setIsSubmitting(false);
         }
+        
+        // If localStorage also failed, at least add to current state
+        if (!saved) {
+            setTickets(prev => [ticket, ...prev]);
+            saved = true;
+            notifications.success('Ticket recorded! Note: It will be cleared on page refresh.', {
+                title: 'Ticket Recorded'
+            });
+        }
+        
+        // Clear form regardless
+        setSubject('');
+        setMessage('');
+        setPriority('Medium');
+        
+        // Refresh tickets list
+        await fetchTickets();
+        
+        setIsSubmitting(false);
     };
 
     const getStatusColor = (status: string) => {
