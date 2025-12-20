@@ -900,6 +900,9 @@ const App = () => {
     }
   };
 
+  // Check if current user is super admin
+  const isSuperAdmin = user && (user.email === 'd@d.com' || user.role === 'superadmin' || user.role === 'super_admin');
+
   // Default: User view (protected) navigation structure
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -939,6 +942,8 @@ const App = () => {
     { id: 'blog', label: 'Blog', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
+    // Super Admin Panel - only visible to super admins
+    ...(isSuperAdmin ? [{ id: 'admin-panel', label: 'Admin Panel', icon: Shield }] : []),
   ];
 
   // Auto-expand parent menu if activeTab is a submenu item
