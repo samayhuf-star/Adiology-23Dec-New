@@ -2929,7 +2929,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         <p className="text-slate-600">AI has ranked the best structures for your vertical. Choose the one that fits your needs.</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-12">
         {CAMPAIGN_STRUCTURES.map((structure, idx) => {
           const ranking = campaignData.structureRankings.findIndex(r => r.id === structure.id);
           const isRecommended = ranking === 0 || ranking === 1 || ranking === 2;
@@ -2940,44 +2940,35 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           return (
             <div key={structure.id} className="relative group">
               <Card
-                className={`cursor-pointer transition-all p-2 ${
+                className={`cursor-pointer transition-all duration-200 p-3 h-full border-2 ${
                   isSelected
-                    ? 'ring-2 ring-indigo-500 bg-indigo-50'
-                    : 'hover:shadow-md hover:border-indigo-200'
+                    ? 'ring-2 ring-indigo-500 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-300 shadow-lg'
+                    : 'hover:shadow-lg hover:border-indigo-300 hover:bg-slate-50 border-slate-200'
                 }`}
                 onClick={() => handleStructureSelect(structure.id)}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <Icon className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <span className="text-sm font-semibold text-slate-800 truncate">{structure.name}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`p-1.5 rounded-lg ${isSelected ? 'bg-indigo-100' : 'bg-slate-100 group-hover:bg-indigo-100'} transition-colors`}>
+                    <Icon className={`w-4 h-4 ${isSelected ? 'text-indigo-600' : 'text-slate-600 group-hover:text-indigo-600'} transition-colors`} />
                   </div>
                   {isRecommended && rankLabel && (
-                    <Badge variant={ranking === 0 ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0 h-4">
+                    <Badge 
+                      variant={ranking === 0 ? 'default' : 'secondary'} 
+                      className={`text-[10px] px-1.5 py-0.5 h-5 ${ranking === 0 ? 'bg-gradient-to-r from-indigo-600 to-purple-600' : ''}`}
+                    >
                       {rankLabel}
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 line-clamp-1">{structure.description}</p>
+                <h4 className="text-sm font-bold text-slate-800 mb-1">{structure.name}</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">{structure.description}</p>
                 {isSelected && (
-                  <div className="flex items-center gap-1 text-indigo-600 mt-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span className="text-xs font-medium">Selected</span>
+                  <div className="flex items-center gap-1.5 text-indigo-600 mt-2 pt-2 border-t border-indigo-200">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="text-xs font-semibold">Selected</span>
                   </div>
                 )}
               </Card>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs h-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedStructureForDiagram({ id: structure.id, name: structure.name });
-                  setShowFlowDiagram(true);
-                }}
-              >
-                View Structure
-              </Button>
             </div>
           );
         })}
