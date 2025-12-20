@@ -286,6 +286,7 @@ app.post('/api/stripe/portal', async (c) => {
 const PROMO_CONFIG = {
   trialPrice: 500, // $5.00 in cents
   lifetimePrice: 9999, // $99.99 in cents
+  lifetimeDiscountPrice: 6999, // $69.99 in cents (30% off when skipping trial)
   trialDays: 5,
   totalSlots: 50,
   offerDays: 7,
@@ -416,6 +417,54 @@ app.post('/api/promo/trial', async (c) => {
     return c.json({ 
       error: error.message || 'Failed to create trial checkout',
       message: 'Failed to start trial. Please try again.'
+    }, 500);
+  }
+});
+
+// Direct Lifetime Purchase (skip trial, get 30% discount)
+app.post('/api/promo/lifetime-direct', async (c) => {
+  try {
+    const stripe = await getUncachableStripeClient();
+    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const protocol = domain.includes('localhost') ? 'http' : 'https';
+    const baseUrl = `${protocol}://${domain}`;
+    
+    // Create a checkout session for direct lifetime purchase at discounted price
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Adiology Pro - Lifetime Plan',
+              description: 'Lifetime access with 30% discount. One-time payment, own it forever with all future updates.',
+            },
+            unit_amount: PROMO_CONFIG.lifetimeDiscountPrice, // $69.99
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${baseUrl}/?lifetime=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/promo?canceled=true`,
+      metadata: {
+        purchase_type: 'lifetime_direct',
+        discount_applied: '30_percent',
+        original_price: PROMO_CONFIG.lifetimePrice.toString(),
+        paid_price: PROMO_CONFIG.lifetimeDiscountPrice.toString(),
+      },
+    });
+    
+    return c.json({ 
+      checkoutUrl: session.url,
+      sessionId: session.id 
+    });
+  } catch (error: any) {
+    console.error('Lifetime direct purchase error:', error);
+    return c.json({ 
+      error: error.message || 'Failed to create checkout',
+      message: 'Failed to process purchase. Please try again.'
     }, 500);
   }
 });

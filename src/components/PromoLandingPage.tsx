@@ -341,6 +341,70 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
               </div>
             </motion.div>
 
+            {/* SKIP TRIAL - BUY NOW WITH 20% DISCOUNT */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.5 }}
+              className="max-w-3xl mx-auto mb-8"
+            >
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 rounded-2xl blur opacity-40" />
+                <div className="relative bg-gradient-to-br from-green-950/90 to-emerald-950/90 border-2 border-green-500/50 rounded-2xl p-6">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-center md:text-left">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap className="w-6 h-6 text-green-400" />
+                        <span className="text-lg font-bold text-green-300">SKIP THE TRIAL - GET 20% OFF!</span>
+                      </div>
+                      <p className="text-white text-lg mb-1">
+                        Ready to commit? Buy Lifetime Plan NOW for only
+                      </p>
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-4xl font-bold text-white">$69.99</span>
+                        <span className="text-gray-400 line-through text-xl">$99.99</span>
+                        <Badge className="bg-green-500/30 text-green-300 border-green-500/50">Save 30%</Badge>
+                      </div>
+                      <p className="text-green-200 text-sm mt-2">
+                        Instant lifetime access. No trial waiting. Best deal ever!
+                      </p>
+                    </div>
+                    <Button
+                      onClick={async () => {
+                        setIsLoading(true);
+                        try {
+                          const response = await fetch('/api/promo/lifetime-direct', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                          });
+                          if (response.ok) {
+                            const data = await response.json();
+                            if (data.checkoutUrl) {
+                              window.location.href = data.checkoutUrl;
+                            }
+                          } else {
+                            const error = await response.json();
+                            alert(error.message || 'Failed to process. Please try again.');
+                          }
+                        } catch (error) {
+                          alert('Something went wrong. Please try again.');
+                        } finally {
+                          setIsLoading(false);
+                        }
+                      }}
+                      disabled={isLoading}
+                      size="lg"
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-8 py-5 text-lg font-bold rounded-xl shadow-xl shadow-green-500/30 transition-all hover:scale-105 whitespace-nowrap"
+                    >
+                      {isLoading ? 'Processing...' : 'Buy Now $69.99'}
+                      <Rocket className="w-5 h-5 ml-2" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Trust Indicators */}
             <div className="flex flex-wrap items-center justify-center gap-8 text-gray-400">
               <div className="flex items-center gap-2">
