@@ -299,7 +299,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'users', label: 'User Management', icon: Users },
-    { id: 'subscriptions', label: 'Subscriptions & Billing', icon: CreditCard },
+    { id: 'subscriptions', label: 'Billing', icon: CreditCard },
     { id: 'database', label: 'Database', icon: Database },
     { id: 'logs', label: 'System Logs', icon: FileText },
     { id: 'emails', label: 'Email Management', icon: Mail },
@@ -544,7 +544,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
   const renderSubscriptions = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Subscriptions & Billing</h2>
+        <h2 className="text-2xl font-bold text-white">Billing</h2>
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
