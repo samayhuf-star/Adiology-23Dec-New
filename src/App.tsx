@@ -649,6 +649,63 @@ const App = () => {
         return;
       }
 
+      // Public pages - accessible without login
+      if (path === '/privacy' || path === '/privacy-policy') {
+        setView('privacy-policy');
+        return;
+      }
+
+      if (path === '/terms' || path === '/terms-of-service') {
+        setView('terms-of-service');
+        return;
+      }
+
+      if (path === '/cookies' || path === '/cookie-policy') {
+        setView('cookie-policy');
+        return;
+      }
+
+      if (path === '/gdpr') {
+        setView('gdpr-compliance');
+        return;
+      }
+
+      if (path === '/refund' || path === '/refund-policy') {
+        setView('refund-policy');
+        return;
+      }
+
+      if (path === '/login') {
+        if (user) {
+          setView('user');
+        } else {
+          setAuthMode('login');
+          setView('auth');
+        }
+        return;
+      }
+
+      if (path === '/signup' || path === '/register') {
+        if (user) {
+          setView('user');
+        } else {
+          setAuthMode('signup');
+          setView('auth');
+        }
+        return;
+      }
+
+      if (path === '/help' || path.startsWith('/help/')) {
+        if (user) {
+          setActiveTabSafe('help');
+          setView('user');
+        } else {
+          setAuthMode('login');
+          setView('auth');
+        }
+        return;
+      }
+
       // Show homepage on root path
       if (path === '/' || path === '') {
         // If user is logged in, go to user dashboard
@@ -679,7 +736,8 @@ const App = () => {
   useEffect(() => {
     if (!loading && !user && (window.location.pathname === '/' || window.location.pathname === '')) {
       // Only set to homepage if we're not already on a specific route
-      if (appView !== 'homepage' && appView !== 'auth' && appView !== 'reset-password' && appView !== 'verify-email' && appView !== 'payment' && appView !== 'payment-success') {
+      const publicRoutes = ['homepage', 'auth', 'reset-password', 'verify-email', 'payment', 'payment-success', 'privacy-policy', 'terms-of-service', 'cookie-policy', 'gdpr-compliance', 'refund-policy'];
+      if (!publicRoutes.includes(appView)) {
         setAppView('homepage');
       }
     }
@@ -697,6 +755,53 @@ const App = () => {
       
       if (path === '/verify-email' || path.startsWith('/verify-email')) {
         setAppView('verify-email');
+        return;
+      }
+
+      // Public pages - accessible without login
+      if (path === '/privacy' || path === '/privacy-policy') {
+        setAppView('privacy-policy');
+        return;
+      }
+
+      if (path === '/terms' || path === '/terms-of-service') {
+        setAppView('terms-of-service');
+        return;
+      }
+
+      if (path === '/cookies' || path === '/cookie-policy') {
+        setAppView('cookie-policy');
+        return;
+      }
+
+      if (path === '/gdpr') {
+        setAppView('gdpr-compliance');
+        return;
+      }
+
+      if (path === '/refund' || path === '/refund-policy') {
+        setAppView('refund-policy');
+        return;
+      }
+
+      if (path === '/login') {
+        if (user) {
+          setAppView('user');
+        } else {
+          setAuthMode('login');
+          setAppView('auth');
+        }
+        return;
+      }
+
+      if (path === '/help' || path.startsWith('/help/')) {
+        if (user) {
+          setActiveTab('help');
+          setAppView('user');
+        } else {
+          setAuthMode('login');
+          setAppView('auth');
+        }
         return;
       }
       
