@@ -1283,10 +1283,18 @@ const App = () => {
     );
   }
 
+  // Check if we're accessing from admin path
+  const isAdminPath = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/admin') || 
+    window.location.hostname.startsWith('admin.') || 
+    window.location.hostname === 'admin.adiology.io'
+  );
+
   if (appView === 'auth') {
     return (
       <Auth
         initialMode={authMode}
+        isAdminLogin={isAdminPath}
         onLoginSuccess={async () => {
           try {
             // Get auth user immediately and set minimal user object FIRST

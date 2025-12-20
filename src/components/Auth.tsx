@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, AlertCircle, ArrowLeft, Sparkle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowLeft, Sparkle, Shield } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -14,9 +14,10 @@ interface AuthProps {
   onSignupSuccess?: (userEmail: string, userName: string) => void;
   onBackToHome: () => void;
   initialMode?: 'login' | 'signup';
+  isAdminLogin?: boolean;
 }
 
-export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onSignupSuccess, onBackToHome, initialMode = 'login' }) => {
+export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onSignupSuccess, onBackToHome, initialMode = 'login', isAdminLogin = false }) => {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -189,45 +190,76 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onSignupSuccess, onB
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800 p-4">
+    <div className={`min-h-screen flex items-center justify-center p-4 ${
+      isAdminLogin 
+        ? 'bg-gradient-to-br from-slate-900 via-red-900 to-orange-900' 
+        : 'bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800'
+    }`}>
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse delay-1000"></div>
+        <div className={`absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse ${
+          isAdminLogin ? 'bg-orange-500' : 'bg-purple-500'
+        }`}></div>
+        <div className={`absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse delay-1000 ${
+          isAdminLogin ? 'bg-red-500' : 'bg-indigo-500'
+        }`}></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        {/* ADIOLOGY Header */}
+        {/* Header */}
         <div className="text-center mb-8">
+          {isAdminLogin && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="px-4 py-1.5 bg-red-600/90 backdrop-blur-sm rounded-full border border-red-400/50 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-white" />
+                  <span className="text-sm font-semibold text-white uppercase tracking-wider">Admin Console</span>
+                </div>
+              </div>
+            </div>
+          )}
           <h1 className="text-6xl font-bold text-white mb-2 tracking-tight">ADIOLOGY</h1>
-          <p className="text-2xl text-indigo-200 font-medium">Google Ads Made Easy</p>
+          <p className={`text-2xl font-medium ${isAdminLogin ? 'text-orange-200' : 'text-indigo-200'}`}>
+            {isAdminLogin ? 'System Administration' : 'Google Ads Made Easy'}
+          </p>
         </div>
         
-        <Card className="border border-slate-200 shadow-2xl bg-white backdrop-blur-xl relative overflow-visible p-8">
+        <Card className={`border shadow-2xl bg-white backdrop-blur-xl relative overflow-visible p-8 ${
+          isAdminLogin ? 'border-red-200' : 'border-slate-200'
+        }`}>
           <CardHeader className="space-y-1 pb-6 px-0">
             <div className="flex items-center justify-between mb-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onBackToHome}
-                className="text-slate-700 hover:text-indigo-600 font-medium"
+                className={`font-medium ${isAdminLogin ? 'text-slate-700 hover:text-red-600' : 'text-slate-700 hover:text-indigo-600'}`}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
             </div>
             <div className="flex flex-col items-center justify-center mb-4">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg mb-3">
-                <Sparkle className="w-8 h-8 text-white" />
+              <div className={`w-16 h-16 rounded-xl flex items-center justify-center shadow-lg mb-3 ${
+                isAdminLogin 
+                  ? 'bg-gradient-to-br from-red-600 to-orange-600' 
+                  : 'bg-gradient-to-br from-indigo-600 to-purple-600'
+              }`}>
+                {isAdminLogin ? (
+                  <Shield className="w-8 h-8 text-white" />
+                ) : (
+                  <Sparkle className="w-8 h-8 text-white" />
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-slate-900">Adiology</h2>
-              <p className="text-xs text-slate-500 -mt-0.5">~ Samay</p>
+              <h2 className="text-2xl font-bold text-slate-900">{isAdminLogin ? 'Admin Portal' : 'Adiology'}</h2>
+              {!isAdminLogin && <p className="text-xs text-slate-500 -mt-0.5">~ Samay</p>}
+              {isAdminLogin && <p className="text-xs text-red-500 font-medium -mt-0.5">Authorized Access Only</p>}
             </div>
             <CardTitle className="text-xl font-bold text-center text-slate-900">
               {isForgotPassword 
                 ? 'Reset Password' 
                 : isLogin 
-                  ? 'Welcome Back' 
+                  ? (isAdminLogin ? 'Admin Sign In' : 'Welcome Back')
                   : SIGNUP_DISABLED 
                     ? 'Sign Up Disabled' 
                     : 'Create Account'}
@@ -236,7 +268,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onSignupSuccess, onB
               {isForgotPassword
                 ? 'Enter your email to receive a password reset link'
                 : isLogin 
-                ? 'Sign in to your Adiology account' 
+                ? (isAdminLogin ? 'Enter your administrator credentials' : 'Sign in to your Adiology account')
                 : SIGNUP_DISABLED 
                   ? 'New signups are currently disabled until production launch'
                 : 'Start building winning campaigns today'}
@@ -422,7 +454,11 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onSignupSuccess, onB
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 h-12 text-base font-semibold mt-2"
+                className={`w-full text-white h-12 text-base font-semibold mt-2 ${
+                  isAdminLogin 
+                    ? 'bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700' 
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
+                }`}
                 disabled={isLoading || (!isLogin && SIGNUP_DISABLED)}
               >
                 {isLoading ? (
@@ -441,7 +477,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onSignupSuccess, onB
                   isForgotPassword 
                     ? 'Send Reset Link' 
                     : isLogin 
-                      ? 'Sign In' 
+                      ? (isAdminLogin ? 'Access Admin Panel' : 'Sign In')
                       : (SIGNUP_DISABLED ? 'Sign Up Disabled' : 'Create Account')
                 )}
               </Button>
