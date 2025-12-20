@@ -2601,8 +2601,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   };
 
   const confirmDownloadCSV = async () => {
-    if (!campaignData.csvData) return;
+    if (!campaignData.csvData) {
+      notifications.error('No CSV data available. Please generate the campaign first.', { title: 'Export Error' });
+      setShowExportDialog(false);
+      return;
+    }
     
+    try {
     const baseFilename = (campaignData.campaignName || 'campaign').replace(/[^a-z0-9]/gi, '_');
     const dateStr = new Date().toISOString().split('T')[0];
     
@@ -2653,7 +2658,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       const a = document.createElement('a');
       a.href = url;
       a.download = `${baseFilename}_multi_country_${dateStr}.zip`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else if (campaignData.selectedStructure === 'geo' && selectedCountries.length === 1) {
       const csvContent = generateCountrySpecificCSV(campaignData.csvData, selectedCountries[0], campaignData.campaignName || 'Campaign');
@@ -2663,7 +2671,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else {
       const filename = `${baseFilename}_google_ads_editor_${dateStr}.csv`;
@@ -2672,11 +2683,16 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
     
     setShowExportDialog(false);
+    
+    notifications.success('CSV downloaded successfully!', { title: 'Export Complete' });
     
     setTimeout(() => {
       const event = new CustomEvent('navigate', { detail: { tab: 'dashboard' } });
@@ -2685,6 +2701,11 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         window.location.hash = '#dashboard';
       }
     }, 1000);
+    } catch (error) {
+      console.error('Download error:', error);
+      notifications.error('Failed to download CSV. Please try again.', { title: 'Download Error' });
+      setShowExportDialog(false);
+    }
   };
 
   const handleSaveCampaign = async () => {
