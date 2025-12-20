@@ -285,7 +285,7 @@ app.post('/api/stripe/portal', async (c) => {
 // Promo Trial Endpoints
 const PROMO_CONFIG = {
   trialPrice: 500, // $5.00 in cents
-  monthlyPrice: 6999, // $69.99 in cents
+  lifetimePrice: 9999, // $99.99 in cents
   trialDays: 5,
   totalSlots: 50,
   offerDays: 7,
@@ -308,7 +308,7 @@ app.get('/api/promo/status', async (c) => {
       slotsRemaining,
       totalSlots: PROMO_CONFIG.totalSlots,
       trialPrice: PROMO_CONFIG.trialPrice,
-      monthlyPrice: PROMO_CONFIG.monthlyPrice,
+      lifetimePrice: PROMO_CONFIG.lifetimePrice,
       trialDays: PROMO_CONFIG.trialDays,
       offerActive: slotsRemaining > 0
     });
@@ -358,52 +358,41 @@ app.post('/api/promo/trial', async (c) => {
     const protocol = domain.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${domain}`;
     
-    // Create a checkout session with $5 upfront + subscription with trial
-    // The $5 is collected immediately via a one-time item
-    // The subscription starts after 5 days at $69.99/mo
+    // Create a checkout session with $5 now + $94.99 for Lifetime after trial
+    // Using payment mode with $5 upfront, then customer is charged remaining $94.99 after 5 days
+    // For simplicity, we collect $5 now and the remaining amount is a separate one-time charge
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      mode: 'subscription',
+      mode: 'payment',
       line_items: [
-        // $5 one-time trial fee (collected immediately)
+        // $5 trial access fee (collected immediately)
         {
           price_data: {
             currency: 'usd',
             product_data: {
               name: 'Adiology Pro - 5 Day Trial',
-              description: 'Full access trial fee - credited to first month if you continue',
+              description: '5-day full access trial. Auto-converts to Lifetime Plan ($94.99 remaining after trial credit).',
             },
             unit_amount: PROMO_CONFIG.trialPrice, // $5.00
           },
           quantity: 1,
         },
-        // Monthly subscription (starts after trial)
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Adiology Pro Monthly',
-              description: 'Monthly subscription - first month discounted by $5 trial credit',
-            },
-            unit_amount: PROMO_CONFIG.monthlyPrice - PROMO_CONFIG.trialPrice, // $64.99 (with $5 credit)
-            recurring: {
-              interval: 'month',
-            },
-          },
-          quantity: 1,
-        },
       ],
-      subscription_data: {
-        trial_period_days: PROMO_CONFIG.trialDays,
-        metadata: {
-          promo_trial: 'true',
-          trial_amount: PROMO_CONFIG.trialPrice.toString(),
-        },
-      },
       success_url: `${baseUrl}/?trial=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/promo?canceled=true`,
       metadata: {
         promo_trial: 'true',
+        trial_type: 'lifetime',
+        lifetime_price: PROMO_CONFIG.lifetimePrice.toString(),
+        remaining_charge: (PROMO_CONFIG.lifetimePrice - PROMO_CONFIG.trialPrice).toString(),
+      },
+      payment_intent_data: {
+        metadata: {
+          promo_trial: 'true',
+          trial_type: 'lifetime',
+          charge_remaining_after_days: PROMO_CONFIG.trialDays.toString(),
+          remaining_amount: (PROMO_CONFIG.lifetimePrice - PROMO_CONFIG.trialPrice).toString(),
+        },
       },
     });
     

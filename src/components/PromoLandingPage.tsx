@@ -212,7 +212,7 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="max-w-2xl mx-auto mb-12"
+              className="max-w-3xl mx-auto mb-12"
             >
               <div className="relative">
                 <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 rounded-2xl blur-lg opacity-75 animate-pulse" />
@@ -221,8 +221,8 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
                     <div className="text-left">
                       <div className="flex items-baseline gap-3 mb-2">
                         <span className="text-5xl font-bold text-white">$5</span>
-                        <span className="text-gray-400 line-through text-xl">$69.99</span>
-                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Save 93%</Badge>
+                        <span className="text-gray-400 line-through text-xl">$99.99</span>
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Save 95%</Badge>
                       </div>
                       <p className="text-gray-300 text-lg mb-2">
                         <strong>5-Day Full Access Trial</strong>
@@ -238,7 +238,7 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-green-400" />
-                          $5 credited toward monthly plan if you continue
+                          Auto-converts to Lifetime Plan ($94.99 after $5 credit)
                         </li>
                       </ul>
                     </div>
@@ -260,6 +260,82 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
                         </span>
                       )}
                     </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* WIN-WIN HIGHLIGHT SECTION */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="max-w-4xl mx-auto mb-12"
+            >
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 rounded-2xl blur opacity-50" />
+                <div className="relative bg-gradient-to-br from-amber-950/80 to-orange-950/80 border-2 border-amber-500/50 rounded-2xl p-8">
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    <Gift className="w-8 h-8 text-amber-400" />
+                    <h3 className="text-2xl md:text-3xl font-bold text-amber-300">A WIN-WIN Deal For You</h3>
+                    <Gift className="w-8 h-8 text-amber-400" />
+                  </div>
+                  
+                  <div className="text-center mb-6">
+                    <p className="text-lg md:text-xl text-white mb-4">
+                      <strong>Pay just $5 to test the ENTIRE platform</strong> - explore every feature, 
+                      build campaigns, generate keywords, create ads. Take it for a full spin!
+                    </p>
+                    <p className="text-lg text-amber-200">
+                      If you love it (and you will), after 5 days it <strong>automatically converts to our Lifetime Plan</strong> at 
+                      <span className="text-2xl font-bold text-white mx-2">$99.99</span>
+                      <span className="text-amber-300">- but we credit your $5 trial!</span>
+                    </p>
+                    <p className="text-2xl font-bold text-green-400 mt-4">
+                      You only pay $94.99 for LIFETIME access!
+                    </p>
+                  </div>
+
+                  <div className="bg-black/30 rounded-xl p-6 mb-6">
+                    <h4 className="text-xl font-bold text-white mb-4 text-center">What You Get Forever with Lifetime Plan:</h4>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                      {[
+                        '10 Campaigns per month',
+                        '10 Domains',
+                        '50 Campaign Presets',
+                        '50 Templates',
+                        'Workspaces',
+                        'Access for 2 Users',
+                        '1-Click Campaign Builder',
+                        'Campaign Builder Wizard',
+                        '10+ Google Ads Assets',
+                        'Campaign History',
+                        'Keywords Planner',
+                        'Keyword Mixer',
+                        'Negative Keywords Tool',
+                        'Long Tail Keywords',
+                        'Website Templates & Builder',
+                        'AI Ad Creation',
+                        'CSV Export (Google Ads Ready)',
+                        'Save Lists Individually',
+                        'All Future Updates',
+                        'Priority Support'
+                      ].map((feature, i) => (
+                        <div key={i} className="flex items-center gap-2 text-gray-200">
+                          <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-amber-200 text-lg">
+                      <strong>One payment. Own it forever.</strong> No monthly fees, no renewals, no surprises.
+                    </p>
+                    <p className="text-gray-400 mt-2">
+                      Not satisfied? Cancel within 5 days and get your $5 back. Zero risk.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -366,8 +442,8 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
               },
               {
                 step: '3',
-                title: 'Keep or Cancel',
-                description: 'Love it? Your $5 is credited to the $69.99/mo plan (pay only $64.99). Not for you? Cancel for a full refund.'
+                title: 'Keep Forever or Cancel',
+                description: 'Love it? Your $5 is credited to the Lifetime Plan ($99.99 - $5 = $94.99). Own it forever! Not for you? Cancel for a full refund.'
               }
             ].map((item, i) => (
               <motion.div
@@ -478,19 +554,23 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
             {[
               {
                 q: 'What happens after the 5-day trial?',
-                a: 'If you love the platform, your $5 is credited toward the monthly plan. You\'ll only pay $64.99 (instead of $69.99) for your first month. If you cancel within 5 days, you get a full refund.'
+                a: 'If you love the platform, your $5 trial fee is automatically credited toward the Lifetime Plan. You\'ll be charged only $94.99 ($99.99 - $5 credit) for permanent, lifetime access. No monthly fees ever!'
               },
               {
                 q: 'Can I really cancel anytime?',
-                a: 'Absolutely! Cancel within the 5-day trial period for a full refund. No questions asked, no hidden fees. You can cancel directly from your account settings.'
+                a: 'Absolutely! Cancel within the 5-day trial period for a full $5 refund. No questions asked, no hidden fees. You can cancel directly from your account settings.'
               },
               {
-                q: 'What\'s included in the trial?',
-                a: 'Everything! You get full access to all premium features including the AI campaign builder, keyword generator, ad creator, web templates, and more. No features are restricted.'
+                q: 'What\'s included in the Lifetime Plan?',
+                a: 'Everything! 10 campaigns/month, 10 domains, 50 presets, 50 templates, workspaces, 2 users, all campaign builders, keywords tools, AI ad creation, CSV export, website builder, and ALL future updates. Own it forever with one payment.'
               },
               {
                 q: 'Why is this offer limited to 50 slots?',
                 a: 'We want to ensure every trial user gets personalized support and a great experience. By limiting slots, we can provide better onboarding and assistance during your trial.'
+              },
+              {
+                q: 'Is this really a one-time payment?',
+                a: 'Yes! The Lifetime Plan is a single payment of $99.99 (only $94.99 with your trial credit). You own the software forever with no recurring charges. Plus, you get all future updates included.'
               }
             ].map((faq, i) => (
               <div key={i} className="bg-slate-800/50 border border-white/10 rounded-xl p-6">
