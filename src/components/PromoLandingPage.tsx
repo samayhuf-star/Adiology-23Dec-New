@@ -286,14 +286,6 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
                       <strong>Pay just $5 to test the ENTIRE platform</strong> - explore every feature, 
                       build campaigns, generate keywords, create ads. Take it for a full spin!
                     </p>
-                    <p className="text-lg text-amber-200">
-                      If you love it (and you will), after 5 days it <strong>automatically converts to our Lifetime Plan</strong> at 
-                      <span className="text-2xl font-bold text-white mx-2">$99.99</span>
-                      <span className="text-amber-300">- but we credit your $5 trial!</span>
-                    </p>
-                    <p className="text-2xl font-bold text-green-400 mt-4">
-                      You only pay $94.99 for LIFETIME access!
-                    </p>
                   </div>
 
                   <div className="bg-black/30 rounded-xl p-6 mb-6">
@@ -330,10 +322,15 @@ export function PromoLandingPage({ onStartTrial }: PromoLandingPageProps) {
                   </div>
 
                   <div className="text-center">
-                    <p className="text-amber-200 text-lg">
+                    <p className="text-amber-200/80 text-sm mb-2">
+                      If you love it (and you will), after 5 days it automatically converts to our Lifetime Plan at 
+                      <span className="font-semibold text-white"> $99.99</span> - but we credit your $5 trial!
+                      <span className="text-green-400 font-medium"> You only pay $94.99 for LIFETIME access.</span>
+                    </p>
+                    <p className="text-amber-200 text-base mt-3">
                       <strong>One payment. Own it forever.</strong> No monthly fees, no renewals, no surprises.
                     </p>
-                    <p className="text-gray-400 mt-2">
+                    <p className="text-gray-400 text-sm mt-1">
                       Not satisfied? Cancel within 5 days and get your $5 back. Zero risk.
                     </p>
                   </div>
