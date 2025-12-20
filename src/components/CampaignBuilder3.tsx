@@ -826,19 +826,25 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       }));
       addAnalysisLog(`Recommended structure: ${rankings[0]?.name || 'SKAG'}`, 'success');
 
-      // Save analysis to database
-      addAnalysisLog('Saving analysis to database...', 'step');
-      analysisService.saveAnalysis({
-        url: formattedUrl,
-        domain: extractDomain(formattedUrl),
-        intent: intentResult,
-        vertical: vertical || 'Unknown',
-        cta: cta || 'Unknown',
-        seedKeywords: seedKeywords,
-        contentSummary: comprehensiveData?.aiInsights?.uniqueValueProposition || `Website analyzed: ${formattedUrl}`,
-        detectedServices: landingData?.services || [],
-        detectedCTAs: comprehensiveData?.data?.ctaElements?.map((c: any) => c.text) || [],
-      });
+      // Save analysis to database (non-blocking)
+      addAnalysisLog('Saving analysis to cache...', 'step');
+      try {
+        analysisService.saveAnalysis({
+          url: formattedUrl,
+          domain: extractDomain(formattedUrl),
+          intent: intentResult,
+          vertical: vertical || 'Unknown',
+          cta: cta || 'Unknown',
+          seedKeywords: seedKeywords,
+          contentSummary: comprehensiveData?.aiInsights?.uniqueValueProposition || `Website analyzed: ${formattedUrl}`,
+          detectedServices: landingData?.services || [],
+          detectedCTAs: comprehensiveData?.data?.ctaElements?.map((c: any) => c.text) || [],
+        });
+        addAnalysisLog('Analysis cached successfully', 'success');
+      } catch (saveError) {
+        console.warn('Failed to cache analysis (localStorage may be full):', saveError);
+        addAnalysisLog('Cache unavailable, continuing...', 'info');
+      }
 
       setShowAnalysisResults(true);
       addAnalysisLog('Analysis complete! Ready to proceed.', 'success');
