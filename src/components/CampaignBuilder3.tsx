@@ -4551,6 +4551,26 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     </TabsTrigger>
                   </TabsList>
 
+                  {/* Nationwide Default Message */}
+                  {!currentSelection && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border-2 border-amber-300 rounded-xl shadow-md">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                          <Globe className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-amber-900 font-bold text-base mb-1">
+                            Nationwide is Currently Selected
+                          </p>
+                          <p className="text-amber-700 text-sm">
+                            Your ads will show across all of <span className="font-semibold">{campaignData.targetCountry}</span>. 
+                            To target specific locations, click on <span className="font-bold text-indigo-700">Cities</span>, <span className="font-bold text-indigo-700">States</span>, or <span className="font-bold text-indigo-700">ZIP Codes</span> above and select a preset.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Cities Tab */}
                   <TabsContent value="cities" className="space-y-5">
                     <div className="space-y-3">
