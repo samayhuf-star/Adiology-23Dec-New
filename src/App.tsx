@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users
 } from 'lucide-react';
+
+declare global {
+  interface Window {
+    Helploom: (action: string, data?: { uniqueId?: string; name?: string; email?: string }) => void;
+  }
+}
 import { useTheme } from './contexts/ThemeContext';
 import { COLOR_CLASSES } from './utils/colorScheme';
 import {
@@ -25,8 +31,8 @@ import { GoogleAdsCSVExport } from './components/GoogleAdsCSVExport';
 import { KeywordPlanner } from './components/KeywordPlanner';
 import { KeywordMixer } from './components/KeywordMixer';
 import { NegativeKeywordsBuilder } from './components/NegativeKeywordsBuilder';
-import { LongTailKeywords } from './components/LongTailKeywords';
 import { KeywordSavedLists } from './components/KeywordSavedLists';
+import { LongTailKeywords } from './components/LongTailKeywords';
 import { BillingPanel } from './components/BillingPanel';
 import { SupportPanel } from './components/SupportPanel';
 import { HelpSupport } from './components/HelpSupport';
@@ -39,9 +45,9 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { SupportHelpCombined } from './components/SupportHelpCombined';
 import { ResetPassword } from './components/ResetPassword';
 import { CampaignPresets } from './components/CampaignPresets';
+import { DraftCampaigns } from './components/DraftCampaigns';
 import { Dashboard } from './components/Dashboard';
 import { HistoryPanel } from './components/HistoryPanel';
-import { CampaignHistoryView } from './components/CampaignHistoryView';
 import { FeedbackButton } from './components/FeedbackButton';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
@@ -54,8 +60,10 @@ import { getUserPreferences, applyUserPreferences } from './utils/userPreference
 import CreativeMinimalistHomepage from './components/CreativeMinimalistHomepage';
 import { notifications as notificationService } from './utils/notifications';
 import { WebTemplates } from './components/WebTemplates';
+import { PlanSelection } from './components/PlanSelection';
+import { Teams } from './components/Teams';
 
-type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy';
+type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy';
 
 const App = () => {
   const { theme } = useTheme();
@@ -124,7 +132,7 @@ const App = () => {
     'preset-campaigns',
     'builder-3',
     'one-click-builder',
-    'campaign-history',
+    'draft-campaigns',
     'keyword-planner',
     'keyword-mixer',
     'negative-keywords',
@@ -136,6 +144,7 @@ const App = () => {
     'web-templates',
     'saved-websites',
     'connected-websites',
+    'teams',
   ]);
 
   // Safe setActiveTab wrapper that validates and redirects to dashboard if invalid
@@ -414,14 +423,15 @@ const App = () => {
           } catch (error) {
             console.error('Error fetching user profile during init:', error);
             if (isMounted && lastProcessedUserId === session.user.id) {
-              // Set minimal user on error
+              // Set minimal user on error - subscription_status is 'inactive' to ensure
+              // routing logic redirects to plan-selection
               setUser({
                 id: session.user.id,
                 email: session.user.email || '',
                 full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
                 role: 'user',
                 subscription_plan: 'free',
-                subscription_status: 'active',
+                subscription_status: 'inactive',
               });
             }
           }
@@ -473,13 +483,15 @@ const App = () => {
           profileFetchInProgress = true;
           
           // Set minimal user immediately to avoid UI flicker
+          // Note: subscription_status is 'inactive' to ensure routing logic redirects to plan-selection
+          // until we fetch the real profile data with actual subscription info
           const minimalUser = {
             id: session.user.id,
             email: session.user.email || '',
             full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
             role: 'user',
             subscription_plan: 'free',
-            subscription_status: 'active',
+            subscription_status: 'inactive',
           };
           
           // Only update if user actually changed
@@ -545,17 +557,33 @@ const App = () => {
           }, 0);
         }
 
-        // Handle email verification
+        // Handle email verification - detect auth callback tokens in URL
         if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at && isMounted) {
-          // User just verified email, redirect to auth
-          if (window.location.pathname.includes('/verify-email')) {
+          // Check if this was an email verification callback (tokens in URL hash or query)
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const urlParams = new URLSearchParams(window.location.search);
+          const authType = hashParams.get('type') || urlParams.get('type');
+          
+          // Only handle email verification callbacks (type=signup or type=email)
+          // Do NOT match other auth types like 'recovery' to avoid breaking password reset flow
+          const isEmailVerification = authType === 'signup' || authType === 'email' || 
+                                       window.location.pathname.includes('/verify-email');
+          
+          if (isEmailVerification) {
+            // Show success notification
+            notificationService.success('Email verified successfully!', {
+              title: 'Verification Complete',
+              description: 'Your email has been verified. Please log in to continue.',
+            });
+            
             setTimeout(() => {
               if (isMounted) {
-                window.history.pushState({}, '', '/');
+                // Clean up URL and redirect to auth/login
+                window.history.replaceState({}, '', '/');
                 setAppView('auth');
                 setAuthMode('login');
               }
-            }, 0);
+            }, 500);
           }
         }
       }, 100); // Debounce by 100ms to prevent rapid-fire updates
@@ -587,6 +615,38 @@ const App = () => {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     const bypassKey = urlParams.get('bypass');
+    
+    // Check for Supabase auth callback tokens in URL hash or query params
+    // Supabase sends verification links with tokens like: #access_token=xxx&type=signup
+    // or with PKCE flow: ?code=xxx&type=signup
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const hasAuthTokenInHash = hashParams.get('access_token') || hashParams.get('type');
+    const hasAuthCodeInQuery = urlParams.get('code') && urlParams.get('type');
+    const authType = hashParams.get('type') || urlParams.get('type');
+    
+    // If we have auth tokens in URL, let Supabase client handle them
+    // The detectSessionInUrl: true will process these automatically
+    // We just need to show a loading state and clean up the URL after
+    if (hasAuthTokenInHash || hasAuthCodeInQuery) {
+      // For email verification (type=signup), show the verify-email page briefly
+      // The auth state change listener will redirect after verification completes
+      if (authType === 'signup' || authType === 'email') {
+        // Clean up URL hash/params after a short delay to let Supabase process
+        setTimeout(() => {
+          if (isActive) {
+            window.history.replaceState({}, '', '/');
+          }
+        }, 1000);
+        // Don't set to verify-email view - let the auth state change handle it
+        // The user will see a brief loading state then be redirected
+        return;
+      }
+      
+      // For password recovery, the auth state change listener handles it
+      if (authType === 'recovery') {
+        return;
+      }
+    }
 
     const setView = (next: AppView) => {
       setAppView(prev => (prev === next ? prev : next));
@@ -645,62 +705,15 @@ const App = () => {
         if (user) {
           setView('payment');
         } else {
-          setAuthMode('login'); // Changed from 'signup' to 'login' - signups disabled
-          setView('auth');
-        }
-        return;
-      }
-
-      // Public pages - accessible without login
-      if (path === '/privacy' || path === '/privacy-policy') {
-        setView('privacy-policy');
-        return;
-      }
-
-      if (path === '/terms' || path === '/terms-of-service') {
-        setView('terms-of-service');
-        return;
-      }
-
-      if (path === '/cookies' || path === '/cookie-policy') {
-        setView('cookie-policy');
-        return;
-      }
-
-      if (path === '/gdpr') {
-        setView('gdpr-compliance');
-        return;
-      }
-
-      if (path === '/refund' || path === '/refund-policy') {
-        setView('refund-policy');
-        return;
-      }
-
-      if (path === '/login') {
-        if (user) {
-          setView('user');
-        } else {
           setAuthMode('login');
           setView('auth');
         }
         return;
       }
 
-      if (path === '/signup' || path === '/register') {
+      if (path.startsWith('/plan-selection')) {
         if (user) {
-          setView('user');
-        } else {
-          setAuthMode('signup');
-          setView('auth');
-        }
-        return;
-      }
-
-      if (path === '/help' || path.startsWith('/help/')) {
-        if (user) {
-          setActiveTabSafe('help');
-          setView('user');
+          setView('plan-selection');
         } else {
           setAuthMode('login');
           setView('auth');
@@ -710,9 +723,20 @@ const App = () => {
 
       // Show homepage on root path
       if (path === '/' || path === '') {
-        // If user is logged in, go to user dashboard
+        // If user is logged in, check subscription status
         if (user) {
-          setView('user');
+          const subscriptionPlan = user.subscription_plan || 'free';
+          const subscriptionStatus = user.subscription_status || 'inactive';
+          const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
+          const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
+          
+          if (hasPaidPlan) {
+            setView('user');
+          } else {
+            // Redirect unpaid users to plan selection
+            window.history.replaceState({}, '', '/plan-selection');
+            setView('plan-selection');
+          }
           return;
         }
         // If no user, show homepage
@@ -721,7 +745,20 @@ const App = () => {
       }
 
       // For non-root paths, use normal logic
-      setView(user ? 'user' : 'homepage');
+      if (user) {
+        const subscriptionPlan = user.subscription_plan || 'free';
+        const subscriptionStatus = user.subscription_status || 'inactive';
+        const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
+        const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
+        
+        if (hasPaidPlan) {
+          setView('user');
+        } else {
+          setView('plan-selection');
+        }
+      } else {
+        setView('homepage');
+      }
     };
 
     // Only run routing if not loading
@@ -738,8 +775,7 @@ const App = () => {
   useEffect(() => {
     if (!loading && !user && (window.location.pathname === '/' || window.location.pathname === '')) {
       // Only set to homepage if we're not already on a specific route
-      const publicRoutes = ['homepage', 'auth', 'reset-password', 'verify-email', 'payment', 'payment-success', 'privacy-policy', 'terms-of-service', 'cookie-policy', 'gdpr-compliance', 'refund-policy'];
-      if (!publicRoutes.includes(appView)) {
+      if (appView !== 'homepage' && appView !== 'auth' && appView !== 'reset-password' && appView !== 'verify-email' && appView !== 'payment' && appView !== 'payment-success' && appView !== 'plan-selection') {
         setAppView('homepage');
       }
     }
@@ -759,56 +795,27 @@ const App = () => {
         setAppView('verify-email');
         return;
       }
-
-      // Public pages - accessible without login
-      if (path === '/privacy' || path === '/privacy-policy') {
-        setAppView('privacy-policy');
-        return;
-      }
-
-      if (path === '/terms' || path === '/terms-of-service') {
-        setAppView('terms-of-service');
-        return;
-      }
-
-      if (path === '/cookies' || path === '/cookie-policy') {
-        setAppView('cookie-policy');
-        return;
-      }
-
-      if (path === '/gdpr') {
-        setAppView('gdpr-compliance');
-        return;
-      }
-
-      if (path === '/refund' || path === '/refund-policy') {
-        setAppView('refund-policy');
-        return;
-      }
-
-      if (path === '/login') {
+      
+      if (path === '/plan-selection' || path.startsWith('/plan-selection')) {
         if (user) {
-          setAppView('user');
+          setAppView('plan-selection');
         } else {
-          setAuthMode('login');
-          setAppView('auth');
-        }
-        return;
-      }
-
-      if (path === '/help' || path.startsWith('/help/')) {
-        if (user) {
-          setActiveTab('help');
-          setAppView('user');
-        } else {
-          setAuthMode('login');
           setAppView('auth');
         }
         return;
       }
       
       if (user) {
-        setAppView('user');
+        const subscriptionPlan = user.subscription_plan || 'free';
+        const subscriptionStatus = user.subscription_status || 'inactive';
+        const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
+        const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
+        
+        if (hasPaidPlan) {
+          setAppView('user');
+        } else {
+          setAppView('plan-selection');
+        }
       } else {
         // Show homepage for all paths when not logged in
         setAppView('homepage');
@@ -875,7 +882,7 @@ const App = () => {
         { id: 'one-click-builder', label: '1 Click Builder', icon: Zap },
         { id: 'builder-3', label: 'Builder 3.0', icon: Sparkles },
         { id: 'preset-campaigns', label: 'Preset Campaigns', icon: Package },
-        { id: 'campaign-history', label: 'Campaign History', icon: Clock },
+        { id: 'draft-campaigns', label: 'Draft Campaigns', icon: FolderOpen },
       ]
     },
     {
@@ -899,6 +906,7 @@ const App = () => {
         { id: 'connected-websites', label: 'Connected Websites', icon: Globe },
       ]
     },
+    { id: 'teams', label: 'Teams', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
   ];
@@ -1034,18 +1042,9 @@ const App = () => {
           // Clear any pending payment attempts
           sessionStorage.removeItem('pending_payment');
           
-          // Go back to auth page
-          window.history.pushState({}, '', '/');
-          setAppView('auth');
-          setAuthMode('login');
-          
-          // Scroll to pricing section after a brief delay
-          setTimeout(() => {
-            const pricingSection = document.getElementById('pricing');
-            if (pricingSection) {
-              pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 100);
+          // Go back to plan selection page
+          window.history.pushState({}, '', '/plan-selection');
+          setAppView('plan-selection');
         }}
         onSuccess={() => {
           // Clear pending payment attempts
@@ -1067,6 +1066,16 @@ const App = () => {
           // Ensure user is logged in
           const authenticated = await isAuthenticated();
           if (authenticated && user) {
+            // Refresh user profile to get updated subscription status
+            try {
+              const userProfile = await getCurrentUserProfile();
+              if (userProfile) {
+                setUser(userProfile);
+              }
+            } catch (error) {
+              console.warn('Error refreshing user profile:', error);
+            }
+            
             window.history.pushState({}, '', '/');
             setAppView('user');
             setActiveTabSafe('dashboard');
@@ -1134,11 +1143,48 @@ const App = () => {
     return <RefundPolicy onBack={() => setAppView(previousView)} />;
   }
 
+  if (appView === 'plan-selection') {
+    return (
+      <PlanSelection
+        userName={user?.full_name}
+        onSelectPlan={async (planName, priceId, amount, isSubscription) => {
+          if (!user) {
+            setAuthMode('login');
+            setAppView('auth');
+            return;
+          }
+          
+          try {
+            const { createCheckoutSession } = await import('./utils/stripe');
+            await createCheckoutSession(priceId, planName, user.id, user.email);
+          } catch (error) {
+            console.error('Checkout error:', error);
+            setSelectedPlan({ name: planName, priceId, amount, isSubscription });
+            window.history.pushState({}, '', `/payment?plan=${encodeURIComponent(planName)}&priceId=${encodeURIComponent(priceId)}&amount=${amount}&subscription=${isSubscription}`);
+            setAppView('payment');
+          }
+        }}
+        onBack={() => {
+          signOut().then(() => {
+            setUser(null);
+            window.history.pushState({}, '', '/');
+            setAppView('auth');
+            setAuthMode('login');
+          }).catch((err) => {
+            console.error('Signout error:', err);
+            setAppView('auth');
+            setAuthMode('login');
+          });
+        }}
+      />
+    );
+  }
+
   if (appView === 'homepage') {
     return (
       <CreativeMinimalistHomepage
         onGetStarted={() => {
-          setAuthMode('login');
+          setAuthMode('signup');
           setAppView('auth');
         }}
         onLogin={() => {
@@ -1153,6 +1199,13 @@ const App = () => {
           else if (policy === 'cookie') setAppView('cookie-policy');
           else if (policy === 'gdpr') setAppView('gdpr-compliance');
           else if (policy === 'refund') setAppView('refund-policy');
+        }}
+        onNavigateToApp={(tab: string) => {
+          // Store the intended destination tab in sessionStorage
+          sessionStorage.setItem('pendingNavTab', tab);
+          // Prompt user to login first
+          setAuthMode('login');
+          setAppView('auth');
         }}
       />
     );
@@ -1172,44 +1225,77 @@ const App = () => {
               return;
             }
             
-            // Set minimal user immediately BEFORE navigating
-            const minimalUser = { 
+            // Fetch full profile to check subscription status
+            let userProfile = null;
+            try {
+              userProfile = await Promise.race([
+                getCurrentUserProfile(),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+                )
+              ]) as any;
+            } catch (profileError) {
+              console.warn('⚠️ Profile fetch failed (non-critical):', profileError);
+            }
+            
+            // Determine subscription status
+            const subscriptionPlan = userProfile?.subscription_plan || 'free';
+            const subscriptionStatus = userProfile?.subscription_status || 'inactive';
+            const isSuperAdmin = authUser.email === 'd@d.com' || userProfile?.role === 'superadmin';
+            const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
+            
+            // Set user with subscription info
+            const fullUser = userProfile || { 
               id: authUser.id, 
               email: authUser.email || '',
               full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
               role: 'user' as const,
               subscription_plan: 'free',
-              subscription_status: 'active' as const,
+              subscription_status: 'inactive' as const,
             };
             
-            setUser(minimalUser);
+            setUser(fullUser);
             
-            // Now navigate to dashboard (user state is set)
-            setAppView('user');
-            setActiveTabSafe('dashboard');
+            // Identify user with Helploom support widget
+            if (window.Helploom) {
+              window.Helploom('identify', {
+                uniqueId: fullUser.id,
+                name: fullUser.full_name || fullUser.email?.split('@')[0] || 'User',
+                email: fullUser.email
+              });
+            }
             
-            // Fetch full profile in background (with timeout)
-            Promise.race([
-              getCurrentUserProfile(),
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
-              )
-            ]).then((userProfile: any) => {
-              if (userProfile) {
-                setUser(userProfile);
-                console.log('✅ User profile loaded:', userProfile);
+            // Check if user has paid plan - redirect to dashboard or plan selection
+            if (hasPaidPlan) {
+              // Check for pending navigation tab from footer links
+              const pendingTab = sessionStorage.getItem('pendingNavTab');
+              if (pendingTab) {
+                sessionStorage.removeItem('pendingNavTab');
+                setAppView('user');
+                setActiveTabSafe(pendingTab);
+              } else {
+                // User has active paid subscription - go to dashboard
+                setAppView('user');
+                setActiveTabSafe('dashboard');
               }
-            }).catch((profileError: any) => {
-              console.warn('⚠️ Profile fetch failed (non-critical):', profileError);
-              // Keep using minimal user object - app will work fine
-            });
+            } else {
+              // User doesn't have paid plan - redirect to plan selection
+              window.history.pushState({}, '', '/plan-selection');
+              setAppView('plan-selection');
+            }
           } catch (error) {
             console.error('Error in onLoginSuccess:', error);
-            // Still navigate even on error - user can see the dashboard
-            setAppView('user');
+            // On error, redirect to plan selection to be safe
+            setAppView('plan-selection');
           }
         }}
-          onBackToHome={() => {
+        onSignupSuccess={(userEmail, userName) => {
+          // After successful signup, user needs to verify email first
+          // The verification email flow will bring them back to login
+          // After login, they'll be redirected to plan selection
+          console.log('Signup successful for:', userEmail, userName);
+        }}
+        onBackToHome={() => {
           setAppView('auth');
           setAuthMode('login');
         }}
@@ -1264,15 +1350,13 @@ const App = () => {
         return <CampaignBuilder3 initialData={activeTab === 'builder-3' ? historyData : null} />;
       case 'one-click-builder':
         return <OneClickCampaignBuilder />;
-      case 'campaign-history':
-        // Campaign History - Show only saved campaigns, not all activity history
-        return <CampaignHistoryView onLoadCampaign={(data) => {
+      case 'draft-campaigns':
+        return <DraftCampaigns onLoadCampaign={(data, mode) => {
           try {
             setHistoryData(data);
-            // Route to builder-3 (new campaign builder) instead of builder-2
             setActiveTabSafe('builder-3');
           } catch (error) {
-            console.error('Error loading campaign from history:', error);
+            console.error('Error loading campaign:', error);
           }
         }} />;
       case 'keyword-planner':
@@ -1295,6 +1379,8 @@ const App = () => {
         return <SupportHelpCombined />;
       case 'support':
         return <SupportPanel />;
+      case 'teams':
+        return <Teams />;
       case 'settings':
         return <SettingsPanel />;
       case 'billing':

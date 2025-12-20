@@ -13,6 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { api } from '../utils/api';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
+import { KeywordFilters, KeywordFiltersState, DEFAULT_FILTERS } from './KeywordFilters';
+import { TerminalProgressConsole, NEGATIVE_KEYWORDS_MESSAGES } from './TerminalProgressConsole';
+import { TerminalResultsConsole, ResultStat } from './TerminalResultsConsole';
 import {
     NEGATIVE_KEYWORD_CATEGORIES,
     buildUserPrompt,
@@ -133,6 +136,10 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
     const [generatedKeywords, setGeneratedKeywords] = useState<GeneratedKeyword[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('builder');
+    const [filters, setFilters] = useState<KeywordFiltersState>(DEFAULT_FILTERS);
+    const [showTerminalConsole, setShowTerminalConsole] = useState(false);
+    const [terminalComplete, setTerminalComplete] = useState(false);
+    const [showResultsConsole, setShowResultsConsole] = useState(false);
     const [savedItems, setSavedItems] = useState<any[]>([]);
     
     // Filter & Export State
@@ -316,6 +323,8 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
         }
         
         setIsGenerating(true);
+        setShowTerminalConsole(true);
+        setTerminalComplete(false);
         setGeneratedKeywords([]);
 
         try {
@@ -512,16 +521,130 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
     };
 
     return (
-        <div className="p-8 space-y-8 w-full min-h-screen bg-transparent">
+        <div className="p-4 max-w-5xl mx-auto">
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                    AI Negative Keyword Generator
-                </h1>
-                <p className="text-slate-500 font-medium">
-                    AI will analyze your website to understand your business and generate thousands of relevant negative keywords in exact match type.
-                </p>
+            <div className="mb-4 flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl font-bold text-slate-800">Negative Keywords</h1>
+                    <p className="text-xs text-slate-500">AI-powered negative keyword generation to protect your ad spend</p>
+                </div>
+                <button
+                    onClick={handleFillInfo}
+                    className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm transition-all flex items-center gap-1.5"
+                >
+                    <RefreshCw className="w-3 h-3" />
+                    Sample
+                </button>
             </div>
+
+            {/* Shell View - Two Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* Card 1: Stats */}
+                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+                        <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <span className="text-xs text-slate-400 ml-2 font-mono">negative_stats.sh</span>
+                    </div>
+                    <div className="p-4 font-mono">
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1 text-center">
+                                <div className="text-2xl font-bold text-violet-400">{generatedKeywords.length}</div>
+                                <div className="text-xs text-slate-400">Generated</div>
+                            </div>
+                            <div className="space-y-1 text-center">
+                                <div className="text-2xl font-bold text-emerald-400">AI</div>
+                                <div className="text-xs text-slate-400">Engine</div>
+                            </div>
+                            <div className="space-y-1 text-center">
+                                <div className="text-2xl font-bold text-amber-400">EXACT</div>
+                                <div className="text-xs text-slate-400">Match</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 2: Config */}
+                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+                        <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <span className="text-xs text-slate-400 ml-2 font-mono">negative_config.sh</span>
+                    </div>
+                    <div className="p-4 font-mono space-y-2 text-xs">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-slate-500">url:</span>
+                            <span className="text-cyan-400 max-w-[180px] truncate">{url || '—'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-slate-500">goal:</span>
+                            <span className="text-pink-400">{userGoal || '—'}</span>
+                            <span className="text-slate-600 mx-1">|</span>
+                            <span className="text-slate-500">core:</span>
+                            <span className="text-blue-400">{coreKeywords.split(',').filter(k => k.trim()).length}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-500">country:</span>
+                            <span className="text-orange-400">{filters.country}</span>
+                            <span className="text-slate-600 mx-1">|</span>
+                            <span className="text-slate-500">categories:</span>
+                            <span className="text-emerald-400">18+</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Compact Filters */}
+            <div className="mb-4 flex items-center gap-3">
+                <KeywordFilters filters={filters} onFiltersChange={setFilters} compact={true} />
+            </div>
+
+            {/* Inline Generation Progress */}
+            {showTerminalConsole && (
+                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden mb-4">
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+                        <div className="flex items-center gap-2">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <span className="text-xs text-slate-400 font-mono">generating_negatives.sh</span>
+                        </div>
+                        {terminalComplete && (
+                            <button
+                                onClick={() => {
+                                    setShowTerminalConsole(false);
+                                    setIsGenerating(false);
+                                    setShowResultsConsole(true);
+                                }}
+                                className="text-xs text-emerald-400 hover:text-emerald-300 font-mono"
+                            >
+                                View Results →
+                            </button>
+                        )}
+                    </div>
+                    <div className="p-4 font-mono text-sm space-y-1 max-h-48 overflow-y-auto">
+                        <p className="text-green-400">✓ AI engine initialized</p>
+                        <p className="text-slate-400">&gt; Analyzing target URL...</p>
+                        <p className="text-green-400">✓ Website content extracted</p>
+                        <p className="text-slate-400">&gt; Processing core keywords...</p>
+                        <p className="text-green-400">✓ Industry identified: {url ? 'detected' : 'pending'}</p>
+                        <p className="text-slate-400">&gt; Generating negative keywords...</p>
+                        {!terminalComplete ? (
+                            <p className="text-cyan-400 animate-pulse">&gt; Processing with AI...</p>
+                        ) : (
+                            <p className="text-emerald-400">✓ Complete! {generatedKeywords.length} negatives ready</p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
                 <TabsList>
@@ -634,6 +757,34 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
 
                 {/* Right Panel: Results */}
                 <Card className="lg:col-span-2 border-slate-200/60 bg-white/60 backdrop-blur-xl shadow-xl min-h-[600px] flex flex-col">
+                    {/* Terminal Results Console */}
+                    {showResultsConsole && generatedKeywords.length > 0 && (
+                        <div className="p-4">
+                            <TerminalResultsConsole
+                                title="Negative Keywords Export Console"
+                                isVisible={showResultsConsole}
+                                stats={[
+                                    { label: 'Negative Keywords', value: generatedKeywords.length, color: 'green' },
+                                    { label: 'Categories', value: Object.keys(getCategoryStats(generatedKeywords as any)).length, color: 'cyan' },
+                                    { label: 'Match Type', value: 'Exact', color: 'yellow' },
+                                    { label: 'Target URL', value: url.substring(0, 30) + (url.length > 30 ? '...' : ''), color: 'purple' },
+                                ]}
+                                onDownloadCSV={() => handleDownload('google-ads-editor')}
+                                onSave={handleSave}
+                                onGenerateAnother={() => {
+                                    setShowResultsConsole(false);
+                                    setGeneratedKeywords([]);
+                                }}
+                                showDownload={true}
+                                showSave={true}
+                                showCopy={false}
+                                downloadButtonText="Download for Google Ads"
+                                saveButtonText="Save to History"
+                                isSaving={isSaving}
+                            />
+                        </div>
+                    )}
+
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div>
                             <CardTitle>Generated Keywords</CardTitle>

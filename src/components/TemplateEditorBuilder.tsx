@@ -3,6 +3,7 @@ import { ArrowLeft, Upload, X, Globe, Info, CheckCircle, Copy, ExternalLink } fr
 import VisualSectionsEditor from './VisualSectionsEditor';
 import { TemplateData, SavedWebsite, updateSavedWebsite, downloadTemplate } from '../utils/savedWebsites';
 import { supabase } from '../utils/supabase/client';
+import { generateSlug, cleanWebsiteName } from '../utils/slugify';
 
 interface TemplateEditorBuilderProps {
   savedWebsite: SavedWebsite;
@@ -48,7 +49,7 @@ export default function TemplateEditorBuilder({ savedWebsite, onClose, onUpdate 
   };
 
   const handleSaveConfirm = () => {
-    const finalName = inputName.trim() || savedWebsite.name;
+    const finalName = cleanWebsiteName(inputName.trim() || savedWebsite.name);
     setShowNameDialog(false);
     
     const updatedData = {
@@ -109,9 +110,6 @@ ${exportedHtml}
     setShowNameDialog(true);
   };
 
-  const generateSlug = (name: string) => {
-    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').substring(0, 50);
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -129,11 +127,14 @@ ${exportedHtml}
       if (data.Answer && data.Answer.some((a: any) => a.data === '76.76.21.21')) {
         setDomainVerified(true);
         
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('admin_websites').update({
-          custom_domain: customDomain.trim(),
-          domain_verified: true,
-        }).eq('id', savedWebsite.id);
+        await fetch('/api/verify-domain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: savedWebsite.id,
+            custom_domain: customDomain.trim(),
+          }),
+        });
         
         alert('Domain verified successfully! Your custom domain is now connected.');
       } else {
@@ -147,7 +148,7 @@ ${exportedHtml}
   };
 
   const handlePublishConfirm = async () => {
-    const finalName = inputName.trim() || savedWebsite.name;
+    const finalName = cleanWebsiteName(inputName.trim() || savedWebsite.name);
     setShowNameDialog(false);
     setIsPublishing(true);
     
@@ -173,33 +174,38 @@ ${exportedHtml || templateData.rawHtml || ''}
 </body>
 </html>`;
 
-      const { error } = await supabase.from('admin_websites').upsert({
-        id: savedWebsite.id,
-        name: finalName,
-        slug: slug,
-        user_email: user?.email || 'unknown',
-        domain: templateUrl,
-        html_content: fullHtml,
-        template_data: templateData,
-        status: 'Published',
-        published_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+      const response = await fetch('/api/publish-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: savedWebsite.id,
+          name: finalName,
+          slug: slug,
+          user_email: user?.email || 'unknown',
+          html_content: fullHtml,
+          template_data: templateData,
+        }),
+      });
 
-      if (error) {
-        console.error('❌ Supabase error:', error);
-        throw error;
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ Publish error:', result);
+        throw new Error(result.error || 'Failed to publish');
       }
       
+      // Use the final URL from the server (which handles slug uniqueness)
+      const finalUrl = result.url || templateUrl;
+      
       setCurrentName(finalName);
-      setPublishedUrl(templateUrl);
+      setPublishedUrl(finalUrl);
       const updated = updateSavedWebsite(savedWebsite.id, { name: finalName });
       if (updated) {
         onUpdate(updated);
       }
       
-      console.log('✅ Website published successfully to:', templateUrl);
-      alert(`Website published successfully!\n\nName: ${finalName}\nURL: ${templateUrl}\n\nYour site is now live!`);
+      console.log('✅ Website published successfully to:', finalUrl);
+      alert(`Website published successfully!\n\nName: ${finalName}\nURL: ${finalUrl}\n\nYour site is now live!`);
     } catch (error: any) {
       console.error('Error publishing website:', error);
       const errorMsg = error?.message || error?.details || 'Unknown error';
@@ -241,6 +247,18 @@ ${exportedHtml || templateData.rawHtml || ''}
             <Upload className="w-4 h-4" />
             {isPublishing ? 'Publishing...' : 'Publish'}
           </button>
+          {publishedUrl && (
+            <a
+              href={publishedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors"
+              title="View published website"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View Site
+            </a>
+          )}
         </div>
       </div>
       

@@ -20,6 +20,9 @@ import { generateSeedKeywordSuggestions } from '../utils/seedKeywordSuggestions'
 import { extractLandingPageContent } from '../utils/campaignIntelligence/landingPageExtractor';
 import { generateTemplateKeywords, serviceTermsByIndustry } from '../utils/templateKeywordGenerator';
 import { mapGoalToIntent } from '../utils/campaignIntelligence/intentClassifier';
+import { KeywordFilters, KeywordFiltersState, DEFAULT_FILTERS, getDifficultyBadge, formatSearchVolume, formatCPC } from './KeywordFilters';
+import { TerminalProgressConsole, KEYWORD_PLANNER_MESSAGES } from './TerminalProgressConsole';
+import { TerminalResultsConsole, ResultStat } from './TerminalResultsConsole';
 
 // Inline vertical detection (same logic as Campaign Builder)
 function detectVertical(url: string, pageText: string): string {
@@ -248,6 +251,14 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
         phrase: true,
         exact: true
     });
+    
+    // Country and Device filters - default to USA and Mobile
+    const [filters, setFilters] = useState<KeywordFiltersState>(DEFAULT_FILTERS);
+    
+    // Terminal console state
+    const [showTerminalConsole, setShowTerminalConsole] = useState(false);
+    const [terminalComplete, setTerminalComplete] = useState(false);
+    const [showResultsConsole, setShowResultsConsole] = useState(false);
 
     // Fetch Google Ads customer ID on mount
     useEffect(() => {
@@ -568,6 +579,8 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
         const normalizedNegativeKeywords = normalizeListInput(negativeKeywords);
 
         setIsGenerating(true);
+        setShowTerminalConsole(true);
+        setTerminalComplete(false);
 
         try {
             console.log('[Keyword Planner] Calling API with:', { seeds: seedKeywordsArray });
@@ -917,41 +930,94 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
 
     return (
         <div className="min-h-screen bg-white p-6">
+            {/* Terminal Progress Console */}
+            <TerminalProgressConsole
+                title="Keyword Planner Console"
+                messages={KEYWORD_PLANNER_MESSAGES}
+                isVisible={showTerminalConsole}
+                onComplete={() => setTerminalComplete(true)}
+                nextButtonText="Next: View Generated Keywords"
+                onNextClick={() => {
+                    setShowTerminalConsole(false);
+                    setIsGenerating(false);
+                    setShowResultsConsole(true);
+                }}
+                minDuration={4500}
+            />
+
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25">
-                            <Sparkles className="w-6 h-6 text-white" />
-                        </div>
-                        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                            Keyword Planner
-                        </h1>
+                <div className="mb-4 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-800">Keyword Planner</h1>
+                        <p className="text-xs text-slate-500">Generate comprehensive keyword lists powered by AI and Google Ads data</p>
                     </div>
-                    <p className="text-gray-600 ml-14">
-                        Generate comprehensive keyword lists powered by AI and Google Ads data
-                    </p>
                 </div>
 
-                {/* Terminal-Style Stats */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                    <TerminalCard title="Keyword Statistics" showDots={true} variant="compact">
-                        <div className="space-y-1.5">
-                            <TerminalLine prefix="$" label="keywords_generated:" value={`${generatedKeywords.length}`} valueColor="green" />
-                            <TerminalLine prefix="$" label="seed_keywords:" value={`${seedKeywords.split(',').filter(s => s.trim()).length}`} valueColor="cyan" />
-                            <TerminalLine prefix="$" label="negative_keywords:" value={`${negativeKeywords.split('\n').filter(s => s.trim()).length}`} valueColor="yellow" />
-                            <TerminalLine prefix="$" label="saved_lists:" value={`${savedLists.length}`} valueColor="purple" />
+                {/* Shell View - Two Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Card 1: Stats */}
+                    <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <span className="text-xs text-slate-400 ml-2 font-mono">planner_stats.sh</span>
                         </div>
-                    </TerminalCard>
+                        <div className="p-4 font-mono">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-1 text-center">
+                                    <div className="text-2xl font-bold text-violet-400">{generatedKeywords.length}</div>
+                                    <div className="text-xs text-slate-400">Generated</div>
+                                </div>
+                                <div className="space-y-1 text-center">
+                                    <div className="text-2xl font-bold text-emerald-400">{apiStatus === 'ok' ? 'LIVE' : 'LOCAL'}</div>
+                                    <div className="text-xs text-slate-400">Source</div>
+                                </div>
+                                <div className="space-y-1 text-center">
+                                    <div className="text-2xl font-bold text-amber-400">{savedLists.length}</div>
+                                    <div className="text-xs text-slate-400">Saved</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <TerminalCard title="System Status" showDots={true} variant="compact">
-                        <div className="space-y-1.5">
-                            <TerminalLine prefix=">" label="api_status:" value={apiStatus === 'ok' ? 'CONNECTED' : apiStatus === 'error' ? 'FALLBACK' : 'CHECKING...'} valueColor={apiStatus === 'ok' ? 'green' : apiStatus === 'error' ? 'yellow' : 'slate'} />
-                            <TerminalLine prefix=">" label="data_source:" value={dataSource === 'google_ads_api' ? 'GOOGLE_ADS_API' : dataSource === 'fallback' ? 'LOCAL_FALLBACK' : 'LOCAL'} valueColor={dataSource === 'google_ads_api' ? 'green' : 'yellow'} />
-                            <TerminalLine prefix=">" label="match_types:" value={`[${matchTypes.broad ? 'B' : '-'}${matchTypes.phrase ? 'P' : '-'}${matchTypes.exact ? 'E' : '-'}]`} valueColor="cyan" />
-                            <TerminalLine prefix=">" label="metrics:" value={showMetrics ? 'ENABLED' : 'DISABLED'} valueColor={showMetrics ? 'green' : 'slate'} />
+                    {/* Card 2: Config */}
+                    <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <span className="text-xs text-slate-400 ml-2 font-mono">planner_config.sh</span>
                         </div>
-                    </TerminalCard>
+                        <div className="p-4 font-mono space-y-2 text-xs">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-slate-500">seeds:</span>
+                                <span className="text-cyan-400">{seedKeywords.split(',').filter(s => s.trim()).length}</span>
+                                <span className="text-slate-600 mx-1">|</span>
+                                <span className="text-slate-500">negatives:</span>
+                                <span className="text-pink-400">{negativeKeywords.split('\n').filter(s => s.trim()).length}</span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-slate-500">match:</span>
+                                <span className="text-slate-300">[{matchTypes.broad ? 'B' : '-'}{matchTypes.phrase ? 'P' : '-'}{matchTypes.exact ? 'E' : '-'}]</span>
+                                <span className="text-slate-600 mx-1">|</span>
+                                <span className="text-slate-500">metrics:</span>
+                                <span className={showMetrics ? 'text-green-400' : 'text-slate-500'}>{showMetrics ? 'ON' : 'OFF'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-slate-500">country:</span>
+                                <span className="text-blue-400">{filters.country}</span>
+                                <span className="text-slate-600 mx-1">|</span>
+                                <span className="text-slate-500">device:</span>
+                                <span className="text-orange-400">{filters.device}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Tabs */}
@@ -1099,8 +1165,11 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                         </div>
                                     </div>
 
-                                    {/* Generate Button */}
+                                    {/* Filters + Generate Button */}
                                     <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <KeywordFilters filters={filters} onFiltersChange={setFilters} compact={true} />
+                                        </div>
                                         <Button
                                             onClick={() => handleGenerate(false)}
                                             disabled={isGenerating || !(typeof seedKeywords === 'string' && seedKeywords.trim())}
@@ -1137,6 +1206,38 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                             <div className="relative group">
                                 <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
                                 <div className="relative bg-white rounded-2xl p-6 border border-gray-200 shadow-lg h-full flex flex-col">
+                                    {/* Terminal Results Console */}
+                                    {showResultsConsole && generatedKeywords.length > 0 && (
+                                        <div className="mb-6">
+                                            <TerminalResultsConsole
+                                                title="Keyword Planner Export Console"
+                                                isVisible={showResultsConsole}
+                                                stats={[
+                                                    { label: 'Keywords Generated', value: generatedKeywords.length, color: 'green' },
+                                                    { label: 'Seed Keywords', value: seedKeywords.split(',').filter(s => s.trim()).length, color: 'cyan' },
+                                                    { label: 'Match Types', value: `${matchTypes.broad ? 'Broad' : ''}${matchTypes.phrase ? ' Phrase' : ''}${matchTypes.exact ? ' Exact' : ''}`.trim() || 'None', color: 'yellow' },
+                                                    { label: 'Data Source', value: dataSource === 'google_ads_api' ? 'Google Ads API' : dataSource === 'fallback' ? 'Estimated' : 'Local', color: 'purple' },
+                                                    { label: 'Country', value: filters.country, color: 'cyan' },
+                                                ]}
+                                                onDownloadCSV={handleDownloadKeywords}
+                                                onSave={handleSave}
+                                                onCopy={handleCopyAll}
+                                                onGenerateAnother={() => {
+                                                    setShowResultsConsole(false);
+                                                    setGeneratedKeywords([]);
+                                                    setEnrichedKeywords([]);
+                                                }}
+                                                showDownload={true}
+                                                showSave={true}
+                                                showCopy={true}
+                                                downloadButtonText="Download CSV for Google Ads"
+                                                saveButtonText="Save to Saved Lists"
+                                                copyButtonText="Copy Keywords"
+                                                isSaving={isSaving}
+                                            />
+                                        </div>
+                                    )}
+
                                     {/* Panel Header */}
                                     <div className="mb-4">
                                         <div className="flex items-center justify-between mb-2">

@@ -316,6 +316,33 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
               </div>
             </div>
 
+            {/* Ready to Launch - moved here below Campaign Details */}
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+              <h3 className="text-base font-semibold mb-3">Ready to Launch</h3>
+              <p className="text-sm text-indigo-100 mb-6">
+                This preset is optimized for high-intent pay-per-call campaigns. Review the details and export when ready.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={handleLoadToBuilder}
+                  className="flex-1 bg-white text-slate-800 hover:bg-gray-100 hover:text-slate-900"
+                  size="lg"
+                >
+                  <Edit className="w-4 h-4 mr-2 text-slate-700" />
+                  Edit in Campaign Builder
+                </Button>
+                <Button
+                  onClick={() => handleExportCSV()}
+                  variant="outline"
+                  className="flex-1 border-white bg-white text-slate-800 hover:bg-gray-100 hover:text-slate-900"
+                  size="lg"
+                >
+                  <Download className="w-4 h-4 mr-2 text-slate-700" />
+                  Export CSV
+                </Button>
+              </div>
+            </div>
+
             {/* Keywords */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg font-semibold mb-4">Keywords ({selectedPreset.keywords.length})</h2>
@@ -365,33 +392,6 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
 
           {/* Sidebar Actions */}
           <div className="space-y-6">
-            {/* Bug_69: Ensure all buttons are visible by removing overflow constraints */}
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-              <h3 className="text-base font-semibold mb-3">Ready to Launch</h3>
-              <p className="text-sm text-indigo-100 mb-6">
-                This preset is optimized for high-intent pay-per-call campaigns. Review the details and export when ready.
-              </p>
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={handleLoadToBuilder}
-                  className="w-full bg-white text-slate-800 hover:bg-gray-100 hover:text-slate-900"
-                  size="lg"
-                >
-                  <Edit className="w-4 h-4 mr-2 text-slate-700" />
-                  Edit in Campaign Builder
-                </Button>
-                <Button
-                  onClick={() => handleExportCSV()}
-                  variant="outline"
-                  className="w-full border-white bg-white text-slate-800 hover:bg-gray-100 hover:text-slate-900"
-                  size="lg"
-                >
-                  <Download className="w-4 h-4 mr-2 text-slate-700" />
-                  Export CSV
-                </Button>
-              </div>
-            </div>
-
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <h3 className="text-base font-semibold mb-4 text-slate-800">Preset Stats</h3>
               <div className="space-y-3 text-sm">
@@ -428,12 +428,76 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl theme-gradient-primary flex items-center justify-center shadow-lg shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shrink-0">
             <Package className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold theme-gradient-text">Campaign Presets</h1>
             <p className="text-sm text-slate-600 mt-1">Plug-and-play Google Ads campaigns for high-intent home services</p>
+          </div>
+        </div>
+
+        {/* Shell View - Two Boxes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Box 1: Stats */}
+          <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              </div>
+              <span className="text-xs text-slate-400 ml-2 font-mono">preset_stats.sh</span>
+            </div>
+            <div className="p-4 font-mono">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1 text-center">
+                  <div className="text-2xl font-bold text-violet-400">{campaignPresets.length}</div>
+                  <div className="text-xs text-slate-400">Presets</div>
+                </div>
+                <div className="space-y-1 text-center">
+                  <div className="text-2xl font-bold text-emerald-400">5</div>
+                  <div className="text-xs text-slate-400">Structures</div>
+                </div>
+                <div className="space-y-1 text-center">
+                  <div className="text-2xl font-bold text-amber-400">CSV</div>
+                  <div className="text-xs text-slate-400">Export</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Box 2: Details */}
+          <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              </div>
+              <span className="text-xs text-slate-400 ml-2 font-mono">preset_config.sh</span>
+            </div>
+            <div className="p-4 font-mono space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500">industries:</span>
+                <span className="text-cyan-400">Home Services, Medical, Legal, Auto</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-slate-500">keywords:</span>
+                <span className="text-amber-400">410-710</span>
+                <span className="text-slate-600 mx-1">|</span>
+                <span className="text-slate-500">ads:</span>
+                <span className="text-pink-400">RSA, Call-Only, DKI</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500">extensions:</span>
+                <span className="text-blue-400">Sitelinks, Callouts, Snippets</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500">structures:</span>
+                <span className="text-emerald-400">SKAG, STAG, Intent-Based, Alpha-Beta</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -612,18 +676,6 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
                         <Edit className="w-4 h-4 mr-1.5" />
                         Edit
                       </Button>
-                      <Button
-                        size="sm"
-                        className="theme-button-primary whitespace-nowrap"
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          handleExportCSV(preset);
-                        }}
-                        title="Download Google Ads Editor CSV"
-                      >
-                        <Download className="w-4 h-4 mr-1.5" />
-                        Export
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -631,122 +683,53 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
             );
           }
           
-          // Grid View Layout (existing)
+          // Grid View Layout - Simplified UI
           return (
           <div
             key={preset.slug}
-            className="bg-white rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden p-2.5 flex flex-col h-full"
+            className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-indigo-200 transition-all cursor-pointer group relative overflow-hidden p-4 flex flex-col h-full"
             onClick={() => handleSelectPreset(preset)}
           >
             {/* Structure Type Tag - Top Right */}
-            <div className="absolute top-1 right-1 z-10">
-              <Badge className="text-[8px] px-1 py-0.5 bg-indigo-100 text-indigo-700 border-indigo-200 font-semibold">
+            <div className="absolute top-2 right-2 z-10">
+              <Badge className="text-[9px] px-1.5 py-0.5 bg-indigo-100 text-indigo-700 border-indigo-200 font-semibold uppercase tracking-wide">
                 {preset.structure}
               </Badge>
             </div>
+            
             <div className="flex-1 flex flex-col">
-              <div className="mb-2">
-                <div className="flex items-start justify-between gap-1.5 mb-0.5">
-                  <h3 className="text-xs font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight flex-1">
-                    {preset.title}
-                  </h3>
-                </div>
-                <p className="text-[10px] text-slate-500 leading-tight">{preset.campaign_name}</p>
+              {/* Title Section */}
+              <div className="mb-3 pr-12">
+                <h3 className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight">
+                  {preset.title}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">{preset.campaign_name}</p>
               </div>
 
-              <div className="space-y-1 mb-2 flex-1">
-                <div className="flex items-center gap-1 text-[10px] text-slate-600">
-                  <Sparkles className="w-3 h-3 shrink-0" />
-                  <span>{preset.keywords.length} keywords</span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] text-slate-600">
-                  <Zap className="w-3 h-3 shrink-0" />
-                  <span>{preset.ad_groups.length} ad groups</span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] text-slate-600">
-                  <CheckCircle className="w-3 h-3 shrink-0" />
-                  <span>${preset.max_cpc.toFixed(2)} max CPC</span>
-                </div>
+              {/* Compact Stats Row */}
+              <div className="flex items-center gap-3 mb-4 text-xs text-slate-600">
+                <span className="flex items-center gap-1">
+                  <span className="font-semibold text-indigo-600">{preset.keywords.length}</span> keywords
+                </span>
+                <span className="text-slate-300">|</span>
+                <span className="flex items-center gap-1">
+                  <span className="font-semibold text-indigo-600">{preset.ad_groups.length}</span> ad groups
+                </span>
               </div>
 
-              {/* Example Keywords - Display as normal text */}
-              <div className="mb-2 space-y-1">
-                {preset.keywords.slice(0, 2).map((keyword, idx) => (
-                  <p key={idx} className="text-[10px] text-slate-600 leading-tight">
-                    {keyword}
-                  </p>
-                ))}
-                {preset.keywords.length > 2 && (
-                  <p className="text-[9px] text-slate-500 leading-tight">
-                    +{preset.keywords.length - 2} more keywords
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1 mt-auto">
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-slate-300 hover:bg-slate-50 text-[10px] h-7 px-1.5"
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      handleSelectPreset(preset);
-                    }}
-                    title="View campaign details"
-                  >
-                    <Eye className="w-3 h-3 mr-0.5" />
-                    VIEW
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-[10px] h-7 px-1.5"
-                    onClick={async (e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      await historyService.save(
-                        'campaign',
-                        preset.title,
-                        {
-                          presetId: preset.slug,
-                          presetData: preset,
-                          campaignName: preset.campaign_name,
-                          structure: preset.structure,
-                          keywords: preset.keywords,
-                          adGroups: preset.ad_groups,
-                          ads: preset.ads,
-                          negativeKeywords: preset.negative_keywords,
-                          finalUrl: preset.final_url,
-                          maxCpc: preset.max_cpc,
-                          dailyBudget: preset.daily_budget,
-                          fromPreset: true,
-                          editable: true
-                        },
-                        'draft'
-                      );
-                      notifications.success(`Saved to campaigns`, {
-                        title: 'Ready to Edit'
-                      });
-                      setSelectedPreset(preset);
-                      setShowReview(true);
-                    }}
-                    title="Edit and save to campaigns"
-                  >
-                    <Edit className="w-3 h-3 mr-0.5" />
-                    Edit
-                  </Button>
-                </div>
+              {/* Action Button */}
+              <div className="mt-auto">
                 <Button
                   size="sm"
-                  className="w-full theme-button-primary text-[10px] h-7 px-1.5"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs h-8"
                   onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
-                    handleExportCSV(preset);
+                    handleSelectPreset(preset);
                   }}
-                  title="Download Google Ads Editor CSV"
+                  title="View campaign details"
                 >
-                  <Download className="w-3 h-3 mr-0.5" />
-                  Export
+                  <Eye className="w-3.5 h-3.5 mr-1" />
+                  View Details
                 </Button>
               </div>
             </div>

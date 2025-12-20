@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Plus, Trash2, Eye, EyeOff, Save, Download, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, Save, Download, GripVertical, ChevronUp, ChevronDown, Undo2, ImagePlus, Pencil, Upload } from 'lucide-react';
 import { TemplateData } from '../utils/savedWebsites';
 import { Button } from './ui/button';
 
 interface Section {
   id: string;
-  type: 'hero' | 'features' | 'services' | 'testimonials' | 'team' | 'faq' | 'pricing' | 'gallery' | 'blog' | 'partners' | 'cta' | 'contact' | 'about';
+  type: 'navigation' | 'hero' | 'features' | 'services' | 'testimonials' | 'team' | 'faq' | 'pricing' | 'gallery' | 'blog' | 'partners' | 'cta' | 'contact' | 'about' | 'footer' | 'policies' | 'form' | 'popup';
   name: string;
   data: any;
 }
@@ -18,6 +18,7 @@ interface VisualSectionsEditorProps {
 }
 
 const SECTION_TYPES = [
+  { type: 'navigation', name: 'Navigation', icon: '🧭' },
   { type: 'hero', name: 'Hero', icon: '🎯' },
   { type: 'features', name: 'Features', icon: '⭐' },
   { type: 'services', name: 'Services', icon: '🔧' },
@@ -31,13 +32,37 @@ const SECTION_TYPES = [
   { type: 'gallery', name: 'Gallery', icon: '🖼️' },
   { type: 'blog', name: 'Blog', icon: '📝' },
   { type: 'partners', name: 'Partners', icon: '🤝' },
+  { type: 'footer', name: 'Footer', icon: '🔻' },
+  { type: 'policies', name: 'Policies', icon: '📜' },
+  { type: 'form', name: 'Lead Form', icon: '📋' },
 ];
 
 function buildSectionsFromTemplate(data: TemplateData): Section[] {
   const sects: Section[] = [];
   
+  if ((data as any).navigation) {
+    sects.push({ id: 'navigation', type: 'navigation', name: 'Navigation', data: (data as any).navigation });
+  } else {
+    sects.push({ 
+      id: 'navigation', 
+      type: 'navigation', 
+      name: 'Navigation', 
+      data: { 
+        logo: data.footer?.companyName || 'Company', 
+        links: [
+          { text: 'Home', url: '#' },
+          { text: 'Services', url: '#services' },
+          { text: 'About', url: '#about' },
+          { text: 'Contact', url: '#contact' }
+        ],
+        ctaText: 'Get Started',
+        ctaUrl: '#contact'
+      } 
+    });
+  }
+  
   if (data.hero) {
-    sects.push({ id: 'hero', type: 'hero', name: 'Hero', data: data.hero });
+    sects.push({ id: 'hero', type: 'hero', name: 'Hero', data: { ...data.hero, imageUrl: data.hero_image } });
   }
   if (data.features) {
     sects.push({ id: 'features', type: 'features', name: 'Features', data: data.features });
@@ -75,6 +100,12 @@ function buildSectionsFromTemplate(data: TemplateData): Section[] {
   if ((data as any).partners) {
     sects.push({ id: 'partners', type: 'partners', name: 'Partners', data: (data as any).partners });
   }
+  if (data.footer) {
+    sects.push({ id: 'footer', type: 'footer', name: 'Footer', data: data.footer });
+  }
+  if ((data as any).policies) {
+    sects.push({ id: 'policies', type: 'policies', name: 'Policies', data: (data as any).policies });
+  }
 
   return sects;
 }
@@ -89,8 +120,14 @@ function sectionsToTemplateData(sections: Section[], originalData: TemplateData)
   
   for (const section of sections) {
     switch (section.type) {
+      case 'navigation':
+        (result as any).navigation = section.data;
+        break;
       case 'hero':
         result.hero = section.data;
+        if (section.data.imageUrl) {
+          result.hero_image = section.data.imageUrl;
+        }
         break;
       case 'features':
         result.features = section.data;
@@ -130,6 +167,12 @@ function sectionsToTemplateData(sections: Section[], originalData: TemplateData)
         break;
       case 'faq':
         (result as any).faq = section.data;
+        break;
+      case 'footer':
+        result.footer = section.data;
+        break;
+      case 'policies':
+        (result as any).policies = section.data;
         break;
     }
   }
@@ -183,11 +226,200 @@ function EditableText({
   );
 }
 
+function ImageEditor({ imageUrl, onUpdate, label = 'Image' }: { imageUrl: string; onUpdate: (url: string) => void; label?: string }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [urlInput, setUrlInput] = useState(imageUrl || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        onUpdate(base64);
+        setUrlInput(base64);
+        setIsEditing(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUrlSave = () => {
+    onUpdate(urlInput);
+    setIsEditing(false);
+  };
+
+  if (!isEditing) {
+    return (
+      <button
+        onClick={() => setIsEditing(true)}
+        className="flex items-center gap-2 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm transition-colors"
+      >
+        <Pencil className="w-4 h-4" />
+        Edit {label}
+      </button>
+    );
+  }
+
+  return (
+    <div className="p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-white/80">{label}</label>
+        <button onClick={() => setIsEditing(false)} className="text-white/60 hover:text-white text-sm">Cancel</button>
+      </div>
+      
+      <div className="flex gap-2">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm transition-colors"
+        >
+          <Upload className="w-4 h-4" />
+          Upload Image
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+      </div>
+      
+      <div className="text-white/60 text-xs text-center">or</div>
+      
+      <div className="flex gap-2">
+        <input
+          type="url"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          placeholder="https://example.com/image.jpg"
+          className="flex-1 px-3 py-2 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 text-sm"
+        />
+        <button
+          onClick={handleUrlSave}
+          className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg text-white text-sm font-medium transition-colors"
+        >
+          Save
+        </button>
+      </div>
+      
+      {imageUrl && (
+        <button
+          onClick={() => { onUpdate(''); setUrlInput(''); setIsEditing(false); }}
+          className="text-red-300 hover:text-red-200 text-xs"
+        >
+          Remove image
+        </button>
+      )}
+    </div>
+  );
+}
+
+function NavigationSection({ section, onUpdate }: { section: Section; onUpdate: (data: any) => void }) {
+  const data = section.data;
+  const links = data.links || [
+    { text: 'Home', url: '#' },
+    { text: 'Services', url: '#services' },
+    { text: 'About', url: '#about' },
+    { text: 'Contact', url: '#contact' }
+  ];
+
+  const updateLink = (index: number, field: string, value: string) => {
+    const newLinks = [...links];
+    newLinks[index] = { ...newLinks[index], [field]: value };
+    onUpdate({ ...data, links: newLinks });
+  };
+
+  const addLink = () => {
+    const newLinks = [...links, { text: 'New Link', url: '#' }];
+    onUpdate({ ...data, links: newLinks });
+  };
+
+  const removeLink = (index: number) => {
+    const newLinks = links.filter((_: any, i: number) => i !== index);
+    onUpdate({ ...data, links: newLinks });
+  };
+
+  return (
+    <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+      <div className="max-w-6xl mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          <EditableText
+            value={data.logo || 'Company'}
+            onChange={(logo) => onUpdate({ ...data, logo })}
+            as="span"
+            className="text-xl font-bold text-gray-900"
+            placeholder="Logo/Company Name"
+          />
+          
+          <div className="hidden md:flex items-center gap-6">
+            {links.map((link: any, index: number) => (
+              <div key={index} className="relative group flex items-center gap-1">
+                <EditableText
+                  value={link.text}
+                  onChange={(text) => updateLink(index, 'text', text)}
+                  as="span"
+                  className="text-gray-600 hover:text-gray-900 font-medium cursor-pointer"
+                  placeholder="Link text"
+                />
+                <button
+                  onClick={() => removeLink(index)}
+                  className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addLink}
+              className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm">
+              <EditableText
+                value={data.ctaText || 'Get Started'}
+                onChange={(ctaText) => onUpdate({ ...data, ctaText })}
+                as="span"
+                className="text-white"
+                placeholder="CTA text"
+              />
+            </button>
+            <div className="md:hidden flex flex-col gap-1 cursor-pointer p-2">
+              <span className="block w-5 h-0.5 bg-gray-600"></span>
+              <span className="block w-5 h-0.5 bg-gray-600"></span>
+              <span className="block w-5 h-0.5 bg-gray-600"></span>
+            </div>
+          </div>
+        </div>
+        
+        <p className="text-xs text-gray-400 mt-2 md:hidden">
+          Mobile menu: Hamburger icon shown on mobile devices
+        </p>
+      </div>
+    </nav>
+  );
+}
+
 function HeroSection({ section, onUpdate }: { section: Section; onUpdate: (data: any) => void }) {
   const data = section.data;
+  const hasImage = data.imageUrl && data.imageUrl.trim() !== '';
+  
+  const backgroundStyle = hasImage 
+    ? { 
+        background: `linear-gradient(rgba(99, 102, 241, 0.85), rgba(139, 92, 246, 0.9)), url('${data.imageUrl}') center/cover no-repeat`
+      }
+    : {};
   
   return (
-    <section className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white py-20 px-6">
+    <section 
+      className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white py-20 px-6"
+      style={backgroundStyle}
+    >
       <div className="max-w-4xl mx-auto text-center">
         <EditableText
           value={data.heading || 'Welcome to Our Site'}
@@ -206,6 +438,14 @@ function HeroSection({ section, onUpdate }: { section: Section; onUpdate: (data:
         <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
           {data.ctaText || 'Get Started'}
         </button>
+        
+        <div className="mt-8 flex justify-center">
+          <ImageEditor
+            imageUrl={data.imageUrl || ''}
+            onUpdate={(imageUrl) => onUpdate({ ...data, imageUrl })}
+            label="Background Image"
+          />
+        </div>
       </div>
     </section>
   );
@@ -631,10 +871,169 @@ function GenericSection({ section, onUpdate }: { section: Section; onUpdate: (da
   );
 }
 
+function FooterSection({ section, onUpdate }: { section: Section; onUpdate: (data: any) => void }) {
+  const data = section.data;
+  const links = data.links || [
+    { text: 'Home', url: '#' },
+    { text: 'Services', url: '#services' },
+    { text: 'About', url: '#about' },
+    { text: 'Contact', url: '#contact' },
+    { text: 'Privacy Policy', url: '#privacy' },
+    { text: 'Terms of Service', url: '#terms' },
+    { text: 'Refund Policy', url: '#refund' }
+  ];
+  
+  return (
+    <footer className="bg-gray-900 text-white py-12 px-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <EditableText
+              value={data.companyName || 'Company Name'}
+              onChange={(companyName) => onUpdate({ ...data, companyName })}
+              as="h3"
+              className="text-xl font-bold mb-4 text-white"
+              placeholder="Company name..."
+            />
+            <EditableText
+              value={data.description || 'Your trusted partner for quality services.'}
+              onChange={(description) => onUpdate({ ...data, description })}
+              as="p"
+              className="text-gray-400 text-sm"
+              placeholder="Company description..."
+            />
+          </div>
+          <div>
+            <h4 className="font-semibold mb-4">Quick Links</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+              {links.slice(0, 4).map((link: any, i: number) => (
+                <li key={i}><a href={link.url} className="hover:text-white transition-colors">{link.text}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-4">Legal</h4>
+            <ul className="space-y-2 text-gray-400 text-sm">
+              {links.slice(4).map((link: any, i: number) => (
+                <li key={i}><a href={link.url} className="hover:text-white transition-colors">{link.text}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-4">Contact</h4>
+            <div className="space-y-2 text-gray-400 text-sm">
+              <EditableText
+                value={data.phone || '+1 (800) 123-4567'}
+                onChange={(phone) => onUpdate({ ...data, phone })}
+                as="p"
+                className="text-gray-400"
+                placeholder="Phone..."
+              />
+              <EditableText
+                value={data.email || 'info@example.com'}
+                onChange={(email) => onUpdate({ ...data, email })}
+                as="p"
+                className="text-gray-400"
+                placeholder="Email..."
+              />
+              <EditableText
+                value={data.address || '123 Main St, City, State'}
+                onChange={(address) => onUpdate({ ...data, address })}
+                as="p"
+                className="text-gray-400"
+                placeholder="Address..."
+              />
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-gray-800 pt-6 text-center text-gray-500 text-sm">
+          <p>&copy; {new Date().getFullYear()} {data.companyName || 'Company Name'}. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function PoliciesSection({ section, onUpdate }: { section: Section; onUpdate: (data: any) => void }) {
+  const data = section.data;
+  const items = data.items || [
+    { title: 'Privacy Policy', content: 'We respect your privacy and are committed to protecting your personal information.' },
+    { title: 'Terms of Service', content: 'By using our services, you agree to these terms.' },
+    { title: 'Refund Policy', content: 'We offer a 30-day money-back guarantee on all our services.' }
+  ];
+
+  const updateItem = (index: number, field: string, value: string) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    onUpdate({ ...data, items: newItems });
+  };
+
+  return (
+    <section className="py-16 px-6 bg-gray-50">
+      <div className="max-w-4xl mx-auto">
+        <EditableText
+          value={data.heading || 'Our Policies'}
+          onChange={(heading) => onUpdate({ ...data, heading })}
+          as="h2"
+          className="text-3xl font-bold text-center mb-12 text-gray-900"
+          placeholder="Section heading..."
+        />
+        <div className="space-y-6">
+          {items.map((item: any, index: number) => (
+            <div key={index} className="bg-white p-6 rounded-xl border border-gray-200">
+              <EditableText
+                value={item.title}
+                onChange={(title) => updateItem(index, 'title', title)}
+                as="h3"
+                className="text-xl font-semibold mb-3 text-gray-900"
+                placeholder="Policy title..."
+              />
+              <EditableText
+                value={item.content}
+                onChange={(content) => updateItem(index, 'content', content)}
+                as="p"
+                className="text-gray-600 leading-relaxed"
+                placeholder="Policy content..."
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function VisualSectionsEditor({ templateData, onUpdate, onSave, onExport }: VisualSectionsEditorProps) {
   const [sections, setSections] = useState<Section[]>(buildSectionsFromTemplate(templateData));
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [history, setHistory] = useState<Section[][]>([]);
+  const maxHistory = 20;
+
+  const saveToHistory = (currentSections: Section[]) => {
+    setHistory(prev => {
+      const newHistory = [...prev, JSON.parse(JSON.stringify(currentSections))];
+      if (newHistory.length > maxHistory) {
+        newHistory.shift();
+      }
+      return newHistory;
+    });
+  };
+
+  const undo = () => {
+    if (history.length > 0) {
+      const previousState = history[history.length - 1];
+      setHistory(prev => prev.slice(0, -1));
+      setSections(previousState);
+    }
+  };
+
+  const setSectionsWithHistory = (newSections: Section[] | ((prev: Section[]) => Section[])) => {
+    setSections(prev => {
+      saveToHistory(prev);
+      return typeof newSections === 'function' ? newSections(prev) : newSections;
+    });
+  };
 
   const generateHtml = useCallback((sects: Section[]): string => {
     return sects.map(s => generateSectionHtml(s)).join('\n');
@@ -654,7 +1053,7 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
   }, [sections, generateHtml, onUpdate, templateData]);
 
   const updateSection = (id: string, data: any) => {
-    setSections(prev => prev.map(s => s.id === id ? { ...s, data } : s));
+    setSectionsWithHistory(prev => prev.map(s => s.id === id ? { ...s, data } : s));
   };
 
   const addSection = (type: string) => {
@@ -665,12 +1064,12 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
       name: typeInfo?.name || type,
       data: {}
     };
-    setSections([...sections, newSection]);
+    setSectionsWithHistory([...sections, newSection]);
     setShowAddMenu(false);
   };
 
   const removeSection = (id: string) => {
-    setSections(sections.filter(s => s.id !== id));
+    setSectionsWithHistory(sections.filter(s => s.id !== id));
     if (selectedSection === id) {
       setSelectedSection(null);
     }
@@ -681,11 +1080,11 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
     if (direction === 'up' && index > 0) {
       const newSections = [...sections];
       [newSections[index - 1], newSections[index]] = [newSections[index], newSections[index - 1]];
-      setSections(newSections);
+      setSectionsWithHistory(newSections);
     } else if (direction === 'down' && index < sections.length - 1) {
       const newSections = [...sections];
       [newSections[index], newSections[index + 1]] = [newSections[index + 1], newSections[index]];
-      setSections(newSections);
+      setSectionsWithHistory(newSections);
     }
   };
 
@@ -696,6 +1095,7 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
     };
 
     switch (section.type) {
+      case 'navigation': return <NavigationSection {...sectionProps} />;
       case 'hero': return <HeroSection {...sectionProps} />;
       case 'features': return <FeaturesSection {...sectionProps} />;
       case 'services': return <ServicesSection {...sectionProps} />;
@@ -704,6 +1104,8 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
       case 'contact': return <ContactSection {...sectionProps} />;
       case 'about': return <AboutSection {...sectionProps} />;
       case 'faq': return <FAQSection {...sectionProps} />;
+      case 'footer': return <FooterSection {...sectionProps} />;
+      case 'policies': return <PoliciesSection {...sectionProps} />;
       default: return <GenericSection {...sectionProps} />;
     }
   };
@@ -717,6 +1119,16 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
             <span className="text-sm text-gray-500">{sections.length} sections</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              onClick={undo}
+              variant="outline"
+              className="gap-2"
+              disabled={history.length === 0}
+              title="Undo last change"
+            >
+              <Undo2 className="w-4 h-4" />
+              Undo
+            </Button>
             <Button
               onClick={() => setShowAddMenu(!showAddMenu)}
               variant="outline"
@@ -829,6 +1241,66 @@ function generateSectionHtml(section: Section): string {
   const data = section.data;
   
   switch (section.type) {
+    case 'navigation':
+      const navLinks = data.links || [
+        { text: 'Home', url: '#' },
+        { text: 'Services', url: '#services' },
+        { text: 'About', url: '#about' },
+        { text: 'Contact', url: '#contact' }
+      ];
+      return `<nav class="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+  <style>
+    .mobile-menu { display: none; }
+    .mobile-menu.active { display: block; }
+    .hamburger { display: none; cursor: pointer; padding: 8px; }
+    @media (max-width: 768px) {
+      .desktop-nav { display: none !important; }
+      .hamburger { display: flex; flex-direction: column; gap: 4px; }
+      .hamburger span { display: block; width: 20px; height: 2px; background: #374151; transition: all 0.3s ease; }
+      .mobile-menu { 
+        position: absolute; 
+        top: 100%; 
+        left: 0; 
+        right: 0; 
+        background: white; 
+        border-bottom: 1px solid #e5e7eb;
+        padding: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      }
+      .mobile-menu a { 
+        display: block; 
+        padding: 12px 16px; 
+        color: #4b5563; 
+        text-decoration: none;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .mobile-menu a:hover { background: #f3f4f6; }
+    }
+  </style>
+  <div class="max-w-6xl mx-auto px-6 py-4">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <span style="font-size: 1.25rem; font-weight: bold; color: #111827;">${data.logo || 'Company'}</span>
+      
+      <div class="desktop-nav" style="display: flex; align-items: center; gap: 24px;">
+        ${navLinks.map((link: any) => `<a href="${link.url}" style="color: #4b5563; text-decoration: none; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#111827'" onmouseout="this.style.color='#4b5563'">${link.text}</a>`).join('')}
+      </div>
+      
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <a href="${data.ctaUrl || '#contact'}" style="background: #2563eb; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 500; text-decoration: none; font-size: 14px; transition: background 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">${data.ctaText || 'Get Started'}</a>
+        <div class="hamburger" onclick="document.querySelector('.mobile-menu').classList.toggle('active')">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mobile-menu">
+    ${navLinks.map((link: any) => `<a href="${link.url}">${link.text}</a>`).join('')}
+  </div>
+</nav>`;
+
     case 'hero':
       return `<section class="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white py-20 px-6">
   <div class="max-w-4xl mx-auto text-center">
@@ -921,6 +1393,66 @@ function generateSectionHtml(section: Section): string {
       ${faqs.map((f: any) => `<div class="border rounded-lg p-6">
         <h3 class="font-semibold mb-2">${f.question}</h3>
         <p class="text-gray-600">${f.answer}</p>
+      </div>`).join('')}
+    </div>
+  </div>
+</section>`;
+
+    case 'footer':
+      const footerLinks = data.links || [
+        { text: 'Home', url: '#' },
+        { text: 'Services', url: '#services' },
+        { text: 'About', url: '#about' },
+        { text: 'Contact', url: '#contact' },
+        { text: 'Privacy Policy', url: '#privacy' },
+        { text: 'Terms of Service', url: '#terms' },
+        { text: 'Refund Policy', url: '#refund' }
+      ];
+      return `<footer class="bg-gray-900 text-white py-12 px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid md:grid-cols-4 gap-8 mb-8">
+      <div>
+        <h3 class="text-xl font-bold mb-4">${data.companyName || 'Company Name'}</h3>
+        <p class="text-gray-400 text-sm">${data.description || 'Your trusted partner for quality services.'}</p>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-4">Quick Links</h4>
+        <ul class="space-y-2 text-gray-400 text-sm">
+          ${footerLinks.slice(0, 4).map((link: any) => `<li><a href="${link.url}" class="hover:text-white">${link.text}</a></li>`).join('')}
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-4">Legal</h4>
+        <ul class="space-y-2 text-gray-400 text-sm">
+          ${footerLinks.slice(4).map((link: any) => `<li><a href="${link.url}" class="hover:text-white">${link.text}</a></li>`).join('')}
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-4">Contact</h4>
+        <p class="text-gray-400 text-sm mb-2">${data.phone || '+1 (800) 123-4567'}</p>
+        <p class="text-gray-400 text-sm mb-2">${data.email || 'info@example.com'}</p>
+        <p class="text-gray-400 text-sm">${data.address || '123 Main St, City, State'}</p>
+      </div>
+    </div>
+    <div class="border-t border-gray-800 pt-6 text-center text-gray-500 text-sm">
+      <p>&copy; ${new Date().getFullYear()} ${data.companyName || 'Company Name'}. All rights reserved.</p>
+    </div>
+  </div>
+</footer>`;
+
+    case 'policies':
+      const policies = data.items || [
+        { title: 'Privacy Policy', content: 'We respect your privacy and are committed to protecting your personal information.' },
+        { title: 'Terms of Service', content: 'By using our services, you agree to these terms.' },
+        { title: 'Refund Policy', content: 'We offer a 30-day money-back guarantee on all our services.' }
+      ];
+      return `<section class="py-16 px-6 bg-gray-50">
+  <div class="max-w-4xl mx-auto">
+    <h2 class="text-3xl font-bold text-center mb-12">${data.heading || 'Our Policies'}</h2>
+    <div class="space-y-6">
+      ${policies.map((p: any) => `<div class="bg-white p-6 rounded-xl border border-gray-200">
+        <h3 class="text-xl font-semibold mb-3">${p.title}</h3>
+        <p class="text-gray-600 leading-relaxed">${p.content}</p>
       </div>`).join('')}
     </div>
   </div>

@@ -7,7 +7,7 @@ import {
   Phone, Mail, Calendar, Clock, Eye, FileSpreadsheet, Copy,
   MessageSquare, Gift, Image as ImageIcon, DollarSign, MapPin as MapPinIcon,
   Star, RefreshCw, Smartphone, Megaphone, FolderOpen,
-  Type, ChevronUp, ChevronDown, MousePointerClick, Briefcase
+  Type, ChevronUp, ChevronDown, ChevronRight, MousePointerClick, Briefcase
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -27,13 +27,14 @@ import { type IntentResult, IntentId } from '../utils/campaignIntelligence/schem
 import { generateCampaignStructure, type StructureSettings } from '../utils/campaignStructureGenerator';
 import { generateKeywords as generateKeywordsUtil } from '../utils/keywordGenerator';
 import {
-  generateAds as generateAdsUtility, 
-  detectUserIntent,
-  type AdGenerationInput,
-  type ResponsiveSearchAd,
-  type ExpandedTextAd,
-  type CallOnlyAd
-} from '../utils/googleAdGenerator';
+  generateUniversalRSA,
+  generateUniversalDKI,
+  generateUniversalCallAd,
+  type UniversalAdInput,
+  type UniversalRSA,
+  type UniversalDKIAd,
+  type UniversalCallAd
+} from '../utils/universalAdGenerator';
 import { exportCampaignToCSVV3, validateCSVBeforeExport } from '../utils/csvGeneratorV3';
 import { exportCampaignToGoogleAdsEditorCSV, campaignStructureToCSVRows, GOOGLE_ADS_EDITOR_HEADERS } from '../utils/googleAdsEditorCSVExporter';
 import { validateAndFixAds, formatValidationReport } from '../utils/adValidationUtils';
@@ -56,7 +57,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { generateDKIAdWithAI } from '../utils/dkiAdGeneratorAI';
 import { CampaignFlowDiagram } from './CampaignFlowDiagram';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
-import JSZip from 'jszip';
 
 // Campaign Structure Types (14 structures)
 const CAMPAIGN_STRUCTURES = [
@@ -341,6 +341,15 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     selectedGeoCountries: [],
   });
 
+  // Scroll to top when step changes
+  useEffect(() => {
+    // Use setTimeout to ensure scroll happens after render completes
+    const timer = setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [currentStep]);
+
   // Handle initial data from Keyword Planner or saved campaigns
   useEffect(() => {
     if (!initialData) return;
@@ -531,6 +540,44 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       }
     }
   }, [campaignData.url]);
+
+  // Auto-save campaign progress when step changes or key data updates
+  useEffect(() => {
+    // Don't save if on step 1 with no data, or if already on success step
+    if (currentStep === 1 && !campaignData.url) return;
+    if (currentStep === 7) return; // Don't auto-save after completion
+    
+    // Debounce auto-save to avoid too many saves
+    const saveTimeout = setTimeout(async () => {
+      try {
+        await historyService.save('campaign', campaignData.campaignName || 'Untitled Campaign', {
+          name: campaignData.campaignName,
+          url: campaignData.url,
+          structure: campaignData.selectedStructure || 'stag',
+          keywords: campaignData.selectedKeywords,
+          ads: campaignData.ads,
+          locations: campaignData.locations,
+          intent: campaignData.intent,
+          vertical: campaignData.vertical,
+          cta: campaignData.cta,
+          negativeKeywords: campaignData.negativeKeywords,
+          adGroups: campaignData.adGroups,
+          seedKeywords: campaignData.seedKeywords,
+          generatedKeywords: campaignData.generatedKeywords,
+          structureRankings: campaignData.structureRankings,
+          targetCountry: campaignData.targetCountry,
+          selectedGeoCountries: campaignData.selectedGeoCountries,
+          currentStep: currentStep,
+          lastSavedAt: new Date().toISOString(),
+        }, 'draft');
+        console.log('📝 Campaign auto-saved at step', currentStep);
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
+    }, 2000); // 2 second debounce
+    
+    return () => clearTimeout(saveTimeout);
+  }, [currentStep, campaignData.url, campaignData.selectedStructure, campaignData.selectedKeywords.length, campaignData.ads.length, campaignData.adGroups.length]);
 
 
   // Helper function to safely extract domain from URL
@@ -1471,31 +1518,27 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         }
       }
 
-      // Always generate 3 ads: RSA, DKI, and Call
+      // Universal Ad Generator - 4-Pillar Bucket System
+      // Generate RSA, DKI, and Call ads using the new architecture
       const adTypesToGenerate = ['rsa', 'dki', 'call'];
+      
+      // Build Universal Ad Input
+      const universalInput: UniversalAdInput = {
+        industry: industry,
+        keywords: keywordTexts,
+        uniqueValueProposition: campaignData.cta || 'quality service and expert solutions',
+        audiencePainPoint: 'finding reliable service',
+        businessName: businessName,
+        location: campaignData.locations?.cities?.[0] || campaignData.locations?.states?.[0] || undefined,
+        baseUrl: campaignData.url || undefined,
+        phoneNumber: '(555) 123-4567',
+      };
       
       for (const adType of adTypesToGenerate) {
         try {
-          const adInput: AdGenerationInput = {
-            keywords: keywordTexts,
-            baseUrl: campaignData.url || undefined,
-            adType: adType === 'rsa' ? 'RSA' : adType === 'dki' ? 'ETA' : 'CALL_ONLY',
-            industry: industry,
-            businessName: businessName,
-            location: campaignData.locations?.cities?.[0] || campaignData.locations?.states?.[0] || undefined,
-            filters: {
-              matchType: campaignData.keywordTypes.phrase ? 'phrase' : campaignData.keywordTypes.exact ? 'exact' : 'broad',
-              campaignStructure: (campaignData.selectedStructure?.toUpperCase() || 'SKAG') as 'SKAG' | 'STAG' | 'IBAG' | 'Alpha-Beta',
-              uniqueSellingPoints: [],
-              callToAction: campaignData.cta || undefined,
-            },
-          };
-
-          const ad = generateAdsUtility(adInput);
-          
-          // Convert to our ad format
-          if (adType === 'rsa' && 'headlines' in ad) {
-            const rsa = ad as ResponsiveSearchAd;
+          if (adType === 'rsa') {
+            // Generate RSA using 4-Pillar System
+            const rsa = generateUniversalRSA(universalInput);
             ads.push({
               id: `ad-${Date.now()}-${Math.random()}`,
               type: 'rsa',
@@ -1506,9 +1549,11 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               finalUrl: rsa.finalUrl || campaignData.url || '',
               selected: false,
               extensions: [],
+              pillarBreakdown: rsa.pillarBreakdown,
             });
-          } else if (adType === 'dki' && 'headline1' in ad) {
-            const dki = ad as ExpandedTextAd;
+          } else if (adType === 'dki') {
+            // Generate DKI ad
+            const dki = generateUniversalDKI(universalInput);
             ads.push({
               id: `ad-${Date.now()}-${Math.random()}`,
               type: 'dki',
@@ -1523,8 +1568,9 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               selected: false,
               extensions: [],
             });
-          } else if (adType === 'call' && 'phoneNumber' in ad) {
-            const call = ad as CallOnlyAd;
+          } else if (adType === 'call') {
+            // Generate Call-Only ad
+            const call = generateUniversalCallAd(universalInput);
             ads.push({
               id: `ad-${Date.now()}-${Math.random()}`,
               type: 'call',
@@ -1655,23 +1701,21 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       
       let newAd: any = null;
       
+      // Build Universal Ad Input
+      const universalInput: UniversalAdInput = {
+        industry: industry,
+        keywords: keywordTexts,
+        uniqueValueProposition: campaignData.cta || 'quality service and expert solutions',
+        audiencePainPoint: 'finding reliable service',
+        businessName: businessName,
+        location: campaignData.locations?.cities?.[0] || campaignData.locations?.states?.[0] || undefined,
+        baseUrl: campaignData.url || undefined,
+        phoneNumber: '(555) 123-4567',
+      };
+      
       if (adType === 'rsa') {
-        const adInput: AdGenerationInput = {
-          keywords: keywordTexts,
-          baseUrl: campaignData.url || undefined,
-          adType: 'RSA',
-          industry: industry,
-          businessName: businessName,
-          location: campaignData.locations?.cities?.[0] || campaignData.locations?.states?.[0] || undefined,
-          filters: {
-            matchType: campaignData.keywordTypes.phrase ? 'phrase' : campaignData.keywordTypes.exact ? 'exact' : 'broad',
-            campaignStructure: (campaignData.selectedStructure?.toUpperCase() || 'STAG') as 'SKAG' | 'STAG' | 'IBAG' | 'Alpha-Beta',
-            uniqueSellingPoints: [],
-            callToAction: campaignData.cta || undefined,
-          },
-        };
-        const ad = generateAdsUtility(adInput);
-        const rsa = ad as ResponsiveSearchAd;
+        // Generate RSA using 4-Pillar System
+        const rsa = generateUniversalRSA(universalInput);
         newAd = {
           id: `ad-${Date.now()}-${Math.random()}`,
           type: 'rsa',
@@ -1682,6 +1726,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           finalUrl: rsa.finalUrl || campaignData.url || '',
           selected: false,
           extensions: [],
+          pillarBreakdown: rsa.pillarBreakdown,
         };
       } else if (adType === 'dki') {
         // Use AI-powered DKI generation
@@ -1758,23 +1803,20 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         }
       }
       
-      const adInput: AdGenerationInput = {
-        keywords: keywordTexts,
-        baseUrl: campaignData.url || undefined,
-        adType: 'CALL_ONLY',
+      // Build Universal Ad Input for Call-Only Ad
+      const universalInput: UniversalAdInput = {
         industry: industry,
+        keywords: keywordTexts,
+        uniqueValueProposition: campaignData.cta || 'quality service and expert solutions',
+        audiencePainPoint: 'finding reliable service',
         businessName: businessName,
         location: campaignData.locations?.cities?.[0] || campaignData.locations?.states?.[0] || undefined,
-        filters: {
-          matchType: campaignData.keywordTypes.phrase ? 'phrase' : campaignData.keywordTypes.exact ? 'exact' : 'broad',
-          campaignStructure: (campaignData.selectedStructure?.toUpperCase() || 'STAG') as 'SKAG' | 'STAG' | 'IBAG' | 'Alpha-Beta',
-          uniqueSellingPoints: [],
-          callToAction: campaignData.cta || undefined,
-        },
+        baseUrl: campaignData.url || undefined,
+        phoneNumber: phoneNumber,
       };
 
-      const ad = generateAdsUtility(adInput);
-      const call = ad as CallOnlyAd;
+      // Generate Call-Only ad using Universal Generator
+      const call = generateUniversalCallAd(universalInput);
       
       const newAd = {
         id: `ad-${Date.now()}-${Math.random()}`,
@@ -2506,10 +2548,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       const { cities, zipCodes, states, countries } = campaignData.locations;
       const locationsCount = cities.length + zipCodes.length + states.length + countries.length;
       
-      // Count total ads across all ad groups
-      const totalAds = campaignData.adGroups.reduce((sum, group) => {
-        return sum + (group.ads?.length || 0);
-      }, 0) || campaignData.ads.length;
+      // Count total ads: each ad is applied to every ad group
+      const totalAds = campaignData.ads.length * Math.max(1, campaignData.adGroups.length);
       
       // Count total keywords across all ad groups
       const totalKeywords = campaignData.adGroups.reduce((sum, group) => {
@@ -2539,14 +2579,16 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     }
   };
 
-  const handleDownloadCSV = () => {
+  const handleDownloadCSV = async () => {
+    // If CSV not generated yet, generate it first
     if (!campaignData.csvData) {
-      notifications.warning('CSV not generated yet', {
-        title: 'No CSV Data',
-        description: 'Please generate CSV first before downloading.'
-      });
-        return;
-      }
+      await handleGenerateCSV();
+      // Wait a moment for state to update, then show dialog
+      setTimeout(() => {
+        setShowExportDialog(true);
+      }, 100);
+      return;
+    }
     
     // Show export brief dialog
     setShowExportDialog(true);
@@ -2676,6 +2718,24 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   // Render functions for each step
   const renderStep1 = () => (
     <div className="max-w-4xl mx-auto p-6">
+      {/* Step Navigation */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={handleBackStep}
+          disabled={true}
+          className="text-2xl font-semibold italic bg-gradient-to-r from-slate-300 to-slate-400 bg-clip-text text-transparent cursor-not-allowed opacity-50"
+        >
+          Back
+        </button>
+        <button
+          onClick={handleNextStep}
+          disabled={loading}
+          className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-slate-800 mb-2">Enter Your Website URL</h3>
         <p className="text-slate-600">AI will analyze your website to identify intent, CTA, and vertical</p>
@@ -2811,6 +2871,23 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
   const renderStep2 = () => (
     <div className="max-w-6xl mx-auto p-6">
+      {/* Step Navigation */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={handleBackStep}
+          className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
+        >
+          Back
+        </button>
+        <button
+          onClick={handleNextStep}
+          disabled={loading}
+          className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-slate-800 mb-2">Select Campaign Structure</h3>
         <p className="text-slate-600">AI has ranked the best structures for your vertical. Choose the one that fits your needs.</p>
@@ -2853,12 +2930,143 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   </div>
                 )}
               </Card>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs h-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedStructureForDiagram({ id: structure.id, name: structure.name });
+                  setShowFlowDiagram(true);
+                }}
+              >
+                View Structure
+              </Button>
             </div>
           );
         })}
       </div>
 
-      {/* Inline Structure Details */}
+      {/* Structure-specific inputs - shown immediately after selection */}
+      {campaignData.selectedStructure === 'seasonal' && (
+        <Card className="mb-6 border-orange-200 bg-orange-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-orange-600" />
+              <CardTitle className="text-lg">Seasonal Campaign Dates</CardTitle>
+            </div>
+            <CardDescription>Set the start and end dates for your seasonal/promotional campaign</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">Start Date</Label>
+                <Input
+                  type="date"
+                  value={campaignData.startDate || ''}
+                  onChange={(e) => setCampaignData(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="bg-white"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold mb-2 block">End Date</Label>
+                <Input
+                  type="date"
+                  value={campaignData.endDate || ''}
+                  onChange={(e) => setCampaignData(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+            <p className="text-sm text-orange-700 mt-3">
+              These dates will be included in your CSV export for Google Ads scheduling.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {campaignData.selectedStructure === 'geo' && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-600" />
+              <CardTitle className="text-lg">GEO-Segmented Countries</CardTitle>
+            </div>
+            <CardDescription>Select up to 3 countries - a separate CSV will be generated for each country</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(campaignData.selectedGeoCountries || []).map((country, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Select
+                    value={country}
+                    onValueChange={(value: string) => {
+                      const updated = [...(campaignData.selectedGeoCountries || [])];
+                      updated[index] = value;
+                      setCampaignData(prev => ({ ...prev, selectedGeoCountries: updated }));
+                    }}
+                  >
+                    <SelectTrigger className="bg-white flex-1">
+                      <SelectValue placeholder="Select a country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LOCATION_PRESETS.countries.map((c) => (
+                        <SelectItem 
+                          key={c} 
+                          value={c}
+                          disabled={(campaignData.selectedGeoCountries || []).includes(c) && c !== country}
+                        >
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                    onClick={() => {
+                      const updated = (campaignData.selectedGeoCountries || []).filter((_, i) => i !== index);
+                      setCampaignData(prev => ({ ...prev, selectedGeoCountries: updated }));
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              {(campaignData.selectedGeoCountries || []).length < 3 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-100"
+                  onClick={() => {
+                    const current = campaignData.selectedGeoCountries || [];
+                    if (current.length < 3) {
+                      setCampaignData(prev => ({ 
+                        ...prev, 
+                        selectedGeoCountries: [...current, ''] 
+                      }));
+                    }
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Country {(campaignData.selectedGeoCountries || []).length > 0 ? `(${3 - (campaignData.selectedGeoCountries || []).length} remaining)` : ''}
+                </Button>
+              )}
+              
+              {(campaignData.selectedGeoCountries || []).length > 0 && (
+                <p className="text-sm text-blue-700 mt-3">
+                  {(campaignData.selectedGeoCountries || []).filter(c => c).length} CSV file(s) will be generated, one for each country selected.
+                  {(campaignData.selectedGeoCountries || []).filter(c => c).length > 1 && ' Download will be a ZIP file.'}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Inline Structure Details - shown after inputs */}
       {campaignData.selectedStructure && (() => {
         const selectedStruct = CAMPAIGN_STRUCTURES.find(s => s.id === campaignData.selectedStructure);
         const ranking = campaignData.structureRankings.findIndex(r => r.id === campaignData.selectedStructure);
@@ -2995,179 +3203,84 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         const details = structureDetails[campaignData.selectedStructure] || structureDetails['skag'];
         
         return (
-          <Card className="mb-6 border-slate-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-indigo-100">
-                    <Icon className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-800">{selectedStruct?.name}</h3>
-                    <p className="text-sm text-slate-500">{selectedStruct?.description}</p>
-                  </div>
-                </div>
-                {isBest && (
-                  <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">Best</Badge>
-                )}
+          <div className="mb-6 rounded-xl overflow-hidden shadow-lg border border-slate-700">
+            {/* Terminal Header */}
+            <div className="bg-slate-800 px-4 py-2 flex items-center justify-between border-b border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+              </div>
+              <span className="text-slate-400 text-xs font-mono">structure-info.sh</span>
+              <div className="w-16"></div>
+            </div>
+            
+            {/* Terminal Body */}
+            <div className="bg-slate-900 p-4 font-mono text-xs">
+              {/* Header with name */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-emerald-400 font-semibold">[{selectedStruct?.name}]</span>
+                {isBest && <span className="text-yellow-400">*RECOMMENDED*</span>}
               </div>
               
-              <div className="border border-slate-200 rounded-lg p-4 mb-4">
-                <p className="text-sm font-medium text-slate-700 mb-3">Campaign</p>
-                <div className="space-y-2">
+              {/* Description */}
+              <div className="text-slate-400 mb-3">&gt; {selectedStruct?.description}</div>
+              
+              {/* Hierarchy - Compact inline */}
+              <div className="mb-2">
+                <span className="text-cyan-400">hierarchy:</span>
+                <span className="text-slate-300 ml-2">
                   {details.hierarchy.map((item, idx) => (
-                    <div key={idx} className={`border rounded-lg p-3 ${item.color}`}>
-                      <p className="text-sm font-medium text-slate-700">{item.name}</p>
-                      <p className="text-xs text-slate-500 font-mono">{item.desc}</p>
-                    </div>
+                    <span key={idx}>
+                      <span className="text-purple-400">{item.name}</span>
+                      {idx < details.hierarchy.length - 1 && <span className="text-slate-500"> → </span>}
+                    </span>
                   ))}
-                </div>
+                </span>
               </div>
               
-              <div className="mb-4">
-                <p className="text-sm font-medium text-slate-700 mb-2">Key Benefits:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {details.benefits.map((benefit, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                      <span className="text-sm text-slate-600">{benefit}</span>
-                    </div>
+              {/* Benefits - Single line */}
+              <div className="mb-2">
+                <span className="text-cyan-400">benefits:</span>
+                <span className="text-emerald-400 ml-2">
+                  {details.benefits.map((b, i) => (
+                    <span key={i}>&#10003; {b}{i < details.benefits.length - 1 ? ' | ' : ''}</span>
                   ))}
-                </div>
+                </span>
               </div>
               
-              <p className="text-sm">
-                <span className="font-medium text-pink-600">Best for:</span>{' '}
-                <span className="text-slate-600">{details.bestFor}</span>
-              </p>
-            </CardContent>
-          </Card>
+              {/* Best for */}
+              <div>
+                <span className="text-pink-400">best_for:</span>
+                <span className="text-slate-300 ml-2">{details.bestFor}</span>
+              </div>
+            </div>
+          </div>
         );
       })()}
-
-      {campaignData.selectedStructure === 'seasonal' && (
-        <Card className="mb-6 border-orange-200 bg-orange-50">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-orange-600" />
-              <CardTitle className="text-lg">Seasonal Campaign Dates</CardTitle>
-            </div>
-            <CardDescription>Set the start and end dates for your seasonal/promotional campaign</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-semibold mb-2 block">Start Date</Label>
-                <Input
-                  type="date"
-                  value={campaignData.startDate || ''}
-                  onChange={(e) => setCampaignData(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="bg-white"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-semibold mb-2 block">End Date</Label>
-                <Input
-                  type="date"
-                  value={campaignData.endDate || ''}
-                  onChange={(e) => setCampaignData(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="bg-white"
-                />
-              </div>
-            </div>
-            <p className="text-sm text-orange-700 mt-3">
-              These dates will be included in your CSV export for Google Ads scheduling.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {campaignData.selectedStructure === 'geo' && (
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Globe className="w-5 h-5 text-blue-600" />
-              <CardTitle className="text-lg">GEO-Segmented Countries</CardTitle>
-            </div>
-            <CardDescription>Select up to 3 countries - a separate CSV will be generated for each country</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(campaignData.selectedGeoCountries || []).map((country, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Select
-                    value={country}
-                    onValueChange={(value: string) => {
-                      const updated = [...(campaignData.selectedGeoCountries || [])];
-                      updated[index] = value;
-                      setCampaignData(prev => ({ ...prev, selectedGeoCountries: updated }));
-                    }}
-                  >
-                    <SelectTrigger className="bg-white flex-1">
-                      <SelectValue placeholder="Select a country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LOCATION_PRESETS.countries.map((c) => (
-                        <SelectItem 
-                          key={c} 
-                          value={c}
-                          disabled={(campaignData.selectedGeoCountries || []).includes(c) && c !== country}
-                        >
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-500 hover:text-red-700 hover:bg-red-100"
-                    onClick={() => {
-                      const updated = (campaignData.selectedGeoCountries || []).filter((_, i) => i !== index);
-                      setCampaignData(prev => ({ ...prev, selectedGeoCountries: updated }));
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              
-              {(campaignData.selectedGeoCountries || []).length < 3 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-100"
-                  onClick={() => {
-                    const current = campaignData.selectedGeoCountries || [];
-                    if (current.length < 3) {
-                      setCampaignData(prev => ({ 
-                        ...prev, 
-                        selectedGeoCountries: [...current, ''] 
-                      }));
-                    }
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Country {(campaignData.selectedGeoCountries || []).length > 0 ? `(${3 - (campaignData.selectedGeoCountries || []).length} remaining)` : ''}
-                </Button>
-              )}
-              
-              {(campaignData.selectedGeoCountries || []).length > 0 && (
-                <p className="text-sm text-blue-700 mt-3">
-                  {(campaignData.selectedGeoCountries || []).filter(c => c).length} CSV file(s) will be generated, one for each country selected.
-                  {(campaignData.selectedGeoCountries || []).filter(c => c).length > 1 && ' Download will be a ZIP file.'}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
     </div>
   );
 
   const renderStep3 = () => (
     <div className="max-w-6xl mx-auto p-6">
+      {/* Step Navigation */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={handleBackStep}
+          className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
+        >
+          Back
+        </button>
+        <button
+          onClick={handleNextStep}
+          disabled={loading}
+          className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-slate-800 mb-2">Keywords Planner</h3>
         <p className="text-slate-600">Generate 410-710 keywords based on your seed keywords and campaign structure</p>
@@ -3342,7 +3455,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           <Card className="mb-6" data-keywords-section>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Generated Keywords & Negative Keywords ({filteredKeywords.length + campaignData.negativeKeywords.length})</span>
+                  <span>Generated Keywords & Negative Keywords ({campaignData.selectedKeywords.length} selected / {filteredKeywords.length} total)</span>
                   <div className="flex items-center gap-2 text-xs font-normal">
                     <span className="text-slate-500">Data Source:</span>
                     <Badge variant="outline" className={`text-xs ${
@@ -3360,12 +3473,48 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     </Badge>
                   </div>
                 </CardTitle>
-                <CardDescription>Keywords with search volume, CPC, and competition metrics. Red keywords are negative (excluded).</CardDescription>
+                <CardDescription>Keywords with search volume, CPC, and competition metrics. Click checkboxes to select/unselect keywords.</CardDescription>
               </CardHeader>
             <CardContent>
+              {/* Select All / Deselect All Controls */}
+              <div className="flex items-center gap-4 mb-4 p-3 bg-slate-50 rounded-lg border">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCampaignData(prev => ({
+                      ...prev,
+                      selectedKeywords: [...filteredKeywords]
+                    }));
+                  }}
+                  className="text-xs"
+                >
+                  <Check className="w-3 h-3 mr-1" />
+                  Select All ({filteredKeywords.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCampaignData(prev => ({
+                      ...prev,
+                      selectedKeywords: []
+                    }));
+                  }}
+                  className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Deselect All
+                </Button>
+                <span className="text-xs text-slate-500 ml-auto">
+                  {campaignData.selectedKeywords.length} of {filteredKeywords.length} keywords selected
+                </span>
+              </div>
+
               {/* Column Headers */}
               <div className="hidden md:grid grid-cols-12 gap-2 p-2 mb-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-t border">
-                <div className="col-span-5">Keyword</div>
+                <div className="col-span-1 text-center">Select</div>
+                <div className="col-span-4">Keyword</div>
                 <div className="col-span-1 text-center">Type</div>
                 <div className="col-span-2 text-center">Volume</div>
                 <div className="col-span-2 text-center">CPC</div>
@@ -3383,9 +3532,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                         {/* Generated Keywords with Metrics */}
                         {filteredKeywords.map((kw, idx) => {
                           const keywordText = typeof kw === 'string' ? kw : (kw?.text || kw?.keyword || String(kw || ''));
+                          const keywordId = kw?.id || `kw-${idx}`;
                           const volume = kw?.volume ?? kw?.avgMonthlySearches;
                           const cpc = kw?.cpc ?? kw?.avgCpc;
                           const competition = kw?.competition;
+                          const isSelected = campaignData.selectedKeywords.some(
+                            sk => (sk?.id || sk?.text || sk?.keyword || sk) === (kw?.id || kw?.text || kw?.keyword || kw)
+                          );
                           
                           const formatVolume = (v: number | null | undefined) => {
                             if (v === null || v === undefined) return '-';
@@ -3407,11 +3560,45 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                               default: return 'bg-slate-50 text-slate-500 border-slate-200';
                             }
                           };
+
+                          const toggleKeywordSelection = () => {
+                            setCampaignData(prev => {
+                              if (isSelected) {
+                                return {
+                                  ...prev,
+                                  selectedKeywords: prev.selectedKeywords.filter(
+                                    sk => (sk?.id || sk?.text || sk?.keyword || sk) !== (kw?.id || kw?.text || kw?.keyword || kw)
+                                  )
+                                };
+                              } else {
+                                return {
+                                  ...prev,
+                                  selectedKeywords: [...prev.selectedKeywords, kw]
+                                };
+                              }
+                            });
+                          };
                           
                           return (
-                            <div key={kw?.id || idx} className="grid grid-cols-12 gap-2 items-center p-2 border rounded bg-white hover:bg-slate-50 transition-colors">
-                              <div className="col-span-12 md:col-span-5">
-                                <span className="text-sm font-medium text-slate-800">{keywordText}</span>
+                            <div 
+                              key={keywordId} 
+                              className={`grid grid-cols-12 gap-2 items-center p-2 border rounded transition-colors cursor-pointer ${
+                                isSelected 
+                                  ? 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100' 
+                                  : 'bg-white hover:bg-slate-50 border-slate-200 opacity-60'
+                              }`}
+                              onClick={toggleKeywordSelection}
+                            >
+                              <div className="col-span-2 md:col-span-1 flex justify-center">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={toggleKeywordSelection}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="data-[state=checked]:bg-indigo-600"
+                                />
+                              </div>
+                              <div className="col-span-10 md:col-span-4">
+                                <span className={`text-sm font-medium ${isSelected ? 'text-slate-800' : 'text-slate-500'}`}>{keywordText}</span>
                               </div>
                               <div className="col-span-4 md:col-span-1 flex justify-center">
                                 {kw?.matchType && (
@@ -3480,6 +3667,23 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
     return (
       <div className="max-w-7xl mx-auto p-6">
+        {/* Step Navigation */}
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={handleBackStep}
+            className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleNextStep}
+            disabled={loading}
+            className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-slate-800 mb-2">Ads & Extensions</h3>
         </div>
@@ -3506,58 +3710,60 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         </div>
 
         {/* Create Ads & Extensions - Compact Inline */}
-        <div className="mb-6 p-4 bg-white rounded-xl border border-slate-200">
-          <div className="space-y-2">
-            <div className="flex items-center flex-wrap gap-1.5">
-              <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">Create Ads (Max 3):</span>
-              <Button 
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
-                onClick={() => handleAddNewAd('rsa')}
-                disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'rsa' || ad.adType === 'RSA')}
-              >
-                <Plus className="mr-1 w-3 h-3" /> RSA
-              </Button>
-              <Button 
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
-                onClick={() => handleAddNewAd('dki')}
-                disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'dki' || ad.adType === 'DKI')}
-              >
-                <Plus className="mr-1 w-3 h-3" /> DKI
-              </Button>
-              <Button 
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-1 h-7"
-                onClick={() => handleAddNewAd('call')}
-                disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'call' || ad.adType === 'CallOnly')}
-              >
-                <Plus className="mr-1 w-3 h-3" /> CALL
-              </Button>
-            </div>
-            
-            <div className="flex items-center flex-wrap gap-1">
-              <span className="text-sm font-semibold text-indigo-700 whitespace-nowrap">Extensions:</span>
-              {extensionTypes.map(ext => {
-                const Icon = ext.icon;
-                const shortLabel = ext.label.replace(' EXTENSION', '');
-                return (
-                  <Button
-                    key={ext.id}
-                    variant="outline"
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="pt-2 space-y-1">
+                <div className="flex items-center flex-wrap gap-1.5">
+                  <span className="text-xs font-semibold text-blue-800 whitespace-nowrap">Create Ads (Max 3):</span>
+                  <Button 
                     size="sm"
-                    className="border-indigo-200 hover:bg-indigo-50 text-xs px-1.5 py-1 h-7"
-                    onClick={() => handleAddExtensionToAllAds(ext.id)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                    onClick={() => handleAddNewAd('rsa')}
+                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'rsa' || ad.adType === 'RSA')}
                   >
-                    <Plus className="mr-0.5 w-2.5 h-2.5" />
-                    <Icon className="mr-0.5 w-2.5 h-2.5" />
-                    {shortLabel}
+                    <Plus className="mr-1 w-3 h-3" /> RSA
                   </Button>
-                );
-              })}
+                  <Button 
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                    onClick={() => handleAddNewAd('dki')}
+                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'dki' || ad.adType === 'DKI')}
+                  >
+                    <Plus className="mr-1 w-3 h-3" /> DKI
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-xs px-2 py-0.5 h-6"
+                    onClick={() => handleAddNewAd('call')}
+                    disabled={loading || campaignData.ads.length >= 3 || campaignData.ads.some(ad => ad.type === 'call' || ad.adType === 'CallOnly')}
+                  >
+                    <Plus className="mr-1 w-3 h-3" /> CALL
+                  </Button>
+                </div>
+                
+                <div className="flex items-center flex-wrap gap-1">
+                  <span className="text-xs font-semibold text-purple-800 whitespace-nowrap">Extensions:</span>
+                  {extensionTypes.map(ext => {
+                    const Icon = ext.icon;
+                    const shortLabel = ext.label.replace(' EXTENSION', '');
+                    return (
+                      <Button
+                        key={ext.id}
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-200 hover:bg-purple-50 text-xs px-1.5 py-0.5 h-6"
+                        onClick={() => handleAddExtensionToAllAds(ext.id)}
+                      >
+                        <Plus className="mr-0.5 w-2.5 h-2.5" />
+                        <Icon className="mr-0.5 w-2.5 h-2.5" />
+                        {shortLabel}
+                      </Button>
+                    );
+                  })}
+                </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Ad Group Selector and Ads Display */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -4081,6 +4287,23 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
     return (
       <div className="max-w-5xl mx-auto p-6">
+        {/* Step Navigation */}
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={handleBackStep}
+            className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleNextStep}
+            disabled={loading}
+            className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+
         {/* Header with gradient */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-indigo-200/50 mb-4">
@@ -4344,106 +4567,53 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
                   {/* ZIP Codes Tab */}
                   <TabsContent value="zips" className="space-y-5">
-                    {campaignData.targetCountry === 'United States' ? (
-                      <>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-amber-500" />
-                            <Label className="text-sm font-semibold text-slate-700">Quick Presets</Label>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {[
-                              { label: '1K ZIPs', value: 'top1000', count: 1000 },
-                              { label: '5K ZIPs', value: 'top5000', count: 5000 },
-                              { label: '15K ZIPs', value: 'top15000', count: 15000 },
-                            ].map(preset => (
-                              <Button
-                                key={preset.value}
-                                variant={campaignData.locations.zipCodes.length === preset.count ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => handlePresetSelect('zips', preset.value)}
-                                className={campaignData.locations.zipCodes.length === preset.count 
-                                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
-                                  : "hover:border-indigo-300 hover:bg-indigo-50"}
-                              >
-                                <Hash className="w-3 h-3 mr-1.5" />
-                                {preset.label}
-                              </Button>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        <Label className="text-sm font-semibold text-slate-700">Quick Presets</Label>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { label: '1K ZIPs', value: 'top1000', count: 1000 },
+                          { label: '5K ZIPs', value: 'top5000', count: 5000 },
+                          { label: '15K ZIPs', value: 'top15000', count: 15000 },
+                        ].map(preset => (
+                          <Button
+                            key={preset.value}
+                            variant={campaignData.locations.zipCodes.length === preset.count ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePresetSelect('zips', preset.value)}
+                            className={campaignData.locations.zipCodes.length === preset.count 
+                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
+                              : "hover:border-indigo-300 hover:bg-indigo-50"}
+                          >
+                            <Hash className="w-3 h-3 mr-1.5" />
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {campaignData.locations.zipCodes.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-800">
+                            {campaignData.locations.zipCodes.length.toLocaleString()} ZIP codes selected
+                          </span>
+                        </div>
+                        <ScrollArea className="h-20">
+                          <div className="flex flex-wrap gap-1.5">
+                            {campaignData.locations.zipCodes.slice(0, 20).map((zip, idx) => (
+                              <Badge key={idx} className="bg-white text-slate-700 border border-slate-200 text-xs font-mono">{zip}</Badge>
                             ))}
+                            {campaignData.locations.zipCodes.length > 20 && (
+                              <Badge className="bg-slate-100 text-slate-600 text-xs">
+                                +{(campaignData.locations.zipCodes.length - 20).toLocaleString()} more
+                              </Badge>
+                            )}
                           </div>
-                        </div>
-                        
-                        {campaignData.locations.zipCodes.length > 0 && (
-                          <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
-                            <div className="flex items-center gap-2 mb-3">
-                              <CheckCircle2 className="w-4 h-4 text-green-600" />
-                              <span className="text-sm font-semibold text-green-800">
-                                {campaignData.locations.zipCodes.length.toLocaleString()} ZIP codes selected
-                              </span>
-                            </div>
-                            <ScrollArea className="h-20">
-                              <div className="flex flex-wrap gap-1.5">
-                                {campaignData.locations.zipCodes.slice(0, 20).map((zip, idx) => (
-                                  <Badge key={idx} className="bg-white text-slate-700 border border-slate-200 text-xs font-mono">{zip}</Badge>
-                                ))}
-                                {campaignData.locations.zipCodes.length > 20 && (
-                                  <Badge className="bg-slate-100 text-slate-600 text-xs">
-                                    +{(campaignData.locations.zipCodes.length - 20).toLocaleString()} more
-                                  </Badge>
-                                )}
-                              </div>
-                            </ScrollArea>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 rounded-full bg-amber-100">
-                            <AlertCircle className="w-6 h-6 text-amber-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-amber-900 mb-2">
-                              ZIP Code Presets Not Available for {campaignData.targetCountry}
-                            </h4>
-                            <p className="text-sm text-amber-700 mb-4">
-                              Pre-configured postal code presets are currently only available for the United States. 
-                              For {campaignData.targetCountry}, please use <strong>Cities</strong> or <strong>States/Regions</strong> targeting instead.
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const tabsElement = document.querySelector('[data-state="active"][value="zips"]');
-                                  if (tabsElement) {
-                                    const citiesTab = tabsElement.closest('[role="tabpanel"]')?.parentElement?.querySelector('[value="cities"]');
-                                    (citiesTab as HTMLElement)?.click();
-                                  }
-                                }}
-                                className="bg-white hover:bg-amber-50 border-amber-300 text-amber-800"
-                              >
-                                <Building2 className="w-4 h-4 mr-2" />
-                                Use Cities Instead
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const tabsElement = document.querySelector('[data-state="active"][value="zips"]');
-                                  if (tabsElement) {
-                                    const statesTab = tabsElement.closest('[role="tabpanel"]')?.parentElement?.querySelector('[value="states"]');
-                                    (statesTab as HTMLElement)?.click();
-                                  }
-                                }}
-                                className="bg-white hover:bg-amber-50 border-amber-300 text-amber-800"
-                              >
-                                <MapPinIcon className="w-4 h-4 mr-2" />
-                                Use States/Regions Instead
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
+                        </ScrollArea>
                       </div>
                     )}
                   </TabsContent>
@@ -4483,7 +4653,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       : `${campaignData.targetCountry} (${locationInfo.type})`;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-indigo-100/60 to-purple-100/70 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-6">
@@ -4564,209 +4734,118 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             </Card>
           </div>
 
-          {/* Campaign Summary - Redesigned */}
-          <Card className="mb-6 border-2 border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-2xl">
-            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-slate-200 py-3 px-4">
+          {/* Campaign Summary - Shell View */}
+          <div className="mb-6 rounded-xl overflow-hidden shadow-2xl border border-slate-700">
+            {/* Terminal Header */}
+            <div className="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-md">
-                  <CheckCircle2 className="w-5 h-5 text-white" />
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
               </div>
-              <div>
-                  <CardTitle className="text-lg text-slate-900">Campaign Summary</CardTitle>
-                  <CardDescription className="text-xs text-slate-600 mt-0.5">All checks passed - ready for export</CardDescription>
-              </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Campaign Name</Label>
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <p className="text-base font-semibold text-slate-900">{campaignData.campaignName}</p>
+              <span className="text-slate-400 text-xs font-mono">campaign-export.sh</span>
+              <div className="w-16"></div>
             </div>
+            
+            {/* Terminal Body */}
+            <div className="bg-slate-900 p-5 font-mono text-sm space-y-3">
+              {/* Header */}
+              <div className="text-emerald-400 font-semibold text-base mb-4">
+                [CAMPAIGN BUILD COMPLETE]
+              </div>
+              
+              {/* Campaign Details */}
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400">&#10003;</span>
+                  <span className="text-slate-400">[{new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
+                  <span className="text-slate-300">Campaign Name:</span>
+                  <span className="text-cyan-400 font-semibold">{campaignData.campaignName}</span>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Structure</Label>
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <p className="text-base font-semibold text-slate-900">{structureName}</p>
-                  </div>
+                
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400">&#10003;</span>
+                  <span className="text-slate-400">[{new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
+                  <span className="text-slate-300">Structure:</span>
+                  <span className="text-purple-400 font-semibold">{structureName}</span>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Target Location</Label>
-                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <p className="text-base font-semibold text-slate-900">{targetLocationText}</p>
-                  </div>
+                
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400">&#10003;</span>
+                  <span className="text-slate-400">[{new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
+                  <span className="text-slate-300">Target Location:</span>
+                  <span className="text-orange-400 font-semibold">{targetLocationText}</span>
+                </div>
+                
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400">&#10003;</span>
+                  <span className="text-slate-400">[{new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
+                  <span className="text-slate-300">Ad Groups Generated:</span>
+                  <span className="text-yellow-400 font-semibold">{campaignData.adGroups.length}</span>
+                </div>
+                
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400">&#10003;</span>
+                  <span className="text-slate-400">[{new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
+                  <span className="text-slate-300">Keywords Selected:</span>
+                  <span className="text-pink-400 font-semibold">{campaignData.selectedKeywords.length}</span>
+                </div>
+                
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400">&#10003;</span>
+                  <span className="text-slate-400">[{new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
+                  <span className="text-slate-300">Ads Created:</span>
+                  <span className="text-blue-400 font-semibold">{campaignData.ads.length}</span>
+                </div>
+                
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400">&#10003;</span>
+                  <span className="text-slate-400">[{new Date().toLocaleTimeString('en-US', { hour12: false })}]</span>
+                  <span className="text-slate-300">Locations Targeted:</span>
+                  <span className="text-teal-400 font-semibold">{locationInfo.count}</span>
                 </div>
               </div>
               
-            {/* Cities Summary - Show if cities are selected */}
-            {campaignData.locations.cities.length > 0 && (() => {
-              const cityCount = campaignData.locations.cities.length;
-              const presetCounts = [20, 50, 100, 200, LOCATION_PRESETS.cities.length];
-              const isPreset = presetCounts.includes(cityCount);
-              const presetLabel = cityCount === 20 ? 'Top 20 Cities' :
-                                cityCount === 50 ? 'Top 50 Cities' :
-                                cityCount === 100 ? 'Top 100 Cities' :
-                                cityCount === 200 ? 'Top 200 Cities' :
-                                cityCount === LOCATION_PRESETS.cities.length ? 'All Cities' : null;
+              {/* Divider */}
+              <div className="border-t border-slate-700 my-4"></div>
               
-              return (
-                  <div className="pt-6 border-t border-slate-200">
-                    <div className="bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 border-2 border-blue-200/60 rounded-xl p-5 shadow-sm">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0 shadow-md">
-                          <Building2 className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <p className="text-base font-bold text-slate-900">
-                            {presetLabel || 'Custom Cities'}
-                          </p>
-                            <Badge className="text-xs bg-blue-100 text-blue-700 border-blue-300 font-semibold px-2.5 py-1">
-                            {cityCount} selected
-                          </Badge>
-                        </div>
-                          <div>
-                            <p className="text-xs font-medium text-slate-600 mb-2">Selected cities:</p>
-                            <div className="flex flex-wrap gap-2">
-                            {campaignData.locations.cities.slice(0, 10).map((city, idx) => (
-                                <Badge key={idx} className="text-xs bg-white text-slate-700 border-slate-300 shadow-sm font-medium">
-                                {city}
-                              </Badge>
-                            ))}
-                            {cityCount > 10 && (
-                                <Badge className="text-xs bg-slate-100 text-slate-600 border-slate-300 shadow-sm font-medium">
-                                +{cityCount - 10} more
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-          </CardContent>
-        </Card>
-
-          {/* Generation Logic Details */}
-          <Card className="mb-6 border-2 border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200 py-3 px-4">
+              {/* Status Message */}
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-md">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-slate-900">Generation Logic Details</CardTitle>
-                  <CardDescription className="text-xs text-slate-600 mt-0.5">Backend calculations and structure breakdown</CardDescription>
-                </div>
+                <span className="text-emerald-400 animate-pulse">&#9679;</span>
+                <span className="text-emerald-400 font-semibold">All validation checks passed</span>
               </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              {/* Structure Logic */}
-              <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                <h4 className="font-semibold text-indigo-800 mb-2 flex items-center gap-2">
-                  <Layers className="w-4 h-4" />
-                  Campaign Structure: {structureName}
-                </h4>
-                <p className="text-sm text-indigo-700">
-                  {campaignData.selectedStructure === 'skag' && 'SKAG (Single Keyword Ad Groups): Each keyword gets its own ad group for maximum relevance and Quality Score. This creates 1 ad group per unique keyword.'}
-                  {campaignData.selectedStructure === 'stag' && 'STAG (Single Theme Ad Groups): Keywords are grouped by theme/intent. Related keywords share an ad group for efficient management.'}
-                  {campaignData.selectedStructure === 'intent' && 'Intent-Based: Keywords organized by user intent (informational, navigational, transactional). Ads tailored to each intent type.'}
-                  {campaignData.selectedStructure === 'alpha_beta' && 'Alpha-Beta: Alpha campaign for exact match winners, Beta for broad match discovery. Optimizes budget allocation.'}
-                  {campaignData.selectedStructure === 'funnel' && 'Funnel-Based: Top/Middle/Bottom funnel structure. Targets users at different stages of the buying journey.'}
-                  {campaignData.selectedStructure === 'geo' && 'Geo-Based: Location-focused ad groups. Each geographic area gets targeted messaging.'}
-                  {campaignData.selectedStructure === 'brand_split' && 'Brand Split: Separates brand vs. non-brand keywords for different bidding strategies.'}
-                  {!['skag', 'stag', 'intent', 'alpha_beta', 'funnel', 'geo', 'brand_split'].includes(campaignData.selectedStructure || '') && 'Standard campaign structure with optimized keyword grouping.'}
-                </p>
+              
+              <div className="text-slate-500 text-xs mt-2">
+                &gt; Ready for export to Google Ads Editor. Click download to generate CSV file.
               </div>
-
-              {/* Metrics Breakdown */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Ad Groups Logic */}
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <h4 className="font-semibold text-blue-800 mb-2">{campaignData.adGroups.length} Ad Groups</h4>
-                  <p className="text-sm text-blue-700">
-                    {campaignData.selectedStructure === 'skag' 
-                      ? `Created 1 ad group per keyword. With ${campaignData.selectedKeywords.length} selected keywords, SKAG structure groups them into ${campaignData.adGroups.length} focused ad groups.`
-                      : `Keywords grouped by theme/pattern into ${campaignData.adGroups.length} ad groups for optimal organization.`
-                    }
-                  </p>
+              
+              {/* Cities info if selected */}
+              {campaignData.locations.cities.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-700">
+                  <div className="flex items-start gap-2 flex-wrap">
+                    <span className="text-emerald-400">&#10003;</span>
+                    <span className="text-slate-400">[cities]</span>
+                    <span className="text-slate-300">
+                      {campaignData.locations.cities.slice(0, 5).join(', ')}
+                      {campaignData.locations.cities.length > 5 && (
+                        <span className="text-slate-500"> +{campaignData.locations.cities.length - 5} more</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
-
-                {/* Ads Logic */}
-                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                  <h4 className="font-semibold text-orange-800 mb-2">{campaignData.ads.length * Math.max(1, campaignData.adGroups.length)} Ads</h4>
-                  <p className="text-sm text-orange-700">
-                    {campaignData.ads.length} ad template(s) × {campaignData.adGroups.length} ad groups = {campaignData.ads.length * campaignData.adGroups.length} total ads. 
-                    Types: {campaignData.ads.map(a => a.type?.toUpperCase()).filter((v, i, arr) => arr.indexOf(v) === i).join(', ') || 'RSA, DKI'}.
-                  </p>
-                </div>
-
-                {/* Keywords Logic */}
-                <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                  <h4 className="font-semibold text-purple-800 mb-2">{campaignData.selectedKeywords.length} Keywords</h4>
-                  <p className="text-sm text-indigo-700">
-                    Generated from {campaignData.seedKeywords.length} seed keywords using pattern expansion (modifiers, locations, intents). 
-                    Match types: Broad, Phrase, Exact. Excludes {campaignData.negativeKeywords.length} negative keywords.
-                  </p>
-                </div>
-
-                {/* Assets Logic */}
-                <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                  <h4 className="font-semibold text-indigo-800 mb-2">{campaignData.ads.reduce((total, ad) => total + (ad.extensions?.length || 0), 0)} Assets</h4>
-                  <p className="text-sm text-indigo-700">
-                    Ad extensions including sitelinks, callouts, structured snippets, and call extensions. 
-                    These enhance ad visibility and click-through rates.
-                  </p>
-                </div>
-              </div>
-
-              {/* CSV Export Info */}
-              <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  CSV Export Format
-                </h4>
-                <p className="text-sm text-indigo-700">
-                  Master 183-column Google Ads Editor format. Includes campaign settings, ad groups, keywords, RSA ads, 
-                  location targeting ({locationInfo.count} {locationInfo.type.toLowerCase()}), and all extensions. 
-                  Ready for direct import into Google Ads Editor.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+          </div>
 
           {/* Primary Action Section */}
           <div className="mb-6">
-            <div className="flex flex-col sm:flex-row gap-3">
           <Button
             onClick={handleDownloadCSV}
-            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-purple-700 text-white shadow-lg shadow-green-200/50 h-14 text-lg font-semibold"
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-purple-700 text-white shadow-lg shadow-green-200/50 h-14 text-lg font-semibold"
           >
             <Download className="w-5 h-5 mr-2" />
             Download CSV for Google Ads Editor
           </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  // Dispatch custom event for App.tsx to handle
-                  const event = new CustomEvent('navigate', { detail: { tab: 'campaign-history' } });
-                  window.dispatchEvent(event);
-                  
-                  // Fallback: Update URL hash
-                  if (window.location.hash !== '#campaign-history') {
-                    window.location.hash = '#campaign-history';
-                  }
-                }}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-indigo-200/50 h-14 text-lg font-semibold"
-          >
-                <FolderOpen className="w-5 h-5 mr-2" />
-                View Saved Campaigns
-              </Button>
-            </div>
           </div>
 
           {/* Secondary Actions */}
@@ -4986,108 +5065,71 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30">
-      {/* Navigation Above Wizard */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-indigo-100/60 to-purple-100/70">
+      {/* Navigation & Progress - Normal Theme */}
+      <div className="bg-white/90 backdrop-blur-sm sticky top-0 z-20 border-b border-slate-200 shadow-sm">
+        <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
+            {/* Back Button */}
+            <button
               onClick={handleBackStep}
               disabled={currentStep === 1}
-              size="sm"
+              className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+            
+            {/* Progress Steps */}
+            <div className="flex items-center gap-1">
+              {steps.map((step, idx) => (
+                <React.Fragment key={step.id}>
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm ${
+                    currentStep === step.id
+                      ? 'bg-indigo-100 text-indigo-700 font-semibold'
+                      : currentStep > step.id
+                      ? 'bg-green-100 text-green-700'
+                      : 'text-slate-400'
+                  }`}>
+                    {currentStep > step.id ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : (
+                      <span className="w-5 h-5 rounded-full bg-current/10 flex items-center justify-center text-xs font-medium">
+                        {step.id}
+                      </span>
+                    )}
+                    <span className="whitespace-nowrap hidden sm:inline">{step.label}</span>
+                  </div>
+                  {idx < steps.length - 1 && (
+                    <ChevronRight className={`w-4 h-4 mx-1 ${
+                      currentStep > step.id ? 'text-green-400' : 'text-slate-300'
+                    }`} />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            
+            {/* Next/Reset Buttons */}
             <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
+              <button
                 onClick={handleResetCampaign}
-                size="sm"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                className="text-sm text-slate-500 hover:text-red-500 transition-colors flex items-center gap-1"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reset Campaign
-              </Button>
-              <Button
+                <RefreshCw className="w-4 h-4" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
+              <button
                 onClick={handleNextStep}
                 disabled={loading || currentStep === 6}
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {currentStep === 5 ? 'Save & Finish' : currentStep === 6 ? 'Download CSV' : 'Next Step'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+                <span>{currentStep === 5 ? 'Finish' : currentStep === 6 ? 'Done' : 'Next'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Progress Bar - Compact */}
-      <div className="bg-white border-b border-slate-200 sticky top-[49px] z-10">
-        <div className="max-w-7xl mx-auto px-4 py-2 overflow-x-auto">
-          <div className="flex items-center justify-between min-w-max">
-            {steps.map((step, idx) => (
-              <React.Fragment key={step.id}>
-                <div className="flex items-center flex-shrink-0">
-                  <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                      currentStep > step.id
-                        ? 'bg-indigo-500 text-white'
-                        : currentStep === step.id
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-200 text-slate-600'
-                    }`}
-                  >
-                    {currentStep > step.id ? (
-                      <Check className="w-3 h-3" />
-                    ) : (
-                      <span>{step.id}</span>
-                    )}
-                  </div>
-                  <span className={`ml-1.5 text-xs font-medium whitespace-nowrap ${
-                    currentStep === step.id ? 'text-indigo-600' : 'text-slate-500'
-                  }`}>
-                    {step.label}
-                  </span>
-                </div>
-                {idx < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-2 min-w-[16px] ${
-                    currentStep > step.id ? 'bg-indigo-500' : 'bg-slate-200'
-                  }`} />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Top Navigation (Legacy - keeping for compatibility) */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
-            <Button
-              variant="outline"
-              onClick={handleBackStep}
-              disabled={currentStep === 1}
-            size="sm"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-          <span className="text-sm text-slate-600">
-            Step {Math.min(currentStep, 6)} of {steps.length}
-          </span>
-            <Button
-              onClick={handleNextStep}
-              disabled={loading || currentStep === 6}
-            size="sm"
-            >
-            {currentStep === 5 ? 'Save & Finish' : currentStep === 6 ? 'Download CSV' : 'Next Step'}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
 
       {/* Content */}
       <div className="py-8">

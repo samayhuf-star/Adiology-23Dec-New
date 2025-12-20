@@ -8,6 +8,9 @@ import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
 import { DEFAULT_MIXER_KEYWORDS } from '../utils/defaultExamples';
 import { exportKeywordsToCSV } from '../utils/googleAdsEditorCSVExporter';
+import { KeywordFilters, KeywordFiltersState, DEFAULT_FILTERS } from './KeywordFilters';
+import { TerminalProgressConsole, KEYWORD_MIXER_MESSAGES } from './TerminalProgressConsole';
+import { TerminalResultsConsole, ResultStat } from './TerminalResultsConsole';
 
 // Plumbing service keywords for sample data
 const PLUMBING_KEYWORDS = {
@@ -34,6 +37,10 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
     const [mixedKeywords, setMixedKeywords] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('mixer');
+    const [filters, setFilters] = useState<KeywordFiltersState>(DEFAULT_FILTERS);
+    const [showTerminalConsole, setShowTerminalConsole] = useState(false);
+    const [terminalComplete, setTerminalComplete] = useState(false);
+    const [showResultsConsole, setShowResultsConsole] = useState(false);
     const [savedItems, setSavedItems] = useState<any[]>([]);
     
     // Match types - all selected by default
@@ -163,6 +170,8 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
         loadSavedItems();
     }, []);
 
+    const [pendingMixedKeywords, setPendingMixedKeywords] = useState<string[]>([]);
+
     const mixKeywords = () => {
         // Parse each list - split by newlines and commas, trim, and filter empty
         const parseList = (text: string): string[] => {
@@ -216,7 +225,10 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
             }
         });
         
-        setMixedKeywords(formattedKeywords);
+        // Store the keywords and show terminal console
+        setPendingMixedKeywords(formattedKeywords);
+        setShowTerminalConsole(true);
+        setTerminalComplete(false);
     };
 
     const exportToCSV = async () => {
@@ -258,23 +270,136 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
 
     return (
         <div className="p-4 max-w-5xl mx-auto">
-            <div className="mb-4 flex items-start justify-between">
+            {/* Header */}
+            <div className="mb-4 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">
-                        Keyword Mixer
-                    </h1>
-                    <p className="text-sm text-slate-500">
-                        Mix and match multiple keyword lists to generate all possible combinations
-                    </p>
+                    <h1 className="text-xl font-bold text-slate-800">Keyword Mixer</h1>
+                    <p className="text-xs text-slate-500">Mix and match keyword lists to generate combinations</p>
                 </div>
                 <button
                     onClick={fillSampleInfo}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm transition-all flex items-center gap-1.5"
                 >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Fill Sample Info
+                    <Sparkles className="w-3 h-3" />
+                    Sample
                 </button>
             </div>
+
+            {/* Shell View - Two Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {/* Card 1: Stats */}
+                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+                        <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <span className="text-xs text-slate-400 ml-2 font-mono">mixer_stats.sh</span>
+                    </div>
+                    <div className="p-4 font-mono">
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1 text-center">
+                                <div className="text-2xl font-bold text-violet-400">3</div>
+                                <div className="text-xs text-slate-400">Lists</div>
+                            </div>
+                            <div className="space-y-1 text-center">
+                                <div className="text-2xl font-bold text-emerald-400">{mixedKeywords.length || '∞'}</div>
+                                <div className="text-xs text-slate-400">Combos</div>
+                            </div>
+                            <div className="space-y-1 text-center">
+                                <div className="text-2xl font-bold text-amber-400">CSV</div>
+                                <div className="text-xs text-slate-400">Export</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 2: Config */}
+                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+                        <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <span className="text-xs text-slate-400 ml-2 font-mono">mixer_config.sh</span>
+                    </div>
+                    <div className="p-4 font-mono space-y-2 text-xs">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-slate-500">list_a:</span>
+                            <span className="text-cyan-400">{listA.split('\n').filter(k => k.trim()).length}</span>
+                            <span className="text-slate-600 mx-1">|</span>
+                            <span className="text-slate-500">list_b:</span>
+                            <span className="text-pink-400">{listB.split('\n').filter(k => k.trim()).length}</span>
+                            <span className="text-slate-600 mx-1">|</span>
+                            <span className="text-slate-500">list_c:</span>
+                            <span className="text-blue-400">{listC.split('\n').filter(k => k.trim()).length}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-slate-500">match:</span>
+                            <span className="text-slate-300">[{matchTypes.broad ? 'B' : '-'}{matchTypes.phrase ? 'P' : '-'}{matchTypes.exact ? 'E' : '-'}]</span>
+                            <span className="text-slate-600 mx-1">|</span>
+                            <span className="text-slate-500">country:</span>
+                            <span className="text-orange-400">{filters.country}</span>
+                            <span className="text-slate-600 mx-1">|</span>
+                            <span className="text-slate-500">device:</span>
+                            <span className="text-emerald-400">{filters.device}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Compact Filters */}
+            <div className="mb-4 flex items-center gap-3">
+                <KeywordFilters filters={filters} onFiltersChange={setFilters} compact={true} />
+            </div>
+
+            {/* Inline Generation Progress */}
+            {showTerminalConsole && (
+                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden mb-4">
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+                        <div className="flex items-center gap-2">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <span className="text-xs text-slate-400 font-mono">mixing_keywords.sh</span>
+                        </div>
+                        {terminalComplete && (
+                            <button
+                                onClick={() => {
+                                    setShowTerminalConsole(false);
+                                    setMixedKeywords(pendingMixedKeywords);
+                                    setShowResultsConsole(true);
+                                }}
+                                className="text-xs text-emerald-400 hover:text-emerald-300 font-mono"
+                            >
+                                View Results →
+                            </button>
+                        )}
+                    </div>
+                    <div className="p-4 font-mono text-sm space-y-1 max-h-48 overflow-y-auto">
+                        <p className="text-green-400">✓ Mixer engine ready</p>
+                        <p className="text-slate-400">&gt; Parsing keyword lists...</p>
+                        <p className="text-green-400">✓ List A: Parsed {listA.split('\n').filter(k => k.trim()).length} keywords</p>
+                        <p className="text-green-400">✓ List B: Parsed {listB.split('\n').filter(k => k.trim()).length} keywords</p>
+                        {listC.trim() && <p className="text-green-400">✓ List C: Parsed {listC.split('\n').filter(k => k.trim()).length} keywords</p>}
+                        <p className="text-slate-400">&gt; Calculating all possible combinations...</p>
+                        <p className="text-green-400">✓ Generated {pendingMixedKeywords.length} unique combinations</p>
+                        <p className="text-slate-400">&gt; Applying match type formatting...</p>
+                        {matchTypes.broad && <p className="text-green-400">✓ Created broad match variations</p>}
+                        {matchTypes.phrase && <p className="text-green-400">✓ Created phrase match variations</p>}
+                        {matchTypes.exact && <p className="text-green-400">✓ Created exact match variations</p>}
+                        {!terminalComplete ? (
+                            <p className="text-cyan-400 animate-pulse">&gt; Processing...</p>
+                        ) : (
+                            <p className="text-emerald-400">✓ Complete! {pendingMixedKeywords.length} keywords ready</p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
                 <TabsList>
@@ -378,6 +503,35 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
 
                 {/* Results Section */}
                 <div className="bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-slate-200/60 shadow-lg">
+                    {/* Terminal Results Console */}
+                    {showResultsConsole && mixedKeywords.length > 0 && (
+                        <div className="mb-4">
+                            <TerminalResultsConsole
+                                title="Keyword Mixer Export Console"
+                                isVisible={showResultsConsole}
+                                stats={[
+                                    { label: 'Mixed Keywords', value: mixedKeywords.length, color: 'green' },
+                                    { label: 'List A Keywords', value: listA.split('\n').flatMap(l => l.split(',')).filter(s => s.trim()).length, color: 'cyan' },
+                                    { label: 'List B Keywords', value: listB.split('\n').flatMap(l => l.split(',')).filter(s => s.trim()).length, color: 'yellow' },
+                                    { label: 'List C Keywords', value: listC.split('\n').flatMap(l => l.split(',')).filter(s => s.trim()).length || 0, color: 'purple' },
+                                    { label: 'Match Types', value: `${matchTypes.broad ? 'Broad ' : ''}${matchTypes.phrase ? 'Phrase ' : ''}${matchTypes.exact ? 'Exact' : ''}`.trim() || 'None', color: 'cyan' },
+                                ]}
+                                onDownloadCSV={exportToCSV}
+                                onSave={handleSave}
+                                onGenerateAnother={() => {
+                                    setShowResultsConsole(false);
+                                    setMixedKeywords([]);
+                                }}
+                                showDownload={true}
+                                showSave={true}
+                                showCopy={false}
+                                downloadButtonText="Download CSV for Google Ads"
+                                saveButtonText="Save Mix"
+                                isSaving={isSaving}
+                            />
+                        </div>
+                    )}
+
                     <div className="flex justify-between items-center mb-3">
                         <h2 className="text-lg font-bold text-slate-800">
                             Generated Keywords {mixedKeywords.length > 0 && `(${mixedKeywords.length})`}

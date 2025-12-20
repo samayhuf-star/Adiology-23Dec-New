@@ -7,13 +7,15 @@ interface CreativeMinimalistHomepageProps {
   onLogin?: () => void;
   onSelectPlan?: (planName: string, priceId: string, amount: number, isSubscription: boolean) => void;
   onNavigateToPolicy?: (policy: string) => void;
+  onNavigateToApp?: (tab: string) => void;
 }
 
 export default function CreativeMinimalistHomepage({ 
   onGetStarted, 
   onLogin, 
   onSelectPlan,
-  onNavigateToPolicy
+  onNavigateToPolicy,
+  onNavigateToApp
 }: CreativeMinimalistHomepageProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLDivElement>(null);
@@ -238,7 +240,7 @@ export default function CreativeMinimalistHomepage({
       <FinalCTA onGetStarted={onGetStarted} />
 
       {/* Footer */}
-      <Footer onNavigateToPolicy={onNavigateToPolicy} />
+      <Footer onNavigateToPolicy={onNavigateToPolicy} onNavigateToApp={onNavigateToApp} />
     </div>
   );
 }
@@ -1070,80 +1072,165 @@ function SocialProofSection() {
 
 // Pricing Section
 function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, priceId: string, amount: number, isSubscription: boolean) => void }) {
-  const pricingPlans = [
-    {
-      name: 'Starter',
-      price: '$99.99',
-      period: 'lifetime',
-      icon: '🚀',
-      gradient: 'from-blue-400 to-blue-600',
-      features: [
-        '15 campaigns per month',
-        'AI keyword generation',
-        'All campaign structures',
-        'CSV export to Google Ads',
-        'Email support'
-      ],
-      popular: false,
-      priceId: 'price_starter_lifetime',
-      amount: 9999,
-      isSubscription: false
-    },
-    {
-      name: 'Pro',
-      price: '$199',
-      period: 'lifetime',
-      icon: '⚡',
-      gradient: 'from-purple-500 to-purple-700',
-      features: [
-        'Unlimited campaigns',
-        'AI keyword generation',
-        'All campaign structures',
-        'CSV export to Google Ads',
-        '24/7 priority support'
-      ],
-      popular: true,
-      priceId: 'price_pro_lifetime',
-      amount: 19900,
-      isSubscription: false
-    },
-    {
-      name: 'Growth',
-      price: '$49.99',
-      period: 'per month',
-      icon: '📈',
-      gradient: 'from-green-400 to-green-600',
-      features: [
-        '25 campaigns per month',
-        'AI keyword generation',
-        'All campaign structures',
-        'CSV export to Google Ads',
-        'Priority email support'
-      ],
-      popular: false,
-      priceId: 'price_growth_monthly',
-      amount: 4999,
-      isSubscription: true
-    },
-    {
-      name: 'Enterprise',
-      price: '$99.99',
-      period: 'per month',
-      icon: '👑',
-      gradient: 'from-pink-500 to-purple-600',
-      features: [
-        'Unlimited campaigns',
-        'AI keyword generation',
-        'All campaign structures',
-        'CSV export to Google Ads',
-        'Dedicated account manager'
-      ],
-      popular: false,
-      priceId: 'price_enterprise_monthly',
-      amount: 9999,
-      isSubscription: true
+  const [isAnnual, setIsAnnual] = useState(false);
+  
+  const getPricingPlans = () => {
+    if (isAnnual) {
+      return [
+        {
+          name: 'Basic',
+          price: '$55.99',
+          originalPrice: '$69.99',
+          period: 'per month, billed annually',
+          icon: '🚀',
+          gradient: 'from-blue-400 to-blue-600',
+          features: [
+            '25 campaigns per month',
+            '2 team members',
+            '20 web templates',
+            '70+ campaign presets for all verticals',
+            'Geo targeting: cities, states, 15,000+ zip codes',
+            '10 custom domains',
+            'Keywords mixer & planner',
+            'Live ad preview (RSA, DKI, Call-Only)',
+            '10+ Google Ads assets & extensions',
+            'CSV export to Google Ads',
+            'Email support'
+          ],
+          popular: false,
+          priceId: 'price_basic_annual',
+          amount: 67188,
+          isSubscription: true
+        },
+        {
+          name: 'Pro',
+          price: '$103.99',
+          originalPrice: '$129.99',
+          period: 'per month, billed annually',
+          icon: '⚡',
+          gradient: 'from-purple-500 to-purple-700',
+          features: [
+            'Unlimited campaigns',
+            '5 team members',
+            '50+ web templates',
+            '70+ campaign presets for all verticals',
+            'Geo targeting: cities, states, 15,000+ zip codes',
+            '40 custom domains',
+            'Keywords mixer & planner',
+            'Live ad preview (RSA, DKI, Call-Only)',
+            '10+ Google Ads assets & extensions',
+            'CSV export to Google Ads',
+            '24/7 priority support'
+          ],
+          popular: true,
+          priceId: 'price_pro_annual',
+          amount: 124788,
+          isSubscription: true
+        },
+        {
+          name: 'Lifetime',
+          price: '$49.99',
+          period: 'one-time payment',
+          icon: '👑',
+          gradient: 'from-pink-500 to-purple-600',
+          features: [
+            '10 campaigns per month',
+            '1 team member',
+            '10 web templates',
+            '70+ campaign presets for all verticals',
+            'Geo targeting: cities, states, 15,000+ zip codes',
+            '5 custom domains',
+            'Keywords mixer & planner',
+            'Live ad preview (RSA, DKI, Call-Only)',
+            '10+ Google Ads assets & extensions',
+            'CSV export to Google Ads',
+            'Email support'
+          ],
+          popular: false,
+          priceId: 'price_lifetime',
+          amount: 4999,
+          isSubscription: false
+        }
+      ];
     }
-  ];
+    
+    return [
+      {
+        name: 'Basic',
+        price: '$69.99',
+        period: 'per month',
+        icon: '🚀',
+        gradient: 'from-blue-400 to-blue-600',
+        features: [
+          '25 campaigns per month',
+          '2 team members',
+          '20 web templates',
+          '70+ campaign presets for all verticals',
+          'Geo targeting: cities, states, 15,000+ zip codes',
+          '10 custom domains',
+          'Keywords mixer & planner',
+          'Live ad preview (RSA, DKI, Call-Only)',
+          '10+ Google Ads assets & extensions',
+          'CSV export to Google Ads',
+          'Email support'
+        ],
+        popular: false,
+        priceId: 'price_basic_monthly',
+        amount: 6999,
+        isSubscription: true
+      },
+      {
+        name: 'Pro',
+        price: '$129.99',
+        period: 'per month',
+        icon: '⚡',
+        gradient: 'from-purple-500 to-purple-700',
+        features: [
+          'Unlimited campaigns',
+          '5 team members',
+          '50+ web templates',
+          '70+ campaign presets for all verticals',
+          'Geo targeting: cities, states, 15,000+ zip codes',
+          '40 custom domains',
+          'Keywords mixer & planner',
+          'Live ad preview (RSA, DKI, Call-Only)',
+          '10+ Google Ads assets & extensions',
+          'CSV export to Google Ads',
+          '24/7 priority support'
+        ],
+        popular: true,
+        priceId: 'price_pro_monthly',
+        amount: 12999,
+        isSubscription: true
+      },
+      {
+        name: 'Lifetime',
+        price: '$49.99',
+        period: 'one-time payment',
+        icon: '👑',
+        gradient: 'from-pink-500 to-purple-600',
+        features: [
+          '10 campaigns per month',
+          '1 team member',
+          '10 web templates',
+          '70+ campaign presets for all verticals',
+          'Geo targeting: cities, states, 15,000+ zip codes',
+          '5 custom domains',
+          'Keywords mixer & planner',
+          'Live ad preview (RSA, DKI, Call-Only)',
+          '10+ Google Ads assets & extensions',
+          'CSV export to Google Ads',
+          'Email support'
+        ],
+        popular: false,
+        priceId: 'price_lifetime',
+        amount: 4999,
+        isSubscription: false
+      }
+    ];
+  };
+
+  const pricingPlans = getPricingPlans();
 
   return (
     <section id="pricing" className="relative py-32 px-6">
@@ -1152,7 +1239,7 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-10"
         >
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6">
             <span className="text-white">Choose Your </span>
@@ -1165,7 +1252,24 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Monthly/Annual Toggle */}
+        <div className="flex items-center justify-center gap-4 mb-12">
+          <span className={`text-lg font-medium ${!isAnnual ? 'text-white' : 'text-gray-400'}`}>Monthly</span>
+          <button
+            onClick={() => setIsAnnual(!isAnnual)}
+            className={`relative w-16 h-8 rounded-full transition-colors ${isAnnual ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-gray-600'}`}
+          >
+            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg transition-transform ${isAnnual ? 'translate-x-9' : 'translate-x-1'}`} />
+          </button>
+          <span className={`text-lg font-medium ${isAnnual ? 'text-white' : 'text-gray-400'}`}>Annually</span>
+          {isAnnual && (
+            <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-bold rounded-full">
+              Save 20%
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {pricingPlans.map((plan, index) => (
             <motion.div
               key={plan.name}
@@ -1195,11 +1299,14 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
                 <h3 className="text-2xl font-bold text-white text-center mb-2">{plan.name}</h3>
                 
                 <div className="text-center mb-1">
+                  {'originalPrice' in plan && plan.originalPrice && (
+                    <span className="text-lg text-gray-500 line-through mr-2">{plan.originalPrice}</span>
+                  )}
                   <span className="text-4xl font-black text-white">{plan.price}</span>
                 </div>
-                <div className="text-gray-400 text-sm text-center mb-8">{plan.period}</div>
+                <div className="text-gray-400 text-sm text-center mb-6">{plan.period}</div>
 
-                <ul className="space-y-4 mb-8">
+                <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-3">
                       <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${plan.gradient} flex items-center justify-center flex-shrink-0 mt-0.5`}>
@@ -1334,23 +1441,23 @@ function FinalCTA({ onGetStarted }: { onGetStarted?: () => void }) {
 }
 
 // Footer Component
-function Footer({ onNavigateToPolicy }: { onNavigateToPolicy?: (policy: string) => void }) {
+function Footer({ onNavigateToPolicy, onNavigateToApp }: { onNavigateToPolicy?: (policy: string) => void; onNavigateToApp?: (tab: string) => void }) {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
     product: [
-      { label: 'Features', href: '#features' },
-      { label: 'Pricing', href: '#pricing' },
-      { label: 'Campaign Builder', href: '#' },
-      { label: 'Keyword Planner', href: '#' },
-      { label: 'Ad Generator', href: '#' },
+      { label: 'Features', href: '#features', type: 'scroll' as const },
+      { label: 'Pricing', href: '#pricing', type: 'scroll' as const },
+      { label: 'Campaign Builder', tab: 'one-click-builder', type: 'app' as const },
+      { label: 'Keyword Planner', tab: 'keyword-planner', type: 'app' as const },
+      { label: 'Ad Generator', tab: 'one-click-builder', type: 'app' as const },
     ],
     resources: [
-      { label: 'Documentation', href: '#' },
-      { label: 'API Reference', href: '#' },
-      { label: 'Blog', href: '#' },
-      { label: 'Help Center', href: '#' },
-      { label: 'Tutorials', href: '#' },
+      { label: 'Documentation', tab: 'support-help', type: 'app' as const },
+      { label: 'Help Center', tab: 'support-help', type: 'app' as const },
+      { label: 'Blog', href: 'https://blog.adiology.io', type: 'external' as const },
+      { label: 'API Reference', href: 'https://docs.adiology.io/api', type: 'external' as const },
+      { label: 'Tutorials', tab: 'support-help', type: 'app' as const },
     ],
     legal: [
       { label: 'Privacy Policy', action: 'privacy' as const },
@@ -1360,10 +1467,10 @@ function Footer({ onNavigateToPolicy }: { onNavigateToPolicy?: (policy: string) 
       { label: 'Refund Policy', action: 'refund' as const },
     ],
     company: [
-      { label: 'About Us', href: '/about' },
-      { label: 'Contact', href: '/contact' },
-      { label: 'Careers', href: '#' },
-      { label: 'Partners', href: '#' },
+      { label: 'About Us', href: '#features', type: 'scroll' as const },
+      { label: 'Contact', href: 'mailto:support@adiology.io', type: 'external' as const },
+      { label: 'Careers', href: 'mailto:careers@adiology.io', type: 'external' as const },
+      { label: 'Partners', href: 'mailto:partners@adiology.io', type: 'external' as const },
     ],
   };
 
@@ -1412,9 +1519,18 @@ function Footer({ onNavigateToPolicy }: { onNavigateToPolicy?: (policy: string) 
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-gray-400 hover:text-white transition-colors text-sm">
-                    {link.label}
-                  </a>
+                  {link.type === 'app' ? (
+                    <button 
+                      onClick={() => onNavigateToApp?.(link.tab!)}
+                      className="text-gray-400 hover:text-white transition-colors text-sm text-left"
+                    >
+                      {link.label}
+                    </button>
+                  ) : (
+                    <a href={link.href} className="text-gray-400 hover:text-white transition-colors text-sm">
+                      {link.label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -1426,9 +1542,23 @@ function Footer({ onNavigateToPolicy }: { onNavigateToPolicy?: (policy: string) 
             <ul className="space-y-3">
               {footerLinks.resources.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-gray-400 hover:text-white transition-colors text-sm">
-                    {link.label}
-                  </a>
+                  {link.type === 'app' ? (
+                    <button 
+                      onClick={() => onNavigateToApp?.(link.tab!)}
+                      className="text-gray-400 hover:text-white transition-colors text-sm text-left"
+                    >
+                      {link.label}
+                    </button>
+                  ) : (
+                    <a 
+                      href={link.href} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      {link.label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -1457,9 +1587,20 @@ function Footer({ onNavigateToPolicy }: { onNavigateToPolicy?: (policy: string) 
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-gray-400 hover:text-white transition-colors text-sm">
-                    {link.label}
-                  </a>
+                  {link.type === 'external' ? (
+                    <a 
+                      href={link.href} 
+                      target={link.href?.startsWith('mailto:') ? undefined : '_blank'}
+                      rel={link.href?.startsWith('mailto:') ? undefined : 'noopener noreferrer'}
+                      className="text-gray-400 hover:text-white transition-colors text-sm"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <a href={link.href} className="text-gray-400 hover:text-white transition-colors text-sm">
+                      {link.label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

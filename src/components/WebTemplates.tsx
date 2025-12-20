@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Eye, Download, Star, Phone, Mail, Clock, Edit3, Trash2, FolderOpen, Plus, Sparkles, X, Search, Filter, Globe, Copy, Check, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Eye, Download, Star, Phone, Mail, Clock, Edit3, Trash2, FolderOpen, Plus, Sparkles, X, Search, Filter, Globe, Copy, Check, CheckCircle, AlertCircle, Loader, RefreshCw, ExternalLink, Calendar, Shield } from 'lucide-react';
 import TemplateEditorBuilder from './TemplateEditorBuilder';
+import { supabase } from '../utils/supabase/client';
 import { 
   TemplateData, 
   SavedWebsite, 
@@ -1192,7 +1193,7 @@ const windowsTemplate: TemplateData = {
     heading: "Our Services",
     subheading: "Complete window and door solutions",
     items: [
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Window Replacement", desc: "Double-hung, casement, sliding, and specialty windows", price: "From $399/window" },
+      { image: "https://images.unsplash.com/photo-1604147706283-d7119b5b822c?w=400&h=300&fit=crop", title: "Window Replacement", desc: "Double-hung, casement, sliding, and specialty windows", price: "From $399/window" },
       { image: "https://images.unsplash.com/photo-1555636222-cae831e670b3?w=400&h=300&fit=crop", title: "Entry Doors", desc: "Beautiful, secure front doors and patio doors", price: "From $899" },
       { image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop", title: "Window Repair", desc: "Glass replacement, seal repair, and hardware fixes", price: "From $149" }
     ]
@@ -1282,7 +1283,7 @@ const moversTemplate: TemplateData = {
     subheading: "Complete relocation solutions",
     items: [
       { image: "https://images.unsplash.com/photo-1600518464441-9154a4dea21b?w=400&h=300&fit=crop", title: "Local Moving", desc: "Same-day local moves with careful handling", price: "From $299" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Long Distance", desc: "Interstate and cross-country relocations", price: "From $1,499" },
+      { image: "https://images.unsplash.com/photo-1600518464441-9306c5188764?w=400&h=300&fit=crop", title: "Long Distance", desc: "Interstate and cross-country relocations", price: "From $1,499" },
       { image: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=300&fit=crop", title: "Packing Services", desc: "Professional packing and crating services", price: "From $199" }
     ]
   },
@@ -1815,9 +1816,9 @@ const locksmithTemplate: TemplateData = {
     heading: "Our Services",
     subheading: "Complete locksmith solutions",
     items: [
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Emergency Lockout", desc: "Locked out? We'll get you back in quickly", price: "From $49" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Lock Replacement", desc: "New locks installed for enhanced security", price: "From $89" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Key Duplication", desc: "Fast key copying for all lock types", price: "From $15" }
+      { image: "https://images.unsplash.com/photo-1582139329536-e7284fece509?w=400&h=300&fit=crop", title: "Emergency Lockout", desc: "Locked out? We'll get you back in quickly", price: "From $49" },
+      { image: "https://images.unsplash.com/photo-1558002038-1055907df827?w=400&h=300&fit=crop", title: "Lock Replacement", desc: "New locks installed for enhanced security", price: "From $89" },
+      { image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400&h=300&fit=crop", title: "Key Duplication", desc: "Fast key copying for all lock types", price: "From $15" }
     ]
   },
   testimonials: {
@@ -2211,9 +2212,9 @@ const homeSecurityTemplate: TemplateData = {
     heading: "Security Solutions",
     subheading: "Complete home protection",
     items: [
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Security Systems", desc: "Professional alarm installation", price: "From $299" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Video Surveillance", desc: "HD camera systems", price: "From $499" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "24/7 Monitoring", desc: "Professional monitoring service", price: "$29/month" }
+      { image: "https://images.unsplash.com/photo-1558002038-1055907df827?w=400&h=300&fit=crop", title: "Security Systems", desc: "Professional alarm installation", price: "From $299" },
+      { image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=400&h=300&fit=crop", title: "Video Surveillance", desc: "HD camera systems", price: "From $499" },
+      { image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=300&fit=crop", title: "24/7 Monitoring", desc: "Professional monitoring service", price: "$29/month" }
     ]
   },
   testimonials: {
@@ -2255,9 +2256,9 @@ const insulationTemplate: TemplateData = {
     heading: "Insulation Services",
     subheading: "Complete insulation solutions",
     items: [
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Attic Insulation", desc: "Blown-in and batt insulation", price: "From $1/sq ft" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Wall Insulation", desc: "Injection foam insulation", price: "From $2/sq ft" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Spray Foam", desc: "Premium spray foam", price: "From $3/sq ft" }
+      { image: "https://images.unsplash.com/photo-1607400201889-565b1ee75f8e?w=400&h=300&fit=crop", title: "Attic Insulation", desc: "Blown-in and batt insulation", price: "From $1/sq ft" },
+      { image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=300&fit=crop", title: "Wall Insulation", desc: "Injection foam insulation", price: "From $2/sq ft" },
+      { image: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=300&fit=crop", title: "Spray Foam", desc: "Premium spray foam", price: "From $3/sq ft" }
     ]
   },
   testimonials: {
@@ -2299,9 +2300,9 @@ const chimneyTemplate: TemplateData = {
     heading: "Our Services",
     subheading: "Complete chimney care",
     items: [
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Chimney Cleaning", desc: "Remove soot and creosote buildup", price: "From $149" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Chimney Repair", desc: "Fix cracks, caps, and liners", price: "From $199" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Inspection", desc: "Full chimney safety inspection", price: "From $99" }
+      { image: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=400&h=300&fit=crop", title: "Chimney Cleaning", desc: "Remove soot and creosote buildup", price: "From $149" },
+      { image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400&h=300&fit=crop", title: "Chimney Repair", desc: "Fix cracks, caps, and liners", price: "From $199" },
+      { image: "https://images.unsplash.com/photo-1544984243-ec57ea16fe25?w=400&h=300&fit=crop", title: "Inspection", desc: "Full chimney safety inspection", price: "From $99" }
     ]
   },
   testimonials: {
@@ -2433,7 +2434,7 @@ const wifiPrinterSupportTemplate: TemplateData = {
     subheading: "Complete printer and WiFi support solutions",
     items: [
       { image: "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=300&fit=crop", title: "Printer Setup", desc: "New printer installation and configuration", price: "From $49" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "WiFi Connection", desc: "Connect printer to wireless network", price: "From $39" },
+      { image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=300&fit=crop", title: "WiFi Connection", desc: "Connect printer to wireless network", price: "From $39" },
       { image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=300&fit=crop", title: "Troubleshooting", desc: "Fix paper jams, errors, and connectivity issues", price: "From $29" }
     ]
   },
@@ -2477,7 +2478,7 @@ const routerSupportTemplate: TemplateData = {
     subheading: "Complete networking solutions",
     items: [
       { image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=300&fit=crop", title: "Router Setup", desc: "New router installation and configuration", price: "From $59" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "WiFi Optimization", desc: "Improve coverage and speed", price: "From $49" },
+      { image: "https://images.unsplash.com/photo-1516044734145-07ca8eef8731?w=400&h=300&fit=crop", title: "WiFi Optimization", desc: "Improve coverage and speed", price: "From $49" },
       { image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=300&fit=crop", title: "Network Security", desc: "Secure your WiFi network", price: "From $39" }
     ]
   },
@@ -2521,7 +2522,7 @@ const smartTvSupportTemplate: TemplateData = {
     subheading: "Complete Smart TV solutions",
     items: [
       { image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&h=300&fit=crop", title: "TV Setup", desc: "Complete Smart TV installation", price: "From $79" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Streaming Setup", desc: "Configure all streaming apps", price: "From $49" },
+      { image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=300&fit=crop", title: "Streaming Setup", desc: "Configure all streaming apps", price: "From $49" },
       { image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=300&fit=crop", title: "Troubleshooting", desc: "Fix connectivity and app issues", price: "From $39" }
     ]
   },
@@ -2565,7 +2566,7 @@ const itServicesTemplate: TemplateData = {
     subheading: "Comprehensive technology solutions",
     items: [
       { image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop", title: "Managed IT", desc: "Complete IT management and support", price: "From $299/mo" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Network Setup", desc: "Business network design and implementation", price: "Custom Quote" },
+      { image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop", title: "Network Setup", desc: "Business network design and implementation", price: "Custom Quote" },
       { image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=300&fit=crop", title: "Help Desk", desc: "On-demand technical support", price: "From $99/hr" }
     ]
   },
@@ -2609,7 +2610,7 @@ const smartHomeSupportTemplate: TemplateData = {
     subheading: "Complete home automation support",
     items: [
       { image: "https://images.unsplash.com/photo-1558002038-1055907df827?w=400&h=300&fit=crop", title: "Device Setup", desc: "Install and configure smart devices", price: "From $49" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "Home Integration", desc: "Connect all devices together", price: "From $99" },
+      { image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400&h=300&fit=crop", title: "Home Integration", desc: "Connect all devices together", price: "From $99" },
       { image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=300&fit=crop", title: "Troubleshooting", desc: "Fix connectivity issues", price: "From $39" }
     ]
   },
@@ -2653,7 +2654,7 @@ const cctvDvrTemplate: TemplateData = {
     subheading: "Complete video surveillance solutions",
     items: [
       { image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=400&h=300&fit=crop", title: "Camera Install", desc: "Professional CCTV installation", price: "From $199" },
-      { image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop", title: "DVR Setup", desc: "Configure recording and storage", price: "From $99" },
+      { image: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=400&h=300&fit=crop", title: "DVR Setup", desc: "Configure recording and storage", price: "From $99" },
       { image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=300&fit=crop", title: "Remote Access", desc: "View cameras from your phone", price: "From $49" }
     ]
   },
@@ -3076,6 +3077,358 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
   );
 };
 
+// Connected Domains Tab Component
+interface DomainRecord {
+  id: number;
+  domain: string;
+  status: string;
+  dns_verified: boolean;
+  created_at: string;
+  updated_at: string;
+  expiry_date: string | null;
+  registration_date: string | null;
+  registrar: string | null;
+  website_id: string | null;
+}
+
+const ConnectedDomainsTab = ({ savedWebsites }: { savedWebsites: SavedWebsite[] }) => {
+  const [domains, setDomains] = useState<DomainRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newDomain, setNewDomain] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [refreshingId, setRefreshingId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  const getAuthToken = async () => {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token;
+  };
+
+  const loadDomains = async () => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+      
+      const response = await fetch('/api/domains', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDomains(data.domains || []);
+      }
+    } catch (error) {
+      console.error('Failed to load domains:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDomains();
+  }, []);
+
+  const handleAddDomain = async () => {
+    if (!newDomain.trim()) return;
+    setAdding(true);
+    
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+      
+      const response = await fetch('/api/domains', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ domain: newDomain })
+      });
+      
+      if (response.ok) {
+        setNewDomain('');
+        setShowAddModal(false);
+        loadDomains();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to add domain');
+      }
+    } catch (error) {
+      console.error('Failed to add domain:', error);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleRefresh = async (id: number) => {
+    setRefreshingId(id);
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+      
+      const response = await fetch(`/api/domains/${id}/refresh`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        loadDomains();
+      }
+    } catch (error) {
+      console.error('Failed to refresh domain:', error);
+    } finally {
+      setRefreshingId(null);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+      
+      const response = await fetch(`/api/domains/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        loadDomains();
+      }
+    } catch (error) {
+      console.error('Failed to delete domain:', error);
+    } finally {
+      setDeleteConfirmId(null);
+    }
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const getExpiryStatus = (expiryDate: string | null) => {
+    if (!expiryDate) return null;
+    const expiry = new Date(expiryDate);
+    const now = new Date();
+    const daysUntilExpiry = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntilExpiry < 0) return { status: 'expired', color: 'text-red-600', bg: 'bg-red-100' };
+    if (daysUntilExpiry < 30) return { status: 'expiring soon', color: 'text-orange-600', bg: 'bg-orange-100' };
+    return { status: 'active', color: 'text-green-600', bg: 'bg-green-100' };
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800">Custom Domains</h2>
+          <p className="text-sm text-gray-500">Manage your custom domains and check their status</p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors font-medium"
+        >
+          <Plus className="w-4 h-4" />
+          Add Domain
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-gray-200">
+          <Loader className="w-6 h-6 animate-spin text-indigo-600" />
+          <span className="ml-2 text-gray-500">Loading domains...</span>
+        </div>
+      ) : domains.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
+          <div className="text-gray-400 text-6xl mb-4">🌐</div>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No domains added yet</h3>
+          <p className="text-gray-500 mb-6">Add your custom domains to track their status and expiry</p>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Your First Domain
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Domain</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Registrar</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Registered</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Expires</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {domains.map((domain) => {
+                  const expiryStatus = getExpiryStatus(domain.expiry_date);
+                  return (
+                    <tr key={domain.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Globe className="w-5 h-5 text-gray-400" />
+                          <div>
+                            <a 
+                              href={`https://${domain.domain}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-gray-900 hover:text-indigo-600 flex items-center gap-1"
+                            >
+                              {domain.domain}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                            <p className="text-xs text-gray-500">Added {formatDate(domain.created_at)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${domain.dns_verified ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                          <span className={`text-sm font-medium ${domain.dns_verified ? 'text-green-700' : 'text-red-700'}`}>
+                            {domain.dns_verified ? 'Connected' : 'Not Connected'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Shield className="w-4 h-4 text-gray-400" />
+                          {domain.registrar || 'Unknown'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          {formatDate(domain.registration_date)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm text-gray-600">{formatDate(domain.expiry_date)}</span>
+                          {expiryStatus && (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${expiryStatus.bg} ${expiryStatus.color}`}>
+                              {expiryStatus.status}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleRefresh(domain.id)}
+                            disabled={refreshingId === domain.id}
+                            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Refresh Status"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${refreshingId === domain.id ? 'animate-spin' : ''}`} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(domain.id)}
+                            className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Add Domain Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Add Domain</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Enter your domain name. We'll automatically check its DNS status and fetch registration details.
+            </p>
+            <input
+              type="text"
+              value={newDomain}
+              onChange={(e) => setNewDomain(e.target.value)}
+              placeholder="example.com"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddDomain()}
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddDomain}
+                disabled={adding || !newDomain.trim()}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {adding ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Add Domain
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Domain</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to remove this domain? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirmId)}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface WebTemplatesProps {
   initialTab?: 'templates' | 'saved' | 'connected';
 }
@@ -3219,7 +3572,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'ClearView Windows & Doors',
       category: 'Home Services',
       description: 'Window replacement and repair services with energy-efficient solutions.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1604147706283-d7119b5b822c?w=400&h=300&fit=crop',
       color: 'blue',
       data: windowsTemplate
     },
@@ -3282,7 +3635,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'SecureLock Locksmith',
       category: 'Home Services',
       description: '24/7 emergency locksmith services for homes, businesses, and vehicles.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=400&h=300&fit=crop',
       color: 'blue',
       data: locksmithTemplate
     },
@@ -3291,7 +3644,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'DoorPro Garage Services',
       category: 'Home Services',
       description: 'Professional garage door repair, installation, and opener services.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1558767132-cb76ffe7ad00?w=400&h=300&fit=crop',
       color: 'orange',
       data: garageDoorTemplate
     },
@@ -3309,7 +3662,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'PowerWash Pro',
       category: 'Home Services',
       description: 'Professional pressure washing for driveways, homes, and decks.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=400&h=300&fit=crop',
       color: 'blue',
       data: pressureWashingTemplate
     },
@@ -3327,7 +3680,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'FenceBuilders Pro',
       category: 'Home Services',
       description: 'Quality fence installation for wood, vinyl, and chain link fencing.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1558618107-d49a9a2b2c53?w=400&h=300&fit=crop',
       color: 'brown',
       data: fenceInstallTemplate
     },
@@ -3336,7 +3689,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'SolidGround Concrete',
       category: 'Home Services',
       description: 'Professional concrete work for driveways, patios, and sidewalks.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1590579491624-f98f36d4c763?w=400&h=300&fit=crop',
       color: 'gray',
       data: concreteTemplate
     },
@@ -3363,7 +3716,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'SafeHome Security',
       category: 'Home Services',
       description: 'Professional home security systems with 24/7 monitoring.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=400&h=300&fit=crop',
       color: 'indigo',
       data: homeSecurityTemplate
     },
@@ -3372,7 +3725,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'InsulPro Insulation',
       category: 'Home Services',
       description: 'Professional insulation installation for attics, walls, and more.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1607400201889-565b1ee75f8e?w=400&h=300&fit=crop',
       color: 'green',
       data: insulationTemplate
     },
@@ -3381,7 +3734,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       name: 'ChimneyCare Services',
       category: 'Home Services',
       description: 'Professional chimney cleaning, repair, and inspection services.',
-      thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
+      thumbnail: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=400&h=300&fit=crop',
       color: 'brown',
       data: chimneyTemplate
     },
@@ -3513,72 +3866,126 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Web Templates</h1>
-        <p className="text-gray-600">Browse templates, edit with AI chat, and download your customized website</p>
+    <div className="p-4 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Web Templates</h1>
+          <p className="text-xs text-slate-500">Browse, edit with AI, and download customized websites</p>
+        </div>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      {/* Shell View - Two Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        {/* Card 1: Stats */}
+        <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+            <span className="text-xs text-slate-400 ml-2 font-mono">template_stats.sh</span>
+          </div>
+          <div className="p-4 font-mono">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1 text-center">
+                <div className="text-2xl font-bold text-violet-400">{templates.length}</div>
+                <div className="text-xs text-slate-400">Templates</div>
+              </div>
+              <div className="space-y-1 text-center">
+                <div className="text-2xl font-bold text-emerald-400">{savedWebsites.length}</div>
+                <div className="text-xs text-slate-400">Saved</div>
+              </div>
+              <div className="space-y-1 text-center">
+                <div className="text-2xl font-bold text-amber-400">{savedWebsites.filter(w => (w as any).customDomain).length}</div>
+                <div className="text-xs text-slate-400">Domains</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Config */}
+        <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+            <span className="text-xs text-slate-400 ml-2 font-mono">template_config.sh</span>
+          </div>
+          <div className="p-4 font-mono space-y-2 text-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-slate-500">categories:</span>
+              <span className="text-cyan-400">{categories.length - 1}</span>
+              <span className="text-slate-600 mx-1">|</span>
+              <span className="text-slate-500">ai_editor:</span>
+              <span className="text-green-400">ENABLED</span>
+              <span className="text-slate-600 mx-1">|</span>
+              <span className="text-slate-500">export:</span>
+              <span className="text-pink-400">HTML, ZIP</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">industries:</span>
+              <span className="text-blue-400">Home Services, IT, Travel, Healthcare</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex gap-2 mb-4">
         <button
           onClick={() => setActiveTab('templates')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
             activeTab === 'templates'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <Plus className="w-4 h-4" />
-          Browse Templates
+          <Plus className="w-3 h-3" />
+          Browse
         </button>
         <button
           onClick={() => setActiveTab('saved')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
             activeTab === 'saved'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <FolderOpen className="w-4 h-4" />
-          Saved Websites
-          {savedWebsites.length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'saved' ? 'bg-white/20' : 'bg-indigo-100 text-indigo-700'}`}>
-              {savedWebsites.length}
-            </span>
-          )}
+          <FolderOpen className="w-3 h-3" />
+          Saved ({savedWebsites.length})
         </button>
         <button
           onClick={() => setActiveTab('connected')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
             activeTab === 'connected'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          <Globe className="w-4 h-4" />
-          Connected Websites
-          {savedWebsites.filter(w => (w as any).customDomain).length > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === 'connected' ? 'bg-white/20' : 'bg-indigo-100 text-indigo-700'}`}>
-              {savedWebsites.filter(w => (w as any).customDomain).length}
-            </span>
-          )}
+          <Globe className="w-3 h-3" />
+          Connected ({savedWebsites.filter(w => (w as any).customDomain).length})
         </button>
       </div>
 
       {activeTab === 'templates' && (
         <>
-          <div className="flex flex-wrap gap-2 mb-8">
+          {/* Category Filters */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                   selectedCategory === category
-                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {category === 'all' ? 'All Templates' : category}
+                {category === 'all' ? 'All' : category}
               </button>
             ))}
           </div>
@@ -3829,96 +4236,7 @@ export const WebTemplates = ({ initialTab = 'templates' }: WebTemplatesProps) =>
       )}
 
       {activeTab === 'connected' && (
-        <div>
-          {(() => {
-            const connectedSites = savedWebsites.filter(w => (w as any).customDomain);
-            
-            if (connectedSites.length === 0) {
-              return (
-                <div className="text-center py-16 bg-white rounded-2xl border border-gray-200">
-                  <div className="text-gray-400 text-6xl mb-4">🌐</div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No connected websites</h3>
-                  <p className="text-gray-500 mb-6">Connect a custom domain to your saved websites to see them here</p>
-                  <button
-                    onClick={() => setActiveTab('saved')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors"
-                  >
-                    <FolderOpen className="w-4 h-4" />
-                    View Saved Websites
-                  </button>
-                </div>
-              );
-            }
-            
-            return (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    Websites with Custom Domains ({connectedSites.length})
-                  </h2>
-                </div>
-                
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                  <div className="divide-y divide-gray-200">
-                    {connectedSites.map((website) => (
-                      <div key={website.id} className="p-5 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-bold text-lg text-gray-800">{website.name}</h3>
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
-                                <CheckCircle className="w-3 h-3" />
-                                Connected
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 mt-2">
-                              <a 
-                                href={`https://${(website as any).customDomain}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-indigo-600 hover:text-green-700 font-medium text-sm"
-                              >
-                                <Globe className="w-4 h-4" />
-                                {(website as any).customDomain}
-                              </a>
-                              <span className="text-sm text-gray-500">
-                                <Clock className="w-4 h-4 inline mr-1" />
-                                Updated {new Date(website.updatedAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEditSavedWebsite(website)}
-                              className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              title="Edit Website"
-                            >
-                              <Edit3 className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => setDomainModalWebsite(website)}
-                              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Manage Domain"
-                            >
-                              <Globe className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDownloadSavedWebsite(website)}
-                              className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              title="Download"
-                            >
-                              <Download className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+        <ConnectedDomainsTab savedWebsites={savedWebsites} />
       )}
 
       {previewTemplate && (
