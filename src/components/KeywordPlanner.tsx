@@ -1369,10 +1369,10 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                 {/* Keywords Table */}
                                                 <div className="flex-1 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                                                     {showMetrics && enrichedKeywords.some(k => k.metrics) && (
-                                                        <div className="grid grid-cols-12 gap-3 px-4 py-3 bg-gray-100 border-b border-gray-200 text-xs font-semibold text-gray-600 sticky top-0">
-                                                            <div className="col-span-5">Keyword</div>
-                                                            <div className="col-span-2 text-center">Volume</div>
-                                                            <div className="col-span-2 text-center">CPC</div>
+                                                        <div className="hidden sm:grid grid-cols-12 gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 border-b border-gray-200 text-xs font-semibold text-gray-600 sticky top-0">
+                                                            <div className="col-span-6 sm:col-span-5">Keyword</div>
+                                                            <div className="col-span-3 sm:col-span-2 text-center">Volume</div>
+                                                            <div className="hidden sm:block col-span-2 text-center">CPC</div>
                                                             <div className="col-span-3 text-center">Competition</div>
                                                         </div>
                                                     )}
@@ -1384,12 +1384,17 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                             return showMetrics && metrics ? (
                                                                 <div
                                                                     key={idx}
-                                                                    className="grid grid-cols-12 gap-3 px-4 py-3 border-b border-gray-200 hover:bg-gray-100 transition-colors duration-200 text-sm bg-white"
+                                                                    className="grid grid-cols-1 sm:grid-cols-12 gap-1 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200 hover:bg-gray-100 transition-colors duration-200 text-sm bg-white"
                                                                 >
-                                                                    <div className="col-span-5 font-mono text-gray-800 truncate" title={kw.text}>
+                                                                    <div className="sm:col-span-5 font-mono text-gray-800 break-words sm:truncate" title={kw.text}>
                                                                         {kw.text}
                                                                     </div>
-                                                                    <div className="col-span-2 text-center flex items-center justify-center gap-1.5">
+                                                                    <div className="flex sm:hidden gap-4 text-xs mt-1">
+                                                                        <span className="text-gray-500">Vol: <span className="text-gray-700 font-medium">{metrics.avgMonthlySearches ? (metrics.avgMonthlySearches >= 1000 ? `${(metrics.avgMonthlySearches / 1000).toFixed(1)}K` : metrics.avgMonthlySearches.toLocaleString()) : '-'}</span></span>
+                                                                        <span className="text-gray-500">CPC: <span className="text-gray-700 font-medium">{metrics.avgCpc ? `$${metrics.avgCpc.toFixed(2)}` : '-'}</span></span>
+                                                                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${metrics.competition === 'HIGH' ? 'bg-rose-100 text-rose-700' : metrics.competition === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>{metrics.competition || 'Low'}</span>
+                                                                    </div>
+                                                                    <div className="hidden sm:flex col-span-2 text-center items-center justify-center gap-1.5">
                                                                         <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
                                                                         <span className="text-gray-700 font-medium">
                                                                             {metrics.avgMonthlySearches 
@@ -1399,13 +1404,13 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                                                 : '-'}
                                                                         </span>
                                                                     </div>
-                                                                    <div className="col-span-2 text-center flex items-center justify-center gap-1.5">
+                                                                    <div className="hidden sm:flex col-span-2 text-center items-center justify-center gap-1.5">
                                                                         <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
                                                                         <span className="text-gray-700 font-medium">
                                                                             {metrics.avgCpc ? `$${metrics.avgCpc.toFixed(2)}` : '-'}
                                                                         </span>
                                                                     </div>
-                                                                    <div className="col-span-3 text-center">
+                                                                    <div className="hidden sm:block col-span-3 text-center">
                                                                         <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
                                                                             metrics.competition === 'HIGH' 
                                                                                 ? 'bg-rose-100 text-rose-700' 
@@ -1420,7 +1425,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                             ) : (
                                                                 <div
                                                                     key={idx}
-                                                                    className="px-4 py-3 border-b border-gray-200 hover:bg-gray-100 transition-colors duration-200 text-sm text-gray-800 font-mono bg-white"
+                                                                    className="px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200 hover:bg-gray-100 transition-colors duration-200 text-sm text-gray-800 font-mono bg-white break-words"
                                                                 >
                                                                     {kw.text}
                                                                 </div>
