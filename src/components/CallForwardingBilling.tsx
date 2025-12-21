@@ -147,7 +147,7 @@ function PaymentMethodForm({ onSuccess }: { onSuccess: () => void }) {
           {error}
         </div>
       )}
-      <Button type="submit" disabled={loading || !stripe} className="w-full bg-indigo-600 hover:bg-indigo-700">
+      <Button type="submit" disabled={loading || !stripe} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
         {loading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <CreditCard className="w-4 h-4 mr-2" />}
         Save Card
       </Button>
@@ -354,7 +354,7 @@ export function CallForwardingBilling() {
                 <div className="text-center py-6">
                   <CreditCard className="w-12 h-12 mx-auto mb-3 text-slate-400" />
                   <p className="text-slate-600 mb-4">Add a payment method to fund your account</p>
-                  <Button onClick={() => setShowAddCard(true)} className="bg-indigo-600 hover:bg-indigo-700">
+                  <Button onClick={() => setShowAddCard(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Card
                   </Button>
@@ -397,7 +397,7 @@ export function CallForwardingBilling() {
                   <Button 
                     onClick={handleTopUp} 
                     disabled={topUpLoading}
-                    className="bg-indigo-600 hover:bg-indigo-700"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
                     {topUpLoading ? (
                       <RefreshCw className="w-4 h-4 animate-spin" />
@@ -478,7 +478,7 @@ export function CallForwardingBilling() {
             <Button 
               onClick={saveAutoRechargeSettings}
               disabled={savingSettings || !summary?.has_payment_method}
-              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {savingSettings ? (
                 <RefreshCw className="w-4 h-4 animate-spin mr-2" />

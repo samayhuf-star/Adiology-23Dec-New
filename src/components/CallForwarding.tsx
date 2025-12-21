@@ -398,7 +398,7 @@ export function CallForwarding() {
               <Button
                 size="sm"
                 onClick={() => setShowNewProject(true)}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 New
@@ -416,7 +416,7 @@ export function CallForwarding() {
                   autoFocus
                 />
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={createProject} className="bg-indigo-600 hover:bg-indigo-700">
+                  <Button size="sm" onClick={createProject} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                     <Save className="w-4 h-4 mr-1" />
                     Save
                   </Button>
@@ -510,7 +510,7 @@ export function CallForwarding() {
                 </div>
                 <Button
                   onClick={() => setAddingTrackingNumber(true)}
-                  className="bg-indigo-600 hover:bg-indigo-700"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Tracking Number
@@ -550,7 +550,7 @@ export function CallForwarding() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">
-                    <Button onClick={addTrackingNumber} className="bg-indigo-600 hover:bg-indigo-700">
+                    <Button onClick={addTrackingNumber} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                       <Plus className="w-4 h-4 mr-1" />
                       Add Number
                     </Button>
@@ -689,7 +689,7 @@ export function CallForwarding() {
                                   </div>
                                 </div>
                                 <div className="flex gap-2 mt-3">
-                                  <Button size="sm" onClick={() => addTarget(tn.id)} className="bg-indigo-600 hover:bg-indigo-700">
+                                  <Button size="sm" onClick={() => addTarget(tn.id)} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                                     Add
                                   </Button>
                                   <Button size="sm" variant="outline" onClick={() => { setAddingTarget(null); setNewTarget({ number: '', name: '', percentage: 100 }); }}>
@@ -786,7 +786,7 @@ export function CallForwarding() {
               <Settings2 className="w-16 h-16 mx-auto text-slate-300 mb-4" />
               <h3 className="text-xl font-semibold text-slate-800 mb-2">Select a Project</h3>
               <p className="text-slate-500 mb-4">Choose a project from the list or create a new one to manage call forwarding</p>
-              <Button onClick={() => setShowNewProject(true)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Button onClick={() => setShowNewProject(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Your First Project
               </Button>
