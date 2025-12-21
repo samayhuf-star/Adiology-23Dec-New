@@ -5184,7 +5184,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               className="flex items-center gap-1 sm:gap-2 text-slate-600 hover:text-indigo-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Back</span>
+              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Back</span>
             </button>
             
             {/* Progress Steps */}

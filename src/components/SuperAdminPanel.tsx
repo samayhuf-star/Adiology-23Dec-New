@@ -314,7 +314,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
         <h2 className="text-lg sm:text-2xl font-bold text-white">Admin Dashboard</h2>
         <Button onClick={fetchDashboardStats} variant="outline" size="sm" className="text-xs sm:text-sm">
           <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="hidden xs:inline">Refresh</span>
+          Refresh
         </Button>
       </div>
 
@@ -377,7 +377,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
         >
           <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-1.5 sm:mb-2" />
           <h3 className="text-white font-semibold text-sm sm:text-base">Manage Users</h3>
-          <p className="text-gray-400 text-xs sm:text-sm hidden xs:block">View, edit, block users</p>
+          <p className="text-gray-400 text-xs sm:text-sm">View, edit, block users</p>
         </button>
         
         <button 
@@ -386,7 +386,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
         >
           <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 mb-1.5 sm:mb-2" />
           <h3 className="text-white font-semibold text-sm sm:text-base">Billing</h3>
-          <p className="text-gray-400 text-xs sm:text-sm hidden xs:block">Subscriptions & payments</p>
+          <p className="text-gray-400 text-xs sm:text-sm">Subscriptions & payments</p>
         </button>
         
         <button 
@@ -395,7 +395,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
         >
           <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400 mb-1.5 sm:mb-2" />
           <h3 className="text-white font-semibold text-sm sm:text-base">View Logs</h3>
-          <p className="text-gray-400 text-xs sm:text-sm hidden xs:block">System & error logs</p>
+          <p className="text-gray-400 text-xs sm:text-sm">System & error logs</p>
         </button>
         
         <button 
@@ -404,7 +404,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
         >
           <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 mb-1.5 sm:mb-2" />
           <h3 className="text-white font-semibold text-sm sm:text-base">Security</h3>
-          <p className="text-gray-400 text-sm">Firewall & rules</p>
+          <p className="text-gray-400 text-xs sm:text-sm">Firewall & rules</p>
         </button>
       </div>
 
