@@ -4201,30 +4201,33 @@ app.post('/api/admin/database/table/:tableName/update', async (c) => {
   }
 });
 
-// Send email via Postmark
+// Send email via Sendune
 app.post('/api/admin/email/send', async (c) => {
   try {
-    const { to, subject, htmlBody, textBody } = await c.req.json();
+    const { to, subject, htmlBody, textBody, templateKey, replaceTags } = await c.req.json();
     
-    const postmarkToken = process.env.POSTMARK_SERVER_API_TOKEN;
-    if (!postmarkToken) {
-      return c.json({ error: 'Postmark not configured' }, 500);
+    const senduneApiKey = process.env.SENDUNE_API_KEY;
+    if (!senduneApiKey) {
+      return c.json({ error: 'Sendune not configured' }, 500);
     }
     
-    const response = await fetch('https://api.postmarkapp.com/email', {
+    // Use provided template key or default API key
+    const apiKey = templateKey || senduneApiKey;
+    
+    // Build request body with email, subject, and any replace tags
+    const requestBody: Record<string, string> = {
+      email: to,
+      subject: subject,
+      ...replaceTags
+    };
+    
+    const response = await fetch('https://api.sendune.com/send-email', {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'X-Postmark-Server-Token': postmarkToken
+        'template-key': apiKey
       },
-      body: JSON.stringify({
-        From: 'support@adiology.io',
-        To: to,
-        Subject: subject,
-        HtmlBody: htmlBody,
-        TextBody: textBody || subject
-      })
+      body: JSON.stringify(requestBody)
     });
     
     if (response.ok) {
@@ -4236,6 +4239,12 @@ app.post('/api/admin/email/send', async (c) => {
       return c.json({ success: true });
     } else {
       const error = await response.text();
+      console.error('Sendune error:', error);
+      // Log failed email
+      await pool.query(
+        'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
+        [to, subject, 'failed']
+      );
       return c.json({ error }, 500);
     }
   } catch (error: any) {
