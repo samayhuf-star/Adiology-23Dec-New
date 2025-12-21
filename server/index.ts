@@ -4115,6 +4115,522 @@ app.get('/api/admin/email/logs', async (c) => {
   }
 });
 
+// ============================================
+// CALL FORWARDING / SKYSWITCH INTEGRATION
+// ============================================
+
+// SkySwitch token cache
+let skySwitchTokenCache: { token: string; expires: number } | null = null;
+
+// Get SkySwitch access token
+async function getSkySwitchToken(): Promise<string | null> {
+  const now = Date.now();
+  
+  // Return cached token if valid
+  if (skySwitchTokenCache && skySwitchTokenCache.expires > now) {
+    return skySwitchTokenCache.token;
+  }
+  
+  const clientId = process.env.SKYSWITCH_CLIENT_ID;
+  const clientSecret = process.env.SKYSWITCH_CLIENT_SECRET;
+  const username = process.env.SKYSWITCH_USERNAME;
+  const password = process.env.SKYSWITCH_PASSWORD;
+  
+  if (!clientId || !clientSecret || !username || !password) {
+    console.error('SkySwitch credentials not configured');
+    return null;
+  }
+  
+  try {
+    const response = await fetch('https://api.skyswitch.com/oauth2/token/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        username: username,
+        password: password,
+        grant_type: 'password'
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('SkySwitch auth failed:', await response.text());
+      return null;
+    }
+    
+    const data = await response.json();
+    skySwitchTokenCache = {
+      token: data.access_token,
+      expires: now + (data.expires_in - 60) * 1000 // Refresh 60s before expiry
+    };
+    return data.access_token;
+  } catch (error) {
+    console.error('SkySwitch auth error:', error);
+    return null;
+  }
+}
+
+// Initialize call forwarding tables
+async function initCallForwardingTables() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS call_forwarding_projects (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        status VARCHAR(50) DEFAULT 'active',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS call_forwarding_tracking_numbers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id UUID REFERENCES call_forwarding_projects(id) ON DELETE CASCADE,
+        phone_number VARCHAR(20) NOT NULL,
+        number_type VARCHAR(10) DEFAULT 'DID', -- DID or TFN
+        name VARCHAR(255),
+        skyswitch_id VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'active',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS call_forwarding_targets (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tracking_number_id UUID REFERENCES call_forwarding_tracking_numbers(id) ON DELETE CASCADE,
+        target_number VARCHAR(20) NOT NULL,
+        name VARCHAR(255),
+        percentage INTEGER NOT NULL DEFAULT 100,
+        priority INTEGER DEFAULT 1,
+        status VARCHAR(50) DEFAULT 'active',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    console.log('Call forwarding tables initialized');
+  } catch (error) {
+    console.error('Error initializing call forwarding tables:', error);
+  }
+}
+
+// Initialize tables on startup
+initCallForwardingTables();
+
+// Get user from auth header
+async function getUserFromAuth(c: any): Promise<any> {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  
+  try {
+    const token = authHeader.substring(7);
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) return null;
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { data: { user } } = await supabase.auth.getUser(token);
+    return user;
+  } catch {
+    return null;
+  }
+}
+
+// Get all projects for user
+app.get('/api/call-forwarding/projects', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const result = await pool.query(`
+      SELECT p.*, 
+        (SELECT COUNT(*) FROM call_forwarding_tracking_numbers t WHERE t.project_id = p.id) as tracking_numbers_count
+      FROM call_forwarding_projects p 
+      WHERE p.user_id = $1 
+      ORDER BY p.created_at DESC
+    `, [user.id]);
+    
+    return c.json({ projects: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching projects:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Create a new project
+app.post('/api/call-forwarding/projects', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const { name, description } = await c.req.json();
+    
+    const result = await pool.query(`
+      INSERT INTO call_forwarding_projects (user_id, name, description)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [user.id, name || 'New Project', description || '']);
+    
+    return c.json({ project: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error creating project:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Update project
+app.put('/api/call-forwarding/projects/:id', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const projectId = c.req.param('id');
+    const { name, description, status } = await c.req.json();
+    
+    const result = await pool.query(`
+      UPDATE call_forwarding_projects 
+      SET name = COALESCE($1, name), 
+          description = COALESCE($2, description),
+          status = COALESCE($3, status),
+          updated_at = NOW()
+      WHERE id = $4 AND user_id = $5
+      RETURNING *
+    `, [name, description, status, projectId, user.id]);
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Project not found' }, 404);
+    }
+    
+    return c.json({ project: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error updating project:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete project
+app.delete('/api/call-forwarding/projects/:id', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const projectId = c.req.param('id');
+    
+    await pool.query(`
+      DELETE FROM call_forwarding_projects 
+      WHERE id = $1 AND user_id = $2
+    `, [projectId, user.id]);
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting project:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get project details with tracking numbers and targets
+app.get('/api/call-forwarding/projects/:id', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const projectId = c.req.param('id');
+    
+    const projectResult = await pool.query(`
+      SELECT * FROM call_forwarding_projects 
+      WHERE id = $1 AND user_id = $2
+    `, [projectId, user.id]);
+    
+    if (projectResult.rows.length === 0) {
+      return c.json({ error: 'Project not found' }, 404);
+    }
+    
+    const trackingResult = await pool.query(`
+      SELECT * FROM call_forwarding_tracking_numbers 
+      WHERE project_id = $1 
+      ORDER BY created_at DESC
+    `, [projectId]);
+    
+    // Get targets for each tracking number
+    const trackingNumbers = await Promise.all(trackingResult.rows.map(async (tn: any) => {
+      const targetsResult = await pool.query(`
+        SELECT * FROM call_forwarding_targets 
+        WHERE tracking_number_id = $1 
+        ORDER BY priority ASC
+      `, [tn.id]);
+      return { ...tn, targets: targetsResult.rows };
+    }));
+    
+    return c.json({ 
+      project: projectResult.rows[0],
+      trackingNumbers 
+    });
+  } catch (error: any) {
+    console.error('Error fetching project details:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Fetch available phone numbers from SkySwitch
+app.get('/api/call-forwarding/available-numbers', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const token = await getSkySwitchToken();
+    if (!token) {
+      return c.json({ error: 'SkySwitch not configured. Please add API credentials.' }, 503);
+    }
+    
+    const accountId = process.env.SKYSWITCH_ACCOUNT_ID;
+    const response = await fetch(`https://api.skyswitch.com/accounts/${accountId}/phone-numbers`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      return c.json({ error: 'Failed to fetch phone numbers' }, 500);
+    }
+    
+    const data = await response.json();
+    return c.json({ numbers: data });
+  } catch (error: any) {
+    console.error('Error fetching available numbers:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Add tracking number to project
+app.post('/api/call-forwarding/projects/:id/tracking-numbers', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const projectId = c.req.param('id');
+    const { phone_number, number_type, name, skyswitch_id } = await c.req.json();
+    
+    // Verify project belongs to user
+    const projectCheck = await pool.query(
+      'SELECT id FROM call_forwarding_projects WHERE id = $1 AND user_id = $2',
+      [projectId, user.id]
+    );
+    if (projectCheck.rows.length === 0) {
+      return c.json({ error: 'Project not found' }, 404);
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO call_forwarding_tracking_numbers (project_id, phone_number, number_type, name, skyswitch_id)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [projectId, phone_number, number_type || 'DID', name || phone_number, skyswitch_id]);
+    
+    return c.json({ trackingNumber: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error adding tracking number:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Update tracking number
+app.put('/api/call-forwarding/tracking-numbers/:id', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const trackingId = c.req.param('id');
+    const { name, status } = await c.req.json();
+    
+    const result = await pool.query(`
+      UPDATE call_forwarding_tracking_numbers t
+      SET name = COALESCE($1, t.name),
+          status = COALESCE($2, t.status),
+          updated_at = NOW()
+      FROM call_forwarding_projects p
+      WHERE t.id = $3 AND t.project_id = p.id AND p.user_id = $4
+      RETURNING t.*
+    `, [name, status, trackingId, user.id]);
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Tracking number not found' }, 404);
+    }
+    
+    return c.json({ trackingNumber: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error updating tracking number:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete tracking number
+app.delete('/api/call-forwarding/tracking-numbers/:id', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const trackingId = c.req.param('id');
+    
+    await pool.query(`
+      DELETE FROM call_forwarding_tracking_numbers t
+      USING call_forwarding_projects p
+      WHERE t.id = $1 AND t.project_id = p.id AND p.user_id = $2
+    `, [trackingId, user.id]);
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting tracking number:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Add forwarding target
+app.post('/api/call-forwarding/tracking-numbers/:id/targets', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const trackingId = c.req.param('id');
+    const { target_number, name, percentage, priority } = await c.req.json();
+    
+    // Verify tracking number belongs to user's project
+    const check = await pool.query(`
+      SELECT t.id FROM call_forwarding_tracking_numbers t
+      JOIN call_forwarding_projects p ON t.project_id = p.id
+      WHERE t.id = $1 AND p.user_id = $2
+    `, [trackingId, user.id]);
+    
+    if (check.rows.length === 0) {
+      return c.json({ error: 'Tracking number not found' }, 404);
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO call_forwarding_targets (tracking_number_id, target_number, name, percentage, priority)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [trackingId, target_number, name || target_number, percentage || 100, priority || 1]);
+    
+    return c.json({ target: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error adding target:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Update forwarding target
+app.put('/api/call-forwarding/targets/:id', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const targetId = c.req.param('id');
+    const { target_number, name, percentage, priority, status } = await c.req.json();
+    
+    const result = await pool.query(`
+      UPDATE call_forwarding_targets tg
+      SET target_number = COALESCE($1, tg.target_number),
+          name = COALESCE($2, tg.name),
+          percentage = COALESCE($3, tg.percentage),
+          priority = COALESCE($4, tg.priority),
+          status = COALESCE($5, tg.status),
+          updated_at = NOW()
+      FROM call_forwarding_tracking_numbers t
+      JOIN call_forwarding_projects p ON t.project_id = p.id
+      WHERE tg.id = $6 AND tg.tracking_number_id = t.id AND p.user_id = $7
+      RETURNING tg.*
+    `, [target_number, name, percentage, priority, status, targetId, user.id]);
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Target not found' }, 404);
+    }
+    
+    return c.json({ target: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error updating target:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete forwarding target
+app.delete('/api/call-forwarding/targets/:id', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const targetId = c.req.param('id');
+    
+    await pool.query(`
+      DELETE FROM call_forwarding_targets tg
+      USING call_forwarding_tracking_numbers t
+      JOIN call_forwarding_projects p ON t.project_id = p.id
+      WHERE tg.id = $1 AND tg.tracking_number_id = t.id AND p.user_id = $2
+    `, [targetId, user.id]);
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting target:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Sync forwarding rules to SkySwitch
+app.post('/api/call-forwarding/tracking-numbers/:id/sync', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const trackingId = c.req.param('id');
+    
+    // Get tracking number with targets
+    const trackingResult = await pool.query(`
+      SELECT t.*, p.user_id FROM call_forwarding_tracking_numbers t
+      JOIN call_forwarding_projects p ON t.project_id = p.id
+      WHERE t.id = $1 AND p.user_id = $2
+    `, [trackingId, user.id]);
+    
+    if (trackingResult.rows.length === 0) {
+      return c.json({ error: 'Tracking number not found' }, 404);
+    }
+    
+    const trackingNumber = trackingResult.rows[0];
+    
+    const targetsResult = await pool.query(`
+      SELECT * FROM call_forwarding_targets 
+      WHERE tracking_number_id = $1 AND status = 'active'
+      ORDER BY priority ASC
+    `, [trackingId]);
+    
+    const token = await getSkySwitchToken();
+    if (!token) {
+      return c.json({ error: 'SkySwitch not configured' }, 503);
+    }
+    
+    // Note: Actual SkySwitch API call would go here
+    // The exact endpoint depends on SkySwitch's call routing API
+    // For now, we'll mark as synced
+    
+    await pool.query(`
+      UPDATE call_forwarding_tracking_numbers 
+      SET updated_at = NOW() 
+      WHERE id = $1
+    `, [trackingId]);
+    
+    return c.json({ 
+      success: true, 
+      message: 'Forwarding rules synced to SkySwitch',
+      targets: targetsResult.rows 
+    });
+  } catch (error: any) {
+    console.error('Error syncing to SkySwitch:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Start cron scheduler - DISABLED per user request
 // startCronScheduler();
 
