@@ -1032,6 +1032,146 @@ Provide JSON with:
   }
 });
 
+// AI Section Content Generator Endpoint
+app.post('/api/generate-section-content', async (c) => {
+  try {
+    const { sections, businessName, businessType, tone } = await c.req.json();
+    
+    if (!sections || !Array.isArray(sections) || sections.length === 0) {
+      return c.json({ error: 'Sections array is required' }, 400);
+    }
+    
+    if (!businessName) {
+      return c.json({ error: 'Business name is required' }, 400);
+    }
+    
+    const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    if (!openaiKey) {
+      return c.json({ error: 'AI service not configured' }, 500);
+    }
+    
+    const toneDescriptions: Record<string, string> = {
+      professional: 'formal, corporate, business-focused language',
+      casual: 'relaxed, approachable, conversational language',
+      friendly: 'warm, personable, welcoming language',
+      technical: 'detailed, precise, industry-specific language',
+      luxury: 'premium, sophisticated, exclusive language'
+    };
+    
+    const toneDesc = toneDescriptions[tone] || toneDescriptions.professional;
+    
+    const sectionPrompts: Record<string, string> = {
+      navigation: 'Generate logo text and 4 navigation links with text and URLs.',
+      hero: 'Generate a compelling headline (max 60 chars), subheading (max 120 chars), description (2-3 sentences), CTA button text, and suggest an image style.',
+      features: 'Generate a section heading and 4 features, each with an icon name, title, and description.',
+      services: 'Generate a section heading and 4 services, each with a title, description, and icon.',
+      testimonials: 'Generate a section heading and 3 testimonials, each with name, role/company, content (2-3 sentences), and rating.',
+      cta: 'Generate a call-to-action with heading, subheading, description, and button text.',
+      contact: 'Generate a contact section with heading, description, and placeholder contact details.',
+      about: 'Generate an about section with heading, description, and key points about the company.',
+      faq: 'Generate a section heading and 5 FAQs relevant to the business, each with question and answer.',
+      team: 'Generate a team section with heading and 4 team member placeholders with names, roles, and bios.',
+      pricing: 'Generate a pricing section with heading and 3 pricing tiers with names, prices, and features.',
+      gallery: 'Generate a gallery section with heading, description, and 6 image descriptions/captions.',
+      blog: 'Generate a blog section with heading and 3 blog post titles with excerpts.',
+      partners: 'Generate a partners/clients section with heading and 6 partner/client company names.',
+      footer: 'Generate footer content with company name, description, and contact details.',
+      policies: 'Generate placeholder text for Privacy Policy, Terms of Service, and Refund Policy summaries.'
+    };
+    
+    const systemPrompt = `You are a professional website content writer. Generate website content for a ${businessType || 'business'} called "${businessName}".
+Use ${toneDesc}. All content should be unique, compelling, and appropriate for the business type.
+Return ONLY valid JSON with no markdown or explanation.`;
+
+    const sectionsToGenerate = sections.map((s: any) => ({
+      id: s.id,
+      type: s.type,
+      name: s.name,
+      prompt: sectionPrompts[s.type] || 'Generate appropriate content for this section.'
+    }));
+    
+    const userPrompt = `Generate content for these website sections:
+
+${sectionsToGenerate.map((s: any) => `Section: ${s.name} (type: ${s.type})
+Task: ${s.prompt}`).join('\n\n')}
+
+Return JSON array with this structure for each section:
+[
+  {
+    "id": "section-id",
+    "type": "section-type",
+    "name": "Section Name",
+    "data": { ...section-specific content based on type }
+  }
+]
+
+For section data, include fields like:
+- hero: { heading, subheading, description, ctaText, imageUrl }
+- features: { heading, items: [{ icon, title, description }] }
+- services: { heading, items: [{ title, description, icon }] }
+- testimonials: { heading, items: [{ name, role, content, rating }] }
+- cta: { heading, subheading, description, ctaText }
+- contact: { heading, description, email, phone, address }
+- about: { heading, description, points: [] }
+- faq: { heading, items: [{ question, answer }] }
+- pricing: { heading, items: [{ name, price, period, features: [] }] }
+- footer: { companyName, description, email, phone, address }
+- navigation: { logo, links: [{ text, url }], ctaText }`;
+
+    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 3000
+      })
+    });
+    
+    if (!aiResponse.ok) {
+      const errorData = await aiResponse.json();
+      console.error('OpenAI API error:', errorData);
+      return c.json({ error: 'AI generation failed' }, 500);
+    }
+    
+    const aiData = await aiResponse.json() as any;
+    const content = aiData.choices?.[0]?.message?.content || '';
+    
+    try {
+      // Parse JSON from response
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const generatedSections = JSON.parse(jsonMatch[0]);
+        return c.json({ sections: generatedSections });
+      } else {
+        // Try parsing as object with sections property
+        const objMatch = content.match(/\{[\s\S]*\}/);
+        if (objMatch) {
+          const parsed = JSON.parse(objMatch[0]);
+          if (parsed.sections) {
+            return c.json({ sections: parsed.sections });
+          }
+        }
+        throw new Error('Invalid response format');
+      }
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', content);
+      return c.json({ error: 'Failed to parse generated content' }, 500);
+    }
+    
+  } catch (error: any) {
+    console.error('Section content generation error:', error);
+    return c.json({ error: error.message || 'Generation failed' }, 500);
+  }
+});
+
 // DNS Verification endpoint - performs real DNS lookup
 app.post('/api/dns/verify', async (c) => {
   try {
