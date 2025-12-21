@@ -852,6 +852,212 @@ function FAQSection({ section, onUpdate }: { section: Section; onUpdate: (data: 
   );
 }
 
+function BlogSection({ section, onUpdate }: { section: Section; onUpdate: (data: any) => void }) {
+  const data = section.data;
+  const posts = data.items || data.posts || [
+    { 
+      title: 'Featured Article Title', 
+      excerpt: 'This is the featured article excerpt that provides a brief overview of the content.',
+      imageUrl: '',
+      category: 'News',
+      date: 'January 22, 2025',
+      readTime: '5 min read',
+      featured: true
+    },
+    { 
+      title: 'Second Article Title', 
+      excerpt: 'Brief description of this article.',
+      imageUrl: '',
+      category: 'Business',
+      date: 'January 21, 2025',
+      readTime: '3 min read'
+    },
+    { 
+      title: 'Third Article Title', 
+      excerpt: 'Brief description of this article.',
+      imageUrl: '',
+      category: 'Technology',
+      date: 'January 20, 2025',
+      readTime: '4 min read'
+    },
+  ];
+
+  const mostRead = data.mostRead || [
+    { category: 'Business', title: 'Most Popular Article One', readTime: '5 min read' },
+    { category: 'Technology', title: 'Popular Article Two: Key Insights', readTime: '4 min read' },
+    { category: 'News', title: 'Third Most Read: Important Updates', readTime: '6 min read' },
+    { category: 'Finance', title: 'Fourth Article: Market Analysis', readTime: '3 min read' },
+  ];
+
+  const featuredPost = posts[0];
+  const secondaryPosts = posts.slice(1, 4);
+
+  const updatePost = (index: number, field: string, value: string) => {
+    const newPosts = [...posts];
+    newPosts[index] = { ...newPosts[index], [field]: value };
+    onUpdate({ ...data, items: newPosts });
+  };
+
+  const updateMostRead = (index: number, field: string, value: string) => {
+    const newMostRead = [...mostRead];
+    newMostRead[index] = { ...newMostRead[index], [field]: value };
+    onUpdate({ ...data, mostRead: newMostRead });
+  };
+
+  const addPost = () => {
+    const newPosts = [...posts, { 
+      title: 'New Article Title', 
+      excerpt: 'Article description here.',
+      imageUrl: '',
+      category: 'News',
+      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      readTime: '3 min read'
+    }];
+    onUpdate({ ...data, items: newPosts });
+  };
+
+  const removePost = (index: number) => {
+    const newPosts = posts.filter((_: any, i: number) => i !== index);
+    onUpdate({ ...data, items: newPosts });
+  };
+
+  return (
+    <section className="py-12 px-6 bg-white">
+      <div className="max-w-7xl mx-auto">
+        {/* Section Header */}
+        <div className="mb-8 border-b-2 border-gray-900 pb-2">
+          <EditableText
+            value={data.heading || 'Latest News'}
+            onChange={(heading) => onUpdate({ ...data, heading })}
+            as="h2"
+            className="text-2xl font-bold text-gray-900 uppercase tracking-wide"
+            placeholder="Section heading..."
+          />
+        </div>
+
+        {/* Main Grid: Articles + Most Read Sidebar */}
+        <div className="grid lg:grid-cols-[2fr_1fr] gap-8">
+          {/* Left Column: Featured + Secondary Articles */}
+          <div>
+            {/* Featured Article */}
+            {featuredPost && (
+              <div className="relative mb-8 group">
+                <div className="relative aspect-[16/10] bg-gray-200 rounded overflow-hidden mb-4">
+                  {featuredPost.imageUrl ? (
+                    <img src={featuredPost.imageUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
+                      <span className="text-gray-500">Featured Image</span>
+                    </div>
+                  )}
+                  {/* Overlay with text */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-6">
+                    <EditableText
+                      value={featuredPost.title}
+                      onChange={(title) => updatePost(0, 'title', title)}
+                      as="h3"
+                      className="text-2xl md:text-3xl font-bold text-white mb-2"
+                      placeholder="Featured headline..."
+                    />
+                    <div className="flex items-center gap-3 text-white/80 text-sm mb-2">
+                      <span className="text-red-500 font-bold uppercase text-xs">{featuredPost.readTime}</span>
+                      <span>{featuredPost.date}</span>
+                    </div>
+                    <EditableText
+                      value={featuredPost.excerpt}
+                      onChange={(excerpt) => updatePost(0, 'excerpt', excerpt)}
+                      as="p"
+                      className="text-white/90 text-sm md:text-base line-clamp-2"
+                      placeholder="Article excerpt..."
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => removePost(0)}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Secondary Articles Grid */}
+            <div className="grid md:grid-cols-3 gap-6">
+              {secondaryPosts.map((post: any, idx: number) => {
+                const actualIndex = idx + 1;
+                return (
+                  <div key={actualIndex} className="group relative">
+                    <div className="aspect-[4/3] bg-gray-200 rounded overflow-hidden mb-3">
+                      {post.imageUrl ? (
+                        <img src={post.imageUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                          <span className="text-gray-400 text-sm">Image</span>
+                        </div>
+                      )}
+                    </div>
+                    <EditableText
+                      value={post.title}
+                      onChange={(title) => updatePost(actualIndex, 'title', title)}
+                      as="h3"
+                      className="font-bold text-gray-900 text-sm mb-1 line-clamp-2 hover:underline"
+                      placeholder="Article title..."
+                    />
+                    <div className="text-xs text-gray-500">
+                      <span className="uppercase font-medium">{post.readTime}</span>
+                      <span className="mx-2">·</span>
+                      <span>{post.date}</span>
+                    </div>
+                    <button
+                      onClick={() => removePost(actualIndex)}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Add Article Button */}
+            <div className="mt-6 text-center">
+              <button
+                onClick={addPost}
+                className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 mx-auto"
+              >
+                <Plus className="w-4 h-4" /> Add Article
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Most Read Sidebar */}
+          <div className="lg:border-l lg:pl-8 border-gray-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-6 uppercase tracking-wide">Most Read</h3>
+            <div className="space-y-4">
+              {mostRead.map((item: any, index: number) => (
+                <div key={index} className="flex gap-3 group pb-4 border-b border-gray-100 last:border-0">
+                  <span className="text-2xl font-bold text-gray-300 leading-none">{index + 1}</span>
+                  <div className="flex-1">
+                    <span className="text-red-600 text-xs font-bold uppercase">{item.category}</span>
+                    <EditableText
+                      value={item.title}
+                      onChange={(title) => updateMostRead(index, 'title', title)}
+                      as="h3"
+                      className="font-semibold text-gray-900 text-sm leading-tight hover:underline cursor-pointer"
+                      placeholder="Article title..."
+                    />
+                    <span className="text-xs text-gray-500 uppercase mt-1 block">{item.readTime}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function GenericSection({ section, onUpdate }: { section: Section; onUpdate: (data: any) => void }) {
   const data = section.data;
   
@@ -1201,6 +1407,7 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
       case 'contact': return <ContactSection {...sectionProps} />;
       case 'about': return <AboutSection {...sectionProps} />;
       case 'faq': return <FAQSection {...sectionProps} />;
+      case 'blog': return <BlogSection {...sectionProps} />;
       case 'footer': return <FooterSection {...sectionProps} />;
       case 'policies': return <PoliciesSection {...sectionProps} />;
       default: return <GenericSection {...sectionProps} />;

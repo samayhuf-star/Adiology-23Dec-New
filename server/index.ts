@@ -1219,7 +1219,7 @@ app.post('/api/generate-section-content', async (c) => {
       team: 'Generate a team section with heading and 4 team member placeholders with names, roles, and bios.',
       pricing: 'Generate a pricing section with heading and 3 pricing tiers with names, prices, and features.',
       gallery: 'Generate a gallery section with heading, description, and 6 image descriptions/captions.',
-      blog: 'Generate a blog section with heading and 3 blog post titles with excerpts.',
+      blog: 'Generate a blog section with heading, 4 articles (first is featured with longer excerpt), and 4 "Most Read" sidebar items. Each article needs title, excerpt, category, date, readTime. Each mostRead item needs category, title, readTime.',
       partners: 'Generate a partners/clients section with heading and 6 partner/client company names.',
       footer: 'Generate footer content with company name, description, and contact details.',
       policies: 'Generate placeholder text for Privacy Policy, Terms of Service, and Refund Policy summaries.'
@@ -1261,6 +1261,7 @@ For section data, include fields like:
 - about: { heading, description, points: [] }
 - faq: { heading, items: [{ question, answer }] }
 - pricing: { heading, items: [{ name, price, period, features: [] }] }
+- blog: { heading, items: [{ title, excerpt, category, date, readTime }], mostRead: [{ category, title, readTime }] }
 - footer: { companyName, description, email, phone, address }
 - navigation: { logo, links: [{ text, url }], ctaText }`;
 
