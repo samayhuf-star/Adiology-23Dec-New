@@ -4202,50 +4202,65 @@ app.post('/api/admin/database/table/:tableName/update', async (c) => {
 });
 
 // Send email via Sendune
+// Note: Sendune uses template-based emails. Each template in Sendune has its own template-key.
+// The API sends the recipient, subject, and any replace tags to fill in the template.
+// Create email templates at app.sendune.com and use their template keys.
 app.post('/api/admin/email/send', async (c) => {
   try {
-    const { to, subject, htmlBody, textBody, templateKey, replaceTags } = await c.req.json();
+    const { to, subject, templateKey, replaceTags } = await c.req.json();
     
-    const senduneApiKey = process.env.SENDUNE_API_KEY;
-    if (!senduneApiKey) {
-      return c.json({ error: 'Sendune not configured' }, 500);
+    // Template key is required - either pass a specific one or use the default from env
+    const senduneTemplateKey = templateKey || process.env.SENDUNE_API_KEY;
+    if (!senduneTemplateKey) {
+      return c.json({ error: 'Sendune template key not configured. Create a template at app.sendune.com and add the template key.' }, 500);
     }
     
-    // Use provided template key or default API key
-    const apiKey = templateKey || senduneApiKey;
-    
-    // Build request body with email, subject, and any replace tags
+    // Build request body: email, subject, and any replace tags (flattened)
+    // Replace tags should be passed as { "tag-name": "value" } matching {{tag-name}} in template
     const requestBody: Record<string, string> = {
       email: to,
-      subject: subject,
-      ...replaceTags
+      subject: subject
     };
+    
+    // Merge replace tags into request body (Sendune expects flat structure)
+    if (replaceTags && typeof replaceTags === 'object') {
+      Object.entries(replaceTags).forEach(([key, value]) => {
+        requestBody[key] = String(value);
+      });
+    }
+    
+    console.log('Sending email via Sendune:', { to, subject, tagsCount: Object.keys(replaceTags || {}).length });
     
     const response = await fetch('https://api.sendune.com/send-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'template-key': apiKey
+        'template-key': senduneTemplateKey
       },
       body: JSON.stringify(requestBody)
     });
     
-    if (response.ok) {
+    const responseData = await response.json().catch(() => ({ message: 'Unknown response' }));
+    
+    if (response.ok && responseData.success) {
       // Log email sent
       await pool.query(
         'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
         [to, subject, 'sent']
-      );
-      return c.json({ success: true });
+      ).catch(err => console.error('Failed to log email:', err));
+      
+      console.log('Email sent successfully via Sendune to:', to);
+      return c.json({ success: true, message: responseData.message });
     } else {
-      const error = await response.text();
-      console.error('Sendune error:', error);
+      const errorMsg = responseData.error || responseData.message || 'Failed to send email';
+      console.error('Sendune error:', errorMsg);
       // Log failed email
       await pool.query(
         'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
         [to, subject, 'failed']
-      );
-      return c.json({ error }, 500);
+      ).catch(err => console.error('Failed to log email:', err));
+      
+      return c.json({ error: errorMsg }, 500);
     }
   } catch (error: any) {
     console.error('Error sending email:', error);

@@ -1950,55 +1950,71 @@ app.put("/admin/pricing-plans/:id", async (c) => {
 });
 
 // ========== EMAIL FUNCTIONALITY WITH SENDUNE ==========
+// Note: Sendune uses template-based emails. Each template has its own template-key.
+// Create email templates at app.sendune.com with replace tags like {{tag-name}}.
+// The API sends recipient, subject, and replace tag values to fill the template.
 
 /**
  * Send email using Sendune API
+ * @param to - Recipient email address
+ * @param subject - Email subject line
+ * @param templateKey - Optional specific template key (falls back to SENDUNE_API_KEY env var)
+ * @param replaceTags - Key-value pairs matching {{tag-name}} placeholders in the template
  */
 async function sendEmailViaSendune(
   to: string,
   subject: string,
-  htmlBody: string,
-  textBody?: string,
+  templateKey?: string,
   replaceTags?: Record<string, string>
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const senduneApiKey = Deno.env.get("SENDUNE_API_KEY");
+  const senduneTemplateKey = templateKey || Deno.env.get("SENDUNE_API_KEY");
 
-  if (!senduneApiKey) {
+  if (!senduneTemplateKey) {
     console.error("SENDUNE_API_KEY is not configured");
-    return { success: false, error: "Email service not configured" };
+    return { success: false, error: "Email service not configured. Create a template at app.sendune.com and add the template key." };
   }
 
   try {
+    // Build request body: email, subject, and flattened replace tags
     const requestBody: Record<string, string> = {
       email: to,
       subject: subject,
-      ...replaceTags
     };
+    
+    // Merge replace tags into request body (Sendune expects flat structure)
+    if (replaceTags && typeof replaceTags === "object") {
+      Object.entries(replaceTags).forEach(([key, value]) => {
+        requestBody[key] = String(value);
+      });
+    }
+
+    console.log("Sending email via Sendune:", { to, subject, tagsCount: Object.keys(replaceTags || {}).length });
 
     const response = await fetch("https://api.sendune.com/send-email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "template-key": senduneApiKey,
+        "template-key": senduneTemplateKey,
       },
       body: JSON.stringify(requestBody),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Sendune API Error:", errorText);
+    const data = await response.json().catch(() => ({ message: "Unknown response" }));
+
+    if (response.ok && data.success) {
+      console.log("Email sent successfully via Sendune to:", to);
+      return {
+        success: true,
+        messageId: data.id || "sent",
+      };
+    } else {
+      const errorMsg = data.error || data.message || `HTTP ${response.status}`;
+      console.error("Sendune API Error:", errorMsg);
       return {
         success: false,
-        error: errorText || `HTTP ${response.status}`,
+        error: errorMsg,
       };
     }
-
-    const data = await response.json();
-    console.log("Email sent successfully via Sendune:", data);
-    return {
-      success: true,
-      messageId: data.id || "sent",
-    };
   } catch (error) {
     console.error("Error sending email via Sendune:", error);
     return {
@@ -2135,11 +2151,14 @@ function generateActivationEmailHtml(
 
 /**
  * Send verification email endpoint
+ * Note: Create a "Verification Email" template in Sendune with replace tags:
+ * {{verification-url}} - The verification link
+ * {{email}} - The user's email address
  */
 app.post("/email/send-verification", async (c) => {
   try {
     const body = await c.req.json();
-    const { email, token, baseUrl } = body;
+    const { email, token, baseUrl, templateKey } = body;
 
     if (!email || !token) {
       return c.json({ error: "Email and token are required" }, 400);
@@ -2148,14 +2167,15 @@ app.post("/email/send-verification", async (c) => {
     const frontendUrl = baseUrl || Deno.env.get("FRONTEND_URL") || "https://adiology.online";
     const verificationUrl = `${frontendUrl}/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
-    const htmlBody = generateVerificationEmailHtml(email, verificationUrl, token);
-    const textBody = `Verify your email address by visiting: ${verificationUrl}`;
-
+    // Use Sendune template with replace tags
     const result = await sendEmailViaSendune(
       email,
       "Verify Your Email - Adiology",
-      htmlBody,
-      textBody
+      templateKey, // Use specific template key or default from env
+      {
+        "verification-url": verificationUrl,
+        "email": email
+      }
     );
 
     if (!result.success) {
@@ -2181,11 +2201,14 @@ app.post("/email/send-verification", async (c) => {
 
 /**
  * Send activation email endpoint
+ * Note: Create an "Activation Email" template in Sendune with replace tags:
+ * {{activation-url}} - The activation link
+ * {{email}} - The user's email address
  */
 app.post("/email/send-activation", async (c) => {
   try {
     const body = await c.req.json();
-    const { email, token, baseUrl } = body;
+    const { email, token, baseUrl, templateKey } = body;
 
     if (!email || !token) {
       return c.json({ error: "Email and token are required" }, 400);
@@ -2194,14 +2217,15 @@ app.post("/email/send-activation", async (c) => {
     const frontendUrl = baseUrl || Deno.env.get("FRONTEND_URL") || "https://adiology.online";
     const activationUrl = `${frontendUrl}/verify-email?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
 
-    const htmlBody = generateActivationEmailHtml(email, activationUrl);
-    const textBody = `Activate your account by visiting: ${activationUrl}`;
-
+    // Use Sendune template with replace tags
     const result = await sendEmailViaSendune(
       email,
       "Activate Your Account - Adiology",
-      htmlBody,
-      textBody
+      templateKey, // Use specific template key or default from env
+      {
+        "activation-url": activationUrl,
+        "email": email
+      }
     );
 
     if (!result.success) {
@@ -2227,39 +2251,26 @@ app.post("/email/send-activation", async (c) => {
 
 /**
  * Test email endpoint (for testing Sendune configuration)
+ * Note: Create a "Test Email" template in Sendune with replace tags:
+ * {{timestamp}} - When the test was sent
  */
 app.post("/email/test", async (c) => {
   try {
     const body = await c.req.json();
-    const { email } = body;
+    const { email, templateKey } = body;
 
     if (!email) {
       return c.json({ error: "Email is required" }, 400);
     }
 
-    const testHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Test Email - Adiology</title>
-</head>
-<body style="font-family: Arial, sans-serif; padding: 20px;">
-  <h2>Test Email from Adiology</h2>
-  <p>This is a test email to verify Sendune integration is working correctly.</p>
-  <p>If you received this email, the email service is configured properly!</p>
-  <p style="color: #666; font-size: 12px; margin-top: 30px;">
-    Sent at: ${new Date().toISOString()}
-  </p>
-</body>
-</html>
-    `.trim();
-
+    // Use Sendune template with replace tags
     const result = await sendEmailViaSendune(
       email,
       "Test Email - Adiology Sendune Integration",
-      testHtml,
-      "This is a test email to verify Sendune integration is working correctly."
+      templateKey, // Use specific template key or default from env
+      {
+        "timestamp": new Date().toISOString()
+      }
     );
 
     if (!result.success) {
