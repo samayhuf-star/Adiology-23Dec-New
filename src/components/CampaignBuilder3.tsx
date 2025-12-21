@@ -2750,7 +2750,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
   // Render functions for each step
   const renderStep1 = () => (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto px-3 py-4 sm:p-6">
       {/* Step Navigation */}
       <div className="flex justify-between items-center mb-6">
         <button
@@ -2939,7 +2939,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   );
 
   const renderStep2 = () => (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto px-3 py-4 sm:p-6">
       {/* Step Navigation */}
       <div className="flex justify-between items-center mb-6">
         <button
@@ -3323,19 +3323,19 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   );
 
   const renderStep3 = () => (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto px-3 py-4 sm:p-6">
       {/* Step Navigation */}
       <div className="flex justify-between items-center mb-6">
         <button
           onClick={handleBackStep}
-          className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
+          className="text-xl sm:text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
         >
           Back
         </button>
         <button
           onClick={handleNextStep}
           disabled={loading}
-          className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+          className="text-xl sm:text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
         >
           Next
         </button>
@@ -3496,8 +3496,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 <CardTitle>Keyword Type Filters</CardTitle>
                 <CardDescription>Toggle keyword types to filter the list</CardDescription>
               </CardHeader>
-              <CardContent>
-              <div className="flex gap-4">
+              <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-wrap gap-3 sm:gap-4">
                   {KEYWORD_TYPES.map(type => (
                     <div key={type.id} className="flex items-center gap-2">
                       <Checkbox
@@ -3505,7 +3505,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                         checked={campaignData.keywordTypes[type.id] || false}
                         onCheckedChange={() => handleKeywordTypeToggle(type.id)}
                       />
-                      <Label htmlFor={type.id}>{type.label}</Label>
+                      <Label htmlFor={type.id} className="text-sm whitespace-nowrap">{type.label}</Label>
                     </div>
                   ))}
                 </div>
@@ -3513,9 +3513,9 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             </Card>
 
           <Card className="mb-6" data-keywords-section>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Generated Keywords & Negative Keywords ({campaignData.selectedKeywords.length} selected / {filteredKeywords.length} total)</span>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="text-base sm:text-lg">Generated Keywords & Negative Keywords ({campaignData.selectedKeywords.length} selected / {filteredKeywords.length} total)</span>
                   <div className="flex items-center gap-2 text-xs font-normal">
                     <span className="text-slate-500">Data Source:</span>
                     <Badge variant="outline" className={`text-xs ${
@@ -3535,9 +3535,9 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 </CardTitle>
                 <CardDescription>Keywords with search volume, CPC, and competition metrics. Click checkboxes to select/unselect keywords.</CardDescription>
               </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
               {/* Select All / Deselect All Controls */}
-              <div className="flex items-center gap-4 mb-4 p-3 bg-slate-50 rounded-lg border">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 p-3 bg-slate-50 rounded-lg border">
                 <Button
                   variant="outline"
                   size="sm"
@@ -3566,7 +3566,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   <X className="w-3 h-3 mr-1" />
                   Deselect All
                 </Button>
-                <span className="text-xs text-slate-500 ml-auto">
+                <span className="text-xs text-slate-500 sm:ml-auto w-full sm:w-auto mt-2 sm:mt-0">
                   {campaignData.selectedKeywords.length} of {filteredKeywords.length} keywords selected
                 </span>
               </div>
@@ -3726,25 +3726,25 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     ];
 
     return (
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto px-3 py-4 sm:p-6">
         {/* Step Navigation */}
         <div className="flex justify-between items-center mb-6">
           <button
             onClick={handleBackStep}
-            className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
+            className="text-xl sm:text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
           >
             Back
           </button>
           <button
             onClick={handleNextStep}
             disabled={loading}
-            className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+            className="text-xl sm:text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
           >
             Next
           </button>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <h3 className="text-lg font-semibold text-slate-800 mb-2">Ads & Extensions</h3>
         </div>
 
@@ -3866,24 +3866,24 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               </Card>
             ) : (
               displayAds.map((ad) => (
-                <Card key={ad.id} className="border-2">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <Badge variant="outline" className="text-xs">
+                <Card key={ad.id} className="border-2 overflow-hidden">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-4">
+                      <Badge variant="outline" className="text-xs w-fit">
                         {ad.type?.toUpperCase() || ad.adType || 'RSA'}
                       </Badge>
-                        <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditAd(ad.id)} className="text-indigo-600 hover:text-indigo-700">
-                          <Edit3 className="w-4 h-4 mr-1" />
-                          EDIT
+                        <div className="flex flex-wrap gap-1 sm:gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditAd(ad.id)} className="text-indigo-600 hover:text-indigo-700 px-2 sm:px-3">
+                          <Edit3 className="w-4 h-4 sm:mr-1" />
+                          <span className="hidden sm:inline">EDIT</span>
                           </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDuplicateAd(ad.id)} className="text-indigo-600 hover:text-indigo-700">
-                          <Copy className="w-4 h-4 mr-1" />
-                          DUPLICATE
+                        <Button variant="ghost" size="sm" onClick={() => handleDuplicateAd(ad.id)} className="text-indigo-600 hover:text-indigo-700 px-2 sm:px-3">
+                          <Copy className="w-4 h-4 sm:mr-1" />
+                          <span className="hidden sm:inline">DUPLICATE</span>
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteAd(ad.id)} className="text-indigo-600 hover:text-indigo-700">
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          DELETE
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteAd(ad.id)} className="text-indigo-600 hover:text-indigo-700 px-2 sm:px-3">
+                          <Trash2 className="w-4 h-4 sm:mr-1" />
+                          <span className="hidden sm:inline">DELETE</span>
                           </Button>
                         </div>
                       </div>
@@ -3969,24 +3969,24 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                               }
                               
                               return (
-                                <div key={ext.id} className="flex items-center justify-between p-3 bg-slate-50 rounded border border-slate-200">
-                                  <div className="flex items-center gap-3 flex-1">
-                                    {ext.type === 'snippet' && <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />}
-                                    {ext.type === 'callout' && <MessageSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
-                                    {ext.type === 'sitelink' && <Link2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
-                                    {ext.type === 'call' && <Phone className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
-                                    {ext.type === 'price' && <DollarSign className="w-4 h-4 text-yellow-600 flex-shrink-0" />}
-                                    {ext.type === 'app' && <Smartphone className="w-4 h-4 text-cyan-600 flex-shrink-0" />}
-                                    {ext.type === 'location' && <MapPinIcon className="w-4 h-4 text-red-600 flex-shrink-0" />}
-                                    {ext.type === 'message' && <MessageSquare className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
-                                    {ext.type === 'leadform' && <FileText className="w-4 h-4 text-orange-600 flex-shrink-0" />}
-                                    {ext.type === 'promotion' && <Gift className="w-4 h-4 text-pink-600 flex-shrink-0" />}
-                                    {ext.type === 'image' && <ImageIcon className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
+                                <div key={ext.id} className="flex items-start justify-between p-2 sm:p-3 bg-slate-50 rounded border border-slate-200 gap-2">
+                                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                                    {ext.type === 'snippet' && <FileText className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'callout' && <MessageSquare className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'sitelink' && <Link2 className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'call' && <Phone className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'price' && <DollarSign className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'app' && <Smartphone className="w-4 h-4 text-cyan-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'location' && <MapPinIcon className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'message' && <MessageSquare className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'leadform' && <FileText className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'promotion' && <Gift className="w-4 h-4 text-pink-600 flex-shrink-0 mt-0.5" />}
+                                    {ext.type === 'image' && <ImageIcon className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />}
                                     <div className="flex-1 min-w-0">
                                       <span className="text-xs text-slate-500 uppercase font-semibold block mb-1">
                                         {ext.label || ext.type.charAt(0).toUpperCase() + ext.type.slice(1).replace(/([A-Z])/g, ' $1')}
                                       </span>
-                                      <span className="text-sm text-slate-700 font-medium block truncate">
+                                      <span className="text-xs sm:text-sm text-slate-700 font-medium block break-words">
                                         {displayText}
                                 </span>
                                     </div>
@@ -3995,7 +3995,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleRemoveExtension(ad.id, ext.id)}
-                                    className="text-red-600 hover:text-red-700 flex-shrink-0"
+                                    className="text-red-600 hover:text-red-700 flex-shrink-0 p-1 h-auto"
                               >
                                 <X className="w-4 h-4" />
                               </Button>
@@ -4356,30 +4356,30 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     const currentSelection = getCurrentSelection();
 
     return (
-      <div className="max-w-5xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto px-3 py-4 sm:p-6">
         {/* Step Navigation */}
         <div className="flex justify-between items-center mb-6">
           <button
             onClick={handleBackStep}
-            className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
+            className="text-xl sm:text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500"
           >
             Back
           </button>
           <button
             onClick={handleNextStep}
             disabled={loading}
-            className="text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
+            className="text-xl sm:text-2xl font-semibold italic bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50"
           >
             Next
           </button>
         </div>
 
         {/* Header with gradient */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-indigo-200/50 mb-4">
-            <MapPin className="w-8 h-8 text-white" />
+        <div className="mb-6 sm:mb-8 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg shadow-indigo-200/50 mb-4">
+            <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
             Geo Targeting
           </h2>
           <p className="text-slate-600 max-w-xl mx-auto">
@@ -5005,13 +5005,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   };
 
   const renderStep7 = () => (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8 flex items-center justify-end">
-        <div className="text-sm text-slate-500 mr-4">CSV generation step - no inputs to fill</div>
+    <div className="max-w-6xl mx-auto px-3 py-4 sm:p-6">
+      <div className="mb-6 sm:mb-8 flex items-center justify-end">
+        <div className="text-xs sm:text-sm text-slate-500 mr-4">CSV generation step - no inputs to fill</div>
       </div>
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <h3 className="text-lg font-semibold text-slate-800 mb-2">CSV Generation</h3>
-        <p className="text-slate-600">Generate your campaign CSV for Google Ads Editor</p>
+        <p className="text-sm sm:text-base text-slate-600">Generate your campaign CSV for Google Ads Editor</p>
       </div>
 
       <Card className="mb-6">
