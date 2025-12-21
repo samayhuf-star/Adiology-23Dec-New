@@ -728,6 +728,148 @@ app.delete('/api/admin/websites/:id', async (c) => {
   }
 });
 
+// Publish website endpoint - stores published HTML in database and returns live URL
+app.post('/api/publish-website', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { id, name, slug, user_email, html_content, template_data } = body;
+    
+    if (!slug || !html_content) {
+      return c.json({ error: 'Missing required fields: slug and html_content' }, 400);
+    }
+    
+    // Generate unique slug if needed
+    let finalSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    
+    // Check if slug exists and append timestamp if needed
+    const existingCheck = await pool.query(
+      'SELECT id FROM published_websites WHERE slug = $1',
+      [finalSlug]
+    );
+    
+    if (existingCheck.rows.length > 0 && existingCheck.rows[0].id !== id) {
+      finalSlug = `${finalSlug}-${Date.now().toString(36)}`;
+    }
+    
+    // Upsert the published website
+    const result = await pool.query(`
+      INSERT INTO published_websites (id, name, slug, user_email, html_content, template_data, status, published_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW(), NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        slug = EXCLUDED.slug,
+        html_content = EXCLUDED.html_content,
+        template_data = EXCLUDED.template_data,
+        status = 'published',
+        published_at = NOW(),
+        updated_at = NOW()
+      RETURNING *
+    `, [id || `pub_${Date.now()}`, name, finalSlug, user_email, html_content, JSON.stringify(template_data || {})]);
+    
+    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'adiology.io';
+    const protocol = domain.includes('localhost') ? 'http' : 'https';
+    const publishedUrl = `${protocol}://${domain}/templates/${finalSlug}`;
+    
+    console.log('✅ Website published:', { id: result.rows[0].id, slug: finalSlug, url: publishedUrl });
+    
+    return c.json({ 
+      success: true, 
+      url: publishedUrl,
+      slug: finalSlug,
+      id: result.rows[0].id
+    });
+  } catch (error: any) {
+    console.error('Error publishing website:', error);
+    // If table doesn't exist, create it and retry
+    if (error.code === '42P01') {
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS published_websites (
+            id VARCHAR(255) PRIMARY KEY,
+            name VARCHAR(255),
+            slug VARCHAR(255) UNIQUE,
+            user_email VARCHAR(255),
+            html_content TEXT,
+            template_data JSONB,
+            status VARCHAR(50) DEFAULT 'published',
+            published_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          )
+        `);
+        console.log('✅ Created published_websites table, retrying insert...');
+        
+        // Retry the insert after table creation
+        const body = await c.req.json().catch(() => ({}));
+        const { id, name, slug, user_email, html_content, template_data } = body;
+        let finalSlug = (slug || 'site').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+        
+        const retryResult = await pool.query(`
+          INSERT INTO published_websites (id, name, slug, user_email, html_content, template_data, status, published_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW(), NOW())
+          RETURNING *
+        `, [id || `pub_${Date.now()}`, name, finalSlug, user_email, html_content, JSON.stringify(template_data || {})]);
+        
+        const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'adiology.io';
+        const protocol = domain.includes('localhost') ? 'http' : 'https';
+        const publishedUrl = `${protocol}://${domain}/templates/${finalSlug}`;
+        
+        return c.json({ 
+          success: true, 
+          url: publishedUrl,
+          slug: finalSlug,
+          id: retryResult.rows[0].id
+        });
+      } catch (createError) {
+        console.error('Error creating table or retrying:', createError);
+      }
+    }
+    return c.json({ error: error.message || 'Failed to publish website' }, 500);
+  }
+});
+
+// Serve published websites
+app.get('/templates/:slug', async (c) => {
+  try {
+    const slug = c.req.param('slug');
+    const result = await pool.query(
+      'SELECT html_content FROM published_websites WHERE slug = $1 AND status = $2',
+      [slug, 'published']
+    );
+    
+    if (result.rows.length === 0) {
+      return c.html(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Page Not Found</title></head>
+        <body style="font-family: system-ui; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+          <div style="text-align: center;">
+            <h1 style="color: #666;">Page Not Found</h1>
+            <p>The website "${slug}" could not be found.</p>
+            <a href="/" style="color: #6366f1;">Go to Homepage</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+    
+    return c.html(result.rows[0].html_content);
+  } catch (error) {
+    console.error('Error serving template:', error);
+    return c.html(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Error</title></head>
+      <body style="font-family: system-ui; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+        <div style="text-align: center;">
+          <h1 style="color: #666;">Error Loading Page</h1>
+          <p>Something went wrong. Please try again later.</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+});
+
 app.get('/api/admin/tickets', async (c) => {
   const auth = await verifySuperAdmin(c);
   if (!auth.authorized) return c.json({ error: auth.error }, 403);

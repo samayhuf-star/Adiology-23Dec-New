@@ -146,12 +146,18 @@ export const Teams: React.FC = () => {
       setTeamMembers(updatedMembers);
       saveTeamData(updatedMembers);
 
-      setSuccess(`Invitation sent to ${inviteEmail}`);
+      const sentEmail = inviteEmail;
       setInviteEmail('');
       setInviteRole('member');
       setIsInviteDialogOpen(false);
-
-      setTimeout(() => setSuccess(null), 5000);
+      
+      // Show success message after dialog closes (use setTimeout to ensure dialog animation completes)
+      setTimeout(() => {
+        setSuccess(`Invitation successfully sent to ${sentEmail}`);
+      }, 100);
+      
+      // Clear success message after 8 seconds (longer display time)
+      setTimeout(() => setSuccess(null), 8000);
     } catch (err: any) {
       console.error('Invite error:', err);
       setError(err.message || 'Failed to send invitation. Please try again.');

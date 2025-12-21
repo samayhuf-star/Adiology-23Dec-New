@@ -180,8 +180,11 @@ export const SavedSites: React.FC = () => {
   };
 
   const handleConnectDomain = (site: SavedSite) => {
-    // Navigate to domain connect dialog
-    window.location.href = `/app/templates/domain/${site.id}`;
+    // Show notification that domain connection is coming soon
+    notifications.info('Domain connection feature coming soon! For now, your site is available at the published URL.', {
+      title: 'Connect Domain',
+      description: 'Custom domain support will be available in a future update.'
+    });
   };
 
   // Group sites by status

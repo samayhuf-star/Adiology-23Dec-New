@@ -372,6 +372,13 @@ export async function signUpWithEmail(email: string, password: string, fullName:
       throw new Error('No data returned from signup');
     }
 
+    // IMPORTANT: Check if user already exists (Supabase returns user with empty identities for existing email)
+    // When email already exists, Supabase returns user object but with identities: [] or null
+    if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+      console.error('Email already registered - user has no identities');
+      throw new Error('User already registered');
+    }
+
     // Create user profile if signup successful (non-blocking)
     if (data.user) {
       createUserProfile(data.user.id, email, fullName)
