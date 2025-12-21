@@ -29,12 +29,12 @@
 2. Add these 3 secrets:
 
 ```
-POSTMARK_API_KEY = bc9029fb-e5a1-45b9-a94e-11ee31e23a68
-POSTMARK_FROM_EMAIL = noreply@adiology.online
+SENDUNE_API_KEY = bc9029fb-e5a1-45b9-a94e-11ee31e23a68
+SENDUNE_FROM_EMAIL = noreply@adiology.online
 FRONTEND_URL = https://adiology.online
 ```
 
-**Important:** Replace `noreply@adiology.online` with your verified Postmark sender email!
+**Important:** Replace `noreply@adiology.online` with your verified Sendune sender email!
 
 ### Step 5: Deploy
 - Click **Deploy** button
@@ -52,7 +52,7 @@ Expected response: `{"status":"ok"}`
 ### Step 7: Test Email
 Once deployed, run:
 ```bash
-node scripts/test-postmark-setup.js your-email@example.com
+node scripts/test-sendune-setup.js your-email@example.com
 ```
 
 ## 🔍 Troubleshooting
@@ -66,6 +66,6 @@ node scripts/test-postmark-setup.js your-email@example.com
 
 **Email not received:**
 - Check spam folder
-- Verify sender email in Postmark dashboard
-- Check Postmark Activity → Messages for delivery status
+- Verify sender email in Sendune dashboard
+- Check Sendune Activity → Messages for delivery status
 

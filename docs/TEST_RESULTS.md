@@ -63,8 +63,8 @@ Add these secrets:
 - `SUPABASE_URL` - https://kkdnnrwhzofttzajnwlj.supabase.co
 - `SUPABASE_SERVICE_ROLE_KEY` - Your service role key
 - `GEMINI_API_KEY` - If using AI features
-- `POSTMARK_API_KEY` - If using email features
-- `POSTMARK_FROM_EMAIL` - noreply@adiology.online
+- `SENDUNE_API_KEY` - If using email features
+- `SENDUNE_FROM_EMAIL` - noreply@adiology.online
 
 ### Step 4: Verify Deployment
 

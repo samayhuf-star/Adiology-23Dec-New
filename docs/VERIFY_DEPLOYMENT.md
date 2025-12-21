@@ -30,8 +30,8 @@ Please verify these in Supabase Dashboard:
 - Go to: **Project Settings** → **Edge Functions** → **Secrets**
 - **Question**: Are these secrets set?
   ```
-  POSTMARK_API_KEY
-  POSTMARK_FROM_EMAIL
+  SENDUNE_API_KEY
+  SENDUNE_FROM_EMAIL
   FRONTEND_URL
   ```
   - ✅ Yes → Continue to step 5
@@ -66,7 +66,7 @@ curl https://kkdnnrwhzofttzajnwlj.supabase.co/functions/v1/make-server-6757d0ca/
   -H "Authorization: Bearer YOUR_ANON_KEY"
 
 # Email test
-node scripts/test-postmark-setup.js samayhuf@gmail.com
+node scripts/test-sendune-setup.js samayhuf@gmail.com
 ```
 
 ## Expected Results

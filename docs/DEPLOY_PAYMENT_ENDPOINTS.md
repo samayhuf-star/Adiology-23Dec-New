@@ -56,8 +56,8 @@ FRONTEND_URL=https://adiology.online
 SUPABASE_URL=https://kkdnnrwhzofttzajnwlj.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 GEMINI_API_KEY=your_gemini_key (if using AI features)
-POSTMARK_API_KEY=your_postmark_key (if using email)
-POSTMARK_FROM_EMAIL=noreply@adiology.online
+SENDUNE_API_KEY=your_sendune_key (if using email)
+SENDUNE_FROM_EMAIL=noreply@adiology.online
 ```
 
 ## Verify Deployment

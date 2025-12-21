@@ -70,7 +70,7 @@ Preferred communication style: Simple, everyday language.
 - **Subscriptions & Billing**: Stripe sync, view subscription details, manage billing.
 - **Database Management**: Browse all database tables, view/edit records with two-way sync.
 - **System Logs**: View error logs, activity logs, API logs with filtering by level (info/warning/error).
-- **Email Management**: Postmark integration for sending emails, view email logs.
+- **Email Management**: Sendune integration for sending transactional emails via AWS SES, view email logs.
 - **Security & Firewall**: IP blocking rules, rate limiting configuration, access rules management.
 - **Database Tables**: admin_logs (system logging), security_rules (firewall), email_logs (tracking).
 

@@ -42,8 +42,8 @@ Getting "Project not specified" error when calling the Edge Function.
 ### 5. Required Secrets
 Make sure these are set in **Project Settings → Edge Functions → Secrets**:
 ```
-POSTMARK_API_KEY=bc9029fb-e5a1-45b9-a94e-11ee31e23a68
-POSTMARK_FROM_EMAIL=noreply@adiology.online
+SENDUNE_API_KEY=bc9029fb-e5a1-45b9-a94e-11ee31e23a68
+SENDUNE_FROM_EMAIL=noreply@adiology.online
 FRONTEND_URL=https://adiology.online
 ```
 
@@ -55,7 +55,7 @@ curl https://kkdnnrwhzofttzajnwlj.supabase.co/functions/v1/make-server-6757d0ca/
   -H "Authorization: Bearer YOUR_ANON_KEY"
 
 # Email test
-node scripts/test-postmark-setup.js samayhuf@gmail.com
+node scripts/test-sendune-setup.js samayhuf@gmail.com
 ```
 
 ## Alternative: Check Function List

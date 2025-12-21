@@ -1949,60 +1949,58 @@ app.put("/admin/pricing-plans/:id", async (c) => {
   }
 });
 
-// ========== EMAIL FUNCTIONALITY WITH POSTMARK ==========
+// ========== EMAIL FUNCTIONALITY WITH SENDUNE ==========
 
 /**
- * Send email using Postmark API
+ * Send email using Sendune API
  */
-async function sendEmailViaPostmark(
+async function sendEmailViaSendune(
   to: string,
   subject: string,
   htmlBody: string,
-  textBody?: string
+  textBody?: string,
+  replaceTags?: Record<string, string>
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const postmarkApiKey = Deno.env.get("POSTMARK_API_KEY");
-  const postmarkFromEmail = Deno.env.get("POSTMARK_FROM_EMAIL") || "noreply@adiology.online";
+  const senduneApiKey = Deno.env.get("SENDUNE_API_KEY");
 
-  if (!postmarkApiKey) {
-    console.error("POSTMARK_API_KEY is not configured");
+  if (!senduneApiKey) {
+    console.error("SENDUNE_API_KEY is not configured");
     return { success: false, error: "Email service not configured" };
   }
 
   try {
-    const response = await fetch("https://api.postmarkapp.com/email", {
+    const requestBody: Record<string, string> = {
+      email: to,
+      subject: subject,
+      ...replaceTags
+    };
+
+    const response = await fetch("https://api.sendune.com/send-email", {
       method: "POST",
       headers: {
-        "Accept": "application/json",
         "Content-Type": "application/json",
-        "X-Postmark-Server-Token": postmarkApiKey,
+        "template-key": senduneApiKey,
       },
-      body: JSON.stringify({
-        From: postmarkFromEmail,
-        To: to,
-        Subject: subject,
-        HtmlBody: htmlBody,
-        TextBody: textBody || htmlBody.replace(/<[^>]*>/g, ""), // Strip HTML for text version
-        MessageStream: "outbound",
-      }),
+      body: JSON.stringify(requestBody),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      console.error("Postmark API Error:", data);
+      const errorText = await response.text();
+      console.error("Sendune API Error:", errorText);
       return {
         success: false,
-        error: data.Message || `HTTP ${response.status}`,
+        error: errorText || `HTTP ${response.status}`,
       };
     }
 
-    console.log("Email sent successfully via Postmark:", data.MessageID);
+    const data = await response.json();
+    console.log("Email sent successfully via Sendune:", data);
     return {
       success: true,
-      messageId: data.MessageID,
+      messageId: data.id || "sent",
     };
   } catch (error) {
-    console.error("Error sending email via Postmark:", error);
+    console.error("Error sending email via Sendune:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -2153,7 +2151,7 @@ app.post("/email/send-verification", async (c) => {
     const htmlBody = generateVerificationEmailHtml(email, verificationUrl, token);
     const textBody = `Verify your email address by visiting: ${verificationUrl}`;
 
-    const result = await sendEmailViaPostmark(
+    const result = await sendEmailViaSendune(
       email,
       "Verify Your Email - Adiology",
       htmlBody,
@@ -2199,7 +2197,7 @@ app.post("/email/send-activation", async (c) => {
     const htmlBody = generateActivationEmailHtml(email, activationUrl);
     const textBody = `Activate your account by visiting: ${activationUrl}`;
 
-    const result = await sendEmailViaPostmark(
+    const result = await sendEmailViaSendune(
       email,
       "Activate Your Account - Adiology",
       htmlBody,
@@ -2228,7 +2226,7 @@ app.post("/email/send-activation", async (c) => {
 });
 
 /**
- * Test email endpoint (for testing Postmark configuration)
+ * Test email endpoint (for testing Sendune configuration)
  */
 app.post("/email/test", async (c) => {
   try {
@@ -2248,7 +2246,7 @@ app.post("/email/test", async (c) => {
 </head>
 <body style="font-family: Arial, sans-serif; padding: 20px;">
   <h2>Test Email from Adiology</h2>
-  <p>This is a test email to verify Postmark integration is working correctly.</p>
+  <p>This is a test email to verify Sendune integration is working correctly.</p>
   <p>If you received this email, the email service is configured properly!</p>
   <p style="color: #666; font-size: 12px; margin-top: 30px;">
     Sent at: ${new Date().toISOString()}
@@ -2257,11 +2255,11 @@ app.post("/email/test", async (c) => {
 </html>
     `.trim();
 
-    const result = await sendEmailViaPostmark(
+    const result = await sendEmailViaSendune(
       email,
-      "Test Email - Adiology Postmark Integration",
+      "Test Email - Adiology Sendune Integration",
       testHtml,
-      "This is a test email to verify Postmark integration is working correctly."
+      "This is a test email to verify Sendune integration is working correctly."
     );
 
     if (!result.success) {

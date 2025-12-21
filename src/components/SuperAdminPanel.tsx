@@ -806,7 +806,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
 
       {/* Email Templates */}
       <div className="bg-slate-800 border border-white/10 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Email Templates (Postmark)</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">Email Templates (Sendune)</h3>
         <div className="space-y-3">
           {[
             { name: 'Welcome Email', lastSent: '2 hours ago', sends: 234 },
