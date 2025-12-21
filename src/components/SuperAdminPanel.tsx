@@ -5,7 +5,8 @@ import {
   RefreshCw, Download, Trash2, Edit, Eye, Ban, CheckCircle, XCircle,
   Clock, TrendingUp, DollarSign, Server, Zap, Globe, Lock, Key,
   BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Filter, MoreVertical,
-  Bell, UserCheck, UserX, History, FileWarning, Send, Inbox, AlertCircle
+  Bell, UserCheck, UserX, History, FileWarning, Send, Inbox, AlertCircle,
+  Menu, X
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -308,101 +309,101 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
   ];
 
   const renderDashboard = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Admin Dashboard</h2>
-        <Button onClick={fetchDashboardStats} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg sm:text-2xl font-bold text-white">Admin Dashboard</h2>
+        <Button onClick={fetchDashboardStats} variant="outline" size="sm" className="text-xs sm:text-sm">
+          <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+          <span className="hidden xs:inline">Refresh</span>
         </Button>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="w-5 h-5 text-blue-400" />
-            <span className="text-gray-400 text-sm">Total Users</span>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
+        <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+            <span className="text-gray-400 text-xs sm:text-sm">Total Users</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats.totalUsers}</div>
         </div>
         
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CreditCard className="w-5 h-5 text-green-400" />
-            <span className="text-gray-400 text-sm">Active Subs</span>
+        <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+            <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+            <span className="text-gray-400 text-xs sm:text-sm">Active Subs</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats.activeSubscriptions}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats.activeSubscriptions}</div>
         </div>
         
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="w-5 h-5 text-amber-400" />
-            <span className="text-gray-400 text-sm">Monthly Revenue</span>
+        <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            <span className="text-gray-400 text-xs sm:text-sm">Revenue</span>
           </div>
-          <div className="text-2xl font-bold text-white">${stats.monthlyRevenue.toFixed(2)}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">${stats.monthlyRevenue.toFixed(0)}</div>
         </div>
         
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-red-400" />
-            <span className="text-gray-400 text-sm">Errors (24h)</span>
+        <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
+            <span className="text-gray-400 text-xs sm:text-sm">Errors</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats.errorCount}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats.errorCount}</div>
         </div>
         
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-5 h-5 text-purple-400" />
-            <span className="text-gray-400 text-sm">Active Trials</span>
+        <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+            <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+            <span className="text-gray-400 text-xs sm:text-sm">Trials</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats.activeTrials}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats.activeTrials}</div>
         </div>
         
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Mail className="w-5 h-5 text-cyan-400" />
-            <span className="text-gray-400 text-sm">Emails Sent</span>
+        <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+            <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+            <span className="text-gray-400 text-xs sm:text-sm">Emails</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats.emailsSent}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats.emailsSent}</div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <button 
           onClick={() => setActiveSection('users')}
-          className="bg-slate-800 border border-white/10 rounded-xl p-4 hover:border-blue-500/50 transition-all text-left"
+          className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-blue-500/50 transition-all text-left"
         >
-          <Users className="w-8 h-8 text-blue-400 mb-2" />
-          <h3 className="text-white font-semibold">Manage Users</h3>
-          <p className="text-gray-400 text-sm">View, edit, block users</p>
+          <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-1.5 sm:mb-2" />
+          <h3 className="text-white font-semibold text-sm sm:text-base">Manage Users</h3>
+          <p className="text-gray-400 text-xs sm:text-sm hidden xs:block">View, edit, block users</p>
         </button>
         
         <button 
           onClick={() => setActiveSection('subscriptions')}
-          className="bg-slate-800 border border-white/10 rounded-xl p-4 hover:border-green-500/50 transition-all text-left"
+          className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-green-500/50 transition-all text-left"
         >
-          <CreditCard className="w-8 h-8 text-green-400 mb-2" />
-          <h3 className="text-white font-semibold">Billing</h3>
-          <p className="text-gray-400 text-sm">Subscriptions & payments</p>
+          <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 mb-1.5 sm:mb-2" />
+          <h3 className="text-white font-semibold text-sm sm:text-base">Billing</h3>
+          <p className="text-gray-400 text-xs sm:text-sm hidden xs:block">Subscriptions & payments</p>
         </button>
         
         <button 
           onClick={() => setActiveSection('logs')}
-          className="bg-slate-800 border border-white/10 rounded-xl p-4 hover:border-amber-500/50 transition-all text-left"
+          className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-amber-500/50 transition-all text-left"
         >
-          <FileText className="w-8 h-8 text-amber-400 mb-2" />
-          <h3 className="text-white font-semibold">View Logs</h3>
-          <p className="text-gray-400 text-sm">System & error logs</p>
+          <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400 mb-1.5 sm:mb-2" />
+          <h3 className="text-white font-semibold text-sm sm:text-base">View Logs</h3>
+          <p className="text-gray-400 text-xs sm:text-sm hidden xs:block">System & error logs</p>
         </button>
         
         <button 
           onClick={() => setActiveSection('security')}
-          className="bg-slate-800 border border-white/10 rounded-xl p-4 hover:border-red-500/50 transition-all text-left"
+          className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-red-500/50 transition-all text-left"
         >
-          <Shield className="w-8 h-8 text-red-400 mb-2" />
-          <h3 className="text-white font-semibold">Security</h3>
+          <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 mb-1.5 sm:mb-2" />
+          <h3 className="text-white font-semibold text-sm sm:text-base">Security</h3>
           <p className="text-gray-400 text-sm">Firewall & rules</p>
         </button>
       </div>
@@ -995,12 +996,22 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     }
   };
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-slate-900 flex">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 bg-slate-950 border-r border-white/10 flex flex-col">
+      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-950 border-r border-white/10 flex flex-col transform transition-transform duration-300 lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-4 sm:p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
               <Shield className="w-6 h-6 text-white" />
@@ -1009,23 +1020,32 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
               <h1 className="text-white font-bold">Adiology</h1>
               <p className="text-gray-500 text-xs">Super Admin</p>
             </div>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="ml-auto lg:hidden text-gray-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
           <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.id}>
                 <button
-                  onClick={() => setActiveSection(item.id as AdminSection)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  onClick={() => {
+                    setActiveSection(item.id as AdminSection);
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all text-sm sm:text-base ${
                     activeSection === item.id
                       ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50'
                       : 'text-gray-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
                   <span>{item.label}</span>
                 </button>
               </li>
@@ -1034,10 +1054,10 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-white/10">
+        <div className="p-3 sm:p-4 border-t border-white/10">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
+            className="w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-gray-400 hover:bg-red-500/20 hover:text-red-300 transition-all text-sm sm:text-base"
           >
             <LogOut className="w-5 h-5" />
             <span>Logout</span>
@@ -1046,31 +1066,37 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto lg:ml-0">
         {/* Header */}
-        <header className="bg-slate-800/50 border-b border-white/10 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-semibold text-white capitalize">
+        <header className="bg-slate-800/50 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-4 sticky top-0 z-30">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <button 
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden text-gray-400 hover:text-white p-1"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <h2 className="text-base sm:text-xl font-semibold text-white capitalize truncate">
                 {activeSection.replace('-', ' ')}
               </h2>
             </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm">
-                <Bell className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Button variant="ghost" size="sm" className="p-1 sm:p-2">
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               </Button>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm">
                   {user?.email?.[0]?.toUpperCase() || 'A'}
                 </div>
-                <span className="text-gray-300 text-sm">{user?.email}</span>
+                <span className="hidden sm:inline text-gray-300 text-sm truncate max-w-[150px]">{user?.email}</span>
               </div>
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="p-6">
+        <main className="p-3 sm:p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <RefreshCw className="w-8 h-8 text-purple-400 animate-spin" />
