@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users, BookOpen
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users, BookOpen, PhoneCall
 } from 'lucide-react';
 
 declare global {
@@ -65,6 +65,7 @@ import { Teams } from './components/Teams';
 import { Blog } from './components/Blog';
 import { PromoLandingPage } from './components/PromoLandingPage';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
+import { CallForwarding } from './components/CallForwarding';
 
 type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel';
 
@@ -148,6 +149,7 @@ const App = () => {
     'saved-websites',
     'connected-websites',
     'teams',
+    'call-forwarding',
   ]);
 
   // Safe setActiveTab wrapper that validates and redirects to dashboard if invalid
@@ -939,6 +941,7 @@ const App = () => {
       ]
     },
     { id: 'teams', label: 'Teams', icon: Users },
+    { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
     { id: 'blog', label: 'Blog', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
@@ -1489,6 +1492,8 @@ const App = () => {
         return <SupportPanel />;
       case 'teams':
         return <Teams />;
+      case 'call-forwarding':
+        return <CallForwarding />;
       case 'blog':
         return <Blog />;
       case 'settings':
