@@ -1187,9 +1187,13 @@ app.post('/api/generate-section-content', async (c) => {
       return c.json({ error: 'Business name is required' }, 400);
     }
     
-    const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    // Use integration key first, fallback to regular OPENAI_API_KEY if it's a placeholder
+    let openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    if (!openaiKey || openaiKey.includes('DUMMY')) {
+      openaiKey = process.env.OPENAI_API_KEY;
+    }
     if (!openaiKey) {
-      return c.json({ error: 'AI service not configured' }, 500);
+      return c.json({ error: 'AI service not configured - please add your OpenAI API key' }, 500);
     }
     
     const toneDescriptions: Record<string, string> = {
