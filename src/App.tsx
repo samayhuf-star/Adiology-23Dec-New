@@ -149,7 +149,8 @@ const App = () => {
     'saved-websites',
     'connected-websites',
     'teams',
-    'call-forwarding',
+    'blog',
+    // 'call-forwarding', // Hidden - module disabled
   ]);
 
   // Safe setActiveTab wrapper that validates and redirects to dashboard if invalid
@@ -941,7 +942,8 @@ const App = () => {
       ]
     },
     { id: 'teams', label: 'Teams', icon: Users },
-    { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
+    // Call Forwarding module hidden - disabled for all users
+    // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
     { id: 'blog', label: 'Blog', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
