@@ -1,7 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Plus, Trash2, Eye, EyeOff, Save, Download, GripVertical, ChevronUp, ChevronDown, Undo2, ImagePlus, Pencil, Upload } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, Save, Download, GripVertical, ChevronUp, ChevronDown, Undo2, ImagePlus, Pencil, Upload, Sparkles, Loader2, RefreshCw, Check, X } from 'lucide-react';
 import { TemplateData } from '../utils/savedWebsites';
 import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Label } from './ui/label';
+import { Input } from './ui/input';
+import { ScrollArea } from './ui/scroll-area';
+import { Badge } from './ui/badge';
 
 interface Section {
   id: string;
@@ -1010,6 +1016,97 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
   const [history, setHistory] = useState<Section[][]>([]);
   const maxHistory = 20;
 
+  // AI Content Generator State
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<Section[] | null>(null);
+  const [contentTone, setContentTone] = useState<'professional' | 'casual' | 'technical' | 'friendly' | 'luxury'>('professional');
+  const [businessName, setBusinessName] = useState(templateData.footer?.companyName || '');
+  const [businessType, setBusinessType] = useState('');
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null);
+
+  const generateAllContent = async () => {
+    if (!businessName.trim()) {
+      setGenerationError('Please enter a business name');
+      return;
+    }
+    
+    setIsGenerating(true);
+    setGenerationError(null);
+    
+    try {
+      const response = await fetch('/api/generate-section-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sections: sections.map(s => ({ id: s.id, type: s.type, name: s.name })),
+          businessName: businessName.trim(),
+          businessType: businessType.trim() || 'general business',
+          tone: contentTone,
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate content');
+      }
+      
+      const data = await response.json();
+      setGeneratedContent(data.sections);
+    } catch (error: any) {
+      setGenerationError(error.message || 'Failed to generate content');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const regenerateSection = async (sectionId: string) => {
+    const section = generatedContent?.find(s => s.id === sectionId) || sections.find(s => s.id === sectionId);
+    if (!section) return;
+    
+    setRegeneratingSection(sectionId);
+    
+    try {
+      const response = await fetch('/api/generate-section-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sections: [{ id: section.id, type: section.type, name: section.name }],
+          businessName: businessName.trim(),
+          businessType: businessType.trim() || 'general business',
+          tone: contentTone,
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to regenerate section');
+      
+      const data = await response.json();
+      if (data.sections?.[0]) {
+        setGeneratedContent(prev => 
+          prev?.map(s => s.id === sectionId ? data.sections[0] : s) || null
+        );
+      }
+    } catch (error) {
+      console.error('Regeneration error:', error);
+    } finally {
+      setRegeneratingSection(null);
+    }
+  };
+
+  const applyGeneratedContent = () => {
+    if (generatedContent) {
+      setSectionsWithHistory(generatedContent);
+      setShowGenerateModal(false);
+      setGeneratedContent(null);
+    }
+  };
+
+  const discardGeneratedContent = () => {
+    setGeneratedContent(null);
+    setShowGenerateModal(false);
+  };
+
   const saveToHistory = (currentSections: Section[]) => {
     setHistory(prev => {
       const newHistory = [...prev, JSON.parse(JSON.stringify(currentSections))];
@@ -1137,6 +1234,14 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
               <Plus className="w-4 h-4" />
               Add Section
             </Button>
+            <Button
+              onClick={() => setShowGenerateModal(true)}
+              className="gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+              disabled={sections.length === 0}
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate Content
+            </Button>
             <Button onClick={onSave} className="gap-2 bg-green-600 hover:bg-green-700">
               <Save className="w-4 h-4" />
               Save
@@ -1233,6 +1338,174 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
           ))
         )}
       </div>
+
+      {/* AI Content Generation Modal */}
+      <Dialog open={showGenerateModal} onOpenChange={setShowGenerateModal}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              Generate All Section Content
+            </DialogTitle>
+            <DialogDescription>
+              Use AI to automatically generate fresh, unique content for all your website sections.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!generatedContent ? (
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="businessName">Business Name *</Label>
+                  <Input
+                    id="businessName"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="e.g., ABC Plumbing Services"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="businessType">Business Type / Industry</Label>
+                  <Input
+                    id="businessType"
+                    value={businessType}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                    placeholder="e.g., Plumbing, Law Firm, Restaurant"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Content Tone</Label>
+                <Select value={contentTone} onValueChange={(v: any) => setContentTone(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professional">Professional - Corporate and formal</SelectItem>
+                    <SelectItem value="casual">Casual - Relaxed and approachable</SelectItem>
+                    <SelectItem value="friendly">Friendly - Warm and personable</SelectItem>
+                    <SelectItem value="technical">Technical - Detailed and precise</SelectItem>
+                    <SelectItem value="luxury">Luxury - Premium and sophisticated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h4 className="font-medium text-purple-900 mb-2">Sections to generate ({sections.length})</h4>
+                <div className="flex flex-wrap gap-2">
+                  {sections.map(section => (
+                    <Badge key={section.id} variant="secondary" className="bg-white">
+                      {SECTION_TYPES.find(t => t.type === section.type)?.icon} {section.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {generationError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+                  {generationError}
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowGenerateModal(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={generateAllContent}
+                  disabled={isGenerating || !businessName.trim()}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Content
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 text-green-800">
+                  <Check className="w-4 h-4" />
+                  <span className="font-medium">Content generated successfully!</span>
+                </div>
+                <p className="text-sm text-green-700 mt-1">Review the content below. You can regenerate individual sections or apply all changes.</p>
+              </div>
+
+              <ScrollArea className="flex-1 -mx-6 px-6">
+                <div className="space-y-4 pb-4">
+                  {generatedContent.map(section => {
+                    const sectionType = SECTION_TYPES.find(t => t.type === section.type);
+                    return (
+                      <div key={section.id} className="bg-gray-50 rounded-lg p-4 border">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{sectionType?.icon}</span>
+                            <span className="font-medium">{section.name}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => regenerateSection(section.id)}
+                            disabled={regeneratingSection === section.id}
+                            className="text-purple-600 hover:text-purple-700"
+                          >
+                            {regeneratingSection === section.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <RefreshCw className="w-4 h-4 mr-1" />
+                                Regenerate
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        <div className="bg-white rounded border p-3 text-sm space-y-1">
+                          {section.data.heading && (
+                            <p><span className="text-gray-500">Heading:</span> {section.data.heading}</p>
+                          )}
+                          {section.data.subheading && (
+                            <p><span className="text-gray-500">Subheading:</span> {section.data.subheading}</p>
+                          )}
+                          {section.data.description && (
+                            <p><span className="text-gray-500">Description:</span> {section.data.description}</p>
+                          )}
+                          {section.data.items && (
+                            <p><span className="text-gray-500">Items:</span> {section.data.items.length} items generated</p>
+                          )}
+                          {section.data.ctaText && (
+                            <p><span className="text-gray-500">CTA:</span> {section.data.ctaText}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+
+              <DialogFooter className="border-t pt-4 mt-4">
+                <Button variant="outline" onClick={discardGeneratedContent} className="gap-2">
+                  <X className="w-4 h-4" />
+                  Discard
+                </Button>
+                <Button onClick={applyGeneratedContent} className="gap-2 bg-green-600 hover:bg-green-700">
+                  <Check className="w-4 h-4" />
+                  Apply All Content
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
