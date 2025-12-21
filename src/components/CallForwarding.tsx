@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { 
   Phone, Plus, Edit2, Trash2, Save, X, ChevronRight, ChevronDown,
   Percent, Target, Hash, PhoneCall, RefreshCw, AlertCircle, CheckCircle2,
-  Folder, Settings2, ArrowRight
+  Folder, Settings2, ArrowRight, CreditCard
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { supabase } from '../utils/supabase/client';
+import { CallForwardingBilling } from './CallForwardingBilling';
 
 interface Target {
   id: string;
@@ -40,7 +41,10 @@ interface Project {
   created_at: string;
 }
 
+type TabType = 'numbers' | 'billing';
+
 export function CallForwarding() {
+  const [activeTab, setActiveTab] = useState<TabType>('numbers');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [trackingNumbers, setTrackingNumbers] = useState<TrackingNumber[]>([]);
@@ -345,17 +349,48 @@ export function CallForwarding() {
         <p className="text-slate-600 mt-1">Manage call routing with percentage-based distribution</p>
       </div>
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto">
-            <X className="w-4 h-4" />
+      <div className="mb-6 border-b border-slate-200">
+        <nav className="flex gap-4 sm:gap-8">
+          <button
+            onClick={() => setActiveTab('numbers')}
+            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'numbers'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Phone className="w-4 h-4" />
+            Numbers
           </button>
-        </div>
-      )}
+          <button
+            onClick={() => setActiveTab('billing')}
+            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'billing'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            Billing
+          </button>
+        </nav>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {activeTab === 'billing' ? (
+        <CallForwardingBilling />
+      ) : (
+        <>
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span>{error}</span>
+              <button onClick={() => setError(null)} className="ml-auto">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-4">
           <Card className="p-4">
             <div className="flex items-center justify-between mb-4">
@@ -759,6 +794,8 @@ export function CallForwarding() {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

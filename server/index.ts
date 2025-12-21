@@ -4214,6 +4214,71 @@ async function initCallForwardingTables() {
       )
     `);
     
+    // Billing tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS call_forwarding_billing_accounts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL UNIQUE,
+        stripe_customer_id VARCHAR(255),
+        stripe_payment_method_id VARCHAR(255),
+        balance_cents INTEGER NOT NULL DEFAULT 0,
+        auto_recharge_enabled BOOLEAN DEFAULT true,
+        low_balance_threshold_cents INTEGER DEFAULT 500,
+        auto_recharge_amount_cents INTEGER DEFAULT 2500,
+        last_charge_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS call_forwarding_balance_transactions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        balance_after_cents INTEGER NOT NULL,
+        description TEXT,
+        reference_id VARCHAR(255),
+        metadata JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS call_forwarding_call_usage (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        tracking_number_id UUID REFERENCES call_forwarding_tracking_numbers(id) ON DELETE SET NULL,
+        direction VARCHAR(20) NOT NULL,
+        duration_seconds INTEGER DEFAULT 0,
+        cost_cents INTEGER NOT NULL,
+        call_from VARCHAR(20),
+        call_to VARCHAR(20),
+        external_id VARCHAR(255),
+        occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS call_forwarding_monthly_charges (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL,
+        tracking_number_id UUID REFERENCES call_forwarding_tracking_numbers(id) ON DELETE SET NULL,
+        month_start DATE NOT NULL,
+        amount_cents INTEGER NOT NULL DEFAULT 300,
+        status VARCHAR(50) DEFAULT 'paid',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+    
+    // Create indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_billing_user ON call_forwarding_billing_accounts(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user ON call_forwarding_balance_transactions(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_usage_user ON call_forwarding_call_usage(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_monthly_user ON call_forwarding_monthly_charges(user_id)`);
+    
     console.log('Call forwarding tables initialized');
   } catch (error) {
     console.error('Error initializing call forwarding tables:', error);
@@ -4627,6 +4692,431 @@ app.post('/api/call-forwarding/tracking-numbers/:id/sync', async (c) => {
     });
   } catch (error: any) {
     console.error('Error syncing to SkySwitch:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ============== CALL FORWARDING BILLING ==============
+
+// Pricing constants (in cents)
+const CF_PRICING = {
+  MONTHLY_NUMBER_FEE: 300, // $3 per number per month
+  INCOMING_CALL: 1,        // $0.01 per incoming call
+  OUTGOING_CALL: 2,        // $0.02 per outgoing call
+  AUTO_RECHARGE_AMOUNT: 2500,  // $25 default
+  LOW_BALANCE_THRESHOLD: 500   // $5 default
+};
+
+// Get or create billing account for user
+async function getOrCreateBillingAccount(userId: string) {
+  let result = await pool.query(
+    'SELECT * FROM call_forwarding_billing_accounts WHERE user_id = $1',
+    [userId]
+  );
+  
+  if (result.rows.length === 0) {
+    result = await pool.query(`
+      INSERT INTO call_forwarding_billing_accounts (user_id, balance_cents, auto_recharge_enabled)
+      VALUES ($1, 0, true)
+      RETURNING *
+    `, [userId]);
+  }
+  
+  return result.rows[0];
+}
+
+// Record a balance transaction
+async function recordBalanceTransaction(
+  userId: string, 
+  type: string, 
+  amountCents: number, 
+  balanceAfterCents: number, 
+  description: string,
+  referenceId?: string
+) {
+  await pool.query(`
+    INSERT INTO call_forwarding_balance_transactions (user_id, type, amount_cents, balance_after_cents, description, reference_id)
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `, [userId, type, amountCents, balanceAfterCents, description, referenceId]);
+}
+
+// Check and trigger auto-recharge if needed
+async function checkAutoRecharge(userId: string, account: any) {
+  if (!account.auto_recharge_enabled) return null;
+  if (account.balance_cents >= account.low_balance_threshold_cents) return null;
+  if (!account.stripe_payment_method_id) return null;
+  
+  try {
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-11-17.clover' });
+    
+    // Create and confirm payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: account.auto_recharge_amount_cents,
+      currency: 'usd',
+      customer: account.stripe_customer_id,
+      payment_method: account.stripe_payment_method_id,
+      off_session: true,
+      confirm: true,
+      description: 'Call Forwarding Auto-Recharge'
+    });
+    
+    if (paymentIntent.status === 'succeeded') {
+      const newBalance = account.balance_cents + account.auto_recharge_amount_cents;
+      await pool.query(`
+        UPDATE call_forwarding_billing_accounts 
+        SET balance_cents = $1, last_charge_at = NOW(), updated_at = NOW()
+        WHERE user_id = $2
+      `, [newBalance, userId]);
+      
+      await pool.query(`
+        INSERT INTO call_forwarding_balance_transactions (user_id, type, amount_cents, balance_after_cents, description, reference_id)
+        VALUES ($1, 'auto_recharge', $2, $3, 'Auto-recharge', $4)
+      `, [userId, account.auto_recharge_amount_cents, newBalance, paymentIntent.id]);
+      
+      return { success: true, newBalance };
+    }
+  } catch (error) {
+    console.error('Auto-recharge failed:', error);
+    return { success: false, error };
+  }
+  return null;
+}
+
+// Get billing summary
+app.get('/api/call-forwarding/billing/summary', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const account = await getOrCreateBillingAccount(user.id);
+    
+    // Get active tracking numbers count
+    const numbersResult = await pool.query(`
+      SELECT COUNT(*) as count FROM call_forwarding_tracking_numbers t
+      JOIN call_forwarding_projects p ON t.project_id = p.id
+      WHERE p.user_id = $1 AND t.status = 'active'
+    `, [user.id]);
+    
+    // Get current month usage
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    
+    const usageResult = await pool.query(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN direction = 'incoming' THEN 1 ELSE 0 END), 0) as incoming_calls,
+        COALESCE(SUM(CASE WHEN direction = 'outgoing' THEN 1 ELSE 0 END), 0) as outgoing_calls,
+        COALESCE(SUM(cost_cents), 0) as total_cost_cents
+      FROM call_forwarding_call_usage
+      WHERE user_id = $1 AND occurred_at >= $2
+    `, [user.id, monthStart]);
+    
+    const activeNumbers = parseInt(numbersResult.rows[0].count);
+    const monthlyNumberCost = activeNumbers * CF_PRICING.MONTHLY_NUMBER_FEE;
+    
+    return c.json({
+      balance_cents: account.balance_cents,
+      balance_dollars: (account.balance_cents / 100).toFixed(2),
+      auto_recharge_enabled: account.auto_recharge_enabled,
+      auto_recharge_amount_cents: account.auto_recharge_amount_cents,
+      low_balance_threshold_cents: account.low_balance_threshold_cents,
+      has_payment_method: !!account.stripe_payment_method_id,
+      active_numbers: activeNumbers,
+      monthly_number_cost_cents: monthlyNumberCost,
+      current_month_usage: {
+        incoming_calls: parseInt(usageResult.rows[0].incoming_calls),
+        outgoing_calls: parseInt(usageResult.rows[0].outgoing_calls),
+        total_cost_cents: parseInt(usageResult.rows[0].total_cost_cents)
+      },
+      pricing: CF_PRICING
+    });
+  } catch (error: any) {
+    console.error('Error fetching billing summary:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get transaction history
+app.get('/api/call-forwarding/billing/transactions', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const limit = parseInt(c.req.query('limit') || '50');
+    const offset = parseInt(c.req.query('offset') || '0');
+    
+    const result = await pool.query(`
+      SELECT * FROM call_forwarding_balance_transactions
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [user.id, limit, offset]);
+    
+    return c.json({ transactions: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching transactions:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get usage details
+app.get('/api/call-forwarding/billing/usage', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const limit = parseInt(c.req.query('limit') || '100');
+    const offset = parseInt(c.req.query('offset') || '0');
+    
+    const result = await pool.query(`
+      SELECT u.*, t.phone_number, t.name as tracking_name
+      FROM call_forwarding_call_usage u
+      LEFT JOIN call_forwarding_tracking_numbers t ON u.tracking_number_id = t.id
+      WHERE u.user_id = $1
+      ORDER BY u.occurred_at DESC
+      LIMIT $2 OFFSET $3
+    `, [user.id, limit, offset]);
+    
+    return c.json({ usage: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching usage:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Update auto-recharge settings
+app.put('/api/call-forwarding/billing/auto-recharge', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const { enabled, amount_cents, threshold_cents } = await c.req.json();
+    
+    await getOrCreateBillingAccount(user.id);
+    
+    const result = await pool.query(`
+      UPDATE call_forwarding_billing_accounts
+      SET 
+        auto_recharge_enabled = COALESCE($1, auto_recharge_enabled),
+        auto_recharge_amount_cents = COALESCE($2, auto_recharge_amount_cents),
+        low_balance_threshold_cents = COALESCE($3, low_balance_threshold_cents),
+        updated_at = NOW()
+      WHERE user_id = $4
+      RETURNING *
+    `, [enabled, amount_cents, threshold_cents, user.id]);
+    
+    return c.json({ account: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error updating auto-recharge:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Create Stripe setup intent for payment method
+app.post('/api/call-forwarding/billing/setup-payment-method', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const account = await getOrCreateBillingAccount(user.id);
+    
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-11-17.clover' });
+    
+    // Get or create Stripe customer
+    let customerId = account.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { user_id: user.id }
+      });
+      customerId = customer.id;
+      await pool.query(
+        'UPDATE call_forwarding_billing_accounts SET stripe_customer_id = $1 WHERE user_id = $2',
+        [customerId, user.id]
+      );
+    }
+    
+    // Create setup intent
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      usage: 'off_session'
+    });
+    
+    return c.json({ 
+      client_secret: setupIntent.client_secret,
+      customer_id: customerId
+    });
+  } catch (error: any) {
+    console.error('Error creating setup intent:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Save payment method after setup
+app.post('/api/call-forwarding/billing/save-payment-method', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const { payment_method_id } = await c.req.json();
+    if (!payment_method_id) {
+      return c.json({ error: 'Payment method ID required' }, 400);
+    }
+    
+    await pool.query(`
+      UPDATE call_forwarding_billing_accounts
+      SET stripe_payment_method_id = $1, updated_at = NOW()
+      WHERE user_id = $2
+    `, [payment_method_id, user.id]);
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error saving payment method:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Manual top-up
+app.post('/api/call-forwarding/billing/top-up', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const { amount_cents } = await c.req.json();
+    if (!amount_cents || amount_cents < 500) {
+      return c.json({ error: 'Minimum top-up is $5' }, 400);
+    }
+    
+    const account = await getOrCreateBillingAccount(user.id);
+    
+    if (!account.stripe_payment_method_id) {
+      return c.json({ error: 'No payment method on file' }, 400);
+    }
+    
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-11-17.clover' });
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount_cents,
+      currency: 'usd',
+      customer: account.stripe_customer_id,
+      payment_method: account.stripe_payment_method_id,
+      off_session: true,
+      confirm: true,
+      description: 'Call Forwarding Balance Top-Up'
+    });
+    
+    if (paymentIntent.status === 'succeeded') {
+      const newBalance = account.balance_cents + amount_cents;
+      await pool.query(`
+        UPDATE call_forwarding_billing_accounts 
+        SET balance_cents = $1, last_charge_at = NOW(), updated_at = NOW()
+        WHERE user_id = $2
+      `, [newBalance, user.id]);
+      
+      await pool.query(`
+        INSERT INTO call_forwarding_balance_transactions (user_id, type, amount_cents, balance_after_cents, description, reference_id)
+        VALUES ($1, 'manual_charge', $2, $3, 'Manual top-up', $4)
+      `, [user.id, amount_cents, newBalance, paymentIntent.id]);
+      
+      return c.json({ 
+        success: true, 
+        new_balance_cents: newBalance,
+        payment_intent_id: paymentIntent.id
+      });
+    }
+    
+    return c.json({ error: 'Payment failed' }, 400);
+  } catch (error: any) {
+    console.error('Error processing top-up:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Initial charge when adding first tracking number (called internally)
+async function chargeForNewTrackingNumber(userId: string) {
+  const account = await getOrCreateBillingAccount(userId);
+  const newBalance = account.balance_cents - CF_PRICING.MONTHLY_NUMBER_FEE;
+  
+  await pool.query(`
+    UPDATE call_forwarding_billing_accounts 
+    SET balance_cents = $1, updated_at = NOW()
+    WHERE user_id = $2
+  `, [newBalance, userId]);
+  
+  await pool.query(`
+    INSERT INTO call_forwarding_balance_transactions (user_id, type, amount_cents, balance_after_cents, description)
+    VALUES ($1, 'monthly_fee', $2, $3, 'Monthly tracking number fee')
+  `, [userId, -CF_PRICING.MONTHLY_NUMBER_FEE, newBalance]);
+  
+  // Check if auto-recharge needed
+  if (newBalance < account.low_balance_threshold_cents) {
+    await checkAutoRecharge(userId, { ...account, balance_cents: newBalance });
+  }
+  
+  return newBalance;
+}
+
+// Record call usage (called by webhook or manually)
+app.post('/api/call-forwarding/billing/record-call', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const { tracking_number_id, direction, duration_seconds, call_from, call_to, external_id } = await c.req.json();
+    
+    if (!direction || !['incoming', 'outgoing'].includes(direction)) {
+      return c.json({ error: 'Invalid direction' }, 400);
+    }
+    
+    const costCents = direction === 'incoming' ? CF_PRICING.INCOMING_CALL : CF_PRICING.OUTGOING_CALL;
+    
+    // Verify tracking number belongs to user
+    if (tracking_number_id) {
+      const check = await pool.query(`
+        SELECT t.id FROM call_forwarding_tracking_numbers t
+        JOIN call_forwarding_projects p ON t.project_id = p.id
+        WHERE t.id = $1 AND p.user_id = $2
+      `, [tracking_number_id, user.id]);
+      
+      if (check.rows.length === 0) {
+        return c.json({ error: 'Tracking number not found' }, 404);
+      }
+    }
+    
+    // Record usage
+    await pool.query(`
+      INSERT INTO call_forwarding_call_usage 
+      (user_id, tracking_number_id, direction, duration_seconds, cost_cents, call_from, call_to, external_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [user.id, tracking_number_id, direction, duration_seconds || 0, costCents, call_from, call_to, external_id]);
+    
+    // Deduct from balance
+    const account = await getOrCreateBillingAccount(user.id);
+    const newBalance = account.balance_cents - costCents;
+    
+    await pool.query(`
+      UPDATE call_forwarding_billing_accounts 
+      SET balance_cents = $1, updated_at = NOW()
+      WHERE user_id = $2
+    `, [newBalance, user.id]);
+    
+    await pool.query(`
+      INSERT INTO call_forwarding_balance_transactions (user_id, type, amount_cents, balance_after_cents, description)
+      VALUES ($1, 'usage_debit', $2, $3, $4)
+    `, [user.id, -costCents, newBalance, `${direction} call`]);
+    
+    // Check auto-recharge
+    if (newBalance < account.low_balance_threshold_cents) {
+      await checkAutoRecharge(user.id, { ...account, balance_cents: newBalance });
+    }
+    
+    return c.json({ success: true, cost_cents: costCents, new_balance_cents: newBalance });
+  } catch (error: any) {
+    console.error('Error recording call:', error);
     return c.json({ error: error.message }, 500);
   }
 });
