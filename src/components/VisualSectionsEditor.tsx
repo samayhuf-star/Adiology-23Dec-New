@@ -1366,12 +1366,185 @@ export default function VisualSectionsEditor({ templateData, onUpdate, onSave, o
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="businessType">Business Type / Industry</Label>
-                  <Input
-                    id="businessType"
-                    value={businessType}
-                    onChange={(e) => setBusinessType(e.target.value)}
-                    placeholder="e.g., Plumbing, Law Firm, Restaurant"
-                  />
+                  <Select value={businessType} onValueChange={setBusinessType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your industry..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {/* Home Services */}
+                      <SelectItem value="Plumbing Services">Plumbing Services</SelectItem>
+                      <SelectItem value="Electrical Services">Electrical Services</SelectItem>
+                      <SelectItem value="HVAC & Air Conditioning">HVAC & Air Conditioning</SelectItem>
+                      <SelectItem value="Roofing Contractor">Roofing Contractor</SelectItem>
+                      <SelectItem value="Pest Control">Pest Control</SelectItem>
+                      <SelectItem value="Landscaping & Lawn Care">Landscaping & Lawn Care</SelectItem>
+                      <SelectItem value="House Cleaning">House Cleaning</SelectItem>
+                      <SelectItem value="Pool Services">Pool Services</SelectItem>
+                      <SelectItem value="Handyman Services">Handyman Services</SelectItem>
+                      <SelectItem value="Painting Contractor">Painting Contractor</SelectItem>
+                      <SelectItem value="Flooring Installation">Flooring Installation</SelectItem>
+                      <SelectItem value="Garage Door Services">Garage Door Services</SelectItem>
+                      <SelectItem value="Window Installation">Window Installation</SelectItem>
+                      <SelectItem value="Fence & Deck Builder">Fence & Deck Builder</SelectItem>
+                      <SelectItem value="Home Remodeling">Home Remodeling</SelectItem>
+                      <SelectItem value="Kitchen & Bath Remodeling">Kitchen & Bath Remodeling</SelectItem>
+                      <SelectItem value="Carpet Cleaning">Carpet Cleaning</SelectItem>
+                      <SelectItem value="Appliance Repair">Appliance Repair</SelectItem>
+                      <SelectItem value="Locksmith Services">Locksmith Services</SelectItem>
+                      <SelectItem value="Moving & Storage">Moving & Storage</SelectItem>
+                      
+                      {/* Professional Services */}
+                      <SelectItem value="Law Firm">Law Firm</SelectItem>
+                      <SelectItem value="Personal Injury Attorney">Personal Injury Attorney</SelectItem>
+                      <SelectItem value="Family Law Attorney">Family Law Attorney</SelectItem>
+                      <SelectItem value="Criminal Defense Attorney">Criminal Defense Attorney</SelectItem>
+                      <SelectItem value="Immigration Attorney">Immigration Attorney</SelectItem>
+                      <SelectItem value="Estate Planning Attorney">Estate Planning Attorney</SelectItem>
+                      <SelectItem value="Accounting & Tax Services">Accounting & Tax Services</SelectItem>
+                      <SelectItem value="CPA Firm">CPA Firm</SelectItem>
+                      <SelectItem value="Financial Advisor">Financial Advisor</SelectItem>
+                      <SelectItem value="Insurance Agency">Insurance Agency</SelectItem>
+                      <SelectItem value="Real Estate Agent">Real Estate Agent</SelectItem>
+                      <SelectItem value="Property Management">Property Management</SelectItem>
+                      <SelectItem value="Mortgage Broker">Mortgage Broker</SelectItem>
+                      <SelectItem value="Consulting Firm">Consulting Firm</SelectItem>
+                      <SelectItem value="Marketing Agency">Marketing Agency</SelectItem>
+                      <SelectItem value="IT Services & Support">IT Services & Support</SelectItem>
+                      <SelectItem value="Web Design Agency">Web Design Agency</SelectItem>
+                      <SelectItem value="Staffing & Recruiting">Staffing & Recruiting</SelectItem>
+                      
+                      {/* Healthcare & Wellness */}
+                      <SelectItem value="Dental Practice">Dental Practice</SelectItem>
+                      <SelectItem value="Cosmetic Dentistry">Cosmetic Dentistry</SelectItem>
+                      <SelectItem value="Orthodontist">Orthodontist</SelectItem>
+                      <SelectItem value="Medical Practice">Medical Practice</SelectItem>
+                      <SelectItem value="Urgent Care Clinic">Urgent Care Clinic</SelectItem>
+                      <SelectItem value="Chiropractic Clinic">Chiropractic Clinic</SelectItem>
+                      <SelectItem value="Physical Therapy">Physical Therapy</SelectItem>
+                      <SelectItem value="Mental Health Counseling">Mental Health Counseling</SelectItem>
+                      <SelectItem value="Veterinary Clinic">Veterinary Clinic</SelectItem>
+                      <SelectItem value="Optometry & Eye Care">Optometry & Eye Care</SelectItem>
+                      <SelectItem value="Medical Spa">Medical Spa</SelectItem>
+                      <SelectItem value="Plastic Surgery">Plastic Surgery</SelectItem>
+                      <SelectItem value="Home Healthcare">Home Healthcare</SelectItem>
+                      <SelectItem value="Senior Care Services">Senior Care Services</SelectItem>
+                      <SelectItem value="Pharmacy">Pharmacy</SelectItem>
+                      
+                      {/* Beauty & Personal Care */}
+                      <SelectItem value="Hair Salon">Hair Salon</SelectItem>
+                      <SelectItem value="Barber Shop">Barber Shop</SelectItem>
+                      <SelectItem value="Nail Salon">Nail Salon</SelectItem>
+                      <SelectItem value="Day Spa">Day Spa</SelectItem>
+                      <SelectItem value="Beauty Salon">Beauty Salon</SelectItem>
+                      <SelectItem value="Tattoo Studio">Tattoo Studio</SelectItem>
+                      <SelectItem value="Tanning Salon">Tanning Salon</SelectItem>
+                      <SelectItem value="Massage Therapy">Massage Therapy</SelectItem>
+                      
+                      {/* Fitness & Recreation */}
+                      <SelectItem value="Gym & Fitness Center">Gym & Fitness Center</SelectItem>
+                      <SelectItem value="Personal Training">Personal Training</SelectItem>
+                      <SelectItem value="Yoga Studio">Yoga Studio</SelectItem>
+                      <SelectItem value="Martial Arts School">Martial Arts School</SelectItem>
+                      <SelectItem value="Dance Studio">Dance Studio</SelectItem>
+                      <SelectItem value="Sports Training">Sports Training</SelectItem>
+                      <SelectItem value="Golf Course">Golf Course</SelectItem>
+                      
+                      {/* Automotive */}
+                      <SelectItem value="Auto Repair Shop">Auto Repair Shop</SelectItem>
+                      <SelectItem value="Car Dealership">Car Dealership</SelectItem>
+                      <SelectItem value="Auto Body Shop">Auto Body Shop</SelectItem>
+                      <SelectItem value="Tire Shop">Tire Shop</SelectItem>
+                      <SelectItem value="Auto Detailing">Auto Detailing</SelectItem>
+                      <SelectItem value="Towing Services">Towing Services</SelectItem>
+                      <SelectItem value="Car Wash">Car Wash</SelectItem>
+                      <SelectItem value="Oil Change & Lube">Oil Change & Lube</SelectItem>
+                      <SelectItem value="Windshield Repair">Windshield Repair</SelectItem>
+                      
+                      {/* Food & Hospitality */}
+                      <SelectItem value="Restaurant">Restaurant</SelectItem>
+                      <SelectItem value="Cafe & Coffee Shop">Cafe & Coffee Shop</SelectItem>
+                      <SelectItem value="Bakery">Bakery</SelectItem>
+                      <SelectItem value="Catering Services">Catering Services</SelectItem>
+                      <SelectItem value="Food Truck">Food Truck</SelectItem>
+                      <SelectItem value="Bar & Nightclub">Bar & Nightclub</SelectItem>
+                      <SelectItem value="Hotel & Lodging">Hotel & Lodging</SelectItem>
+                      <SelectItem value="Bed & Breakfast">Bed & Breakfast</SelectItem>
+                      <SelectItem value="Event Venue">Event Venue</SelectItem>
+                      
+                      {/* Retail */}
+                      <SelectItem value="Clothing Store">Clothing Store</SelectItem>
+                      <SelectItem value="Jewelry Store">Jewelry Store</SelectItem>
+                      <SelectItem value="Furniture Store">Furniture Store</SelectItem>
+                      <SelectItem value="Electronics Store">Electronics Store</SelectItem>
+                      <SelectItem value="Pet Store">Pet Store</SelectItem>
+                      <SelectItem value="Florist">Florist</SelectItem>
+                      <SelectItem value="Gift Shop">Gift Shop</SelectItem>
+                      <SelectItem value="Liquor Store">Liquor Store</SelectItem>
+                      <SelectItem value="Convenience Store">Convenience Store</SelectItem>
+                      <SelectItem value="Hardware Store">Hardware Store</SelectItem>
+                      <SelectItem value="Sporting Goods">Sporting Goods</SelectItem>
+                      <SelectItem value="Thrift Store">Thrift Store</SelectItem>
+                      
+                      {/* Education & Training */}
+                      <SelectItem value="Tutoring Services">Tutoring Services</SelectItem>
+                      <SelectItem value="Music School">Music School</SelectItem>
+                      <SelectItem value="Driving School">Driving School</SelectItem>
+                      <SelectItem value="Language School">Language School</SelectItem>
+                      <SelectItem value="Preschool & Daycare">Preschool & Daycare</SelectItem>
+                      <SelectItem value="Private School">Private School</SelectItem>
+                      <SelectItem value="Test Prep Center">Test Prep Center</SelectItem>
+                      <SelectItem value="Trade School">Trade School</SelectItem>
+                      
+                      {/* Events & Entertainment */}
+                      <SelectItem value="Photography Studio">Photography Studio</SelectItem>
+                      <SelectItem value="Videography Services">Videography Services</SelectItem>
+                      <SelectItem value="Wedding Planner">Wedding Planner</SelectItem>
+                      <SelectItem value="Event Planning">Event Planning</SelectItem>
+                      <SelectItem value="DJ Services">DJ Services</SelectItem>
+                      <SelectItem value="Party Rentals">Party Rentals</SelectItem>
+                      <SelectItem value="Entertainment Venue">Entertainment Venue</SelectItem>
+                      
+                      {/* Construction & Industrial */}
+                      <SelectItem value="General Contractor">General Contractor</SelectItem>
+                      <SelectItem value="Construction Company">Construction Company</SelectItem>
+                      <SelectItem value="Demolition Services">Demolition Services</SelectItem>
+                      <SelectItem value="Excavation Services">Excavation Services</SelectItem>
+                      <SelectItem value="Concrete Contractor">Concrete Contractor</SelectItem>
+                      <SelectItem value="Welding Services">Welding Services</SelectItem>
+                      <SelectItem value="Tree Services">Tree Services</SelectItem>
+                      <SelectItem value="Junk Removal">Junk Removal</SelectItem>
+                      <SelectItem value="Pressure Washing">Pressure Washing</SelectItem>
+                      <SelectItem value="Septic Services">Septic Services</SelectItem>
+                      
+                      {/* Other Services */}
+                      <SelectItem value="Dry Cleaning & Laundry">Dry Cleaning & Laundry</SelectItem>
+                      <SelectItem value="Printing Services">Printing Services</SelectItem>
+                      <SelectItem value="Shipping & Mailing">Shipping & Mailing</SelectItem>
+                      <SelectItem value="Storage Facility">Storage Facility</SelectItem>
+                      <SelectItem value="Funeral Home">Funeral Home</SelectItem>
+                      <SelectItem value="Pet Grooming">Pet Grooming</SelectItem>
+                      <SelectItem value="Dog Training">Dog Training</SelectItem>
+                      <SelectItem value="Pet Boarding">Pet Boarding</SelectItem>
+                      <SelectItem value="Security Services">Security Services</SelectItem>
+                      <SelectItem value="Cleaning Services">Cleaning Services</SelectItem>
+                      
+                      {/* Tech & Digital */}
+                      <SelectItem value="SaaS Company">SaaS Company</SelectItem>
+                      <SelectItem value="Software Development">Software Development</SelectItem>
+                      <SelectItem value="Mobile App Development">Mobile App Development</SelectItem>
+                      <SelectItem value="E-commerce Business">E-commerce Business</SelectItem>
+                      <SelectItem value="Digital Marketing">Digital Marketing</SelectItem>
+                      <SelectItem value="SEO Agency">SEO Agency</SelectItem>
+                      <SelectItem value="Social Media Agency">Social Media Agency</SelectItem>
+                      <SelectItem value="Tech Startup">Tech Startup</SelectItem>
+                      
+                      {/* Other */}
+                      <SelectItem value="Nonprofit Organization">Nonprofit Organization</SelectItem>
+                      <SelectItem value="Church & Religious">Church & Religious</SelectItem>
+                      <SelectItem value="Government Agency">Government Agency</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
