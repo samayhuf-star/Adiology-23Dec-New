@@ -2523,22 +2523,28 @@ function getGeoTargetId(countryCode: string): string {
 }
 
 // Helper: Generate fallback keyword data when API is unavailable
-function generateFallbackKeywordData(seedKeywords: string[]): KeywordMetrics[] {
-  const results: KeywordMetrics[] = [];
-  const variations = ['', 'near me', 'best', 'top', 'cheap', 'professional', 'local', 'online', 'services'];
+// Uses comprehensive keyword expansion engine for 300-500+ keywords
+function generateFallbackKeywordData(seedKeywords: string[], expansionMode: 'conservative' | 'moderate' | 'aggressive' = 'moderate'): KeywordMetrics[] {
+  // Use the comprehensive keyword expansion engine
+  const { expandKeywords } = require('./keywordExpansion.js');
   
-  for (const seed of seedKeywords) {
-    // Add the seed keyword itself
-    results.push(generateSingleKeywordMetrics(seed));
-    
-    // Add variations
-    for (const variation of variations.slice(1, 5)) {
-      const keyword = variation ? `${seed} ${variation}` : seed;
-      results.push(generateSingleKeywordMetrics(keyword));
-    }
-  }
+  const expanded = expandKeywords(seedKeywords, {
+    expansionMode,
+    includeQuestions: true,
+    includeLongTail: true,
+    maxKeywords: expansionMode === 'aggressive' ? 600 : expansionMode === 'moderate' ? 400 : 150
+  });
   
-  return results;
+  // Convert ExpandedKeyword to KeywordMetrics format
+  return expanded.map((kw: any) => ({
+    keyword: kw.keyword,
+    avgMonthlySearches: kw.avgMonthlySearches,
+    competition: kw.competition,
+    competitionIndex: kw.competitionIndex,
+    lowTopOfPageBid: kw.lowTopOfPageBid,
+    highTopOfPageBid: kw.highTopOfPageBid,
+    avgCpc: kw.avgCpc
+  }));
 }
 
 function generateSingleKeywordMetrics(keyword: string): KeywordMetrics {
