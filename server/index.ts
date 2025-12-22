@@ -3321,9 +3321,15 @@ app.post('/api/ai/generate-blog', async (c) => {
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
       try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (!error && user) {
-          authenticatedUserId = user.id;
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          const { data: { user }, error } = await supabase.auth.getUser(token);
+          if (!error && user) {
+            authenticatedUserId = user.id;
+          }
         }
       } catch (e) {
         console.log('[Blog Generator] Token verification failed');
@@ -4012,7 +4018,7 @@ Return ONLY JSON (no markdown):
         const allDescriptions = adCopy.descriptions?.map((d: any) => d.text || d) || [];
         
         const createAdsForGroup = () => {
-          const ads = [];
+          const ads: Array<{type: string; headlines: string[]; descriptions: string[]; finalUrl: string; path1: string; path2: string; status: string}> = [];
           // Ad 1: Headlines 1-5, Descriptions 1-2
           ads.push({
             type: 'RSA',
