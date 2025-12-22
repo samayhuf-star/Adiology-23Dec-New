@@ -5,7 +5,7 @@ integrations = ["javascript_openai_ai_integrations:1.0.0", "stripe:2.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["imagemagick_light", "mailutils", "psmisc", "speech-tools", "nano"]
+packages = ["imagemagick_light", "mailutils", "nano", "psmisc", "speech-tools"]
 
 [workflows]
 runButton = "Project"
@@ -49,6 +49,10 @@ outputType = "console"
 
 [[ports]]
 localPort = 3001
+externalPort = 3001
+
+[[ports]]
+localPort = 3003
 externalPort = 3003
 
 [[ports]]
