@@ -2881,10 +2881,13 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
   const [customDomain, setCustomDomain] = useState((website as any).customDomain || '');
   
   const userDomain = customDomain.replace(/^www\./, '') || 'yourdomain.com';
+  const siteSlug = website.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'site';
+  const replitAppUrl = `adiology.replit.app`;
   
   const dnsRecords = [
-    { type: 'A Record', name: '@', value: '34.110.210.168', description: 'Points to Replit servers (required for apex domain)' },
-    { type: 'CNAME', name: 'www', value: userDomain, description: 'Points www subdomain to your apex domain' }
+    { type: 'A', name: '@', value: '34.132.134.162', description: 'Points apex domain (yourdomain.com) to Replit servers', ttl: '3600' },
+    { type: 'CNAME', name: 'www', value: replitAppUrl, description: 'Points www subdomain to your Replit deployment', ttl: '3600' },
+    { type: 'TXT', name: '@', value: `replit-site-verification=${siteSlug}`, description: 'Verifies domain ownership with Replit', ttl: '3600' }
   ];
 
   const handleCopy = (text: string, type: string) => {
@@ -2910,7 +2913,7 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           domain: customDomain.replace(/^www\./, ''),
-          expectedIP: '34.110.210.168'
+          expectedIP: '34.132.134.162'
         })
       });
       
@@ -2963,45 +2966,81 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
           </div>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800"><strong>Steps:</strong></p>
-            <ol className="text-sm text-blue-700 mt-2 space-y-1 list-decimal list-inside">
-              <li>Enter your domain name above</li>
-              <li>Go to your domain registrar (GoDaddy, Namecheap, etc.)</li>
-              <li>Find DNS settings for your domain</li>
-              <li>Add the DNS records below</li>
-              <li>Click "Verify DNS" to check configuration</li>
-              <li>Once verified, your website will be live!</li>
+            <p className="text-sm text-blue-800 font-semibold mb-2">How to Connect Your Domain:</p>
+            <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
+              <li>Enter your domain name above (without www or http://)</li>
+              <li>Log in to your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.)</li>
+              <li>Navigate to <strong>DNS Management</strong> or <strong>DNS Settings</strong></li>
+              <li>Add ALL {dnsRecords.length} DNS records shown below exactly as displayed</li>
+              <li>Wait 5-30 minutes for DNS propagation (can take up to 48 hours)</li>
+              <li>Click "Verify DNS" to confirm your domain is connected</li>
             </ol>
           </div>
 
           <div>
-            <h3 className="font-bold text-gray-800 mb-4">DNS Records to Add:</h3>
-            <div className="space-y-3">
+            <h3 className="font-bold text-gray-800 mb-2">Add These DNS Records:</h3>
+            <p className="text-xs text-gray-500 mb-4">Copy each record exactly as shown to your domain registrar's DNS settings</p>
+            
+            {/* DNS Records Table Header */}
+            <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 bg-gray-100 rounded-t-lg text-xs font-semibold text-gray-600 uppercase">
+              <div className="col-span-2">Type</div>
+              <div className="col-span-2">Name/Host</div>
+              <div className="col-span-5">Value</div>
+              <div className="col-span-2">TTL</div>
+              <div className="col-span-1">Copy</div>
+            </div>
+            
+            <div className="space-y-0 border border-gray-200 rounded-lg md:rounded-t-none overflow-hidden">
               {dnsRecords.map((record, idx) => (
-                <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-semibold">Type</p>
-                      <p className="font-mono font-bold text-gray-800">{record.type}</p>
+                <div key={idx} className="border-b last:border-b-0 border-gray-200 p-4 hover:bg-gray-50 transition">
+                  {/* Mobile Layout */}
+                  <div className="md:hidden space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                        record.type === 'A' ? 'bg-green-100 text-green-700' :
+                        record.type === 'CNAME' ? 'bg-blue-100 text-blue-700' :
+                        'bg-purple-100 text-purple-700'
+                      }`}>{record.type}</span>
+                      <span className="font-mono text-gray-700">{record.name}</span>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-semibold">Name/Host</p>
-                      <p className="font-mono text-gray-700">{record.name}</p>
+                    <div className="bg-gray-100 rounded p-2">
+                      <p className="text-xs text-gray-500 mb-1">Value:</p>
+                      <p className="font-mono text-sm text-gray-800 break-all">{record.value}</p>
                     </div>
-                    <div className="md:col-span-2">
-                      <p className="text-xs text-gray-500 uppercase font-semibold">Value/Points To</p>
-                      <p className="font-mono text-gray-700 break-all">{record.value}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">TTL: {record.ttl}</span>
+                      <button
+                        onClick={() => handleCopy(record.value, record.type + idx)}
+                        className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 rounded text-indigo-700 text-xs font-medium flex items-center gap-1"
+                      >
+                        {copied === record.type + idx ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        {copied === record.type + idx ? 'Copied!' : 'Copy Value'}
+                      </button>
                     </div>
+                    <p className="text-xs text-gray-500 italic">{record.description}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-600">{record.description}</p>
-                    <button
-                      onClick={() => handleCopy(`${record.type}|${record.name}|${record.value}`, record.type + idx)}
-                      className="p-1 hover:bg-gray-200 rounded transition text-gray-500 hover:text-indigo-600"
-                      title="Copy record"
-                    >
-                      {copied === record.type + idx ? <Check className="w-4 h-4 text-indigo-600" /> : <Copy className="w-4 h-4" />}
-                    </button>
+                  
+                  {/* Desktop Layout */}
+                  <div className="hidden md:grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-2">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                        record.type === 'A' ? 'bg-green-100 text-green-700' :
+                        record.type === 'CNAME' ? 'bg-blue-100 text-blue-700' :
+                        'bg-purple-100 text-purple-700'
+                      }`}>{record.type}</span>
+                    </div>
+                    <div className="col-span-2 font-mono text-gray-700">{record.name}</div>
+                    <div className="col-span-5 font-mono text-gray-800 text-sm break-all">{record.value}</div>
+                    <div className="col-span-2 text-gray-600 text-sm">{record.ttl}</div>
+                    <div className="col-span-1">
+                      <button
+                        onClick={() => handleCopy(record.value, record.type + idx)}
+                        className="p-1.5 hover:bg-indigo-100 rounded transition text-gray-500 hover:text-indigo-600"
+                        title="Copy value"
+                      >
+                        {copied === record.type + idx ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -3009,9 +3048,13 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <p className="text-sm text-amber-800">
-              <strong>⚠️ Important:</strong> Some registrars use different terminology. TTL should be set to 3600 (1 hour). If you get stuck, contact your registrar's support.
-            </p>
+            <p className="text-sm text-amber-800 font-semibold mb-2">Important Notes:</p>
+            <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
+              <li><strong>@ symbol</strong> = Your root domain (some registrars use "." or leave blank)</li>
+              <li><strong>TTL 3600</strong> = 1 hour (or select "Auto" if available)</li>
+              <li><strong>DNS propagation</strong> takes 5-30 minutes, but can take up to 48 hours</li>
+              <li><strong>Cloudflare users:</strong> Disable proxy (orange cloud) during setup</li>
+            </ul>
           </div>
 
           {verificationStatus !== 'idle' && (

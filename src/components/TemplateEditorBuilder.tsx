@@ -139,7 +139,7 @@ ${exportedHtml}
         alert('Domain verified successfully! Your custom domain is now connected.');
       } else {
         setDomainVerified(false);
-        alert('Domain not verified. Please ensure the A record points to 76.76.21.21 and wait for DNS propagation (can take up to 48 hours).');
+        alert('Domain not verified. Please ensure the A record points to 34.132.134.162 and wait for DNS propagation (can take up to 48 hours).');
       }
     } catch (error) {
       console.error('Domain verification error:', error);
@@ -309,35 +309,96 @@ ${exportedHtml || templateData.rawHtml || ''}
 
                 <div className="border-t pt-4">
                   <h4 className="font-semibold text-gray-800 mb-3">Connect Custom Domain</h4>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-                    <p className="text-sm text-amber-800 font-medium mb-2">DNS Configuration Required:</p>
-                    <div className="bg-white rounded p-3 font-mono text-sm space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Type:</span>
-                        <span className="font-semibold">A Record</span>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p className="text-xs text-blue-700 mb-2">Add these DNS records to your domain registrar:</p>
+                  </div>
+                  
+                  {/* DNS Records */}
+                  <div className="space-y-2 mb-4">
+                    {/* A Record */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700">A Record</span>
+                        <button
+                          onClick={() => copyToClipboard('34.132.134.162')}
+                          className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-indigo-600"
+                          title="Copy IP"
+                        >
+                          {copied ? <CheckCircle className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                        </button>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Host:</span>
-                        <span className="font-semibold">@ (or your subdomain)</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-500">Value:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-purple-700">76.76.21.21</span>
-                          <button
-                            onClick={() => copyToClipboard('76.76.21.21')}
-                            className="p-1 hover:bg-amber-100 rounded"
-                            title="Copy IP"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="text-gray-500">Host:</span>
+                          <p className="font-mono font-semibold">@</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Value:</span>
+                          <p className="font-mono font-semibold text-purple-700">34.132.134.162</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">TTL:</span>
+                          <p className="font-mono font-semibold">3600</p>
                         </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">TTL:</span>
-                        <span className="font-semibold">3600 (or Auto)</span>
+                    </div>
+                    
+                    {/* CNAME Record */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">CNAME</span>
+                        <button
+                          onClick={() => copyToClipboard('adiology.replit.app')}
+                          className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-indigo-600"
+                          title="Copy value"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="text-gray-500">Host:</span>
+                          <p className="font-mono font-semibold">www</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Value:</span>
+                          <p className="font-mono font-semibold text-purple-700">adiology.replit.app</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">TTL:</span>
+                          <p className="font-mono font-semibold">3600</p>
+                        </div>
                       </div>
                     </div>
+                    
+                    {/* TXT Record */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-700">TXT</span>
+                        <button
+                          onClick={() => copyToClipboard(`replit-site-verification=${generateSlug(currentName)}`)}
+                          className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-indigo-600"
+                          title="Copy value"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="text-gray-500">Host:</span>
+                          <p className="font-mono font-semibold">@</p>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-gray-500">Value:</span>
+                          <p className="font-mono font-semibold text-purple-700 break-all">replit-site-verification={generateSlug(currentName)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-xs text-amber-700">
+                    <strong>Note:</strong> DNS propagation takes 5-30 minutes (up to 48 hours). Cloudflare users: disable proxy (grey cloud) during setup.
                   </div>
 
                   <div className="space-y-3">
@@ -347,10 +408,11 @@ ${exportedHtml || templateData.rawHtml || ''}
                     <input
                       type="text"
                       value={customDomain}
-                      onChange={(e) => setCustomDomain(e.target.value)}
-                      placeholder="e.g., www.yourdomain.com"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      onChange={(e) => setCustomDomain(e.target.value.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, ''))}
+                      placeholder="yourdomain.com"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none font-mono"
                     />
+                    <p className="text-xs text-gray-500">Enter without http:// or www</p>
                     <button
                       onClick={handleVerifyDomain}
                       disabled={!customDomain.trim()}
