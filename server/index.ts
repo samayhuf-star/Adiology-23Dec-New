@@ -9,6 +9,7 @@ import { WebhookHandlers } from './webhookHandlers';
 import { stripeService } from './stripeService';
 import { analyzeUrlWithCheerio } from './urlAnalyzerLite';
 import { expandKeywords } from '../shared/keywordExpansion.js';
+import { generateDetailedBlog, type BlogConfig } from './blogGenerator.js';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
@@ -3307,6 +3308,66 @@ function generateStaticNegativeKeywords(coreKeywords: string, userGoal: string, 
 
   return keywords.slice(0, count);
 }
+
+// ============================================
+// AI Blog Generator API
+// ============================================
+
+app.post('/api/ai/generate-blog', async (c) => {
+  try {
+    const body = await c.req.json();
+    const {
+      topic,
+      keyword,
+      contentType = 'how-to',
+      tone = 'professional',
+      targetAudience = 'general',
+      includeCode = false,
+      includeStats = true,
+      targetWordCount = 2000
+    } = body;
+
+    if (!topic) {
+      return c.json({ error: 'Topic is required' }, 400);
+    }
+
+    const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      return c.json({ error: 'AI service not configured - please add your OpenAI API key' }, 500);
+    }
+
+    console.log(`[Blog Generator API] Generating blog for: ${topic}`);
+
+    const config: BlogConfig = {
+      topic,
+      keyword: keyword || topic.split(' ').slice(0, 3).join(' '),
+      contentType,
+      tone,
+      targetAudience,
+      includeCode,
+      includeStats,
+      targetWordCount
+    };
+
+    const blog = await generateDetailedBlog(config);
+
+    return c.json({
+      success: true,
+      blog,
+      metrics: {
+        wordCount: blog.wordCount,
+        readingTime: blog.readingTime,
+        sectionsCount: blog.sections.length,
+        imagesCount: blog.imagePrompts.length,
+        codeSnippetsCount: blog.codeSnippets.length
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[Blog Generator API] Error:', error);
+    return c.json({ error: error.message || 'Blog generation failed' }, 500);
+  }
+});
 
 // ============================================
 // User Notifications API
