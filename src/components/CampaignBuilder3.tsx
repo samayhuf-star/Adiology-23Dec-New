@@ -58,7 +58,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { generateDKIAdWithAI } from '../utils/dkiAdGeneratorAI';
 import { CampaignFlowDiagram } from './CampaignFlowDiagram';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
-import { generateSmartNegatives, getAllVerticals, estimateNegativeCount, type NegativeKeywordResult } from '../utils/negativeKeywordEngine';
 
 // Campaign Structure Types (14 structures)
 const CAMPAIGN_STRUCTURES = [
@@ -3435,101 +3434,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
       <Card className="mb-6">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center justify-between">
-                <span>Negative Keywords ({campaignData.negativeKeywords.length})</span>
-                <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                  Smart Engine
-                </Badge>
-              </CardTitle>
+              <CardTitle className="text-base">Negative Keywords ({campaignData.negativeKeywords.length})</CardTitle>
             </CardHeader>
             <CardContent className="pt-2">
-              <div className="space-y-4">
-                {/* Smart Negative Keywords Generator */}
-                <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-semibold text-purple-800">Smart Negative Generator</span>
-                  </div>
-                  <p className="text-xs text-purple-600 mb-3">
-                    Generate 100-1,600+ high-impact negatives based on intent modifiers (DIY, budget, info seekers, job seekers, etc.)
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <Label className="text-xs text-purple-700 mb-1 block">Business Vertical</Label>
-                      <select
-                        className="w-full h-9 px-3 text-sm border border-purple-200 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                        value={campaignData.vertical || ''}
-                        onChange={(e) => setCampaignData(prev => ({ ...prev, vertical: e.target.value || null }))}
-                      >
-                        <option value="">Select a vertical...</option>
-                        {getAllVerticals().map(v => (
-                          <option key={v.key} value={v.key}>{v.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-purple-700 mb-1 block">Competitors (optional)</Label>
-                      <Input 
-                        placeholder="e.g., Competitor1, Competitor2"
-                        className="h-9 text-sm border-purple-200"
-                        id="competitor-input"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      size="sm"
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-                      onClick={() => {
-                        const coreKeywords = campaignData.seedKeywords.length > 0 
-                          ? campaignData.seedKeywords 
-                          : seedKeywordsText.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
-                        
-                        if (coreKeywords.length === 0) {
-                          notifications.error('Please enter seed keywords first to generate smart negatives', {
-                            title: 'No Keywords'
-                          });
-                          return;
-                        }
-
-                        const competitorInput = (document.getElementById('competitor-input') as HTMLInputElement)?.value || '';
-                        const competitors = competitorInput.split(',').map(c => c.trim()).filter(Boolean);
-
-                        const result = generateSmartNegatives({
-                          coreKeywords,
-                          vertical: campaignData.vertical || undefined,
-                          competitors
-                        });
-
-                        const newNegatives = result.negatives.map(n => n.keyword);
-                        const combined = [...new Set([...campaignData.negativeKeywords, ...newNegatives])];
-                        
-                        setCampaignData(prev => ({ ...prev, negativeKeywords: combined }));
-                        
-                        notifications.success(`Generated ${result.stats.totalCount} smart negatives from ${coreKeywords.length} keywords`, {
-                          title: 'Smart Negatives Generated',
-                          description: `Categories: ${Object.keys(result.stats.byCategory).join(', ')}`
-                        });
-                      }}
-                      disabled={seedKeywordsText.trim().length === 0 && campaignData.seedKeywords.length === 0}
-                    >
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      Generate Smart Negatives
-                    </Button>
-                    {(seedKeywordsText.trim().length > 0 || campaignData.seedKeywords.length > 0) && (
-                      <span className="text-xs text-purple-600">
-                        Est. {estimateNegativeCount(
-                          (campaignData.seedKeywords.length > 0 ? campaignData.seedKeywords : seedKeywordsText.split(/[\n,]+/).filter(k => k.trim().length > 0)).length,
-                          campaignData.vertical || undefined
-                        ).average.toLocaleString()} negatives
-                      </span>
-                    )}
-                  </div>
-                </div>
-
+              <div className="space-y-3">
                 {/* Compact Negative Keywords Display */}
-                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
-                  {campaignData.negativeKeywords.slice(0, 100).map((neg, idx) => {
+                <div className="flex flex-wrap gap-1.5">
+                  {campaignData.negativeKeywords.map((neg, idx) => {
                     const isDefault = DEFAULT_NEGATIVE_KEYWORDS.includes(neg);
                     return (
                       <span
@@ -3552,11 +3463,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                       </span>
                     );
                   })}
-                  {campaignData.negativeKeywords.length > 100 && (
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
-                      +{campaignData.negativeKeywords.length - 100} more
-                    </span>
-                  )}
                 </div>
 
                 {/* Compact Add Custom */}
@@ -3579,22 +3485,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                   />
                   <span className="text-xs text-slate-400 whitespace-nowrap mt-2">Press Enter to add</span>
                 </div>
-
-                {/* Clear All Button */}
-                {campaignData.negativeKeywords.length > DEFAULT_NEGATIVE_KEYWORDS.length && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => {
-                      setCampaignData(prev => ({ ...prev, negativeKeywords: [...DEFAULT_NEGATIVE_KEYWORDS] }));
-                      notifications.info('Reset to default negative keywords');
-                    }}
-                  >
-                    <X className="w-3 h-3 mr-1" />
-                    Reset to Defaults ({DEFAULT_NEGATIVE_KEYWORDS.length})
-                  </Button>
-                )}
               </div>
             </CardContent>
           </Card>
