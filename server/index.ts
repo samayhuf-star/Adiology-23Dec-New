@@ -905,9 +905,8 @@ app.post('/api/publish-website', async (c) => {
       RETURNING *
     `, [id || `pub_${Date.now()}`, name, finalSlug, user_email, html_content, JSON.stringify(template_data || {})]);
     
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'adiology.io';
-    const protocol = domain.includes('localhost') ? 'http' : 'https';
-    const publishedUrl = `${protocol}://${domain}/templates/${finalSlug}`;
+    const domain = process.env.WEBSITE_DOMAIN || 'adiology.io';
+    const publishedUrl = `https://${domain}/templates/${finalSlug}`;
     
     console.log('✅ Website published:', { id: result.rows[0].id, slug: finalSlug, url: publishedUrl });
     
@@ -948,9 +947,8 @@ app.post('/api/publish-website', async (c) => {
           RETURNING *
         `, [id || `pub_${Date.now()}`, name, finalSlug, user_email, html_content, JSON.stringify(template_data || {})]);
         
-        const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'adiology.io';
-        const protocol = domain.includes('localhost') ? 'http' : 'https';
-        const publishedUrl = `${protocol}://${domain}/templates/${finalSlug}`;
+        const domain = process.env.WEBSITE_DOMAIN || 'adiology.io';
+        const publishedUrl = `https://${domain}/templates/${finalSlug}`;
         
         return c.json({ 
           success: true, 
