@@ -3399,6 +3399,144 @@ app.post('/api/ai/generate-blog', async (c) => {
 });
 
 // ============================================
+// Published Blogs API (Admin creates, all users view)
+// ============================================
+
+// Get all published blogs (public - for user panel)
+app.get('/api/blogs', async (c) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, title, slug, excerpt, content, category, read_time, author, image_url, tags, meta_description, word_count, created_at
+       FROM published_blogs 
+       WHERE status = 'published'
+       ORDER BY created_at DESC`
+    );
+    
+    return c.json({ blogs: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching blogs:', error);
+    return c.json({ error: error.message, blogs: [] }, 500);
+  }
+});
+
+// Get single blog by slug (public)
+app.get('/api/blogs/:slug', async (c) => {
+  try {
+    const slug = c.req.param('slug');
+    
+    const result = await pool.query(
+      `SELECT id, title, slug, excerpt, content, category, read_time, author, image_url, tags, meta_description, word_count, created_at
+       FROM published_blogs 
+       WHERE slug = $1 AND status = 'published'`,
+      [slug]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Blog not found' }, 404);
+    }
+    
+    return c.json({ blog: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error fetching blog:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Save/publish a blog (admin only)
+app.post('/api/admin/blogs', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    let authenticatedUserId: string | null = null;
+    
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          const { data: { user }, error } = await supabase.auth.getUser(token);
+          if (!error && user) {
+            authenticatedUserId = user.id;
+          }
+        }
+      } catch (e) {
+        console.log('[Blog Save] Token verification failed');
+      }
+    }
+    
+    if (!authenticatedUserId) {
+      return c.json({ error: 'Authentication required' }, 401);
+    }
+    
+    const body = await c.req.json();
+    const { title, slug, excerpt, content, category, readTime, author, imageUrl, tags, metaDescription, wordCount } = body;
+    
+    if (!title || !content) {
+      return c.json({ error: 'Title and content are required' }, 400);
+    }
+    
+    const blogSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    
+    const result = await pool.query(
+      `INSERT INTO published_blogs (title, slug, excerpt, content, category, read_time, author, image_url, tags, meta_description, word_count, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       ON CONFLICT (slug) DO UPDATE SET
+         title = EXCLUDED.title,
+         excerpt = EXCLUDED.excerpt,
+         content = EXCLUDED.content,
+         category = EXCLUDED.category,
+         read_time = EXCLUDED.read_time,
+         author = EXCLUDED.author,
+         image_url = EXCLUDED.image_url,
+         tags = EXCLUDED.tags,
+         meta_description = EXCLUDED.meta_description,
+         word_count = EXCLUDED.word_count,
+         updated_at = NOW()
+       RETURNING *`,
+      [
+        title,
+        blogSlug,
+        excerpt || '',
+        content,
+        category || 'general',
+        readTime || '5 min',
+        author || 'Adiology Team',
+        imageUrl || null,
+        tags || [],
+        metaDescription || excerpt?.substring(0, 160) || '',
+        wordCount || 0,
+        authenticatedUserId
+      ]
+    );
+    
+    return c.json({ 
+      success: true,
+      blog: result.rows[0],
+      message: 'Blog published successfully'
+    });
+  } catch (error: any) {
+    console.error('Error saving blog:', error);
+    return c.json({ error: error.message || 'Failed to save blog' }, 500);
+  }
+});
+
+// Delete a blog (admin only)
+app.delete('/api/admin/blogs/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    
+    await pool.query(`DELETE FROM published_blogs WHERE id = $1`, [id]);
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting blog:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ============================================
 // User Notifications API
 // ============================================
 
