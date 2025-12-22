@@ -5873,7 +5873,7 @@ app.post('/api/long-tail-keywords/generate', async (c) => {
               },
               {
                 role: 'user',
-                content: `Generate 15-25 long-tail keyword variations for these seed keywords: ${seedKeywords.join(', ')}
+                content: `Generate 50-80 long-tail keyword variations for these seed keywords: ${seedKeywords.join(', ')}
 
 CRITICAL REQUIREMENT: Every keyword MUST contain 3 or more words. Do NOT include 1-word or 2-word keywords.
 
@@ -5924,11 +5924,14 @@ Return ONLY a valid JSON array like:
       'how to find', 'what is the', 'where to get', 'when to use',
       'cost of professional', 'reviews for best', 'alternatives to expensive',
       'for beginners guide', 'for business owners', 'online services for',
-      'free consultation for', '2024 guide to', '2025 best rated', 'tips for choosing'
+      'free consultation for', '2024 guide to', '2025 best rated', 'tips for choosing',
+      'how much does', 'where can I', 'why choose the', 'benefits of using',
+      'compare prices for', 'near me with', 'same day service', 'emergency service for',
+      'licensed and insured', 'affordable prices for', 'local expert in', 'trusted provider of'
     ];
     
-    for (const seed of seedKeywords.slice(0, 5)) {
-      for (const mod of modifierPairs.slice(0, 10)) {
+    for (const seed of seedKeywords.slice(0, 10)) {
+      for (const mod of modifierPairs) {
         const keyword = `${mod} ${seed}`;
         const wordCount = keyword.trim().split(/\s+/).length;
         
@@ -5945,7 +5948,7 @@ Return ONLY a valid JSON array like:
       }
     }
     
-    return c.json({ keywords: keywords.slice(0, 50) });
+    return c.json({ keywords: keywords.slice(0, 200) });
   } catch (error: any) {
     console.error('Error generating long-tail keywords:', error);
     return c.json({ error: error.message || 'Failed to generate keywords' }, 500);
