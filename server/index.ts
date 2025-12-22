@@ -4097,6 +4097,15 @@ app.post('/api/campaigns/save', async (c) => {
 // SUPER ADMIN API ENDPOINTS
 // ============================================
 
+// Helper to get Supabase client for admin queries
+async function getSupabaseAdmin() {
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+  return createClient(supabaseUrl, supabaseKey);
+}
+
 // Admin Stats Dashboard
 app.get('/api/admin/stats', async (c) => {
   const auth = await verifySuperAdmin(c);
@@ -4104,52 +4113,44 @@ app.get('/api/admin/stats', async (c) => {
     return c.json({ error: auth.error }, 403);
   }
   try {
-    // Get total users
-    const usersResult = await pool.query('SELECT COUNT(*) as count FROM users');
-    const totalUsers = parseInt(usersResult.rows[0]?.count || '0');
+    const supabase = await getSupabaseAdmin();
+    if (!supabase) {
+      return c.json({ error: 'Supabase not configured' }, 500);
+    }
+
+    // Get total users from Supabase
+    const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
     
-    // Get active subscriptions
-    const subsResult = await pool.query("SELECT COUNT(*) as count FROM users WHERE subscription_status = 'active'");
-    const activeSubscriptions = parseInt(subsResult.rows[0]?.count || '0');
+    // Get active subscriptions from Supabase subscriptions table
+    const { count: activeSubscriptions } = await supabase
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'active');
     
-    // Get active trials
-    const trialsResult = await pool.query("SELECT COUNT(*) as count FROM promo_trials WHERE status = 'active'");
-    const activeTrials = parseInt(trialsResult.rows[0]?.count || '0');
+    // Get feedback count
+    const { count: feedbackCount } = await supabase.from('feedback').select('*', { count: 'exact', head: true });
     
-    // Get error count from logs (last 24 hours)
-    const errorResult = await pool.query(
-      "SELECT COUNT(*) as count FROM admin_logs WHERE level = 'error' AND created_at > NOW() - INTERVAL '24 hours'"
-    );
-    const errorCount = parseInt(errorResult.rows[0]?.count || '0');
+    // Get audit logs count (last 24 hours)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: auditCount } = await supabase
+      .from('audit_logs')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', yesterday);
     
-    // Get emails sent today
-    const emailResult = await pool.query(
-      "SELECT COUNT(*) as count FROM email_logs WHERE sent_at > NOW() - INTERVAL '24 hours'"
-    );
-    const emailsSent = parseInt(emailResult.rows[0]?.count || '0');
+    // Get emails sent
+    const { count: emailsSent } = await supabase.from('emails').select('*', { count: 'exact', head: true });
     
-    // Calculate monthly revenue from Stripe (simplified)
-    const revenueResult = await pool.query(`
-      SELECT COALESCE(SUM(
-        CASE 
-          WHEN subscription_plan = 'lifetime' THEN 99.99
-          WHEN subscription_plan = 'pro' THEN 129.99
-          WHEN subscription_plan = 'basic' THEN 69.99
-          ELSE 0
-        END
-      ), 0) as revenue
-      FROM users 
-      WHERE subscription_status = 'active'
-    `);
-    const monthlyRevenue = parseFloat(revenueResult.rows[0]?.revenue || '0');
+    // Get payments count for revenue estimate
+    const { data: payments } = await supabase.from('payments').select('*');
+    const monthlyRevenue = (payments || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0) / 100;
     
     return c.json({
-      totalUsers,
-      activeSubscriptions,
-      monthlyRevenue,
-      errorCount,
-      activeTrials,
-      emailsSent
+      totalUsers: totalUsers || 0,
+      activeSubscriptions: activeSubscriptions || 0,
+      monthlyRevenue: monthlyRevenue || 0,
+      errorCount: auditCount || 0,
+      activeTrials: feedbackCount || 0,
+      emailsSent: emailsSent || 0
     });
   } catch (error: any) {
     console.error('Error fetching admin stats:', error);
@@ -4163,17 +4164,23 @@ app.get('/api/admin/stats', async (c) => {
 // Get all users for admin
 app.get('/api/admin/users', async (c) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        id, email, full_name, role, 
-        subscription_plan, subscription_status,
-        created_at, updated_at,
-        false as is_blocked
-      FROM users 
-      ORDER BY created_at DESC
-      LIMIT 500
-    `);
-    return c.json({ users: result.rows });
+    const supabase = await getSupabaseAdmin();
+    if (!supabase) {
+      return c.json({ users: [] });
+    }
+    
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, email, full_name, role, subscription_plan, subscription_status, created_at, updated_at')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    
+    if (error) {
+      console.error('Error fetching users from Supabase:', error);
+      return c.json({ users: [] });
+    }
+    
+    return c.json({ users: (users || []).map((u: any) => ({ ...u, is_blocked: false })) });
   } catch (error: any) {
     console.error('Error fetching users:', error);
     return c.json({ users: [] });
@@ -4205,10 +4212,10 @@ app.post('/api/admin/users/:userId/role', async (c) => {
     const userId = c.req.param('userId');
     const { role } = await c.req.json();
     
-    await pool.query(
-      'UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2',
-      [role, userId]
-    );
+    const supabase = await getSupabaseAdmin();
+    if (supabase) {
+      await supabase.from('users').update({ role, updated_at: new Date().toISOString() }).eq('id', userId);
+    }
     
     return c.json({ success: true });
   } catch (error: any) {
@@ -4217,22 +4224,30 @@ app.post('/api/admin/users/:userId/role', async (c) => {
   }
 });
 
-// Get system logs
+// Get system logs (from Supabase audit_logs)
 app.get('/api/admin/logs', async (c) => {
   try {
     const level = c.req.query('level') || 'all';
+    const supabase = await getSupabaseAdmin();
     
-    let query = 'SELECT * FROM admin_logs';
-    const params: any[] = [];
-    
-    if (level !== 'all') {
-      query += ' WHERE level = $1';
-      params.push(level);
+    if (supabase) {
+      let query = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200);
+      if (level !== 'all') {
+        query = query.eq('level', level);
+      }
+      const { data: logs } = await query;
+      return c.json({ logs: (logs || []).map((row: any) => ({
+        id: row.id,
+        timestamp: row.created_at,
+        level: row.level || row.action || 'info',
+        source: row.source || row.user_id || 'system',
+        message: row.message || row.action || '',
+        details: row.details || row.metadata
+      }))});
     }
     
-    query += ' ORDER BY created_at DESC LIMIT 200';
-    
-    const result = await pool.query(query, params);
+    // Fallback to local pool
+    const result = await pool.query('SELECT * FROM admin_logs ORDER BY created_at DESC LIMIT 200');
     return c.json({ logs: result.rows.map((row: any) => ({
       id: row.id,
       timestamp: row.created_at,
