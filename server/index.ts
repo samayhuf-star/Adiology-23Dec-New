@@ -156,6 +156,9 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Rate limiting store
+const requestCounts: Record<string, { count: number; resetAt: number }> = {};
+
 // Super Admin Authentication Helper
 async function verifySuperAdmin(c: any): Promise<{ authorized: boolean; error?: string }> {
   try {
@@ -5483,6 +5486,230 @@ app.post('/api/call-forwarding/billing/record-call', async (c) => {
 
 // Start cron scheduler - DISABLED per user request
 // startCronScheduler();
+
+// =============================================================================
+// LONG-TAIL KEYWORDS API
+// =============================================================================
+
+// Generate long-tail keywords from seed keywords
+app.post('/api/long-tail-keywords/generate', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { seedKeywords, country = 'US', device = 'desktop' } = body;
+    
+    if (!seedKeywords || !Array.isArray(seedKeywords) || seedKeywords.length === 0) {
+      return c.json({ error: 'Seed keywords are required' }, 400);
+    }
+    
+    // Rate limiting check
+    const clientIP = c.req.header('x-forwarded-for') || 'unknown';
+    const rateLimitKey = `long-tail-${clientIP}`;
+    const now = Date.now();
+    
+    if (!requestCounts[rateLimitKey]) {
+      requestCounts[rateLimitKey] = { count: 0, resetAt: now + 60000 };
+    }
+    if (now > requestCounts[rateLimitKey].resetAt) {
+      requestCounts[rateLimitKey] = { count: 0, resetAt: now + 60000 };
+    }
+    requestCounts[rateLimitKey].count++;
+    
+    if (requestCounts[rateLimitKey].count > 10) {
+      return c.json({ error: 'Rate limit exceeded. Please wait a moment before trying again.' }, 429);
+    }
+    
+    // Generate keyword variations
+    const keywords: Array<{ keyword: string; source: string; searchVolume: number; cpc: number; difficulty: string }> = [];
+    
+    // Use OpenAI to generate long-tail variations
+    const openaiApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY?.includes('DUMMY') 
+      ? process.env.OPENAI_API_KEY 
+      : process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    
+    if (openaiApiKey) {
+      try {
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiApiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `You are a keyword research expert. Generate long-tail keyword variations for the given seed keywords. Focus on commercial intent, question-based queries, and specific variations. Return ONLY a JSON array of keyword objects.`
+              },
+              {
+                role: 'user',
+                content: `Generate 15-25 long-tail keyword variations for these seed keywords: ${seedKeywords.join(', ')}
+
+For each keyword, estimate:
+- searchVolume: Monthly search volume (100-50000)
+- cpc: Cost per click in USD (0.50-15.00)
+- difficulty: "easy", "medium", or "hard"
+
+Return ONLY a valid JSON array like:
+[{"keyword": "example keyword phrase", "searchVolume": 1200, "cpc": 2.50, "difficulty": "easy"}, ...]`
+              }
+            ],
+            temperature: 0.8
+          })
+        });
+        
+        if (openaiResponse.ok) {
+          const aiData = await openaiResponse.json();
+          const content = aiData.choices?.[0]?.message?.content || '';
+          
+          // Parse JSON from response
+          const jsonMatch = content.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const aiKeywords = JSON.parse(jsonMatch[0]);
+            for (const kw of aiKeywords) {
+              keywords.push({
+                keyword: kw.keyword,
+                source: 'ai',
+                searchVolume: kw.searchVolume || Math.floor(Math.random() * 5000) + 100,
+                cpc: kw.cpc || parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+                difficulty: kw.difficulty || ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+              });
+            }
+          }
+        }
+      } catch (aiError) {
+        console.error('OpenAI error for long-tail keywords:', aiError);
+      }
+    }
+    
+    // Add autocomplete-style variations as fallback or supplement
+    const modifiers = [
+      'best', 'top', 'cheap', 'affordable', 'professional', 'near me',
+      'how to', 'what is', 'where to', 'when to', 'why', 'cost of',
+      'reviews', 'vs', 'alternatives', 'for beginners', 'for business',
+      'online', 'free', '2024', '2025', 'tips', 'guide'
+    ];
+    
+    for (const seed of seedKeywords.slice(0, 5)) {
+      for (const mod of modifiers.slice(0, 8)) {
+        const keyword = mod.startsWith('how') || mod.startsWith('what') || mod.startsWith('where') || mod.startsWith('when') || mod.startsWith('why')
+          ? `${mod} ${seed}`
+          : `${mod} ${seed}`;
+        
+        if (!keywords.some(k => k.keyword.toLowerCase() === keyword.toLowerCase())) {
+          keywords.push({
+            keyword,
+            source: 'autocomplete',
+            searchVolume: Math.floor(Math.random() * 5000) + 100,
+            cpc: parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+            difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+          });
+        }
+      }
+    }
+    
+    return c.json({ keywords: keywords.slice(0, 50) });
+  } catch (error: any) {
+    console.error('Error generating long-tail keywords:', error);
+    return c.json({ error: error.message || 'Failed to generate keywords' }, 500);
+  }
+});
+
+// Get saved long-tail keyword lists
+app.get('/api/long-tail-keywords/lists', async (c) => {
+  try {
+    const userId = c.req.query('userId');
+    if (!userId) {
+      return c.json({ lists: [] });
+    }
+    
+    const result = await pool.query(
+      `SELECT * FROM long_tail_keyword_lists WHERE user_id = $1 ORDER BY created_at DESC`,
+      [userId]
+    );
+    
+    const lists = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      keywords: row.keywords,
+      seedKeywords: row.seed_keywords,
+      url: row.url || '',
+      createdAt: row.created_at,
+      userId: row.user_id
+    }));
+    
+    return c.json({ lists });
+  } catch (error: any) {
+    // If table doesn't exist, return empty
+    if (error.code === '42P01') {
+      return c.json({ lists: [] });
+    }
+    console.error('Error fetching long-tail lists:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Save a long-tail keyword list
+app.post('/api/long-tail-keywords/lists', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userId, name, keywords, seedKeywords, url } = body;
+    
+    if (!userId || !name || !keywords || keywords.length === 0) {
+      return c.json({ error: 'Missing required fields' }, 400);
+    }
+    
+    // Create table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS long_tail_keyword_lists (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        keywords JSONB NOT NULL,
+        seed_keywords TEXT,
+        url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    const result = await pool.query(
+      `INSERT INTO long_tail_keyword_lists (user_id, name, keywords, seed_keywords, url)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [userId, name, JSON.stringify(keywords), seedKeywords, url || '']
+    );
+    
+    return c.json({ 
+      success: true, 
+      list: {
+        id: result.rows[0].id,
+        name: result.rows[0].name,
+        keywords: result.rows[0].keywords,
+        seedKeywords: result.rows[0].seed_keywords,
+        url: result.rows[0].url,
+        createdAt: result.rows[0].created_at,
+        userId: result.rows[0].user_id
+      }
+    });
+  } catch (error: any) {
+    console.error('Error saving long-tail list:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete a long-tail keyword list
+app.delete('/api/long-tail-keywords/lists/:listId', async (c) => {
+  try {
+    const listId = c.req.param('listId');
+    
+    await pool.query(`DELETE FROM long_tail_keyword_lists WHERE id = $1`, [listId]);
+    
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting long-tail list:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
 
 // Determine ports - in production, use PORT env var; in development, use 3001 for API
 const isProduction = process.env.NODE_ENV === 'production';

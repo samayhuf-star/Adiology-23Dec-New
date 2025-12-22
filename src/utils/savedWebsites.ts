@@ -155,7 +155,18 @@ export function createSavedWebsite(templateSlug: string, name: string, data: Tem
   };
   
   websites.push(newWebsite);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(websites));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(websites));
+  } catch (error) {
+    console.warn('localStorage quota exceeded, cleaning up old websites...');
+    // Keep only the 5 most recent websites plus the new one
+    const recentWebsites = websites.slice(-6);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(recentWebsites));
+    } catch (e) {
+      console.error('Still cannot save to localStorage:', e);
+    }
+  }
   
   return newWebsite;
 }
@@ -172,7 +183,11 @@ export function updateSavedWebsite(id: string, updates: Partial<Pick<SavedWebsit
     updatedAt: new Date().toISOString()
   };
   
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(websites));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(websites));
+  } catch (error) {
+    console.warn('localStorage quota exceeded during update');
+  }
   return websites[index];
 }
 
@@ -182,7 +197,11 @@ export function deleteSavedWebsite(id: string): boolean {
   
   if (filtered.length === websites.length) return false;
   
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  } catch (error) {
+    console.warn('localStorage error during delete');
+  }
   return true;
 }
 
