@@ -12,25 +12,84 @@ export interface HistoryItem {
   lastModified?: string; // Track when draft was last modified
 }
 
+// Save to backend API (fallback for large campaigns)
+async function saveToBackend(item: HistoryItem): Promise<string> {
+  const response = await fetch('/api/campaigns/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      campaign_name: item.name,
+      business_name: item.data?.businessName || item.name,
+      website_url: item.data?.url || '',
+      campaign_data: item.data,
+      source: 'campaign-builder'
+    })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to save to server');
+  }
+  
+  const result = await response.json();
+  console.log('✅ Saved to backend database:', result.id);
+  return result.id;
+}
+
 export const localStorageHistory = {
-  // Save an item to local storage
+  // Save an item to local storage with backend fallback
   async save(type: string, name: string, data: any, status: 'draft' | 'completed' = 'completed'): Promise<void> {
+    const newItem: HistoryItem = {
+      id: crypto.randomUUID(),
+      type,
+      name,
+      data,
+      timestamp: new Date().toISOString(),
+      status,
+      lastModified: new Date().toISOString()
+    };
+    
     try {
       const history = this.getAll();
-      const newItem: HistoryItem = {
-        id: crypto.randomUUID(),
-        type,
-        name,
-        data,
-        timestamp: new Date().toISOString(),
-        status,
-        lastModified: new Date().toISOString()
-      };
-      
       history.push(newItem);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
       console.log(`✅ Saved to local storage as ${status}:`, newItem.id);
-    } catch (error) {
+    } catch (error: any) {
+      // Check if it's a quota exceeded error
+      if (error?.name === 'QuotaExceededError' || 
+          error?.code === 22 || 
+          (error?.message && error.message.includes('quota'))) {
+        console.warn('localStorage quota exceeded, saving to backend instead...');
+        
+        // Try to save to backend
+        try {
+          await saveToBackend(newItem);
+          
+          // Save a reference in localStorage (without the large data)
+          const history = this.getAll();
+          const reference: HistoryItem = {
+            ...newItem,
+            data: { 
+              savedToServer: true, 
+              url: data?.url,
+              structure: data?.structure,
+              keywordCount: data?.keywords?.length || data?.selectedKeywords?.length || 0,
+              adCount: data?.ads?.length || 0
+            }
+          };
+          history.push(reference);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+          } catch {
+            // If still fails, just continue - data is saved on server
+          }
+          return;
+        } catch (backendError) {
+          console.error('Backend save also failed:', backendError);
+          throw backendError;
+        }
+      }
+      
       console.error('Failed to save to localStorage:', error);
       throw error;
     }
