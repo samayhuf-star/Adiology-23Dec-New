@@ -30,6 +30,7 @@ function detectVertical(url: string, pageText: string): string {
     
     // Check service industries FIRST with broad patterns
     const serviceIndustries: [string, string[]][] = [
+        ['travel', ['travel', 'flight', 'flights', 'airline', 'airfare', 'booking', 'hotel', 'vacation', 'trip', 'destination', 'cruise', 'resort', 'ticket', 'tickets', 'onetravel', 'cheapoair', 'expedia', 'kayak', 'priceline', 'orbitz', 'travelocity']],
         ['plumbing', ['plumber', 'plumbing', 'drain', 'pipe', 'water heater', 'leak', 'sewer']],
         ['hvac', ['hvac', 'heating', 'cooling', 'air conditioning', 'furnace', 'ac repair']],
         ['electrical', ['electrician', 'electrical', 'wiring', 'circuit', 'outlet']],
@@ -444,8 +445,22 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
             let primaryService = pageData.services?.[0] || vertical || pageData.domain?.split('.')[0] || 'service';
             let specificServices = pageData.services?.slice(0, 5) || [];
             
-            // For marketing/software verticals, use more relevant terms
-            if (vertical === 'marketing') {
+            // For specific verticals, use more relevant terms
+            if (vertical === 'travel') {
+                primaryService = 'cheap flights';
+                specificServices = [
+                    'cheap flights',
+                    'flight deals',
+                    'airline tickets',
+                    'hotel booking',
+                    'vacation packages',
+                    'last minute flights',
+                    'discount airfare',
+                    'travel deals',
+                    'book flights online',
+                    'cheap airline tickets'
+                ];
+            } else if (vertical === 'marketing') {
                 primaryService = 'google ads';
                 specificServices = [
                     'google ads management',
@@ -473,9 +488,22 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                 location: 'near me'
             });
             
-            // Collect keywords - add vertical-specific keywords for marketing/software
+            // Collect keywords - add vertical-specific keywords
             const verticalKeywords: string[] = [];
-            if (vertical === 'marketing') {
+            if (vertical === 'travel') {
+                verticalKeywords.push(
+                    'cheap flights',
+                    'flight deals',
+                    'airline tickets',
+                    'hotel booking',
+                    'vacation packages',
+                    'last minute flights',
+                    'book flights online',
+                    'cheap airfare',
+                    'travel deals',
+                    'discount flights'
+                );
+            } else if (vertical === 'marketing') {
                 verticalKeywords.push(
                     'google ads campaign builder',
                     'ppc management tool',

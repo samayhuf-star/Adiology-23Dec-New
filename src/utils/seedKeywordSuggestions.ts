@@ -1,12 +1,24 @@
-import { LandingPageExtractionResult } from './campaignIntelligence/landingPageExtractor';
-import { IntentResult } from './campaignIntelligence/schemas';
+interface UrlAnalysisInput {
+  title?: string;
+  pageTitle?: string;
+  metaDescription?: string;
+  mainContent?: string;
+  headings?: string[];
+  [key: string]: unknown;
+}
+
+interface IntentInput {
+  category?: string;
+  intentId?: string;
+  [key: string]: unknown;
+}
 
 /**
  * Generate 3-4 highly relevant seed keywords based on URL analysis and campaign intent
  */
 export function generateSeedKeywordSuggestions(
-  urlAnalysis?: LandingPageExtractionResult,
-  intent?: IntentResult,
+  urlAnalysis?: UrlAnalysisInput,
+  intent?: IntentInput,
   campaignStructure?: string,
   url?: string
 ): string[] {
@@ -20,8 +32,9 @@ export function generateSeedKeywordSuggestions(
 
   // Extract from page title and description
   if (urlAnalysis) {
-    if (urlAnalysis.pageTitle) {
-      const titleKeywords = extractKeywordsFromText(urlAnalysis.pageTitle, 1);
+    const pageTitle = urlAnalysis.pageTitle || urlAnalysis.title;
+    if (pageTitle) {
+      const titleKeywords = extractKeywordsFromText(pageTitle, 1);
       titleKeywords.forEach(kw => suggestions.add(kw));
     }
     
@@ -38,7 +51,7 @@ export function generateSeedKeywordSuggestions(
 
     // Extract from headings
     if (urlAnalysis.headings && urlAnalysis.headings.length > 0) {
-      urlAnalysis.headings.slice(0, 2).forEach(heading => {
+      urlAnalysis.headings.slice(0, 2).forEach((heading: string) => {
         const headingKeywords = extractKeywordsFromText(heading, 1);
         headingKeywords.forEach(kw => suggestions.add(kw));
       });
@@ -46,8 +59,9 @@ export function generateSeedKeywordSuggestions(
   }
 
   // Add intent-specific keywords
-  if (intent && intent.category) {
-    const intentKeywords = getIntentSpecificKeywords(intent.category);
+  const intentCategory = intent?.category || intent?.intentId;
+  if (intentCategory) {
+    const intentKeywords = getIntentSpecificKeywords(intentCategory);
     intentKeywords.forEach(kw => suggestions.add(kw));
   }
 
