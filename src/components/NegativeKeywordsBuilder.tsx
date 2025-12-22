@@ -195,16 +195,21 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
 
     // Save form data to localStorage whenever fields change (Bug_34: Persist form fields)
     useEffect(() => {
-        const formData = {
-            url,
-            coreKeywords,
-            userGoal,
-            targetLocation,
-            competitorBrands,
-            excludeCompetitors,
-            keywordCount
-        };
-        localStorage.setItem('negative-keywords-form-data', JSON.stringify(formData));
+        try {
+            const formData = {
+                url,
+                coreKeywords,
+                userGoal,
+                targetLocation,
+                competitorBrands,
+                excludeCompetitors,
+                keywordCount
+            };
+            localStorage.setItem('negative-keywords-form-data', JSON.stringify(formData));
+        } catch (error) {
+            // Silently fail if localStorage is full - not critical data
+            console.warn('Could not save form data to localStorage:', error);
+        }
     }, [url, coreKeywords, userGoal, targetLocation, competitorBrands, excludeCompetitors, keywordCount]);
 
     // URL validation function (Bug_28: Add URL validation)
