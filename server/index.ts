@@ -16,6 +16,142 @@ const app = new Hono();
 
 app.use('/*', cors());
 
+// ============================================
+// RATE LIMITING & SECURITY GUARDRAILS
+// ============================================
+
+// In-memory rate limiting store (use Redis for production scaling)
+const rateLimitStore: Map<string, { count: number; resetTime: number }> = new Map();
+const requestCache: Map<string, { response: any; timestamp: number }> = new Map();
+
+// Rate limit configuration per endpoint category
+const rateLimits: Record<string, { requests: number; windowMs: number }> = {
+  'ai-generation': { requests: 10, windowMs: 60000 },      // 10 AI calls per minute
+  'keyword-planner': { requests: 20, windowMs: 60000 },    // 20 keyword calls per minute
+  'url-analysis': { requests: 15, windowMs: 60000 },       // 15 URL analyses per minute
+  'campaign-save': { requests: 30, windowMs: 60000 },      // 30 saves per minute
+  'admin': { requests: 100, windowMs: 60000 },             // 100 admin calls per minute
+  'general': { requests: 200, windowMs: 60000 },           // 200 general calls per minute
+};
+
+// Get client identifier (IP or user ID)
+function getClientId(c: any): string {
+  const forwarded = c.req.header('x-forwarded-for');
+  const ip = forwarded?.split(',')[0]?.trim() || c.req.header('x-real-ip') || 'unknown';
+  const userId = c.req.header('x-user-id') || '';
+  return userId || ip;
+}
+
+// Rate limit check function
+function checkRateLimit(clientId: string, category: string): { allowed: boolean; remaining: number; resetIn: number } {
+  const key = `${clientId}:${category}`;
+  const now = Date.now();
+  const limit = rateLimits[category] || rateLimits['general'];
+  
+  const record = rateLimitStore.get(key);
+  
+  if (!record || now >= record.resetTime) {
+    rateLimitStore.set(key, { count: 1, resetTime: now + limit.windowMs });
+    return { allowed: true, remaining: limit.requests - 1, resetIn: limit.windowMs };
+  }
+  
+  if (record.count >= limit.requests) {
+    return { allowed: false, remaining: 0, resetIn: record.resetTime - now };
+  }
+  
+  record.count++;
+  return { allowed: true, remaining: limit.requests - record.count, resetIn: record.resetTime - now };
+}
+
+// Cleanup old rate limit entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of rateLimitStore.entries()) {
+    if (now >= value.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+  // Clean old request cache (older than 30 seconds)
+  for (const [key, value] of requestCache.entries()) {
+    if (now - value.timestamp > 30000) {
+      requestCache.delete(key);
+    }
+  }
+}, 300000);
+
+// Rate limiting middleware
+app.use('/api/*', async (c, next) => {
+  const path = c.req.path;
+  const clientId = getClientId(c);
+  
+  // Determine rate limit category
+  let category = 'general';
+  if (path.includes('/ai/') || path.includes('/generate')) category = 'ai-generation';
+  else if (path.includes('/keyword')) category = 'keyword-planner';
+  else if (path.includes('/analyze')) category = 'url-analysis';
+  else if (path.includes('/campaign') && c.req.method === 'POST') category = 'campaign-save';
+  else if (path.includes('/admin/')) category = 'admin';
+  
+  const rateCheck = checkRateLimit(clientId, category);
+  
+  // Add rate limit headers
+  c.header('X-RateLimit-Remaining', String(rateCheck.remaining));
+  c.header('X-RateLimit-Reset', String(Math.ceil(rateCheck.resetIn / 1000)));
+  
+  if (!rateCheck.allowed) {
+    console.warn(`[Rate Limit] Exceeded for ${clientId} on ${category}`);
+    return c.json({ 
+      error: 'Rate limit exceeded', 
+      message: `Too many requests. Please wait ${Math.ceil(rateCheck.resetIn / 1000)} seconds.`,
+      retryAfter: Math.ceil(rateCheck.resetIn / 1000)
+    }, 429);
+  }
+  
+  await next();
+});
+
+// Request validation middleware
+app.use('/api/*', async (c, next) => {
+  // Validate content-type for POST/PUT requests
+  if (['POST', 'PUT', 'PATCH'].includes(c.req.method)) {
+    const contentType = c.req.header('content-type') || '';
+    if (!contentType.includes('application/json') && !contentType.includes('multipart/form-data') && !contentType.includes('text/plain')) {
+      // Allow requests without body or with no content-type
+      const contentLength = c.req.header('content-length');
+      if (contentLength && parseInt(contentLength) > 0) {
+        // Only warn, don't block
+        console.warn(`[Validation] Unexpected content-type: ${contentType} for ${c.req.path}`);
+      }
+    }
+  }
+  
+  await next();
+});
+
+// API usage logging middleware (for monitoring)
+app.use('/api/*', async (c, next) => {
+  const start = Date.now();
+  const path = c.req.path;
+  const method = c.req.method;
+  const clientId = getClientId(c);
+  
+  await next();
+  
+  const duration = Date.now() - start;
+  
+  // Log slow requests (>5 seconds) or errors
+  if (duration > 5000 || c.res.status >= 400) {
+    console.log(`[API] ${method} ${path} - ${c.res.status} - ${duration}ms - Client: ${clientId.substring(0, 8)}...`);
+  }
+});
+
+// Duplicate request prevention for expensive operations
+function getDuplicateKey(c: any): string {
+  const path = c.req.path;
+  const clientId = getClientId(c);
+  return `${clientId}:${path}:${c.req.method}`;
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
