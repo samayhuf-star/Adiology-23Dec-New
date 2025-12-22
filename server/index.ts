@@ -1199,6 +1199,25 @@ app.post('/api/analyze-url', async (c) => {
       return c.json({ error: 'URL is required' }, 400);
     }
 
+    // Input sanitization - limit URL length and block suspicious patterns
+    if (typeof url !== 'string' || url.length > 2000) {
+      return c.json({ error: 'Invalid URL: too long or wrong type' }, 400);
+    }
+    
+    // Block potentially dangerous URL patterns
+    const dangerousPatterns = [
+      /javascript:/i, /data:/i, /vbscript:/i, /file:/i,
+      /127\.0\.0\.1/, /localhost/i, /0\.0\.0\.0/,
+      /169\.254\./,  // Link-local
+      /10\.\d+\.\d+\.\d+/, /192\.168\./, /172\.(1[6-9]|2[0-9]|3[01])\./  // Private IPs
+    ];
+    
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(url)) {
+        return c.json({ error: 'Invalid URL: blocked pattern detected' }, 400);
+      }
+    }
+
     // Validate URL format
     let cleanUrl = url.trim();
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
@@ -1209,6 +1228,14 @@ app.post('/api/analyze-url', async (c) => {
       new URL(cleanUrl);
     } catch {
       return c.json({ error: 'Invalid URL format' }, 400);
+    }
+    
+    // Duplicate request prevention - check if same URL was analyzed recently
+    const cacheKey = `analyze:${cleanUrl}`;
+    const cached = requestCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 10000) {
+      console.log(`[Cache] Returning cached result for ${cleanUrl}`);
+      return c.json(cached.response);
     }
 
     // Use Cheerio-based analyzer (works in both development and production)
@@ -1272,7 +1299,7 @@ Provide JSON with:
         }
       }
 
-      return c.json({
+      const response = {
         success: true,
         url: cleanUrl,
         extractedAt: new Date().toISOString(),
@@ -1292,7 +1319,12 @@ Provide JSON with:
           phoneCount: analysisResult.contactInfo.phones.length,
           emailCount: analysisResult.contactInfo.emails.length
         }
-      });
+      };
+      
+      // Cache successful response for 30 seconds
+      requestCache.set(cacheKey, { response, timestamp: Date.now() });
+      
+      return c.json(response);
 
     } catch (pageError: any) {
       console.error('Page analysis error:', pageError);
@@ -1319,8 +1351,22 @@ app.post('/api/generate-section-content', async (c) => {
       return c.json({ error: 'Sections array is required' }, 400);
     }
     
+    // Limit number of sections to prevent abuse
+    if (sections.length > 20) {
+      return c.json({ error: 'Maximum 20 sections allowed per request' }, 400);
+    }
+    
     if (!businessName) {
       return c.json({ error: 'Business name is required' }, 400);
+    }
+    
+    // Input sanitization
+    if (typeof businessName !== 'string' || businessName.length > 200) {
+      return c.json({ error: 'Invalid business name' }, 400);
+    }
+    
+    if (businessType && (typeof businessType !== 'string' || businessType.length > 200)) {
+      return c.json({ error: 'Invalid business type' }, 400);
     }
     
     // Use integration key first, fallback to regular OPENAI_API_KEY if it's a placeholder
@@ -2973,6 +3019,13 @@ app.post('/api/ai/generate-seed-keywords', async (c) => {
     if (!context || context.length < 10) {
       return c.json({ error: 'Please provide page context (minimum 10 characters)' }, 400);
     }
+    
+    // Input validation and limits
+    if (typeof context !== 'string' || context.length > 10000) {
+      return c.json({ error: 'Context too long (max 10000 characters)' }, 400);
+    }
+    
+    const safeMaxKeywords = Math.min(Math.max(parseInt(String(maxKeywords)) || 5, 1), 20);
 
     const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
     if (!openaiKey) {
@@ -2982,7 +3035,7 @@ app.post('/api/ai/generate-seed-keywords', async (c) => {
       }, 200);
     }
 
-    const prompt = `You are a Google Ads keyword expert. Analyze this landing page and generate exactly ${maxKeywords} highly relevant seed keywords.
+    const prompt = `You are a Google Ads keyword expert. Analyze this landing page and generate exactly ${safeMaxKeywords} highly relevant seed keywords.
 
 Page Content:
 ${context.substring(0, 500)}
@@ -2992,7 +3045,7 @@ ${services && services.length > 0 ? `Services/Products: ${services.slice(0, 5).j
 ${pageText ? `Key Terms: ${pageText.substring(0, 200)}` : ''}
 
 Requirements:
-- Generate ${maxKeywords} seed keywords that would be searched by potential customers
+- Generate ${safeMaxKeywords} seed keywords that would be searched by potential customers
 - Keywords should be 2-4 words each
 - Focus on high-intent, commercial keywords
 - Include location-based modifiers where relevant (e.g., "near me")
