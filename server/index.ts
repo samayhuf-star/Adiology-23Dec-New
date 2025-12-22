@@ -8,6 +8,7 @@ import { getStripeSync, getStripePublishableKey, getUncachableStripeClient } fro
 import { WebhookHandlers } from './webhookHandlers';
 import { stripeService } from './stripeService';
 import { analyzeUrlWithCheerio } from './urlAnalyzerLite';
+import { expandKeywords } from './keywordExpansion.js';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
@@ -2526,8 +2527,6 @@ function getGeoTargetId(countryCode: string): string {
 // Uses comprehensive keyword expansion engine for 300-500+ keywords
 function generateFallbackKeywordData(seedKeywords: string[], expansionMode: 'conservative' | 'moderate' | 'aggressive' = 'moderate'): KeywordMetrics[] {
   // Use the comprehensive keyword expansion engine
-  const { expandKeywords } = require('./keywordExpansion.js');
-  
   const expanded = expandKeywords(seedKeywords, {
     expansionMode,
     includeQuestions: true,
