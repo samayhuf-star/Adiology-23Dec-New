@@ -1377,7 +1377,12 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                         </div>
                                                     )}
                                                     <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                                                        {(showMetrics && enrichedKeywords.length > 0 ? enrichedKeywords : generatedKeywords.map(k => ({ text: k }))).map((item, idx) => {
+                                                        {(showMetrics && enrichedKeywords.length > 0 ? enrichedKeywords : generatedKeywords.map((k: any) => {
+                                                            // Handle both string keywords and object keywords
+                                                            if (typeof k === 'string') return { text: k };
+                                                            if (k && typeof k === 'object' && 'text' in k) return { text: String(k.text) };
+                                                            return { text: String(k || '') };
+                                                        })).map((item, idx) => {
                                                             const kw = typeof item === 'string' ? { text: item } : item;
                                                             const metrics = (kw as EnrichedKeyword).metrics;
                                                             
