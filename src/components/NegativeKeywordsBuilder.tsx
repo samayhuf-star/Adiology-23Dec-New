@@ -988,7 +988,11 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
                     {generatedKeywords.length > 0 && (
                         <div className="px-6 py-3 bg-slate-50/50 border-y border-slate-100 space-y-3">
                             {showStats && (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+                                    <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-2 border border-indigo-400">
+                                        <div className="text-xs text-indigo-100">Total Negatives</div>
+                                        <div className="text-xl font-bold text-white">{generatedKeywords.length.toLocaleString()}</div>
+                                    </div>
                                     {Object.entries(categoryStats).map(([category, count]) => (
                                         <div key={category} className="bg-white rounded-lg p-2 border border-slate-200">
                                             <div className="text-xs text-slate-500">{category}</div>
