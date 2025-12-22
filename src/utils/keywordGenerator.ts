@@ -2,7 +2,7 @@
  * Vertical-Aware Keyword Generation Utility
  * 
  * Generates keywords using VERTICAL-SPECIFIC patterns based on the actual business type.
- * No more generic "near me", "emergency", "expert" for all verticals.
+ * Now enhanced with comprehensive expansion engine (300-500+ keywords).
  * 
  * Travel → booking, deals, packages, flights
  * E-commerce → buy, shop, order, checkout  
@@ -12,6 +12,7 @@
  */
 
 import { getPatternsForVertical, generateKeywordVariations, normalizeVertical } from './keywordPatternsByVertical';
+import { expandKeywords, type ExpandedKeyword } from '../../shared/keywordExpansion';
 
 export interface KeywordGenerationOptions {
   seedKeywords: string;
@@ -260,8 +261,8 @@ function classifyIntent(keyword: string): KeywordIntent {
 }
 
 /**
- * Main autocomplete-based keyword generation function
- * ONLY uses real autocomplete patterns - no invented keywords
+ * Main keyword generation function
+ * Now uses comprehensive expansion engine for 300-500+ keywords
  */
 export function generateKeywords(options: KeywordGenerationOptions): GeneratedKeyword[] {
   const {
@@ -270,8 +271,8 @@ export function generateKeywords(options: KeywordGenerationOptions): GeneratedKe
     vertical = 'default',
     intentResult,
     landingPageData,
-    maxKeywords = 800,
-    minKeywords = 150
+    maxKeywords = 600,
+    minKeywords = 300
   } = options;
 
   // Parse negative keywords (comma or newline separated)
@@ -297,12 +298,59 @@ export function generateKeywords(options: KeywordGenerationOptions): GeneratedKe
   const generatedKeywords: GeneratedKeyword[] = [];
   let keywordIdCounter = 0;
 
+  // ============================================================================
+  // PHASE 1: Use comprehensive expansion engine (300-500+ keywords)
+  // ============================================================================
+  console.log(`🚀 Starting comprehensive keyword expansion for ${seedList.length} seeds...`);
+  
+  try {
+    const expansionMode = maxKeywords >= 500 ? 'aggressive' : maxKeywords >= 300 ? 'moderate' : 'conservative';
+    const expandedKeywords = expandKeywords(seedList, {
+      expansionMode,
+      includeQuestions: true,
+      includeLongTail: true,
+      maxKeywords: Math.min(maxKeywords, 600)
+    });
+
+    console.log(`✅ Expansion engine generated ${expandedKeywords.length} keywords`);
+
+    // Convert expanded keywords to GeneratedKeyword format
+    for (const expanded of expandedKeywords) {
+      // Skip if contains negative keywords
+      if (negativeList.some(neg => expanded.keyword.toLowerCase().includes(neg))) {
+        continue;
+      }
+      // Skip duplicates
+      if (generatedKeywords.some(k => k.text.toLowerCase() === expanded.keyword.toLowerCase())) {
+        continue;
+      }
+      // Skip if doesn't pass validation
+      if (!isValidKeyword(expanded.keyword, serviceTerms)) {
+        continue;
+      }
+
+      generatedKeywords.push({
+        id: `kw-${keywordIdCounter++}`,
+        text: expanded.keyword,
+        volume: expanded.avgMonthlySearches >= 5000 ? 'High' : expanded.avgMonthlySearches >= 1000 ? 'Medium' : 'Low',
+        cpc: `$${expanded.avgCpc.toFixed(2)}`,
+        type: classifyIntent(expanded.keyword),
+        matchType: expanded.keyword.includes('near me') || expanded.keyword.includes('local') ? 'EXACT' : 'BROAD'
+      });
+    }
+  } catch (error) {
+    console.warn('⚠️ Expansion engine failed, falling back to vertical patterns:', error);
+  }
+
+  // ============================================================================
+  // PHASE 2: Supplement with vertical-specific patterns if needed
+  // ============================================================================
+  
   // Helper to add valid keyword
   const addValidKeyword = (kw: string, volume: string, cpc: string, type: string, matchType: string) => {
     if (generatedKeywords.length >= maxKeywords) return;
     if (negativeList.some(neg => kw.includes(neg))) return;
     if (generatedKeywords.some(k => k.text.toLowerCase() === kw.toLowerCase())) return;
-    // Validate keyword quality
     if (!isValidKeyword(kw, serviceTerms)) return;
     
     generatedKeywords.push({
@@ -315,9 +363,9 @@ export function generateKeywords(options: KeywordGenerationOptions): GeneratedKe
     });
   };
 
-  // Get vertical-specific patterns
+  // Get vertical-specific patterns for additional variations
   const verticalPatterns = getPatternsForVertical(vertical);
-  console.log(`🎯 Using ${vertical} vertical patterns for keyword generation`);
+  console.log(`🎯 Supplementing with ${vertical} vertical patterns...`);
 
   // Process each seed keyword through VERTICAL-SPECIFIC patterns
   for (const seed of seedList) {
