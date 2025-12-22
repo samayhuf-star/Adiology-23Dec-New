@@ -5537,11 +5537,13 @@ app.post('/api/long-tail-keywords/generate', async (c) => {
             messages: [
               {
                 role: 'system',
-                content: `You are a keyword research expert. Generate long-tail keyword variations for the given seed keywords. Focus on commercial intent, question-based queries, and specific variations. Return ONLY a JSON array of keyword objects.`
+                content: `You are a keyword research expert. Generate long-tail keyword variations for the given seed keywords. IMPORTANT: Long-tail keywords MUST have 3 or more words. Focus on commercial intent, question-based queries, and specific variations. Return ONLY a JSON array of keyword objects.`
               },
               {
                 role: 'user',
                 content: `Generate 15-25 long-tail keyword variations for these seed keywords: ${seedKeywords.join(', ')}
+
+CRITICAL REQUIREMENT: Every keyword MUST contain 3 or more words. Do NOT include 1-word or 2-word keywords.
 
 For each keyword, estimate:
 - searchVolume: Monthly search volume (100-50000)
@@ -5549,7 +5551,7 @@ For each keyword, estimate:
 - difficulty: "easy", "medium", or "hard"
 
 Return ONLY a valid JSON array like:
-[{"keyword": "example keyword phrase", "searchVolume": 1200, "cpc": 2.50, "difficulty": "easy"}, ...]`
+[{"keyword": "best dental implants near me", "searchVolume": 1200, "cpc": 2.50, "difficulty": "easy"}, ...]`
               }
             ],
             temperature: 0.8
@@ -5565,13 +5567,17 @@ Return ONLY a valid JSON array like:
           if (jsonMatch) {
             const aiKeywords = JSON.parse(jsonMatch[0]);
             for (const kw of aiKeywords) {
-              keywords.push({
-                keyword: kw.keyword,
-                source: 'ai',
-                searchVolume: kw.searchVolume || Math.floor(Math.random() * 5000) + 100,
-                cpc: kw.cpc || parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
-                difficulty: kw.difficulty || ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
-              });
+              // Only include keywords with 3+ words (long-tail requirement)
+              const wordCount = kw.keyword.trim().split(/\s+/).length;
+              if (wordCount >= 3) {
+                keywords.push({
+                  keyword: kw.keyword,
+                  source: 'ai',
+                  searchVolume: kw.searchVolume || Math.floor(Math.random() * 5000) + 100,
+                  cpc: kw.cpc || parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+                  difficulty: kw.difficulty || ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+                });
+              }
             }
           }
         }
@@ -5580,21 +5586,22 @@ Return ONLY a valid JSON array like:
       }
     }
     
-    // Add autocomplete-style variations as fallback or supplement
-    const modifiers = [
-      'best', 'top', 'cheap', 'affordable', 'professional', 'near me',
-      'how to', 'what is', 'where to', 'when to', 'why', 'cost of',
-      'reviews', 'vs', 'alternatives', 'for beginners', 'for business',
-      'online', 'free', '2024', '2025', 'tips', 'guide'
+    // Add autocomplete-style variations as fallback or supplement (3+ words required)
+    const modifierPairs = [
+      'best affordable', 'top rated', 'cheap quality', 'professional local', 
+      'how to find', 'what is the', 'where to get', 'when to use',
+      'cost of professional', 'reviews for best', 'alternatives to expensive',
+      'for beginners guide', 'for business owners', 'online services for',
+      'free consultation for', '2024 guide to', '2025 best rated', 'tips for choosing'
     ];
     
     for (const seed of seedKeywords.slice(0, 5)) {
-      for (const mod of modifiers.slice(0, 8)) {
-        const keyword = mod.startsWith('how') || mod.startsWith('what') || mod.startsWith('where') || mod.startsWith('when') || mod.startsWith('why')
-          ? `${mod} ${seed}`
-          : `${mod} ${seed}`;
+      for (const mod of modifierPairs.slice(0, 10)) {
+        const keyword = `${mod} ${seed}`;
+        const wordCount = keyword.trim().split(/\s+/).length;
         
-        if (!keywords.some(k => k.keyword.toLowerCase() === keyword.toLowerCase())) {
+        // Only include if 3+ words (long-tail requirement)
+        if (wordCount >= 3 && !keywords.some(k => k.keyword.toLowerCase() === keyword.toLowerCase())) {
           keywords.push({
             keyword,
             source: 'autocomplete',
