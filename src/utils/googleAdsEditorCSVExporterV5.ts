@@ -439,10 +439,21 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
       const validHeadlines = (ad.headlines || []).filter((h: string) => h && h.trim());
       const validDescriptions = (ad.descriptions || []).filter((d: string) => d && d.trim());
       
-      // RSA requires at least 3 headlines and 2 descriptions
+      // RSA requires at least 3 headlines and 2 descriptions for Google Ads
+      // But we'll be lenient here and only skip if completely empty
       if (validHeadlines.length < 1 || validDescriptions.length < 1) {
         console.warn(`Skipping invalid ad in group "${adGroup.name}": insufficient headlines (${validHeadlines.length}) or descriptions (${validDescriptions.length})`);
         return;
+      }
+      
+      // Pad headlines to minimum 3 if we have less (for RSA compliance)
+      while (validHeadlines.length < 3) {
+        validHeadlines.push(validHeadlines[0] || 'Learn More');
+      }
+      
+      // Pad descriptions to minimum 2 if we have less (for RSA compliance)
+      while (validDescriptions.length < 2) {
+        validDescriptions.push(validDescriptions[0] || 'Contact us today.');
       }
       
       const adRow = createEmptyRow();

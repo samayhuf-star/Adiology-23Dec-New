@@ -2546,41 +2546,73 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     }
   };
 
-  // Calculate export statistics from campaign data (same source as success page)
+  // Calculate export statistics from actual CSV data to match what will be imported
   const getExportStatistics = () => {
     if (!campaignData.csvData) return null;
     
     try {
-      // Parse the CSV only to get total rows count
+      // Parse the CSV to count actual rows by type
       const csvText = campaignData.csvData.replace(/^\uFEFF/, ''); // Remove BOM
       const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-      const totalRows = parsed.data?.length || 0;
+      const rows = parsed.data as Record<string, string>[];
+      const totalRows = rows.length || 0;
       
-      // Calculate locations count from campaignData
-      const { cities, zipCodes, states, countries } = campaignData.locations;
-      const locationsCount = cities.length + zipCodes.length + states.length + countries.length;
+      // Count entities from actual CSV data (matches what Google Ads Editor will import)
+      let campaigns = 0;
+      let adGroupsSet = new Set<string>();
+      let keywords = 0;
+      let negativeKeywords = 0;
+      let ads = 0;
+      let extensions = 0;
+      let locations = 0;
       
-      // Count total ads: each ad is applied to every ad group
-      const totalAds = campaignData.ads.length * Math.max(1, campaignData.adGroups.length);
-      
-      // Count total keywords across all ad groups
-      const totalKeywords = campaignData.adGroups.reduce((sum, group) => {
-        return sum + (group.keywords?.length || 0);
-      }, 0) || campaignData.selectedKeywords.length;
-      
-      // Count extensions from ads
-      const totalExtensions = campaignData.ads.reduce((sum, ad) => {
-        return sum + (ad.extensions?.length || 0);
-      }, 0);
+      rows.forEach(row => {
+        const adGroupName = row['Ad Group'] || '';
+        const keyword = row['Keyword'] || '';
+        const negativeKw = row['Keyword (Negative)'] || '';
+        const adType = row['Ad Type'] || '';
+        const locationType = row['Location Type'] || '';
+        const headline1 = row['Headline 1'] || '';
+        
+        // Count campaigns (rows with budget and no ad group)
+        if (row['Campaign Daily Budget'] && !adGroupName) {
+          campaigns++;
+        }
+        
+        // Count unique ad groups (rows with ad group name but no keyword/ad)
+        if (adGroupName && !keyword && !negativeKw && !adType && !locationType) {
+          adGroupsSet.add(adGroupName);
+        }
+        
+        // Count keywords
+        if (keyword) {
+          keywords++;
+        }
+        
+        // Count negative keywords
+        if (negativeKw) {
+          negativeKeywords++;
+        }
+        
+        // Count ads (rows with Ad Type and headlines)
+        if (adType && headline1) {
+          ads++;
+        }
+        
+        // Count locations
+        if (locationType) {
+          locations++;
+        }
+      });
       
       const stats = {
-        campaigns: 1,
-        adGroups: campaignData.adGroups.length,
-        keywords: totalKeywords,
-        negativeKeywords: campaignData.negativeKeywords.length,
-        ads: totalAds,
-        extensions: totalExtensions,
-        locations: locationsCount || 1, // At least 1 for country-level targeting
+        campaigns: Math.max(campaigns, 1),
+        adGroups: adGroupsSet.size || campaignData.adGroups.length,
+        keywords: keywords,
+        negativeKeywords: negativeKeywords,
+        ads: ads,
+        extensions: extensions,
+        locations: locations || 1,
         totalRows: totalRows,
       };
       
