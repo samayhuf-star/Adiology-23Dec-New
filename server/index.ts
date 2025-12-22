@@ -10,6 +10,7 @@ import { stripeService } from './stripeService';
 import { analyzeUrlWithCheerio } from './urlAnalyzerLite';
 import { expandKeywords } from '../shared/keywordExpansion.js';
 import { generateDetailedBlog, type BlogConfig } from './blogGenerator.js';
+import { getDatabaseUrl } from './dbConfig';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
