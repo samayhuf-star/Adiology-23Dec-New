@@ -130,6 +130,15 @@ export function generateIntentBasedNegatives(
   categories: string[] = Object.keys(INTENT_CATEGORIES),
   customModifiers: Record<string, string[]> = {}
 ): NegativeKeywordResult[] {
+  return generateIntentBasedNegativesWithCategories(coreKeywords, categories, customModifiers, INTENT_CATEGORIES);
+}
+
+export function generateIntentBasedNegativesWithCategories(
+  coreKeywords: string[],
+  categories: string[],
+  customModifiers: Record<string, string[]>,
+  categoryMap: Record<string, IntentCategory>
+): NegativeKeywordResult[] {
   const results: NegativeKeywordResult[] = [];
   const seen = new Set<string>();
 
@@ -137,7 +146,7 @@ export function generateIntentBasedNegatives(
     const normalizedKeyword = keyword.toLowerCase().trim();
     
     for (const categoryKey of categories) {
-      const category = INTENT_CATEGORIES[categoryKey];
+      const category = categoryMap[categoryKey];
       if (!category) continue;
 
       const modifiers = [
@@ -180,8 +189,8 @@ export function generateIntentBasedNegatives(
   }
 
   results.sort((a, b) => {
-    const categoryA = Object.values(INTENT_CATEGORIES).find(c => c.name === a.category);
-    const categoryB = Object.values(INTENT_CATEGORIES).find(c => c.name === b.category);
+    const categoryA = Object.values(categoryMap).find(c => c.name === a.category);
+    const categoryB = Object.values(categoryMap).find(c => c.name === b.category);
     return (categoryA?.priority || 99) - (categoryB?.priority || 99);
   });
 

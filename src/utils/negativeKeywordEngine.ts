@@ -1,9 +1,10 @@
 import { 
   INTENT_CATEGORIES, 
-  generateIntentBasedNegatives, 
+  generateIntentBasedNegativesWithCategories, 
   formatNegativeForCSV,
   groupNegativesByCategory,
-  type NegativeKeywordResult 
+  type NegativeKeywordResult,
+  type IntentCategory
 } from './intentModifiers';
 import { 
   VERTICAL_PROFILES, 
@@ -45,7 +46,9 @@ export function generateSmartNegatives(config: NegativeKeywordEngineConfig): Neg
     maxPerCategory
   } = config;
 
-  let categoriesToUse = includeCategories || Object.keys(INTENT_CATEGORIES);
+  const localCategories: Record<string, IntentCategory> = JSON.parse(JSON.stringify(INTENT_CATEGORIES));
+
+  let categoriesToUse = includeCategories || Object.keys(localCategories);
   categoriesToUse = categoriesToUse.filter(cat => !excludeCategories.includes(cat));
 
   const customModifiers: Record<string, string[]> = {};
@@ -64,7 +67,7 @@ export function generateSmartNegatives(config: NegativeKeywordEngineConfig): Neg
     customModifiers['competitor'] = [...(customModifiers['competitor'] || []), ...competitors];
     
     if (!categoriesToUse.includes('competitor')) {
-      INTENT_CATEGORIES['competitor'] = {
+      localCategories['competitor'] = {
         name: 'Competitor Searches',
         description: 'Searches for competitor brands',
         modifiers: [],
@@ -80,7 +83,7 @@ export function generateSmartNegatives(config: NegativeKeywordEngineConfig): Neg
     customModifiers['wrong_procedure'] = [...(customModifiers['wrong_procedure'] || []), ...excludeProcedures];
     
     if (!categoriesToUse.includes('wrong_procedure')) {
-      INTENT_CATEGORIES['wrong_procedure'] = {
+      localCategories['wrong_procedure'] = {
         name: 'Wrong Procedure / Service',
         description: 'Searches for services you do not offer',
         modifiers: [],
@@ -96,7 +99,7 @@ export function generateSmartNegatives(config: NegativeKeywordEngineConfig): Neg
     const customCats = getVerticalCustomCategories(vertical);
     for (const [catKey, catConfig] of Object.entries(customCats)) {
       if (!categoriesToUse.includes(catKey)) {
-        INTENT_CATEGORIES[catKey] = {
+        localCategories[catKey] = {
           name: catConfig.name,
           description: `Custom category for ${vertical}`,
           modifiers: catConfig.modifiers,
@@ -109,7 +112,7 @@ export function generateSmartNegatives(config: NegativeKeywordEngineConfig): Neg
     }
   }
 
-  let negatives = generateIntentBasedNegatives(coreKeywords, categoriesToUse, customModifiers);
+  let negatives = generateIntentBasedNegativesWithCategories(coreKeywords, categoriesToUse, customModifiers, localCategories);
 
   if (maxPerCategory) {
     const grouped = groupNegativesByCategory(negatives);
