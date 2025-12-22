@@ -1833,6 +1833,43 @@ app.get('/api/admin/users', async (c) => {
   const auth = await verifySuperAdmin(c);
   if (!auth.authorized) return c.json({ error: auth.error }, 403);
   try {
+    // Use Supabase with service role key to bypass RLS
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    
+    console.log('[Admin Users] Config:', { 
+      hasUrl: !!supabaseUrl, 
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      usingKey: supabaseKey ? (supabaseKey.includes('service') ? 'service' : 'anon') : 'none'
+    });
+    
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      console.log('[Admin Users] Supabase response:', { 
+        usersCount: users?.length || 0, 
+        error: error?.message || null 
+      });
+      
+      if (!error && users) {
+        return c.json(users.map((u: any) => ({
+          ...u,
+          aiUsage: u.ai_usage || 0,
+          is_blocked: false
+        })));
+      }
+      
+      if (error) {
+        console.error('[Admin Users] Supabase error:', error);
+      }
+    }
+    
+    // Fallback to local pool
     const result = await pool.query('SELECT id, email, full_name, subscription_plan, subscription_status, role, ai_usage as "aiUsage", created_at FROM users ORDER BY created_at DESC');
     return c.json(result.rows);
   } catch (error) {
@@ -4097,11 +4134,12 @@ app.post('/api/campaigns/save', async (c) => {
 // SUPER ADMIN API ENDPOINTS
 // ============================================
 
-// Helper to get Supabase client for admin queries
+// Helper to get Supabase client for admin queries (uses service role key to bypass RLS)
 async function getSupabaseAdmin() {
   const { createClient } = await import('@supabase/supabase-js');
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  // Prefer service role key (bypasses RLS) for admin queries
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseKey) return null;
   return createClient(supabaseUrl, supabaseKey);
 }
@@ -4165,25 +4203,31 @@ app.get('/api/admin/stats', async (c) => {
 app.get('/api/admin/users', async (c) => {
   try {
     const supabase = await getSupabaseAdmin();
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    console.log('[Admin Users] Service role key available:', hasServiceKey);
+    
     if (!supabase) {
-      return c.json({ users: [] });
+      console.log('[Admin Users] No Supabase client');
+      return c.json({ users: [], debug: { hasServiceKey, supabaseConfigured: false } });
     }
     
+    // First try to get all columns
     const { data: users, error } = await supabase
       .from('users')
-      .select('id, email, full_name, role, subscription_plan, subscription_status, created_at, updated_at')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(500);
     
     if (error) {
-      console.error('Error fetching users from Supabase:', error);
-      return c.json({ users: [] });
+      console.error('[Admin Users] Supabase error:', error);
+      return c.json({ users: [], debug: { error: error.message, hasServiceKey } });
     }
     
+    console.log('[Admin Users] Found users:', users?.length || 0);
     return c.json({ users: (users || []).map((u: any) => ({ ...u, is_blocked: false })) });
   } catch (error: any) {
-    console.error('Error fetching users:', error);
-    return c.json({ users: [] });
+    console.error('[Admin Users] Error:', error);
+    return c.json({ users: [], error: error.message });
   }
 });
 
