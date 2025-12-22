@@ -6,19 +6,20 @@ import {
   Clock, TrendingUp, DollarSign, Server, Zap, Globe, Lock, Key,
   BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Filter, MoreVertical,
   Bell, UserCheck, UserX, History, FileWarning, Send, Inbox, AlertCircle,
-  Menu, X
+  Menu, X, BookOpen
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { supabase } from '../utils/supabase/client';
+import BlogGenerator from './BlogGenerator';
 
 interface SuperAdminPanelProps {
   user: any;
   onLogout: () => void;
 }
 
-type AdminSection = 'dashboard' | 'users' | 'subscriptions' | 'database' | 'logs' | 'emails' | 'security' | 'settings';
+type AdminSection = 'dashboard' | 'users' | 'subscriptions' | 'database' | 'logs' | 'emails' | 'security' | 'settings' | 'blogs';
 
 interface DashboardStats {
   totalUsers: number;
@@ -304,6 +305,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     { id: 'database', label: 'Database', icon: Database },
     { id: 'logs', label: 'System Logs', icon: FileText },
     { id: 'emails', label: 'Email Management', icon: Mail },
+    { id: 'blogs', label: 'Blog Generator', icon: BookOpen },
     { id: 'security', label: 'Security & Firewall', icon: Shield },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -982,6 +984,17 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     </div>
   );
 
+  const renderBlogs = () => (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg sm:text-2xl font-bold text-white">AI Blog Generator</h2>
+      </div>
+      <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
+        <BlogGenerator onBack={() => setActiveSection('dashboard')} />
+      </div>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard': return renderDashboard();
@@ -990,6 +1003,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
       case 'database': return renderDatabase();
       case 'logs': return renderLogs();
       case 'emails': return renderEmails();
+      case 'blogs': return renderBlogs();
       case 'security': return renderSecurity();
       case 'settings': return renderSettings();
       default: return renderDashboard();

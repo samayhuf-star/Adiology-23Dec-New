@@ -151,7 +151,6 @@ const App = () => {
     'connected-websites',
     'teams',
     'blog',
-    'blog-generator',
     // 'call-forwarding', // Hidden - module disabled
   ]);
 
@@ -946,15 +945,7 @@ const App = () => {
     { id: 'teams', label: 'Teams', icon: Users },
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
-    { 
-      id: 'blog', 
-      label: 'Blog', 
-      icon: BookOpen,
-      submenu: [
-        { id: 'blog', label: 'Articles', icon: BookOpen },
-        { id: 'blog-generator', label: 'AI Generator', icon: Wand2 },
-      ]
-    },
+    { id: 'blog', label: 'Blog', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
     // Super Admin Panel - only visible to super admins
@@ -1508,8 +1499,6 @@ const App = () => {
         return <CallForwarding />;
       case 'blog':
         return <Blog />;
-      case 'blog-generator':
-        return <BlogGenerator onBack={() => setActiveTabSafe('blog')} />;
       case 'settings':
         return <SettingsPanel />;
       case 'billing':
