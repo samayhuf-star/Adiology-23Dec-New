@@ -156,7 +156,7 @@ function getDuplicateKey(c: any): string {
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getDatabaseUrl(),
 });
 
 // Rate limiting store
@@ -218,9 +218,11 @@ async function verifySuperAdmin(c: any): Promise<{ authorized: boolean; error?: 
 }
 
 async function initStripe() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    console.warn('DATABASE_URL not found - Stripe integration disabled');
+  let databaseUrl: string;
+  try {
+    databaseUrl = getDatabaseUrl();
+  } catch (error) {
+    console.warn('Database URL not found - Stripe integration disabled');
     return;
   }
 

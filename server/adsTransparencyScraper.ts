@@ -1,10 +1,11 @@
 import { chromium, Browser, Page } from 'playwright';
+import { getDatabaseUrl } from './dbConfig';
 import pg from 'pg';
 
 const { Pool } = pg;
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getDatabaseUrl(),
 });
 
 interface AdResult {

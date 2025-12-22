@@ -1,9 +1,10 @@
 import { getUncachableStripeClient } from './stripeClient';
+import { getDatabaseUrl } from './dbConfig';
 import pg from 'pg';
 
 const { Pool } = pg;
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getDatabaseUrl(),
 });
 
 export class StripeService {
