@@ -3447,6 +3447,7 @@ app.post('/api/admin/blogs', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     let authenticatedUserId: string | null = null;
+    let userEmail: string | null = null;
     
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
@@ -3459,6 +3460,7 @@ app.post('/api/admin/blogs', async (c) => {
           const { data: { user }, error } = await supabase.auth.getUser(token);
           if (!error && user) {
             authenticatedUserId = user.id;
+            userEmail = user.email || null;
           }
         }
       } catch (e) {
@@ -3468,6 +3470,22 @@ app.post('/api/admin/blogs', async (c) => {
     
     if (!authenticatedUserId) {
       return c.json({ error: 'Authentication required' }, 401);
+    }
+    
+    let isSuperAdmin = userEmail === 'd@d.com';
+    if (!isSuperAdmin && authenticatedUserId) {
+      const roleResult = await pool.query(
+        `SELECT role FROM users WHERE id = $1`,
+        [authenticatedUserId]
+      );
+      if (roleResult.rows.length > 0) {
+        const dbRole = roleResult.rows[0].role;
+        isSuperAdmin = dbRole === 'superadmin' || dbRole === 'super_admin';
+      }
+    }
+    
+    if (!isSuperAdmin) {
+      return c.json({ error: 'Admin access required. Only superadmins can publish blogs.' }, 403);
     }
     
     const body = await c.req.json();
@@ -3525,6 +3543,45 @@ app.post('/api/admin/blogs', async (c) => {
 // Delete a blog (admin only)
 app.delete('/api/admin/blogs/:id', async (c) => {
   try {
+    const authHeader = c.req.header('Authorization');
+    let userEmail: string | null = null;
+    let authenticatedUserId: string | null = null;
+    
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          const { data: { user }, error } = await supabase.auth.getUser(token);
+          if (!error && user) {
+            userEmail = user.email || null;
+            authenticatedUserId = user.id;
+          }
+        }
+      } catch (e) {
+        console.log('[Blog Delete] Token verification failed');
+      }
+    }
+    
+    let isSuperAdmin = userEmail === 'd@d.com';
+    if (!isSuperAdmin && authenticatedUserId) {
+      const roleResult = await pool.query(
+        `SELECT role FROM users WHERE id = $1`,
+        [authenticatedUserId]
+      );
+      if (roleResult.rows.length > 0) {
+        const dbRole = roleResult.rows[0].role;
+        isSuperAdmin = dbRole === 'superadmin' || dbRole === 'super_admin';
+      }
+    }
+    
+    if (!isSuperAdmin) {
+      return c.json({ error: 'Admin access required. Only superadmins can delete blogs.' }, 403);
+    }
+    
     const id = c.req.param('id');
     
     await pool.query(`DELETE FROM published_blogs WHERE id = $1`, [id]);

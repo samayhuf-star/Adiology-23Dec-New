@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   ArrowLeft, Wand2, FileText, Clock, BookOpen, Download, 
   Copy, Check, Loader2, Settings, Image, Code, BarChart3,
-  Quote, Target, Lightbulb, ChevronDown, ChevronUp, Eye
+  Quote, Target, Lightbulb, ChevronDown, ChevronUp, Eye, Send
 } from 'lucide-react';
 import { supabase } from '../utils/supabase/client';
 import { Button } from './ui/button';
@@ -58,6 +58,8 @@ export default function BlogGenerator({ onBack }: BlogGeneratorProps) {
   const [targetWordCount, setTargetWordCount] = useState(2000);
   
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
   const [generatedBlog, setGeneratedBlog] = useState<GeneratedBlog | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -137,6 +139,55 @@ export default function BlogGenerator({ onBack }: BlogGeneratorProps) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handlePublish = async () => {
+    if (!generatedBlog) return;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.access_token) {
+      setError('Please log in to publish blogs.');
+      return;
+    }
+    
+    setIsPublishing(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/admin/blogs', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          title: generatedBlog.title,
+          slug: generatedBlog.slug,
+          excerpt: generatedBlog.metaDescription,
+          content: generatedBlog.fullContent,
+          category: contentType,
+          readTime: `${generatedBlog.readingTime} min`,
+          author: 'Adiology Team',
+          tags: [keyword || topic, contentType, targetAudience],
+          metaDescription: generatedBlog.metaDescription,
+          wordCount: generatedBlog.wordCount
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to publish blog');
+      }
+
+      setPublishSuccess(true);
+      setTimeout(() => setPublishSuccess(false), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Publishing failed. Please try again.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const toggleSection = (index: number) => {
@@ -403,6 +454,26 @@ export default function BlogGenerator({ onBack }: BlogGeneratorProps) {
                       onClick={handleDownload}
                     >
                       <Download className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={handlePublish}
+                      disabled={isPublishing || publishSuccess}
+                      className={publishSuccess ? 'bg-green-600 hover:bg-green-600' : ''}
+                    >
+                      {isPublishing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : publishSuccess ? (
+                        <>
+                          <Check className="h-4 w-4 mr-1" />
+                          Published
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-1" />
+                          Publish
+                        </>
+                      )}
                     </Button>
                   </div>
                 </CardHeader>

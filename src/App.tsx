@@ -62,7 +62,7 @@ import { notifications as notificationService } from './utils/notifications';
 import { WebTemplates } from './components/WebTemplates';
 import { PlanSelection } from './components/PlanSelection';
 import { Teams } from './components/Teams';
-import { Blog } from './components/Blog';
+import Blog from './components/Blog';
 import BlogGenerator from './components/BlogGenerator';
 import { PromoLandingPage } from './components/PromoLandingPage';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
