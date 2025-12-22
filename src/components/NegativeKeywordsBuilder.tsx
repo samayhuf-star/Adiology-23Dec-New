@@ -818,12 +818,12 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
                                     <Filter className="h-4 w-4 text-slate-400" />
                                     Business Vertical (optional)
                                 </label>
-                                <Select value={selectedVertical} onValueChange={setSelectedVertical}>
+                                <Select value={selectedVertical || 'general'} onValueChange={(val) => setSelectedVertical(val === 'general' ? '' : val)}>
                                     <SelectTrigger className="bg-white/80">
                                         <SelectValue placeholder="Select a vertical for extra modifiers..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">General (All Industries)</SelectItem>
+                                        <SelectItem value="general">General (All Industries)</SelectItem>
                                         {getAllVerticals().map(v => (
                                             <SelectItem key={v.key} value={v.key}>{v.name}</SelectItem>
                                         ))}
