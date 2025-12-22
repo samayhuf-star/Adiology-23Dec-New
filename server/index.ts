@@ -1838,12 +1838,6 @@ app.get('/api/admin/users', async (c) => {
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
     
-    console.log('[Admin Users] Config:', { 
-      hasUrl: !!supabaseUrl, 
-      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      usingKey: supabaseKey ? (supabaseKey.includes('service') ? 'service' : 'anon') : 'none'
-    });
-    
     if (supabaseUrl && supabaseKey) {
       const supabase = createClient(supabaseUrl, supabaseKey);
       const { data: users, error } = await supabase
@@ -1851,21 +1845,12 @@ app.get('/api/admin/users', async (c) => {
         .select('*')
         .order('created_at', { ascending: false });
       
-      console.log('[Admin Users] Supabase response:', { 
-        usersCount: users?.length || 0, 
-        error: error?.message || null 
-      });
-      
       if (!error && users) {
         return c.json(users.map((u: any) => ({
           ...u,
           aiUsage: u.ai_usage || 0,
           is_blocked: false
         })));
-      }
-      
-      if (error) {
-        console.error('[Admin Users] Supabase error:', error);
       }
     }
     
