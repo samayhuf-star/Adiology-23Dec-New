@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users, BookOpen, PhoneCall
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users, BookOpen, PhoneCall, Wand2
 } from 'lucide-react';
 
 declare global {
@@ -63,6 +63,7 @@ import { WebTemplates } from './components/WebTemplates';
 import { PlanSelection } from './components/PlanSelection';
 import { Teams } from './components/Teams';
 import { Blog } from './components/Blog';
+import BlogGenerator from './components/BlogGenerator';
 import { PromoLandingPage } from './components/PromoLandingPage';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { CallForwarding } from './components/CallForwarding';
@@ -150,6 +151,7 @@ const App = () => {
     'connected-websites',
     'teams',
     'blog',
+    'blog-generator',
     // 'call-forwarding', // Hidden - module disabled
   ]);
 
@@ -944,7 +946,15 @@ const App = () => {
     { id: 'teams', label: 'Teams', icon: Users },
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
-    { id: 'blog', label: 'Blog', icon: BookOpen },
+    { 
+      id: 'blog', 
+      label: 'Blog', 
+      icon: BookOpen,
+      submenu: [
+        { id: 'blog', label: 'Articles', icon: BookOpen },
+        { id: 'blog-generator', label: 'AI Generator', icon: Wand2 },
+      ]
+    },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
     // Super Admin Panel - only visible to super admins
@@ -1498,6 +1508,8 @@ const App = () => {
         return <CallForwarding />;
       case 'blog':
         return <Blog />;
+      case 'blog-generator':
+        return <BlogGenerator onBack={() => setActiveTabSafe('blog')} />;
       case 'settings':
         return <SettingsPanel />;
       case 'billing':

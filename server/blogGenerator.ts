@@ -297,6 +297,7 @@ function generateStatistics(config: BlogConfig): { stat: string; description: st
 
 export async function generateDetailedBlog(config: BlogConfig): Promise<GeneratedBlog> {
   console.log(`[Blog Generator] Starting generation for: ${config.topic}`);
+  const targetMinWords = Math.max(config.targetWordCount, 2000);
   
   const outline = await generateOutline(config);
   console.log(`[Blog Generator] Outline created: ${outline.title}`);
@@ -316,6 +317,21 @@ export async function generateDetailedBlog(config: BlogConfig): Promise<Generate
     console.log(`[Blog Generator] Section ${i + 1} generated: ${section.wordCount} words`);
   }
   
+  let currentWordCount = countWords(introduction) + sections.reduce((sum, s) => sum + s.wordCount, 0);
+  
+  while (sections.length < 5 || currentWordCount < targetMinWords * 0.6) {
+    const additionalSection = await generateSection(
+      config,
+      `Additional Insights: ${config.topic}`,
+      sections.length + 1,
+      sections.length + 1
+    );
+    sections.push(additionalSection);
+    currentWordCount += additionalSection.wordCount;
+    console.log(`[Blog Generator] Added extra section, now at ${currentWordCount} words`);
+    if (sections.length >= 8) break;
+  }
+  
   const caseStudy = await generateCaseStudy(config);
   console.log(`[Blog Generator] Case study generated: ${countWords(caseStudy)} words`);
   
@@ -327,12 +343,40 @@ export async function generateDetailedBlog(config: BlogConfig): Promise<Generate
   
   const callToAction = await generateCTA(config);
   
-  const codeSnippets = await generateCodeExamples(config, sections);
-  const statistics = generateStatistics(config);
+  const codeSnippets = config.includeCode ? await generateCodeExamples(config, sections) : [];
+  const statistics = config.includeStats ? generateStatistics(config) : [];
+  
+  let totalContentWords = countWords(introduction) + 
+    sections.reduce((sum, s) => sum + s.wordCount, 0) +
+    countWords(caseStudy) + countWords(tips) + countWords(conclusion) + countWords(callToAction);
+  
+  const additionalSectionTitles = [
+    `Common Mistakes to Avoid with ${config.topic}`,
+    `Advanced Strategies for ${config.topic}`,
+    `Future Trends in ${config.topic}`,
+    `Expert Recommendations for ${config.topic}`,
+    `Real-World Applications of ${config.topic}`
+  ];
+  
+  let sectionIndex = 0;
+  while (totalContentWords < targetMinWords && sectionIndex < additionalSectionTitles.length) {
+    const additionalSection = await generateSection(
+      config,
+      additionalSectionTitles[sectionIndex],
+      sections.length + 1,
+      sections.length + 2
+    );
+    sections.push(additionalSection);
+    totalContentWords += additionalSection.wordCount;
+    sectionIndex++;
+    console.log(`[Blog Generator] Added section to reach word count: ${totalContentWords}/${targetMinWords}`);
+  }
+  
+  console.log(`[Blog Generator] Final content: ${totalContentWords} words, ${sections.length} sections`);
   
   const imagePrompts = [
     `Hero image for blog about "${config.topic}" - professional, modern, high-quality photography or illustration`,
-    ...sections.slice(0, 4).map(s => s.imagePrompt || `Image for section: ${s.title}`),
+    ...sections.slice(0, 5).map(s => s.imagePrompt || `Image for section: ${s.title}`),
     `Results/success visualization for "${config.topic}" case study`
   ];
   
@@ -364,6 +408,10 @@ ${callToAction}`;
   const readingTime = Math.ceil(totalWordCount / 200);
   
   console.log(`[Blog Generator] Complete! Total: ${totalWordCount} words, ${readingTime} min read`);
+  
+  if (totalWordCount < targetMinWords) {
+    throw new Error(`Generated content (${totalWordCount} words) did not meet minimum word count (${targetMinWords}). Please try again.`);
+  }
   
   return {
     title: outline.title,

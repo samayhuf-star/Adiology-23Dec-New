@@ -3315,6 +3315,25 @@ function generateStaticNegativeKeywords(coreKeywords: string, userGoal: string, 
 
 app.post('/api/ai/generate-blog', async (c) => {
   try {
+    const authHeader = c.req.header('Authorization');
+    let authenticatedUserId: string | null = null;
+    
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (!error && user) {
+          authenticatedUserId = user.id;
+        }
+      } catch (e) {
+        console.log('[Blog Generator] Token verification failed');
+      }
+    }
+    
+    if (!authenticatedUserId) {
+      return c.json({ error: 'Authentication required. Please log in to use the blog generator.' }, 401);
+    }
+    
     const body = await c.req.json();
     const {
       topic,
@@ -3327,16 +3346,20 @@ app.post('/api/ai/generate-blog', async (c) => {
       targetWordCount = 2000
     } = body;
 
-    if (!topic) {
-      return c.json({ error: 'Topic is required' }, 400);
+    if (!topic || topic.trim().length < 5) {
+      return c.json({ error: 'A valid topic (5+ characters) is required' }, 400);
+    }
+    
+    if (topic.trim().length > 500) {
+      return c.json({ error: 'Topic must be less than 500 characters' }, 400);
     }
 
     const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
     if (!openaiKey) {
-      return c.json({ error: 'AI service not configured - please add your OpenAI API key' }, 500);
+      return c.json({ error: 'AI service not configured' }, 500);
     }
-
-    console.log(`[Blog Generator API] Generating blog for: ${topic}`);
+    
+    console.log(`[Blog Generator API] User ${authenticatedUserId} generating blog for: ${topic.substring(0, 50)}...`);
 
     const config: BlogConfig = {
       topic,
