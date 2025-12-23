@@ -115,6 +115,23 @@ export function useFormBuilder(formId: string | null) {
     }
   };
 
+  const updateForm = async (updates: { name?: string; description?: string; status?: string }) => {
+    if (!formId) return;
+    
+    try {
+      const response = await formApi.updateForm(formId, updates);
+      if (response.success) {
+        setForm({ ...form, ...response.data });
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to update form');
+      }
+    } catch (err: any) {
+      console.error('Error updating form:', err);
+      throw err;
+    }
+  };
+
   return {
     form,
     fields,
@@ -124,6 +141,7 @@ export function useFormBuilder(formId: string | null) {
     updateField,
     deleteField,
     reorderFields,
+    updateForm,
     reload: loadForm,
   };
 }
