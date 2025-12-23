@@ -67,7 +67,7 @@ import BlogGenerator from './components/BlogGenerator';
 import { PromoLandingPage } from './components/PromoLandingPage';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { CallForwarding } from './components/CallForwarding';
-import { WorkspaceProvider, useWorkspace } from '@/contexts/WorkspaceContext';
+import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { WorkspaceCreation } from './components/WorkspaceCreation';
 import { workspaceHelpers } from './utils/workspaces';
