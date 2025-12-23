@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Users, Plus, Mail, Loader2, ArrowRight, X } from 'lucide-react';
+import { Building, Users, Plus, Mail, Loader2, ArrowRight, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -190,7 +190,7 @@ export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspac
 
         {workspaces.length === 0 ? (
           <Card className="p-12 text-center">
-            <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <Building className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-2xl font-semibold mb-2">No workspaces yet</h2>
             <p className="text-muted-foreground mb-6">
               Create your first workspace to start collaborating with your team
@@ -214,7 +214,7 @@ export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspac
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-primary/10">
-                        <Building2 className="h-6 w-6 text-primary" />
+                        <Building className="h-6 w-6 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg truncate">{workspace.name}</CardTitle>

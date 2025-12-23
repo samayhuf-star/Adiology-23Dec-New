@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Copy, Save, AlertCircle, Download, FolderOpen, Trash2, FileDown, ArrowRight, Lightbulb, Plus, Link, TrendingUp, DollarSign, BarChart3, RefreshCw, Globe, Target, Zap, Building2, Phone, Mail, MapPin, FileText, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Copy, Save, AlertCircle, Download, FolderOpen, Trash2, FileDown, ArrowRight, Lightbulb, Plus, Link, TrendingUp, DollarSign, BarChart3, RefreshCw, Globe, Target, Zap, Building, Phone, Mail, MapPin, FileText, CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';

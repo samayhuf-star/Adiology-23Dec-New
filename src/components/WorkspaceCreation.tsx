@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { Building, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -209,7 +209,7 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <Building2 className="h-6 w-6" />
+            <Building className="h-6 w-6" />
             Create Your Workspace
           </CardTitle>
           <CardDescription>

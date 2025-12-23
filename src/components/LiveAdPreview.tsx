@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, MapPin, Link2, DollarSign, Smartphone, MessageSquare, Building2, FileText, Tag, Image as ImageIcon, X } from 'lucide-react';
+import { Phone, MapPin, Link2, DollarSign, Smartphone, MessageSquare, Building, FileText, Tag, Image as ImageIcon, X } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 

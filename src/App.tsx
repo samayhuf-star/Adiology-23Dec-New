@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { 
   LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users, BookOpen, PhoneCall, Wand2, FileText
 } from 'lucide-react';
@@ -26,54 +26,61 @@ import {
   SheetHeader,
   SheetTitle,
 } from './components/ui/sheet';
-import { CampaignBuilder3 } from './components/CampaignBuilder3';
-import { OneClickCampaignBuilder } from './components/OneClickCampaignBuilder';
-import { GoogleAdsCSVExport } from './components/GoogleAdsCSVExport';
-import { KeywordPlanner } from './components/KeywordPlanner';
-import { KeywordMixer } from './components/KeywordMixer';
-import { NegativeKeywordsBuilder } from './components/NegativeKeywordsBuilder';
-import { KeywordSavedLists } from './components/KeywordSavedLists';
-import { LongTailKeywords } from './components/LongTailKeywords';
-import { BillingPanel } from './components/BillingPanel';
-import { SupportPanel } from './components/SupportPanel';
-import { HelpSupport } from './components/HelpSupport';
-import { CSVCompare } from './components/CSVCompare';
-import { Auth } from './components/Auth';
-import { EmailVerification } from './components/EmailVerification';
-import { PaymentPage } from './components/PaymentPage';
-import { PaymentSuccess } from './components/PaymentSuccess';
-import { SettingsPanel } from './components/SettingsPanel';
-import { SupportHelpCombined } from './components/SupportHelpCombined';
-import { ResetPassword } from './components/ResetPassword';
-import { CampaignPresets } from './components/CampaignPresets';
-import { DraftCampaigns } from './components/DraftCampaigns';
-import { Dashboard } from './components/Dashboard';
-import { HistoryPanel } from './components/HistoryPanel';
-import { FeedbackButton } from './components/FeedbackButton';
-import { PrivacyPolicy } from './components/PrivacyPolicy';
-import { TermsOfService } from './components/TermsOfService';
-import { CookiePolicy } from './components/CookiePolicy';
-import { GDPRCompliance } from './components/GDPRCompliance';
-import { RefundPolicy } from './components/RefundPolicy';
 import { supabase } from './utils/supabase/client';
 import { getCurrentUserProfile, isAuthenticated, signOut } from './utils/auth';
 import { getUserPreferences, applyUserPreferences } from './utils/userPreferences';
-import CreativeMinimalistHomepage from './components/CreativeMinimalistHomepage';
 import { notifications as notificationService } from './utils/notifications';
-import { WebTemplates } from './components/WebTemplates';
-import { PlanSelection } from './components/PlanSelection';
-import { Teams } from './components/Teams';
-import Blog from './components/Blog';
-import BlogGenerator from './components/BlogGenerator';
-import { PromoLandingPage } from './components/PromoLandingPage';
-import { SuperAdminPanel } from './components/SuperAdminPanel';
-import { CallForwarding } from './components/CallForwarding';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { WorkspaceCreation } from './components/WorkspaceCreation';
 import { WorkspaceCards } from './components/WorkspaceCards';
 import { workspaceHelpers } from './utils/workspaces';
-import { Forms } from './modules/forms/components/Forms';
+import { FeedbackButton } from './components/FeedbackButton';
+import { Auth } from './components/Auth';
+import { Dashboard } from './components/Dashboard';
+import { EmailVerification } from './components/EmailVerification';
+import { ResetPassword } from './components/ResetPassword';
+import { PaymentPage } from './components/PaymentPage';
+import { PaymentSuccess } from './components/PaymentSuccess';
+import { PlanSelection } from './components/PlanSelection';
+import CreativeMinimalistHomepage from './components/CreativeMinimalistHomepage';
+
+// Lazy load heavy components for code splitting
+const CampaignBuilder3 = lazy(() => import('./components/CampaignBuilder3').then(m => ({ default: m.CampaignBuilder3 })));
+const OneClickCampaignBuilder = lazy(() => import('./components/OneClickCampaignBuilder').then(m => ({ default: m.OneClickCampaignBuilder })));
+const KeywordPlanner = lazy(() => import('./components/KeywordPlanner').then(m => ({ default: m.KeywordPlanner })));
+const KeywordMixer = lazy(() => import('./components/KeywordMixer').then(m => ({ default: m.KeywordMixer })));
+const NegativeKeywordsBuilder = lazy(() => import('./components/NegativeKeywordsBuilder').then(m => ({ default: m.NegativeKeywordsBuilder })));
+const KeywordSavedLists = lazy(() => import('./components/KeywordSavedLists').then(m => ({ default: m.KeywordSavedLists })));
+const LongTailKeywords = lazy(() => import('./components/LongTailKeywords').then(m => ({ default: m.LongTailKeywords })));
+const CampaignPresets = lazy(() => import('./components/CampaignPresets').then(m => ({ default: m.CampaignPresets })));
+const DraftCampaigns = lazy(() => import('./components/DraftCampaigns').then(m => ({ default: m.DraftCampaigns })));
+const WebTemplates = lazy(() => import('./components/WebTemplates').then(m => ({ default: m.WebTemplates })));
+const SettingsPanel = lazy(() => import('./components/SettingsPanel').then(m => ({ default: m.SettingsPanel })));
+const SupportPanel = lazy(() => import('./components/SupportPanel').then(m => ({ default: m.SupportPanel })));
+const SupportHelpCombined = lazy(() => import('./components/SupportHelpCombined').then(m => ({ default: m.SupportHelpCombined })));
+const Teams = lazy(() => import('./components/Teams').then(m => ({ default: m.Teams })));
+const CallForwarding = lazy(() => import('./components/CallForwarding').then(m => ({ default: m.CallForwarding })));
+const Blog = lazy(() => import('./components/Blog').then(m => ({ default: m.default })));
+const BlogGenerator = lazy(() => import('./components/BlogGenerator').then(m => ({ default: m.default })));
+const SuperAdminPanel = lazy(() => import('./components/SuperAdminPanel').then(m => ({ default: m.SuperAdminPanel })));
+const Forms = lazy(() => import('./modules/forms/components/Forms').then(m => ({ default: m.Forms })));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const TermsOfService = lazy(() => import('./components/TermsOfService').then(m => ({ default: m.TermsOfService })));
+const CookiePolicy = lazy(() => import('./components/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
+const GDPRCompliance = lazy(() => import('./components/GDPRCompliance').then(m => ({ default: m.GDPRCompliance })));
+const RefundPolicy = lazy(() => import('./components/RefundPolicy').then(m => ({ default: m.RefundPolicy })));
+const PromoLandingPage = lazy(() => import('./components/PromoLandingPage').then(m => ({ default: m.PromoLandingPage })));
+
+// Loading component for lazy-loaded modules
+const ComponentLoader = () => (
+  <div className="flex items-center justify-center h-full min-h-[400px]">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+      <p className="text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
 type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel' | 'workspace-creation' | 'workspace-selection';
 
@@ -1324,23 +1331,43 @@ const AppContent = () => {
   }
 
   if (appView === 'privacy-policy') {
-    return <PrivacyPolicy onBack={() => setAppView(previousView)} />;
+    return (
+      <Suspense fallback={<ComponentLoader />}>
+        <PrivacyPolicy onBack={() => setAppView(previousView)} />
+      </Suspense>
+    );
   }
 
   if (appView === 'terms-of-service') {
-    return <TermsOfService onBack={() => setAppView(previousView)} />;
+    return (
+      <Suspense fallback={<ComponentLoader />}>
+        <TermsOfService onBack={() => setAppView(previousView)} />
+      </Suspense>
+    );
   }
 
   if (appView === 'cookie-policy') {
-    return <CookiePolicy onBack={() => setAppView(previousView)} />;
+    return (
+      <Suspense fallback={<ComponentLoader />}>
+        <CookiePolicy onBack={() => setAppView(previousView)} />
+      </Suspense>
+    );
   }
 
   if (appView === 'gdpr-compliance') {
-    return <GDPRCompliance onBack={() => setAppView(previousView)} />;
+    return (
+      <Suspense fallback={<ComponentLoader />}>
+        <GDPRCompliance onBack={() => setAppView(previousView)} />
+      </Suspense>
+    );
   }
 
   if (appView === 'refund-policy') {
-    return <RefundPolicy onBack={() => setAppView(previousView)} />;
+    return (
+      <Suspense fallback={<ComponentLoader />}>
+        <RefundPolicy onBack={() => setAppView(previousView)} />
+      </Suspense>
+    );
   }
 
   if (appView === 'plan-selection') {
@@ -1382,20 +1409,22 @@ const AppContent = () => {
 
   if (appView === 'promo') {
     return (
-      <PromoLandingPage
-        onStartTrial={() => {
-          // Trial start is handled within the component via API
-        }}
-        onNavigate={(page) => {
-          setPreviousView('promo');
-          if (page === 'blog') {
-            setActiveTab('blog');
-            setAppView('user');
-          } else {
-            setAppView(page as AppView);
-          }
-        }}
-      />
+      <Suspense fallback={<ComponentLoader />}>
+        <PromoLandingPage
+          onStartTrial={() => {
+            // Trial start is handled within the component via API
+          }}
+          onNavigate={(page) => {
+            setPreviousView('promo');
+            if (page === 'blog') {
+              setActiveTab('blog');
+              setAppView('user');
+            } else {
+              setAppView(page as AppView);
+            }
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -1628,55 +1657,135 @@ const AppContent = () => {
     
     switch (activeTab) {
       case 'preset-campaigns':
-        return <CampaignPresets onLoadPreset={(presetData) => {
-          setHistoryData(presetData);
-          setActiveTabSafe('builder-3');
-        }} />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <CampaignPresets onLoadPreset={(presetData) => {
+              setHistoryData(presetData);
+              setActiveTabSafe('builder-3');
+            }} />
+          </Suspense>
+        );
       case 'builder-3':
-        return <CampaignBuilder3 initialData={activeTab === 'builder-3' ? historyData : null} />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <CampaignBuilder3 initialData={activeTab === 'builder-3' ? historyData : null} />
+          </Suspense>
+        );
       case 'one-click-builder':
-        return <OneClickCampaignBuilder />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <OneClickCampaignBuilder />
+          </Suspense>
+        );
       case 'draft-campaigns':
-        return <DraftCampaigns onLoadCampaign={(data, mode) => {
-          try {
-            setHistoryData(data);
-            setActiveTabSafe('builder-3');
-          } catch (error) {
-            console.error('Error loading campaign:', error);
-          }
-        }} />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <DraftCampaigns onLoadCampaign={(data, mode) => {
+              try {
+                setHistoryData(data);
+                setActiveTabSafe('builder-3');
+              } catch (error) {
+                console.error('Error loading campaign:', error);
+              }
+            }} />
+          </Suspense>
+        );
       case 'keyword-planner':
-        return <KeywordPlanner initialData={activeTab === 'keyword-planner' ? historyData : null} />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <KeywordPlanner initialData={activeTab === 'keyword-planner' ? historyData : null} />
+          </Suspense>
+        );
       case 'keyword-mixer':
-        return <KeywordMixer initialData={activeTab === 'keyword-mixer' ? historyData : null} />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <KeywordMixer initialData={activeTab === 'keyword-mixer' ? historyData : null} />
+          </Suspense>
+        );
       case 'negative-keywords':
-        return <NegativeKeywordsBuilder initialData={activeTab === 'negative-keywords' ? historyData : null} />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <NegativeKeywordsBuilder initialData={activeTab === 'negative-keywords' ? historyData : null} />
+          </Suspense>
+        );
       case 'long-tail-keywords':
-        return <LongTailKeywords />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <LongTailKeywords />
+          </Suspense>
+        );
       case 'keyword-saved-lists':
-        return <KeywordSavedLists />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <KeywordSavedLists />
+          </Suspense>
+        );
       case 'web-templates':
-        return <WebTemplates />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <WebTemplates />
+          </Suspense>
+        );
       case 'saved-websites':
-        return <WebTemplates initialTab="saved" />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <WebTemplates initialTab="saved" />
+          </Suspense>
+        );
       case 'connected-websites':
-        return <WebTemplates initialTab="connected" />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <WebTemplates initialTab="connected" />
+          </Suspense>
+        );
       case 'support-help':
-        return <SupportHelpCombined />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <SupportHelpCombined />
+          </Suspense>
+        );
       case 'support':
-        return <SupportPanel />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <SupportPanel />
+          </Suspense>
+        );
       case 'teams':
-        return <Teams />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <Teams />
+          </Suspense>
+        );
       case 'call-forwarding':
-        return <CallForwarding />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <CallForwarding />
+          </Suspense>
+        );
       case 'blog':
-        return <Blog />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <Blog />
+          </Suspense>
+        );
       case 'forms':
-        return <Forms />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <Forms />
+          </Suspense>
+        );
       case 'settings':
-        return <SettingsPanel />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <SettingsPanel />
+          </Suspense>
+        );
       case 'billing':
-        return <SettingsPanel defaultTab="billing" />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <SettingsPanel defaultTab="billing" />
+          </Suspense>
+        );
       case 'dashboard':
         return <Dashboard user={user} onNavigate={setActiveTabSafe} />;
       default:
@@ -1771,7 +1880,7 @@ const AppContent = () => {
               />
             ) : (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-100">
-                <Building2 className="w-4 h-4 text-slate-500" />
+                <Building className="w-4 h-4 text-slate-500" />
                 <span className="text-sm text-slate-600">No workspace selected</span>
               </div>
             )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, ChevronDown, Check, Plus, Loader2 } from 'lucide-react';
+import { Building, ChevronDown, Check, Plus, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -85,7 +85,7 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
             disabled={!canSwitch || isSwitching}
           >
             <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
+              <Building className="h-4 w-4" />
               <span className="truncate max-w-[150px]">{currentWorkspace.name}</span>
               {currentWorkspace.is_admin_workspace && (
                 <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
@@ -107,7 +107,7 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
                 className="flex items-center justify-between cursor-pointer"
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Building2 className="h-4 w-4 flex-shrink-0" />
+                  <Building className="h-4 w-4 flex-shrink-0" />
                   <span className="truncate">{workspace.name}</span>
                   {workspace.is_admin_workspace && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary flex-shrink-0">

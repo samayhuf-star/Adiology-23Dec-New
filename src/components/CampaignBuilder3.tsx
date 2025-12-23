@@ -3,7 +3,7 @@ import {
   ArrowRight, ArrowLeft, Check, Globe, Link2, Sparkles, Brain, 
   Hash, MapPin, FileText, Download, AlertCircle, CheckCircle2,
   Loader2, Search, Filter, X, Plus, Edit3, Trash2, Save,
-  Target, Zap, Layers, TrendingUp, Building2, ShoppingBag,
+  Target, Zap, Layers, TrendingUp, Building, ShoppingBag,
   Phone, Mail, Calendar, Clock, Eye, FileSpreadsheet, Copy,
   MessageSquare, Gift, Image as ImageIcon, DollarSign, MapPin as MapPinIcon,
   Star, RefreshCw, Smartphone, Megaphone, FolderOpen,
@@ -70,7 +70,7 @@ const CAMPAIGN_STRUCTURES = [
   { id: 'match_type', name: 'Match-Type Split', description: 'Separate by Match Type', icon: Filter },
   { id: 'geo', name: 'GEO-Segmented', description: 'One Campaign per Geo', icon: MapPin },
   { id: 'funnel', name: 'Funnel-Based', description: 'TOF/MOF/BOF', icon: TrendingUp },
-  { id: 'brand_split', name: 'Brand Split', description: 'Brand vs Non-Brand', icon: Building2 },
+  { id: 'brand_split', name: 'Brand Split', description: 'Brand vs Non-Brand', icon: Building },
   { id: 'competitor', name: 'Competitor', description: 'Competitor Campaigns', icon: Target },
   { id: 'ngram', name: 'N-Gram Clusters', description: 'Smart Clustering', icon: Brain },
   { id: 'long_tail', name: 'Long-Tail Master', description: '3+ Word Low-Competition Keywords', icon: Search },
@@ -4383,7 +4383,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
     const getCurrentSelection = () => {
       const { cities, states, zipCodes } = campaignData.locations;
-      if (cities.length > 0) return { type: 'Cities', count: cities.length, icon: Building2 };
+      if (cities.length > 0) return { type: 'Cities', count: cities.length, icon: Building };
       if (states.length > 0) return { type: 'States', count: states.length, icon: MapPin };
       if (zipCodes.length > 0) return { type: 'ZIP Codes', count: zipCodes.length, icon: Hash };
       return null;
@@ -4574,7 +4574,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                 <Tabs defaultValue="cities" className="w-full">
                   <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-100 p-1 rounded-xl">
                     <TabsTrigger value="cities" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md">
-                      <Building2 className="w-4 h-4" />
+                      <Building className="w-4 h-4" />
                       <span className="hidden sm:inline">Cities</span>
                     </TabsTrigger>
                     <TabsTrigger value="states" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md">
@@ -4629,7 +4629,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                               ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 shadow-lg" 
                               : "hover:border-indigo-300 hover:bg-indigo-50"}
                           >
-                            <Building2 className="w-3 h-3 mr-1.5" />
+                            <Building className="w-3 h-3 mr-1.5" />
                             {preset.label}
                           </Button>
                         ))}
