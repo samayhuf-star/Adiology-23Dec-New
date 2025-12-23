@@ -989,7 +989,12 @@ const AppContent = () => {
   
   // Helper function to check module access based on view mode
   const checkModuleAccess = (moduleName: string): boolean => {
-    if (!currentWorkspace) return false;
+    // If no workspace, allow access to basic modules (dashboard, blog, forms, settings)
+    // This ensures the menu doesn't disappear completely
+    if (!currentWorkspace) {
+      const basicModules = ['dashboard', 'settings', 'support'];
+      return basicModules.includes(moduleName);
+    }
     
     // In user view mode, simulate member access (ignore admin workspace privileges)
     if (viewMode === 'user') {
@@ -1005,8 +1010,15 @@ const AppContent = () => {
   };
   
   // Filter menu items based on workspace module access and view mode
-  // Show all items while workspace is loading to avoid flickering
-  const menuItems = workspaceLoading ? allMenuItems : allMenuItems.filter((item) => {
+  // Show all items while workspace is loading OR if no workspace (to avoid empty menu)
+  const menuItems = (workspaceLoading || !currentWorkspace) ? allMenuItems.filter((item) => {
+    // When loading or no workspace, show basic items: dashboard, blog, forms, settings, support
+    const basicItems = ['dashboard', 'blog', 'forms', 'settings', 'support-help'];
+    if (basicItems.includes(item.id)) return true;
+    // Also show admin panel if user is super admin
+    if (item.id === 'admin-panel' && isSuperAdmin) return true;
+    return false;
+  }) : allMenuItems.filter((item) => {
     // If no module required, always show (except admin panel in user view)
     if (!item.module) {
       // In user view mode, hide admin panel
@@ -1746,12 +1758,19 @@ const AppContent = () => {
           </button>
         </div>
 
-        {/* Workspace Switcher */}
-        {currentWorkspace && user && (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+        {/* Workspace Switcher - Show if user is logged in, even if no workspace yet */}
+        {user && (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
           <div className="px-4 py-3 border-b border-indigo-100/60">
-            <WorkspaceSwitcher
-              canSwitch={currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin'}
-            />
+            {currentWorkspace ? (
+              <WorkspaceSwitcher
+                canSwitch={currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin'}
+              />
+            ) : (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-100">
+                <Building2 className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-600">No workspace selected</span>
+              </div>
+            )}
           </div>
         )}
         

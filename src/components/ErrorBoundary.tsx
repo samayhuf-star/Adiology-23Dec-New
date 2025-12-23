@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { ErrorFallback } from './ErrorFallback';
 
 interface Props {
   children: ReactNode;
@@ -8,21 +9,39 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Update state with error info
+    this.setState({ errorInfo });
+
     // Log to console
     console.error('App Error:', error, errorInfo);
+    
+    // Handle error with global error handler
+    import('../utils/errorHandler').then(({ ErrorHandler }) => {
+      ErrorHandler.handle(error, {
+        module: 'ErrorBoundary',
+        action: 'component_error',
+        showNotification: true,
+        metadata: {
+          componentStack: errorInfo.componentStack,
+        },
+      });
+    }).catch(() => {
+      // Silently fail if error handler can't be loaded
+    });
     
     // Optional: Send to your backend (only in production, and silently fail if endpoint doesn't exist)
     if (process.env.NODE_ENV === 'production') {
@@ -55,35 +74,11 @@ class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center p-8">
-            <div className="text-6xl mb-4">😕</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Something went wrong
-            </h1>
-            <p className="text-gray-600 mb-6">
-              We're sorry, but something unexpected happened.
-            </p>
-            {this.state.error && process.env.NODE_ENV === 'development' && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left max-w-2xl mx-auto">
-                <p className="text-sm font-mono text-red-800 break-all">
-                  {this.state.error.message}
-                </p>
-                {this.state.error.stack && (
-                  <pre className="text-xs text-red-600 mt-2 overflow-auto max-h-48">
-                    {this.state.error.stack}
-                  </pre>
-                )}
-              </div>
-            )}
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Reload Page
-            </button>
-          </div>
-        </div>
+        <ErrorFallback
+          error={this.state.error}
+          errorInfo={this.state.errorInfo}
+          resetError={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+        />
       );
     }
 

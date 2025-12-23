@@ -18,36 +18,91 @@ import { loggingService } from "./utils/loggingService";
 // Initialize notification service
 notifications.setToastInstance(toast);
 
-// Filter out browser extension service worker errors (harmless)
+// Initialize global error handlers
 if (typeof window !== 'undefined') {
+  // Handle unhandled errors
+  window.addEventListener('error', async (event) => {
+    const errorMessage = String(event.error || event.message || '');
+    
+    // Ignore browser extension errors
+    if (
+      errorMessage.includes('sw.js') ||
+      errorMessage.includes('mobx-state-tree') ||
+      errorMessage.includes('setDetectedLibs') ||
+      errorMessage.includes('installHook.js') ||
+      errorMessage.includes('host-additional-hooks.js') ||
+      (errorMessage.includes('service worker') && errorMessage.includes('extension'))
+    ) {
+      return;
+    }
+
+    // Handle real errors
+    if (event.error) {
+      try {
+        const { ErrorHandler } = await import('./utils/errorHandler');
+        ErrorHandler.handle(event.error, {
+          module: 'Global',
+          action: 'unhandled_error',
+          showNotification: true,
+        });
+      } catch (e) {
+        console.error('Failed to load error handler:', e);
+      }
+    }
+  });
+
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', async (event) => {
+    const errorMessage = String(event.reason || '');
+    
+    // Ignore browser extension errors
+    if (
+      errorMessage.includes('sw.js') ||
+      errorMessage.includes('mobx-state-tree') ||
+      errorMessage.includes('setDetectedLibs') ||
+      errorMessage.includes('installHook.js') ||
+      errorMessage.includes('host-additional-hooks.js') ||
+      errorMessage.includes('tabId not found')
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    // Handle real promise rejections
+    const error = event.reason instanceof Error 
+      ? event.reason 
+      : new Error(String(event.reason));
+    
+    try {
+      const { ErrorHandler } = await import('./utils/errorHandler');
+      ErrorHandler.handle(error, {
+        module: 'Global',
+        action: 'unhandled_rejection',
+        showNotification: true,
+      });
+    } catch (e) {
+      console.error('Failed to load error handler:', e);
+    }
+    
+    event.preventDefault(); // Prevent default browser error handling
+  });
+
+  // Filter console errors (keep for debugging but don't show notifications)
   const originalConsoleError = console.error;
   console.error = (...args: any[]) => {
-    // Ignore errors from browser extension service workers
     const errorMessage = args.join(' ');
     if (
       errorMessage.includes('sw.js') ||
       errorMessage.includes('mobx-state-tree') ||
       errorMessage.includes('setDetectedLibs') ||
+      errorMessage.includes('installHook.js') ||
+      errorMessage.includes('host-additional-hooks.js') ||
       (errorMessage.includes('service worker') && errorMessage.includes('extension'))
     ) {
-      // Silently ignore these browser extension errors
       return;
     }
-    // Log all other errors normally
     originalConsoleError.apply(console, args);
   };
-
-  // Also filter unhandled promise rejections from extensions
-  window.addEventListener('unhandledrejection', (event) => {
-    const errorMessage = String(event.reason || '');
-    if (
-      errorMessage.includes('sw.js') ||
-      errorMessage.includes('mobx-state-tree') ||
-      errorMessage.includes('setDetectedLibs')
-    ) {
-      event.preventDefault(); // Prevent error from showing in console
-    }
-  });
 }
 
 // Initialize user preferences on app load

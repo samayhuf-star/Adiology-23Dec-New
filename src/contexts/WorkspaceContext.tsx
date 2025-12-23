@@ -27,8 +27,26 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
   const loadWorkspaces = async () => {
     try {
       setIsLoading(true);
-      // Check if user is authenticated before loading workspaces
-      const user = await getCurrentAuthUser();
+      
+      // Check if user is authenticated before loading workspaces (with timeout)
+      let user: any = null;
+      try {
+        const authCheck = Promise.race([
+          getCurrentAuthUser(),
+          new Promise<null>((_, reject) => 
+            setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+          )
+        ]);
+        user = await authCheck;
+      } catch (authError: any) {
+        // If auth check times out or fails, treat as not authenticated
+        console.warn('Auth check failed or timed out:', authError?.message);
+        setWorkspaces([]);
+        setCurrentWorkspaceState(null);
+        setIsLoading(false);
+        return;
+      }
+      
       if (!user) {
         // User not authenticated, set empty workspaces
         setWorkspaces([]);
@@ -37,15 +55,30 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         return;
       }
 
-      // Add timeout to prevent infinite loading
+      // Add timeout to prevent infinite loading (reduced to 5 seconds)
       const timeoutPromise = new Promise<Workspace[]>((_, reject) => {
-        setTimeout(() => reject(new Error('Workspace loading timeout')), 10000);
+        setTimeout(() => {
+          reject(new Error('Workspace loading timeout after 5 seconds'));
+        }, 5000);
       });
 
       const workspacesPromise = workspaceHelpers.getUserWorkspaces();
-      const userWorkspaces = await Promise.race([workspacesPromise, timeoutPromise]) as Workspace[];
       
-      setWorkspaces(userWorkspaces);
+      let userWorkspaces: Workspace[];
+      try {
+        userWorkspaces = await Promise.race([workspacesPromise, timeoutPromise]) as Workspace[];
+      } catch (raceError: any) {
+        // If timeout wins, log and use empty array
+        if (raceError?.message?.includes('timeout')) {
+          console.warn('Workspace loading timed out, showing empty state');
+          userWorkspaces = [];
+        } else {
+          // If actual error, re-throw to be caught by outer catch
+          throw raceError;
+        }
+      }
+      
+      setWorkspaces(userWorkspaces || []);
 
       // Load current workspace from localStorage or set default
       const savedWorkspaceId = localStorage.getItem('current_workspace_id');
@@ -53,7 +86,11 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         const saved = userWorkspaces.find((w) => w.id === savedWorkspaceId);
         if (saved) {
           setCurrentWorkspaceState(saved);
-          await loadWorkspaceModules(saved.id).catch(err => {
+          // Load modules with timeout
+          Promise.race([
+            loadWorkspaceModules(saved.id),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Module loading timeout')), 3000))
+          ]).catch(err => {
             console.error('Error loading workspace modules:', err);
             // Don't block on module loading errors
           });
@@ -63,12 +100,16 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       }
 
       // Set first workspace as default (prefer admin workspace)
-      if (userWorkspaces.length > 0) {
+      if (userWorkspaces && userWorkspaces.length > 0) {
         const adminWorkspace = userWorkspaces.find((w) => w.is_admin_workspace);
         const defaultWorkspace = adminWorkspace || userWorkspaces[0];
         setCurrentWorkspaceState(defaultWorkspace);
         localStorage.setItem('current_workspace_id', defaultWorkspace.id);
-        await loadWorkspaceModules(defaultWorkspace.id).catch(err => {
+        // Load modules with timeout
+        Promise.race([
+          loadWorkspaceModules(defaultWorkspace.id),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Module loading timeout')), 3000))
+        ]).catch(err => {
           console.error('Error loading workspace modules:', err);
           // Don't block on module loading errors
         });
@@ -79,14 +120,19 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       }
     } catch (error: any) {
       console.error('Error loading workspaces:', error);
+      
+      // Handle error with global error handler
+      import('../utils/errorHandler').then(({ ErrorHandler }) => {
+        ErrorHandler.handleWorkspaceError(error, 'load');
+      }).catch(() => {
+        // Fallback if error handler can't be loaded
+        console.error('Workspace loading error:', error);
+      });
+      
       // Set empty state on error to prevent breaking the app
       setWorkspaces([]);
       setCurrentWorkspaceState(null);
       localStorage.removeItem('current_workspace_id');
-      // Log specific error details for debugging
-      if (error?.message) {
-        console.error('Workspace loading error details:', error.message);
-      }
     } finally {
       // Always set loading to false, even if there was an error
       setIsLoading(false);
@@ -127,6 +173,17 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
   useEffect(() => {
     loadWorkspaces();
+    
+    // Safety mechanism: Force loading to false after 15 seconds maximum
+    // This ensures the app never gets stuck in loading state
+    const safetyTimeout = setTimeout(() => {
+      console.warn('Force-setting isLoading to false after 15 seconds (safety mechanism)');
+      setIsLoading(false);
+    }, 15000);
+    
+    return () => {
+      clearTimeout(safetyTimeout);
+    };
   }, []);
 
   const value: WorkspaceContextType = {

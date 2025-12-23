@@ -61,8 +61,18 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({
     );
   }
 
+  // If no workspace, show create workspace option
   if (!currentWorkspace) {
-    return null;
+    return (
+      <Button
+        onClick={() => setShowCreateDialog(true)}
+        variant="outline"
+        className="w-full justify-start"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Create Workspace
+      </Button>
+    );
   }
 
   return (
