@@ -6799,6 +6799,243 @@ const server = serve({
   port: apiPort,
 });
 
+// ============================================
+// FORM TEMPLATES API
+// ============================================
+
+// Get featured templates (public endpoint)
+app.get('/api/templates/featured', async (c) => {
+  try {
+    const limit = parseInt(c.req.query('limit') || '6');
+    const result = await pool.query(
+      `SELECT id, template_id, name, description, category, subcategory,
+              thumbnail_url, use_count, rating, is_featured
+       FROM form_templates
+       WHERE is_featured = TRUE AND is_active = TRUE
+       ORDER BY use_count DESC
+       LIMIT $1`,
+      [limit]
+    );
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching featured templates:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get all templates (with optional filters)
+app.get('/api/templates', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const category = c.req.query('category');
+    const featured = c.req.query('featured');
+    const limit = parseInt(c.req.query('limit') || '50');
+    
+    let query = `
+      SELECT id, template_id, name, description, category, subcategory,
+             thumbnail_url, preview_image_url, use_count, rating, is_featured
+      FROM form_templates
+      WHERE is_active = TRUE
+    `;
+    const params: any[] = [];
+    let paramCount = 1;
+    
+    if (category) {
+      query += ` AND category = $${paramCount}`;
+      params.push(category);
+      paramCount++;
+    }
+    
+    if (featured === 'true') {
+      query += ` AND is_featured = TRUE`;
+    }
+    
+    query += ` ORDER BY is_featured DESC, use_count DESC`;
+    
+    query += ` LIMIT $${paramCount}`;
+    params.push(limit);
+    
+    const result = await pool.query(query, params);
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching templates:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Search templates
+app.get('/api/templates/search', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const q = c.req.query('q');
+    if (!q || q.length < 2) {
+      return c.json({ success: true, data: [] });
+    }
+    
+    const result = await pool.query(
+      `SELECT id, template_id, name, description, category, subcategory,
+              thumbnail_url, use_count, rating, is_featured
+       FROM form_templates
+       WHERE (name ILIKE $1 OR description ILIKE $1 OR category ILIKE $1)
+       AND is_active = TRUE
+       ORDER BY use_count DESC
+       LIMIT 50`,
+      [`%${q}%`]
+    );
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error searching templates:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get templates by category
+app.get('/api/templates/category/:category', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const category = c.req.param('category');
+    const result = await pool.query(
+      `SELECT id, template_id, name, description, category, subcategory,
+              thumbnail_url, use_count, rating, is_featured
+       FROM form_templates
+       WHERE category = $1 AND is_active = TRUE
+       ORDER BY is_featured DESC, use_count DESC`,
+      [category]
+    );
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching templates by category:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get single template by ID
+app.get('/api/templates/:templateId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const templateId = c.req.param('templateId');
+    const result = await pool.query(
+      `SELECT * FROM form_templates 
+       WHERE (id = $1 OR template_id = $1) AND is_active = TRUE`,
+      [templateId]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Template not found' }, 404);
+    }
+    
+    const template = result.rows[0];
+    
+    // Record view analytics
+    await pool.query(
+      `INSERT INTO template_analytics (template_id, user_id, action)
+       VALUES ($1, $2, $3)`,
+      [template.id, user.id, 'viewed']
+    ).catch(err => console.error('Error recording template view:', err));
+    
+    return c.json({ success: true, data: template });
+  } catch (error: any) {
+    console.error('Error fetching template:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Create form from template
+app.post('/api/forms/from-template', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const { template_id, form_name } = await c.req.json();
+    
+    if (!template_id) {
+      return c.json({ error: 'Template ID required' }, 400);
+    }
+    
+    // Get template
+    const templateResult = await pool.query(
+      `SELECT * FROM form_templates 
+       WHERE (id = $1 OR template_id = $1) AND is_active = TRUE`,
+      [template_id]
+    );
+    
+    if (templateResult.rows.length === 0) {
+      return c.json({ error: 'Template not found' }, 404);
+    }
+    
+    const template = templateResult.rows[0];
+    const fields = typeof template.fields === 'string' 
+      ? JSON.parse(template.fields) 
+      : template.fields;
+    
+    // Create form
+    const formResult = await pool.query(
+      `INSERT INTO forms (user_id, name, description, status, template_used)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [
+        user.id,
+        form_name || template.name,
+        template.description || null,
+        'draft',
+        template.id
+      ]
+    );
+    
+    const form = formResult.rows[0];
+    
+    // Copy template fields to form
+    for (const field of fields) {
+      await pool.query(
+        `INSERT INTO form_fields 
+         (form_id, field_type, label, placeholder, required, options, position)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          form.id,
+          field.type,
+          field.label,
+          field.placeholder || null,
+          field.required || false,
+          field.options ? JSON.stringify(field.options) : null,
+          field.order || 1
+        ]
+      );
+    }
+    
+    // Update template use count
+    await pool.query(
+      `UPDATE form_templates 
+       SET use_count = use_count + 1 
+       WHERE id = $1`,
+      [template.id]
+    );
+    
+    // Log analytics
+    await pool.query(
+      `INSERT INTO template_analytics (template_id, user_id, action)
+       VALUES ($1, $2, $3)`,
+      [template.id, user.id, 'used']
+    ).catch(err => console.error('Error recording template usage:', err));
+    
+    return c.json({
+      success: true,
+      data: form,
+      message: 'Form created from template! Customize it to your needs.'
+    }, 201);
+  } catch (error: any) {
+    console.error('Error creating form from template:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
 
 // Initialize Stripe in the background AFTER server is running (non-blocking)

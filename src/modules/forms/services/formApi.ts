@@ -151,5 +151,58 @@ export const formApi = {
     });
     return response.blob();
   },
+
+  // Templates
+  async getFeaturedTemplates(limit = 6) {
+    const response = await fetch(`/api/templates/featured?limit=${limit}`);
+    return response.json();
+  },
+
+  async getAllTemplates(filters?: { category?: string; featured?: boolean; limit?: number }) {
+    const headers = await getAuthHeaders();
+    const params = new URLSearchParams();
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.featured) params.append('featured', 'true');
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    
+    const response = await fetch(`/api/templates?${params.toString()}`, {
+      headers,
+    });
+    return response.json();
+  },
+
+  async searchTemplates(query: string) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/templates/search?q=${encodeURIComponent(query)}`, {
+      headers,
+    });
+    return response.json();
+  },
+
+  async getTemplatesByCategory(category: string) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/templates/category/${encodeURIComponent(category)}`, {
+      headers,
+    });
+    return response.json();
+  },
+
+  async getTemplate(templateId: string) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/templates/${encodeURIComponent(templateId)}`, {
+      headers,
+    });
+    return response.json();
+  },
+
+  async createFormFromTemplate(data: { template_id: string; form_name?: string }) {
+    const headers = await getAuthHeaders();
+    const response = await fetch('/api/forms/from-template', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
 };
 

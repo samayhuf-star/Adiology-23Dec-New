@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { formApi } from '../services/formApi';
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
-import { Plus, FileText, Trash2, Eye, Edit } from 'lucide-react';
+import { Plus, FileText, Trash2, Eye, Edit, LayoutTemplate } from 'lucide-react';
+import { TemplateGallery } from '../components/TemplateGallery';
 
 export function FormsListPage() {
   const [forms, setForms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
 
@@ -51,6 +53,10 @@ export function FormsListPage() {
     }
   };
 
+  const handleFormCreatedFromTemplate = (form: any) => {
+    loadForms();
+  };
+
   const handleDeleteForm = async (formId: string) => {
     if (!window.confirm('Are you sure you want to delete this form?')) return;
     
@@ -64,6 +70,14 @@ export function FormsListPage() {
     }
   };
 
+  if (showTemplateGallery) {
+    return (
+      <TemplateGallery
+        onFormCreated={handleFormCreatedFromTemplate}
+      />
+    );
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
@@ -72,10 +86,19 @@ export function FormsListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Forms</h1>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Form
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowTemplateGallery(true)}
+          >
+            <LayoutTemplate className="w-4 h-4 mr-2" />
+            Browse Templates
+          </Button>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Blank Form
+          </Button>
+        </div>
       </div>
 
       {showCreateModal && (

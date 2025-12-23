@@ -149,7 +149,24 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
       onComplete(workspace);
     } catch (err: any) {
       console.error('Error creating workspace:', err);
-      setError(err.message || 'Failed to create workspace. Please try again.');
+      // Log full error details for better debugging
+      if (err instanceof Error) {
+        console.error('Error details:', {
+          message: err.message,
+          stack: err.stack,
+          name: err.name,
+        });
+      } else if (err?.message) {
+        console.error('Error details:', {
+          message: err.message,
+          details: err.details,
+          hint: err.hint,
+          code: err.code,
+        });
+      } else {
+        console.error('Error object:', JSON.stringify(err, null, 2));
+      }
+      setError(err?.message || 'Failed to create workspace. Please try again.');
       setIsLoading(false);
     }
   };

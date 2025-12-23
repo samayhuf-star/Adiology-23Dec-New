@@ -87,7 +87,8 @@ export const workspaceHelpers = {
     try {
       const user = await getCurrentAuthUser();
       if (!user) {
-        throw new Error('User not authenticated');
+        // Return empty array instead of throwing - user might not be logged in yet
+        return [];
       }
 
       const { data, error } = await supabase.rpc('get_user_workspaces', {
@@ -96,13 +97,15 @@ export const workspaceHelpers = {
 
       if (error) {
         console.error('Error fetching user workspaces:', error);
-        throw error;
+        // Return empty array on error instead of throwing
+        return [];
       }
 
       return data || [];
     } catch (error) {
       console.error('Error in getUserWorkspaces:', error);
-      throw error;
+      // Return empty array instead of throwing to prevent breaking the app
+      return [];
     }
   },
 
@@ -152,17 +155,36 @@ export const workspaceHelpers = {
 
       if (error) {
         console.error('Error creating workspace:', error);
+        // Log the full error details
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
         throw error;
       }
 
       // Add owner as member
-      await supabase.from('workspace_members').insert({
+      const { error: memberError } = await supabase.from('workspace_members').insert({
         workspace_id: data.id,
         user_id: user.id,
         role: 'owner',
         status: 'active',
         joined_at: new Date().toISOString(),
       });
+
+      if (memberError) {
+        console.error('Error adding owner as member:', memberError);
+        // Log full error details
+        console.error('Member error details:', {
+          message: memberError.message,
+          details: memberError.details,
+          hint: memberError.hint,
+          code: memberError.code,
+        });
+        // Don't throw - workspace was created, we can fix membership later
+      }
 
       // Add default modules
       const defaultModules = ['dashboard', 'settings', 'support', 'help', 'ticket'];
@@ -172,11 +194,33 @@ export const workspaceHelpers = {
         enabled: true,
       }));
 
-      await supabase.from('workspace_modules').insert(moduleInserts);
+      const { error: moduleError } = await supabase.from('workspace_modules').insert(moduleInserts);
+
+      if (moduleError) {
+        console.error('Error adding default modules:', moduleError);
+        // Log full error details
+        console.error('Module error details:', {
+          message: moduleError.message,
+          details: moduleError.details,
+          hint: moduleError.hint,
+          code: moduleError.code,
+        });
+        // Don't throw - workspace was created, modules can be added later
+      }
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in createWorkspace:', error);
+      // Log full error details for better debugging
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        });
+      } else {
+        console.error('Error object:', JSON.stringify(error, null, 2));
+      }
       throw error;
     }
   },

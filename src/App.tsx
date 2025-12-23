@@ -202,6 +202,15 @@ const AppContent = () => {
     try {
       setNotificationsLoading(true);
       const response = await fetch(`/api/notifications/${user.id}`);
+      
+      // Check if response is actually JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Response is not JSON (likely HTML error page)
+        console.warn('Dashboard API not available, using fallback');
+        return;
+      }
+      
       if (response.ok) {
         const data = await response.json();
         const formattedNotifications = (data.notifications || []).map((n: any) => ({
@@ -213,9 +222,18 @@ const AppContent = () => {
           action_type: n.action_type,
         }));
         setNotifications(formattedNotifications);
+      } else {
+        // Response not OK, log but don't throw
+        const errorText = await response.text();
+        console.warn('Error fetching notifications:', response.status, errorText);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Only log if it's not a JSON parse error (which we handle above)
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        console.warn('Dashboard API not available, using fallback');
+      } else {
+        console.error('Error fetching notifications:', error);
+      }
     } finally {
       setNotificationsLoading(false);
     }

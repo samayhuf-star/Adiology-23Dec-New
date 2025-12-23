@@ -27,6 +27,15 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
   const loadWorkspaces = async () => {
     try {
       setIsLoading(true);
+      // Check if user is authenticated before loading workspaces
+      const user = await getCurrentAuthUser();
+      if (!user) {
+        // User not authenticated, set empty workspaces
+        setWorkspaces([]);
+        setCurrentWorkspaceState(null);
+        return;
+      }
+
       const userWorkspaces = await workspaceHelpers.getUserWorkspaces();
       setWorkspaces(userWorkspaces);
 
@@ -51,6 +60,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       }
     } catch (error) {
       console.error('Error loading workspaces:', error);
+      // Set empty state on error to prevent breaking the app
+      setWorkspaces([]);
+      setCurrentWorkspaceState(null);
     } finally {
       setIsLoading(false);
     }
