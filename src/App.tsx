@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users, BookOpen, PhoneCall, Wand2
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, Globe, CreditCard, ArrowRight, Users, BookOpen, PhoneCall, Wand2, FileText
 } from 'lucide-react';
 
 declare global {
@@ -67,11 +67,17 @@ import BlogGenerator from './components/BlogGenerator';
 import { PromoLandingPage } from './components/PromoLandingPage';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { CallForwarding } from './components/CallForwarding';
+import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
+import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
+import { WorkspaceCreation } from './components/WorkspaceCreation';
+import { workspaceHelpers } from './utils/workspaces';
+import { Forms } from './modules/forms/components/Forms';
 
-type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel';
+type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel' | 'workspace-creation';
 
-const App = () => {
+const AppContent = () => {
   const { theme } = useTheme();
+  const { hasModuleAccess, currentWorkspace, isLoading: workspaceLoading, refreshWorkspaces } = useWorkspace();
   const [appView, setAppView] = useState<AppView>('homepage');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -151,6 +157,7 @@ const App = () => {
     'connected-websites',
     'teams',
     'blog',
+    'forms',
     // 'call-forwarding', // Hidden - module disabled
   ]);
 
@@ -908,49 +915,83 @@ const App = () => {
   const isSuperAdmin = user && (user.email === 'd@d.com' || user.role === 'superadmin' || user.role === 'super_admin');
 
   // Default: User view (protected) navigation structure
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  const allMenuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
     { 
       id: 'campaign-builder', 
       label: 'Campaigns', 
       icon: Sparkles,
+      module: 'campaign-wizard',
       submenu: [
-        { id: 'one-click-builder', label: '1 Click Builder', icon: Zap },
-        { id: 'builder-3', label: 'Builder 3.0', icon: Sparkles },
-        { id: 'preset-campaigns', label: 'Preset Campaigns', icon: Package },
-        { id: 'draft-campaigns', label: 'Draft Campaigns', icon: FolderOpen },
+        { id: 'one-click-builder', label: '1 Click Builder', icon: Zap, module: 'one-click-builder' },
+        { id: 'builder-3', label: 'Builder 3.0', icon: Sparkles, module: 'campaign-wizard' },
+        { id: 'preset-campaigns', label: 'Preset Campaigns', icon: Package, module: 'campaign-wizard' },
+        { id: 'draft-campaigns', label: 'Draft Campaigns', icon: FolderOpen, module: 'campaign-wizard' },
       ]
     },
     {
       id: 'keyword-planner', 
       label: 'Keywords', 
       icon: Lightbulb,
+      module: 'keywords',
       submenu: [
-        { id: 'keyword-planner', label: 'Planner', icon: Lightbulb },
-        { id: 'keyword-mixer', label: 'Mixer', icon: Shuffle },
-        { id: 'negative-keywords', label: 'Negatives', icon: MinusCircle },
-        { id: 'long-tail-keywords', label: 'Long Tail', icon: Sparkles },
+        { id: 'keyword-planner', label: 'Planner', icon: Lightbulb, module: 'keywords' },
+        { id: 'keyword-mixer', label: 'Mixer', icon: Shuffle, module: 'keywords' },
+        { id: 'negative-keywords', label: 'Negatives', icon: MinusCircle, module: 'keywords' },
+        { id: 'long-tail-keywords', label: 'Long Tail', icon: Sparkles, module: 'keywords' },
       ]
     },
     { 
       id: 'web-templates', 
       label: 'Web Templates', 
       icon: Globe,
+      module: 'templates',
       submenu: [
-        { id: 'web-templates', label: 'Templates', icon: Globe },
-        { id: 'saved-websites', label: 'Saved Websites', icon: FolderOpen },
-        { id: 'connected-websites', label: 'Connected Websites', icon: Globe },
+        { id: 'web-templates', label: 'Templates', icon: Globe, module: 'templates' },
+        { id: 'saved-websites', label: 'Saved Websites', icon: FolderOpen, module: 'websites' },
+        { id: 'connected-websites', label: 'Connected Websites', icon: Globe, module: 'websites' },
       ]
     },
-    { id: 'teams', label: 'Teams', icon: Users },
+    { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
-    { id: 'blog', label: 'Blog', icon: BookOpen },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'support-help', label: 'Support & Help', icon: HelpCircle },
+    { id: 'blog', label: 'Blog', icon: BookOpen, module: null }, // Blog doesn't require module access
+    { id: 'forms', label: 'Forms', icon: FileText, module: null }, // Forms doesn't require module access
+    { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' },
+    { id: 'support-help', label: 'Support & Help', icon: HelpCircle, module: 'support' },
     // Super Admin Panel - only visible to super admins
-    ...(isSuperAdmin ? [{ id: 'admin-panel', label: 'Admin Panel', icon: Shield }] : []),
+    ...(isSuperAdmin ? [{ id: 'admin-panel', label: 'Admin Panel', icon: Shield, module: null }] : []),
   ];
+
+  // Filter menu items based on workspace module access
+  // Show all items while workspace is loading to avoid flickering
+  const menuItems = workspaceLoading ? allMenuItems : allMenuItems.filter((item) => {
+    // If no module required, always show
+    if (!item.module) return true;
+    
+    // Admin workspace has access to all modules
+    if (currentWorkspace?.is_admin_workspace) return true;
+    
+    // Check module access
+    return hasModuleAccess(item.module);
+  }).map((item) => {
+    // Filter submenu items as well
+    if (item.submenu) {
+      return {
+        ...item,
+        submenu: item.submenu.filter((subItem) => {
+          if (!subItem.module) return true;
+          if (currentWorkspace?.is_admin_workspace) return true;
+          return hasModuleAccess(subItem.module);
+        }),
+      };
+    }
+    return item;
+  }).filter((item) => {
+    // Remove parent items if all submenu items are filtered out
+    if (item.submenu && item.submenu.length === 0) return false;
+    return true;
+  });
 
   // Auto-expand parent menu if activeTab is a submenu item
   useEffect(() => {
@@ -1112,9 +1153,34 @@ const App = () => {
               const userProfile = await getCurrentUserProfile();
               if (userProfile) {
                 setUser(userProfile);
+                
+                // Create admin workspace if it doesn't exist
+                try {
+                  const workspaces = await workspaceHelpers.getUserWorkspaces();
+                  const hasAdminWorkspace = workspaces.some((w) => w.is_admin_workspace);
+                  if (!hasAdminWorkspace) {
+                    await workspaceHelpers.createAdminWorkspace(userProfile.id);
+                    await refreshWorkspaces();
+                  }
+                } catch (workspaceError) {
+                  console.error('Error creating admin workspace:', workspaceError);
+                  // Continue even if workspace creation fails
+                }
               }
             } catch (error) {
               console.warn('Error refreshing user profile:', error);
+            }
+            
+            // Check if user needs to create a workspace
+            try {
+              const needsWorkspace = await workspaceHelpers.needsWorkspaceCreation();
+              if (needsWorkspace) {
+                window.history.pushState({}, '', '/');
+                setAppView('workspace-creation');
+                return;
+              }
+            } catch (workspaceError) {
+              console.error('Error checking workspace creation need:', workspaceError);
             }
             
             window.history.pushState({}, '', '/');
@@ -1159,6 +1225,24 @@ const App = () => {
           onBackToHome={() => {
           setAppView('homepage');
           setAuthMode('login');
+        }}
+      />
+    );
+  }
+
+  if (appView === 'workspace-creation') {
+    return (
+      <WorkspaceCreation
+        onComplete={async (workspace) => {
+          await refreshWorkspaces();
+          window.history.pushState({}, '', '/');
+          setAppView('user');
+          setActiveTabSafe('dashboard');
+        }}
+        onSkip={() => {
+          window.history.pushState({}, '', '/');
+          setAppView('user');
+          setActiveTabSafe('dashboard');
         }}
       />
     );
@@ -1381,6 +1465,19 @@ const App = () => {
             
             // Check if user has paid plan - redirect to dashboard or plan selection
             if (hasPaidPlan) {
+              // Check if user needs to create a workspace (has no non-admin workspaces)
+              try {
+                const needsWorkspace = await workspaceHelpers.needsWorkspaceCreation();
+                if (needsWorkspace) {
+                  // User needs to create a workspace first
+                  setAppView('workspace-creation');
+                  return;
+                }
+              } catch (workspaceError) {
+                console.error('Error checking workspace creation need:', workspaceError);
+                // Continue to dashboard on error
+              }
+
               // Check for pending navigation tab from footer links
               const pendingTab = sessionStorage.getItem('pendingNavTab');
               if (pendingTab) {
@@ -1499,6 +1596,8 @@ const App = () => {
         return <CallForwarding />;
       case 'blog':
         return <Blog />;
+      case 'forms':
+        return <Forms />;
       case 'settings':
         return <SettingsPanel />;
       case 'billing':
@@ -1587,6 +1686,15 @@ const App = () => {
             {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? <X className="w-5 h-5 text-slate-600" /> : <Menu className="w-5 h-5 text-slate-600" />}
           </button>
         </div>
+
+        {/* Workspace Switcher */}
+        {currentWorkspace && user && (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+          <div className="px-4 py-3 border-b border-indigo-100/60">
+            <WorkspaceSwitcher
+              canSwitch={currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin'}
+            />
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="p-4 space-y-2">
@@ -1994,6 +2102,14 @@ const App = () => {
       </div>
 
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <WorkspaceProvider>
+      <AppContent />
+    </WorkspaceProvider>
   );
 };
 

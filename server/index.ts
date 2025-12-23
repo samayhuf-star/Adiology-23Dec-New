@@ -5848,32 +5848,175 @@ app.post('/api/long-tail-keywords/generate', async (c) => {
       return c.json({ error: 'Rate limit exceeded. Please wait a moment before trying again.' }, 429);
     }
     
-    // Generate keyword variations
+    console.log(`🚀 Starting comprehensive long-tail keyword expansion for ${seedKeywords.length} seeds...`);
+    
+    // Normalize seed keywords
+    const normalizedSeeds = seedKeywords
+      .map(k => k.trim().toLowerCase())
+      .filter(k => k.length >= 2 && k.length <= 50)
+      .slice(0, 10); // Limit seeds to prevent explosion
+    
+    if (normalizedSeeds.length === 0) {
+      return c.json({ error: 'No valid seed keywords provided' }, 400);
+    }
+    
+    // ============================================================================
+    // PHASE 1: Use comprehensive expansion engine (same as keywords planner)
+    // ============================================================================
     const keywords: Array<{ keyword: string; source: string; searchVolume: number; cpc: number; difficulty: string }> = [];
+    const seenKeywords = new Set<string>();
     
-    // Use OpenAI to generate long-tail variations
-    const openaiApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY?.includes('DUMMY') 
-      ? process.env.OPENAI_API_KEY 
-      : process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    try {
+      // Use aggressive expansion mode to generate 500+ keywords
+      const expandedKeywords = expandKeywords(normalizedSeeds, {
+        expansionMode: 'aggressive',
+        includeQuestions: true,
+        includeLongTail: true,
+        maxKeywords: 800 // Generate more than needed, then filter to 3+ words
+      });
+
+      console.log(`✅ Expansion engine generated ${expandedKeywords.length} keywords`);
+
+      // Filter to only include long-tail keywords (3+ words) and convert format
+      for (const expanded of expandedKeywords) {
+        const wordCount = expanded.keyword.trim().split(/\s+/).length;
+        
+        // Only include keywords with 3+ words (long-tail requirement)
+        if (wordCount >= 3) {
+          const normalized = expanded.keyword.toLowerCase().trim();
+          
+          // Skip duplicates
+          if (seenKeywords.has(normalized)) {
+            continue;
+          }
+          seenKeywords.add(normalized);
+          
+          // Convert difficulty from competition level
+          const difficulty = expanded.competition === 'HIGH' ? 'hard' : 
+                            expanded.competition === 'MEDIUM' ? 'medium' : 'easy';
+          
+          keywords.push({
+            keyword: expanded.keyword,
+            source: 'expansion',
+            searchVolume: expanded.avgMonthlySearches,
+            cpc: expanded.avgCpc,
+            difficulty: difficulty
+          });
+        }
+      }
+
+      console.log(`✅ Filtered to ${keywords.length} long-tail keywords (3+ words)`);
+    } catch (error) {
+      console.error('⚠️ Expansion engine failed:', error);
+    }
     
-    if (openaiApiKey) {
-      try {
-        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiApiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `You are a keyword research expert. Generate long-tail keyword variations for the given seed keywords. IMPORTANT: Long-tail keywords MUST have 3 or more words. Focus on commercial intent, question-based queries, and specific variations. Return ONLY a JSON array of keyword objects.`
-              },
-              {
-                role: 'user',
-                content: `Generate 50-80 long-tail keyword variations for these seed keywords: ${seedKeywords.join(', ')}
+    // ============================================================================
+    // PHASE 2: Supplement with additional long-tail patterns if needed
+    // ============================================================================
+    
+    // If we still need more keywords, add additional long-tail combinations
+    if (keywords.length < 500) {
+      const additionalModifiers = [
+        'best affordable', 'top rated', 'professional local', 
+        'how to find', 'what is the', 'where to get', 'when to use',
+        'cost of professional', 'reviews for best', 'alternatives to',
+        'for beginners guide', 'for business owners', 'online services for',
+        'free consultation for', '2024 guide to', '2025 best rated', 'tips for choosing',
+        'how much does', 'where can I', 'why choose the', 'benefits of using',
+        'compare prices for', 'near me with', 'same day service', 'emergency service for',
+        'licensed and insured', 'affordable prices for', 'local expert in', 'trusted provider of',
+        'best way to find', 'how to choose', 'what to look for', 'where to buy',
+        'how to hire', 'what is the best', 'where to find', 'how much is',
+        'best place to get', 'top rated', 'highly recommended', 'customer reviews for',
+        'compare different', 'find the best', 'get quotes from', 'schedule appointment with'
+      ];
+      
+      const locationSuffixes = ['near me', 'in my area', 'nearby', 'local', 'in city'];
+      const contextSuffixes = ['for home', 'for business', 'with free estimate', 'with warranty', 'open now'];
+      
+      // Generate modifier + seed + location combinations
+      for (const seed of normalizedSeeds) {
+        if (keywords.length >= 600) break;
+        
+        for (const mod of additionalModifiers) {
+          if (keywords.length >= 600) break;
+          
+          for (const loc of locationSuffixes) {
+            if (keywords.length >= 600) break;
+            
+            const keyword = `${mod} ${seed} ${loc}`;
+            const normalized = keyword.toLowerCase().trim();
+            const wordCount = keyword.trim().split(/\s+/).length;
+            
+            if (wordCount >= 3 && !seenKeywords.has(normalized)) {
+              seenKeywords.add(normalized);
+              keywords.push({
+                keyword: keyword,
+                source: 'supplement',
+                searchVolume: Math.floor(Math.random() * 5000) + 100,
+                cpc: parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+                difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+              });
+            }
+          }
+        }
+        
+        // Generate seed + context + location combinations
+        for (const context of contextSuffixes) {
+          if (keywords.length >= 600) break;
+          
+          for (const loc of locationSuffixes) {
+            if (keywords.length >= 600) break;
+            
+            const keyword = `${seed} ${context} ${loc}`;
+            const normalized = keyword.toLowerCase().trim();
+            const wordCount = keyword.trim().split(/\s+/).length;
+            
+            if (wordCount >= 3 && !seenKeywords.has(normalized)) {
+              seenKeywords.add(normalized);
+              keywords.push({
+                keyword: keyword,
+                source: 'supplement',
+                searchVolume: Math.floor(Math.random() * 5000) + 100,
+                cpc: parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+                difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+              });
+            }
+          }
+        }
+      }
+      
+      console.log(`✅ Supplemented to ${keywords.length} total long-tail keywords`);
+    }
+    
+    // ============================================================================
+    // PHASE 3: Optional OpenAI enhancement (if available and needed)
+    // ============================================================================
+    
+    // Use OpenAI as a supplement if we still need more variety
+    if (keywords.length < 500) {
+      const openaiApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY?.includes('DUMMY') 
+        ? process.env.OPENAI_API_KEY 
+        : process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+      
+      if (openaiApiKey) {
+        try {
+          const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                {
+                  role: 'system',
+                  content: `You are a keyword research expert. Generate long-tail keyword variations for the given seed keywords. IMPORTANT: Long-tail keywords MUST have 3 or more words. Focus on commercial intent, question-based queries, and specific variations. Return ONLY a JSON array of keyword objects.`
+                },
+                {
+                  role: 'user',
+                  content: `Generate 100-150 long-tail keyword variations for these seed keywords: ${normalizedSeeds.join(', ')}
 
 CRITICAL REQUIREMENT: Every keyword MUST contain 3 or more words. Do NOT include 1-word or 2-word keywords.
 
@@ -5884,71 +6027,54 @@ For each keyword, estimate:
 
 Return ONLY a valid JSON array like:
 [{"keyword": "best dental implants near me", "searchVolume": 1200, "cpc": 2.50, "difficulty": "easy"}, ...]`
-              }
-            ],
-            temperature: 0.8
-          })
-        });
-        
-        if (openaiResponse.ok) {
-          const aiData = await openaiResponse.json();
-          const content = aiData.choices?.[0]?.message?.content || '';
+                }
+              ],
+              temperature: 0.8
+            })
+          });
           
-          // Parse JSON from response
-          const jsonMatch = content.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            const aiKeywords = JSON.parse(jsonMatch[0]);
-            for (const kw of aiKeywords) {
-              // Only include keywords with 3+ words (long-tail requirement)
-              const wordCount = kw.keyword.trim().split(/\s+/).length;
-              if (wordCount >= 3) {
-                keywords.push({
-                  keyword: kw.keyword,
-                  source: 'ai',
-                  searchVolume: kw.searchVolume || Math.floor(Math.random() * 5000) + 100,
-                  cpc: kw.cpc || parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
-                  difficulty: kw.difficulty || ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
-                });
+          if (openaiResponse.ok) {
+            const aiData = await openaiResponse.json();
+            const content = aiData.choices?.[0]?.message?.content || '';
+            
+            // Parse JSON from response
+            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              const aiKeywords = JSON.parse(jsonMatch[0]);
+              for (const kw of aiKeywords) {
+                if (keywords.length >= 600) break;
+                
+                // Only include keywords with 3+ words (long-tail requirement)
+                const wordCount = kw.keyword.trim().split(/\s+/).length;
+                if (wordCount >= 3) {
+                  const normalized = kw.keyword.toLowerCase().trim();
+                  if (!seenKeywords.has(normalized)) {
+                    seenKeywords.add(normalized);
+                    keywords.push({
+                      keyword: kw.keyword,
+                      source: 'ai',
+                      searchVolume: kw.searchVolume || Math.floor(Math.random() * 5000) + 100,
+                      cpc: kw.cpc || parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+                      difficulty: kw.difficulty || ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+                    });
+                  }
+                }
               }
             }
           }
-        }
-      } catch (aiError) {
-        console.error('OpenAI error for long-tail keywords:', aiError);
-      }
-    }
-    
-    // Add autocomplete-style variations as fallback or supplement (3+ words required)
-    const modifierPairs = [
-      'best affordable', 'top rated', 'cheap quality', 'professional local', 
-      'how to find', 'what is the', 'where to get', 'when to use',
-      'cost of professional', 'reviews for best', 'alternatives to expensive',
-      'for beginners guide', 'for business owners', 'online services for',
-      'free consultation for', '2024 guide to', '2025 best rated', 'tips for choosing',
-      'how much does', 'where can I', 'why choose the', 'benefits of using',
-      'compare prices for', 'near me with', 'same day service', 'emergency service for',
-      'licensed and insured', 'affordable prices for', 'local expert in', 'trusted provider of'
-    ];
-    
-    for (const seed of seedKeywords.slice(0, 10)) {
-      for (const mod of modifierPairs) {
-        const keyword = `${mod} ${seed}`;
-        const wordCount = keyword.trim().split(/\s+/).length;
-        
-        // Only include if 3+ words (long-tail requirement)
-        if (wordCount >= 3 && !keywords.some(k => k.keyword.toLowerCase() === keyword.toLowerCase())) {
-          keywords.push({
-            keyword,
-            source: 'autocomplete',
-            searchVolume: Math.floor(Math.random() * 5000) + 100,
-            cpc: parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
-            difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
-          });
+        } catch (aiError) {
+          console.error('OpenAI error for long-tail keywords:', aiError);
         }
       }
     }
     
-    return c.json({ keywords: keywords.slice(0, 200) });
+    // Sort by search volume (descending) and limit to 600
+    keywords.sort((a, b) => b.searchVolume - a.searchVolume);
+    const finalKeywords = keywords.slice(0, 600);
+    
+    console.log(`✅ Final result: ${finalKeywords.length} long-tail keywords generated`);
+    
+    return c.json({ keywords: finalKeywords });
   } catch (error: any) {
     console.error('Error generating long-tail keywords:', error);
     return c.json({ error: error.message || 'Failed to generate keywords' }, 500);
@@ -6109,7 +6235,526 @@ if (isProduction) {
   });
 }
 
+// ============================================
+// FORMS API ROUTES
+// ============================================
+
+// Get user's forms
+app.get('/api/forms', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const { page = '1', limit = '50' } = c.req.query();
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
+    const result = await pool.query(
+      `SELECT f.*, 
+              COUNT(fs.id) as submission_count
+       FROM forms f
+       LEFT JOIN form_submissions fs ON f.id = fs.form_id
+       WHERE f.user_id = $1
+       GROUP BY f.id
+       ORDER BY f.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [user.id, parseInt(limit), offset]
+    );
+    
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching forms:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get single form with fields (public endpoint for embedding)
+app.get('/api/forms/:formId', async (c) => {
+  try {
+    const formId = c.req.param('formId');
+    
+    const formResult = await pool.query(
+      `SELECT * FROM forms WHERE id = $1`,
+      [formId]
+    );
+    
+    if (formResult.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    const form = formResult.rows[0];
+    
+    // If form is published, allow public access
+    // Otherwise, require authentication
+    if (form.status !== 'published') {
+      const user = await getUserFromAuth(c);
+      if (!user || user.id !== form.user_id) {
+        return c.json({ error: 'Unauthorized' }, 401);
+      }
+    }
+    
+    const fieldsResult = await pool.query(
+      `SELECT * FROM form_fields 
+       WHERE form_id = $1 
+       ORDER BY position ASC`,
+      [formId]
+    );
+    
+    return c.json({
+      success: true,
+      data: {
+        ...form,
+        fields: fieldsResult.rows.map(f => ({
+          ...f,
+          options: typeof f.options === 'string' ? JSON.parse(f.options) : (f.options || null)
+        }))
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching form:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Create form
+app.post('/api/forms', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const { name, description } = await c.req.json();
+    
+    if (!name) {
+      return c.json({ error: 'Form name required' }, 400);
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO forms (user_id, name, description)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [user.id, name, description || null]
+    );
+    
+    return c.json({ success: true, data: result.rows[0] }, 201);
+  } catch (error: any) {
+    console.error('Error creating form:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Update form
+app.put('/api/forms/:formId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    const { name, description, status } = await c.req.json();
+    
+    const result = await pool.query(
+      `UPDATE forms
+       SET name = COALESCE($3, name),
+           description = COALESCE($4, description),
+           status = COALESCE($5, status),
+           updated_at = NOW()
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [formId, user.id, name, description, status]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    return c.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error updating form:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete form
+app.delete('/api/forms/:formId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    
+    const result = await pool.query(
+      `DELETE FROM forms WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [formId, user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    return c.json({ success: true, message: 'Form deleted' });
+  } catch (error: any) {
+    console.error('Error deleting form:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Add field to form
+app.post('/api/forms/:formId/fields', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    const { field_type, label, placeholder, required, options } = await c.req.json();
+    
+    if (!field_type || !label) {
+      return c.json({ error: 'Field type and label required' }, 400);
+    }
+    
+    // Verify form ownership
+    const formCheck = await pool.query(
+      `SELECT id FROM forms WHERE id = $1 AND user_id = $2`,
+      [formId, user.id]
+    );
+    
+    if (formCheck.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    // Get current field count for position
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as count FROM form_fields WHERE form_id = $1`,
+      [formId]
+    );
+    const position = parseInt(countResult.rows[0].count) + 1;
+    
+    const result = await pool.query(
+      `INSERT INTO form_fields 
+       (form_id, field_type, label, placeholder, required, options, position)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [
+        formId,
+        field_type,
+        label,
+        placeholder || null,
+        required || false,
+        options ? JSON.stringify(options) : null,
+        position
+      ]
+    );
+    
+    return c.json({
+      success: true,
+      data: {
+        ...result.rows[0],
+        options: result.rows[0].options ? (typeof result.rows[0].options === 'string' ? JSON.parse(result.rows[0].options) : result.rows[0].options) : null
+      }
+    }, 201);
+  } catch (error: any) {
+    console.error('Error adding field:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Update field
+app.put('/api/forms/:formId/fields/:fieldId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    const fieldId = c.req.param('fieldId');
+    const updates = await c.req.json();
+    
+    // Verify form ownership
+    const formCheck = await pool.query(
+      `SELECT id FROM forms WHERE id = $1 AND user_id = $2`,
+      [formId, user.id]
+    );
+    
+    if (formCheck.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    const result = await pool.query(
+      `UPDATE form_fields
+       SET label = COALESCE($3, label),
+           placeholder = COALESCE($4, placeholder),
+           required = COALESCE($5, required),
+           options = COALESCE($6, options),
+           position = COALESCE($7, position)
+       WHERE id = $1 AND form_id = $2
+       RETURNING *`,
+      [
+        fieldId,
+        formId,
+        updates.label,
+        updates.placeholder,
+        updates.required,
+        updates.options ? JSON.stringify(updates.options) : null,
+        updates.position
+      ]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Field not found' }, 404);
+    }
+    
+    return c.json({
+      success: true,
+      data: {
+        ...result.rows[0],
+        options: result.rows[0].options ? (typeof result.rows[0].options === 'string' ? JSON.parse(result.rows[0].options) : result.rows[0].options) : null
+      }
+    });
+  } catch (error: any) {
+    console.error('Error updating field:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete field
+app.delete('/api/forms/:formId/fields/:fieldId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    const fieldId = c.req.param('fieldId');
+    
+    // Verify form ownership
+    const formCheck = await pool.query(
+      `SELECT id FROM forms WHERE id = $1 AND user_id = $2`,
+      [formId, user.id]
+    );
+    
+    if (formCheck.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    const result = await pool.query(
+      `DELETE FROM form_fields WHERE id = $1 AND form_id = $2 RETURNING id`,
+      [fieldId, formId]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Field not found' }, 404);
+    }
+    
+    return c.json({ success: true, message: 'Field deleted' });
+  } catch (error: any) {
+    console.error('Error deleting field:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Reorder fields
+app.put('/api/forms/:formId/reorder', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    const { fieldOrder } = await c.req.json();
+    
+    // Verify form ownership
+    const formCheck = await pool.query(
+      `SELECT id FROM forms WHERE id = $1 AND user_id = $2`,
+      [formId, user.id]
+    );
+    
+    if (formCheck.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    // Update positions
+    for (let i = 0; i < fieldOrder.length; i++) {
+      await pool.query(
+        'UPDATE form_fields SET position = $1 WHERE id = $2 AND form_id = $3',
+        [i + 1, fieldOrder[i].id, formId]
+      );
+    }
+    
+    return c.json({ success: true, message: 'Fields reordered' });
+  } catch (error: any) {
+    console.error('Error reordering fields:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Submit form (public endpoint - no auth required for published forms)
+app.post('/api/forms/:formId/submit', async (c) => {
+  try {
+    const formId = c.req.param('formId');
+    const { data } = await c.req.json();
+    
+    // Verify form exists and is published
+    const formResult = await pool.query(
+      `SELECT id, status FROM forms WHERE id = $1`,
+      [formId]
+    );
+    
+    if (formResult.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    if (formResult.rows[0].status !== 'published') {
+      return c.json({ error: 'Form is not published' }, 400);
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO form_submissions (form_id, submission_data)
+       VALUES ($1, $2)
+       RETURNING *`,
+      [formId, JSON.stringify(data)]
+    );
+    
+    return c.json({
+      success: true,
+      message: 'Submission received',
+      data: result.rows[0]
+    }, 201);
+  } catch (error: any) {
+    console.error('Error submitting form:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get form submissions
+app.get('/api/forms/:formId/submissions', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    
+    // Verify form ownership
+    const formCheck = await pool.query(
+      `SELECT id FROM forms WHERE id = $1 AND user_id = $2`,
+      [formId, user.id]
+    );
+    
+    if (formCheck.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    const result = await pool.query(
+      `SELECT * FROM form_submissions
+       WHERE form_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1000`,
+      [formId]
+    );
+    
+    return c.json({
+      success: true,
+      data: result.rows.map(row => ({
+        ...row,
+        submission_data: typeof row.submission_data === 'string' ? JSON.parse(row.submission_data) : row.submission_data
+      }))
+    });
+  } catch (error: any) {
+    console.error('Error fetching submissions:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Delete submission
+app.delete('/api/forms/:formId/submissions/:submissionId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    const submissionId = c.req.param('submissionId');
+    
+    // Verify form ownership
+    const formCheck = await pool.query(
+      `SELECT id FROM forms WHERE id = $1 AND user_id = $2`,
+      [formId, user.id]
+    );
+    
+    if (formCheck.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    const result = await pool.query(
+      `DELETE FROM form_submissions 
+       WHERE id = $1 AND form_id = $2 
+       RETURNING id`,
+      [submissionId, formId]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Submission not found' }, 404);
+    }
+    
+    return c.json({ success: true, message: 'Submission deleted' });
+  } catch (error: any) {
+    console.error('Error deleting submission:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Export submissions to CSV
+app.get('/api/forms/:formId/submissions/export', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const formId = c.req.param('formId');
+    
+    // Verify form ownership
+    const formCheck = await pool.query(
+      `SELECT id FROM forms WHERE id = $1 AND user_id = $2`,
+      [formId, user.id]
+    );
+    
+    if (formCheck.rows.length === 0) {
+      return c.json({ error: 'Form not found' }, 404);
+    }
+    
+    const submissionsResult = await pool.query(
+      `SELECT * FROM form_submissions
+       WHERE form_id = $1
+       ORDER BY created_at DESC`,
+      [formId]
+    );
+    
+    if (submissionsResult.rows.length === 0) {
+      return c.json({ error: 'No submissions to export' }, 400);
+    }
+    
+    // Get field labels from first submission
+    const firstSubmission = submissionsResult.rows[0];
+    const data = typeof firstSubmission.submission_data === 'string' 
+      ? JSON.parse(firstSubmission.submission_data) 
+      : firstSubmission.submission_data;
+    const headers = ['Date', ...Object.keys(data)];
+    
+    // Build CSV
+    let csv = headers.map(h => `"${h}"`).join(',') + '\n';
+    submissionsResult.rows.forEach(submission => {
+      const subData = typeof submission.submission_data === 'string' 
+        ? JSON.parse(submission.submission_data) 
+        : submission.submission_data;
+      const date = new Date(submission.created_at).toLocaleDateString();
+      const values = [date, ...headers.slice(1).map(h => subData[h] || '')];
+      csv += values.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+    
+    c.header('Content-Type', 'text/csv');
+    c.header('Content-Disposition', `attachment; filename=submissions-${formId}.csv`);
+    return c.text(csv);
+  } catch (error: any) {
+    console.error('Error exporting submissions:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Start server FIRST to satisfy port binding requirements
+const apiPort = parseInt(process.env.PORT || '5000', 10);
+const isProduction = process.env.NODE_ENV === 'production';
+
 const server = serve({
   fetch: app.fetch,
   port: apiPort,
