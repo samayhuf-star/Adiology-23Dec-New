@@ -181,7 +181,11 @@ const AppContent = () => {
         }, 150);
       }
     } else {
-      console.warn(`Invalid tab ID "${tabId}" - redirecting to dashboard`);
+      // Known view-only IDs (not tabs) - don't warn for these
+      const viewOnlyIds = ['admin-panel', 'workspace-creation', 'workspace-selection'];
+      if (!viewOnlyIds.includes(tabId)) {
+        console.warn(`Invalid tab ID "${tabId}" - redirecting to dashboard`);
+      }
       setActiveTab('dashboard');
     }
   };

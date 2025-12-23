@@ -16,6 +16,25 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+// Helper to safely parse JSON response
+async function safeJsonResponse(response: Response): Promise<any> {
+  // Check if response is OK
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API error: ${response.status} ${response.statusText} - ${errorText}`);
+  }
+  
+  // Check if response is actually JSON before parsing
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    // Response is not JSON (likely HTML error page)
+    const text = await response.text();
+    throw new Error(`Expected JSON but received ${contentType}. Response: ${text.substring(0, 100)}`);
+  }
+  
+  return response.json();
+}
+
 export const formApi = {
   // Forms CRUD
   async createForm(data: { name: string; description?: string }) {
@@ -25,7 +44,7 @@ export const formApi = {
       headers,
       body: JSON.stringify(data),
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async getUserForms(page = 1, limit = 50) {
@@ -33,7 +52,7 @@ export const formApi = {
     const response = await fetch(`${API_BASE}?page=${page}&limit=${limit}`, {
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async getForm(formId: string) {
@@ -41,7 +60,7 @@ export const formApi = {
     const response = await fetch(`${API_BASE}/${formId}`, {
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async updateForm(formId: string, data: { name?: string; description?: string; status?: string }) {
@@ -51,7 +70,7 @@ export const formApi = {
       headers,
       body: JSON.stringify(data),
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async deleteForm(formId: string) {
@@ -60,7 +79,7 @@ export const formApi = {
       method: 'DELETE',
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   // Fields
@@ -77,7 +96,7 @@ export const formApi = {
       headers,
       body: JSON.stringify(fieldData),
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async updateField(formId: string, fieldId: string, updates: {
@@ -93,7 +112,7 @@ export const formApi = {
       headers,
       body: JSON.stringify(updates),
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async deleteField(formId: string, fieldId: string) {
@@ -102,7 +121,7 @@ export const formApi = {
       method: 'DELETE',
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async reorderFields(formId: string, fieldOrder: Array<{ id: string }>) {
@@ -112,7 +131,7 @@ export const formApi = {
       headers,
       body: JSON.stringify({ fieldOrder }),
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   // Submissions
@@ -124,7 +143,7 @@ export const formApi = {
       },
       body: JSON.stringify({ data }),
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async getSubmissions(formId: string) {
@@ -132,7 +151,7 @@ export const formApi = {
     const response = await fetch(`${API_BASE}/${formId}/submissions`, {
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async deleteSubmission(formId: string, submissionId: string) {
@@ -141,7 +160,7 @@ export const formApi = {
       method: 'DELETE',
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async exportSubmissions(formId: string) {
@@ -155,7 +174,7 @@ export const formApi = {
   // Templates
   async getFeaturedTemplates(limit = 6) {
     const response = await fetch(`/api/templates/featured?limit=${limit}`);
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async getAllTemplates(filters?: { category?: string; featured?: boolean; limit?: number }) {
@@ -168,7 +187,7 @@ export const formApi = {
     const response = await fetch(`/api/templates?${params.toString()}`, {
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async searchTemplates(query: string) {
@@ -176,7 +195,7 @@ export const formApi = {
     const response = await fetch(`/api/templates/search?q=${encodeURIComponent(query)}`, {
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async getTemplatesByCategory(category: string) {
@@ -184,7 +203,7 @@ export const formApi = {
     const response = await fetch(`/api/templates/category/${encodeURIComponent(category)}`, {
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async getTemplate(templateId: string) {
@@ -192,7 +211,7 @@ export const formApi = {
     const response = await fetch(`/api/templates/${encodeURIComponent(templateId)}`, {
       headers,
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 
   async createFormFromTemplate(data: { template_id: string; form_name?: string }) {
@@ -202,7 +221,7 @@ export const formApi = {
       headers,
       body: JSON.stringify(data),
     });
-    return response.json();
+    return safeJsonResponse(response);
   },
 };
 
