@@ -6419,17 +6419,11 @@ app.post('/api/forms/:formId/fields', async (c) => {
       return c.json({ error: 'Form not found' }, 404);
     }
     
-    // Get current field count for position
-    const countResult = await pool.query(
-      `SELECT COUNT(*) as count FROM form_fields WHERE form_id = $1`,
-      [formId]
-    );
-    const position = parseInt(countResult.rows[0].count) + 1;
-    
+    // Get next position atomically using COALESCE and MAX to prevent race conditions
     const result = await pool.query(
       `INSERT INTO form_fields 
        (form_id, field_type, label, placeholder, required, options, position)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       VALUES ($1, $2, $3, $4, $5, $6, COALESCE((SELECT MAX(position) FROM form_fields WHERE form_id = $1), 0) + 1)
        RETURNING *`,
       [
         formId,
@@ -6437,8 +6431,7 @@ app.post('/api/forms/:formId/fields', async (c) => {
         label,
         placeholder || null,
         required || false,
-        options ? JSON.stringify(options) : null,
-        position
+        options ? JSON.stringify(options) : null
       ]
     );
     
@@ -6475,24 +6468,58 @@ app.put('/api/forms/:formId/fields/:fieldId', async (c) => {
       return c.json({ error: 'Form not found' }, 404);
     }
     
+    // Validate field_type if provided
+    const validFieldTypes = ['text', 'email', 'phone', 'number', 'textarea', 'select', 'radio', 'checkbox'];
+    if (updates.field_type && !validFieldTypes.includes(updates.field_type)) {
+      return c.json({ error: 'Invalid field_type' }, 400);
+    }
+    
+    // Build update query dynamically based on provided fields
+    const updateFields: string[] = [];
+    const updateValues: any[] = [fieldId, formId];
+    let paramIndex = 3;
+    
+    if (updates.label !== undefined) {
+      updateFields.push(`label = $${paramIndex}`);
+      updateValues.push(updates.label);
+      paramIndex++;
+    }
+    if (updates.placeholder !== undefined) {
+      updateFields.push(`placeholder = $${paramIndex}`);
+      updateValues.push(updates.placeholder);
+      paramIndex++;
+    }
+    if (updates.required !== undefined) {
+      updateFields.push(`required = $${paramIndex}`);
+      updateValues.push(updates.required);
+      paramIndex++;
+    }
+    if (updates.options !== undefined) {
+      updateFields.push(`options = $${paramIndex}`);
+      updateValues.push(updates.options ? JSON.stringify(updates.options) : null);
+      paramIndex++;
+    }
+    if (updates.position !== undefined) {
+      updateFields.push(`position = $${paramIndex}`);
+      updateValues.push(updates.position);
+      paramIndex++;
+    }
+    if (updates.field_type !== undefined) {
+      updateFields.push(`field_type = $${paramIndex}`);
+      updateValues.push(updates.field_type);
+      paramIndex++;
+    }
+    
+    if (updateFields.length === 0) {
+      return c.json({ error: 'No fields to update' }, 400);
+    }
+    
     const result = await pool.query(
       `UPDATE form_fields
-       SET label = COALESCE($3, label),
-           placeholder = COALESCE($4, placeholder),
-           required = COALESCE($5, required),
-           options = COALESCE($6, options),
-           position = COALESCE($7, position)
+       SET ${updateFields.join(', ')}
        WHERE id = $1 AND form_id = $2
        RETURNING *`,
-      [
-        fieldId,
-        formId,
-        updates.label,
-        updates.placeholder,
-        updates.required,
-        updates.options ? JSON.stringify(updates.options) : null,
-        updates.position
-      ]
+      updateValues
     );
     
     if (result.rows.length === 0) {
@@ -6724,11 +6751,26 @@ app.get('/api/forms/:formId/submissions/export', async (c) => {
       return c.json({ error: 'No submissions to export' }, 400);
     }
     
-    // Get field labels from first submission
+    // Get field labels from first submission with validation
     const firstSubmission = submissionsResult.rows[0];
-    const data = typeof firstSubmission.submission_data === 'string' 
-      ? JSON.parse(firstSubmission.submission_data) 
-      : firstSubmission.submission_data;
+    if (!firstSubmission || !firstSubmission.submission_data) {
+      return c.json({ error: 'Invalid submission data' }, 400);
+    }
+    
+    let data;
+    try {
+      data = typeof firstSubmission.submission_data === 'string' 
+        ? JSON.parse(firstSubmission.submission_data) 
+        : firstSubmission.submission_data;
+      
+      // Validate that data is an object
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        return c.json({ error: 'Invalid submission data format' }, 400);
+      }
+    } catch (parseError) {
+      return c.json({ error: 'Failed to parse submission data' }, 400);
+    }
+    
     const headers = ['Date', ...Object.keys(data)];
     
     // Build CSV

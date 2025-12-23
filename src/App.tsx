@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
 import { Badge } from './components/ui/badge';
+import { Switch } from './components/ui/switch';
 import {
   Sheet,
   SheetContent,
@@ -70,14 +71,15 @@ import { CallForwarding } from './components/CallForwarding';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { WorkspaceCreation } from './components/WorkspaceCreation';
+import { WorkspaceCards } from './components/WorkspaceCards';
 import { workspaceHelpers } from './utils/workspaces';
 import { Forms } from './modules/forms/components/Forms';
 
-type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel' | 'workspace-creation';
+type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel' | 'workspace-creation' | 'workspace-selection';
 
 const AppContent = () => {
   const { theme } = useTheme();
-  const { hasModuleAccess, currentWorkspace, isLoading: workspaceLoading, refreshWorkspaces } = useWorkspace();
+  const { hasModuleAccess, currentWorkspace, isLoading: workspaceLoading, refreshWorkspaces, setCurrentWorkspace, availableModules } = useWorkspace();
   const [appView, setAppView] = useState<AppView>('homepage');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -89,6 +91,7 @@ const AppContent = () => {
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [previousView, setPreviousView] = useState<AppView>('homepage');
+  const [viewMode, setViewMode] = useState<'admin' | 'user'>('admin');
   
   // Load and apply user preferences on mount
   useEffect(() => {
@@ -963,17 +966,40 @@ const AppContent = () => {
     ...(isSuperAdmin ? [{ id: 'admin-panel', label: 'Admin Panel', icon: Shield, module: null }] : []),
   ];
 
-  // Filter menu items based on workspace module access
+  // Check if user can switch views (only owners/admins can see the toggle)
+  const canSwitchViews = currentWorkspace && (currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin');
+  
+  // Helper function to check module access based on view mode
+  const checkModuleAccess = (moduleName: string): boolean => {
+    if (!currentWorkspace) return false;
+    
+    // In user view mode, simulate member access (ignore admin workspace privileges)
+    if (viewMode === 'user') {
+      // Members only see explicitly enabled modules, not admin workspace privileges
+      return availableModules.includes(moduleName);
+    }
+    
+    // Admin view mode: Admin workspace has access to all modules
+    if (currentWorkspace.is_admin_workspace) return true;
+    
+    // Check module access normally
+    return hasModuleAccess(moduleName);
+  };
+  
+  // Filter menu items based on workspace module access and view mode
   // Show all items while workspace is loading to avoid flickering
   const menuItems = workspaceLoading ? allMenuItems : allMenuItems.filter((item) => {
-    // If no module required, always show
-    if (!item.module) return true;
+    // If no module required, always show (except admin panel in user view)
+    if (!item.module) {
+      // In user view mode, hide admin panel
+      if (item.id === 'admin-panel' && viewMode === 'user') {
+        return false;
+      }
+      return true;
+    }
     
-    // Admin workspace has access to all modules
-    if (currentWorkspace?.is_admin_workspace) return true;
-    
-    // Check module access
-    return hasModuleAccess(item.module);
+    // Check module access based on view mode
+    return checkModuleAccess(item.module);
   }).map((item) => {
     // Filter submenu items as well
     if (item.submenu) {
@@ -981,8 +1007,7 @@ const AppContent = () => {
         ...item,
         submenu: item.submenu.filter((subItem) => {
           if (!subItem.module) return true;
-          if (currentWorkspace?.is_admin_workspace) return true;
-          return hasModuleAccess(subItem.module);
+          return checkModuleAccess(subItem.module);
         }),
       };
     }
@@ -1236,13 +1261,29 @@ const AppContent = () => {
         onComplete={async (workspace) => {
           await refreshWorkspaces();
           window.history.pushState({}, '', '/');
-          setAppView('user');
-          setActiveTabSafe('dashboard');
+          setAppView('workspace-selection');
         }}
         onSkip={() => {
           window.history.pushState({}, '', '/');
+          setAppView('workspace-selection');
+        }}
+      />
+    );
+  }
+
+  if (appView === 'workspace-selection') {
+    return (
+      <WorkspaceCards
+        onSelectWorkspace={async (workspace) => {
+          await setCurrentWorkspace(workspace);
+          await refreshWorkspaces();
+          window.history.pushState({}, '', '/');
           setAppView('user');
           setActiveTabSafe('dashboard');
+        }}
+        onCreateWorkspace={() => {
+          window.history.pushState({}, '', '/');
+          setAppView('workspace-creation');
         }}
       />
     );
@@ -1695,6 +1736,46 @@ const AppContent = () => {
             />
           </div>
         )}
+        
+        {/* View Mode Indicator in Sidebar - Only show for owners/admins */}
+        {canSwitchViews && (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+          <div className="px-4 py-2 border-b border-indigo-100/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-slate-500" />
+                <span className="text-xs font-medium text-slate-600">
+                  {viewMode === 'admin' ? 'Admin View' : 'User View'}
+                </span>
+              </div>
+              <Switch
+                checked={viewMode === 'admin'}
+                onCheckedChange={(checked) => {
+                  const newViewMode = checked ? 'admin' : 'user';
+                  setViewMode(newViewMode);
+                  // If switching to user view, check if current tab is accessible
+                  if (!checked) {
+                    const currentItem = allMenuItems.find(item => 
+                      item.id === activeTab || item.submenu?.some(sub => sub.id === activeTab)
+                    );
+                    if (currentItem) {
+                      const itemToCheck = currentItem.id === activeTab ? currentItem : 
+                        currentItem.submenu?.find(sub => sub.id === activeTab);
+                      if (itemToCheck) {
+                        // Check if item would be accessible in user view mode
+                        if (itemToCheck.module && !availableModules.includes(itemToCheck.module)) {
+                          setActiveTabSafe('dashboard');
+                        } else if (itemToCheck.id === 'admin-panel') {
+                          setActiveTabSafe('dashboard');
+                        }
+                      }
+                    }
+                  }
+                }}
+                className="scale-75"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="p-4 space-y-2">
@@ -1956,6 +2037,42 @@ const AppContent = () => {
             <h2 className="text-lg font-semibold text-slate-800 hidden lg:block">
               {getCurrentPageTitle()}
             </h2>
+            
+            {/* View Mode Toggle - Only show for owners/admins */}
+            {canSwitchViews && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                <Eye className="w-4 h-4 text-slate-600" />
+                <span className="text-sm font-medium text-slate-700 hidden sm:inline">
+                  {viewMode === 'admin' ? 'Admin' : 'User'} View
+                </span>
+                <Switch
+                  checked={viewMode === 'admin'}
+                  onCheckedChange={(checked) => {
+                    const newViewMode = checked ? 'admin' : 'user';
+                    setViewMode(newViewMode);
+                    // If switching to user view, check if current tab is accessible
+                    if (!checked) {
+                      const currentItem = allMenuItems.find(item => 
+                        item.id === activeTab || item.submenu?.some(sub => sub.id === activeTab)
+                      );
+                      if (currentItem) {
+                        const itemToCheck = currentItem.id === activeTab ? currentItem : 
+                          currentItem.submenu?.find(sub => sub.id === activeTab);
+                        if (itemToCheck) {
+                          // Check if item would be accessible in user view mode
+                          if (itemToCheck.module && !availableModules.includes(itemToCheck.module)) {
+                            setActiveTabSafe('dashboard');
+                          } else if (itemToCheck.id === 'admin-panel') {
+                            setActiveTabSafe('dashboard');
+                          }
+                        }
+                      }
+                    }
+                  }}
+                  className="ml-1"
+                />
+              </div>
+            )}
             
             {/* Notifications Dropdown */}
             <DropdownMenu>

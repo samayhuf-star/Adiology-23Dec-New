@@ -28,6 +28,14 @@ export function EmbedCodeModal({ formId, formName, onClose }: EmbedCodeModalProp
     const FORM_ID = '${formId}';
     const API_URL = '${apiBaseUrl}/api/forms';
     
+    // HTML escape function to prevent XSS
+    function escapeHtml(text) {
+      if (text == null) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
     fetch(\`\${API_URL}/\${FORM_ID}\`)
       .then(r => r.json())
       .then(({ data: form }) => {
@@ -40,7 +48,9 @@ export function EmbedCodeModal({ formId, formName, onClose }: EmbedCodeModalProp
         
         form.fields.forEach(field => {
           const required = field.required ? 'required' : '';
-          const label = \`<label style="display: block; margin-bottom: 8px; font-weight: 500;">\${field.label}\${field.required ? '<span style="color:red">*</span>' : ''}</label>\`;
+          const escapedLabel = escapeHtml(field.label || '');
+          const escapedPlaceholder = escapeHtml(field.placeholder || '');
+          const label = \`<label style="display: block; margin-bottom: 8px; font-weight: 500;">\${escapedLabel}\${field.required ? '<span style="color:red">*</span>' : ''}</label>\`;
           
           switch (field.field_type) {
             case 'text':
@@ -51,7 +61,7 @@ export function EmbedCodeModal({ formId, formName, onClose }: EmbedCodeModalProp
               html += \`
                 <div style="margin-bottom: 15px;">
                   \${label}
-                  <input type="\${type}" name="\${field.id}" placeholder="\${field.placeholder || ''}" \${required} 
+                  <input type="\${type}" name="\${field.id}" placeholder="\${escapedPlaceholder}" \${required} 
                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
                 </div>
               \`;
@@ -60,45 +70,60 @@ export function EmbedCodeModal({ formId, formName, onClose }: EmbedCodeModalProp
               html += \`
                 <div style="margin-bottom: 15px;">
                   \${label}
-                  <textarea name="\${field.id}" placeholder="\${field.placeholder || ''}" \${required}
+                  <textarea name="\${field.id}" placeholder="\${escapedPlaceholder}" \${required}
                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; font-size: 14px; box-sizing: border-box; font-family: inherit;" rows="4"></textarea>
                 </div>
               \`;
               break;
             case 'select':
+              const selectOptions = (field.options && Array.isArray(field.options)) 
+                ? field.options.map(opt => \`<option value="\${escapeHtml(opt)}">\${escapeHtml(opt)}</option>\`).join('')
+                : '';
               html += \`
                 <div style="margin-bottom: 15px;">
                   \${label}
                   <select name="\${field.id}" \${required} style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;">
                     <option value="">Select...</option>
-                    \${field.options.map(opt => \`<option value="\${opt}">\${opt}</option>\`).join('')}
+                    \${selectOptions}
                   </select>
                 </div>
               \`;
               break;
             case 'checkbox':
+              const checkboxOptions = (field.options && Array.isArray(field.options))
+                ? field.options.map((opt, i) => {
+                    const escapedOpt = escapeHtml(opt);
+                    return \`
+                      <div style="margin-bottom: 8px;">
+                        <input type="checkbox" name="\${field.id}" value="\${escapedOpt}" id="check-\${i}" />
+                        <label for="check-\${i}" style="margin-left: 8px;">\${escapedOpt}</label>
+                      </div>
+                    \`;
+                  }).join('')
+                : '';
               html += \`
                 <div style="margin-bottom: 15px;">
                   \${label}
-                  \${field.options.map((opt, i) => \`
-                    <div style="margin-bottom: 8px;">
-                      <input type="checkbox" name="\${field.id}" value="\${opt}" id="check-\${i}" />
-                      <label for="check-\${i}" style="margin-left: 8px;">\${opt}</label>
-                    </div>
-                  \`).join('')}
+                  \${checkboxOptions}
                 </div>
               \`;
               break;
             case 'radio':
+              const radioOptions = (field.options && Array.isArray(field.options))
+                ? field.options.map((opt, i) => {
+                    const escapedOpt = escapeHtml(opt);
+                    return \`
+                      <div style="margin-bottom: 8px;">
+                        <input type="radio" name="\${field.id}" value="\${escapedOpt}" id="radio-\${i}" \${required} />
+                        <label for="radio-\${i}" style="margin-left: 8px;">\${escapedOpt}</label>
+                      </div>
+                    \`;
+                  }).join('')
+                : '';
               html += \`
                 <div style="margin-bottom: 15px;">
                   \${label}
-                  \${field.options.map((opt, i) => \`
-                    <div style="margin-bottom: 8px;">
-                      <input type="radio" name="\${field.id}" value="\${opt}" id="radio-\${i}" \${required} />
-                      <label for="radio-\${i}" style="margin-left: 8px;">\${opt}</label>
-                    </div>
-                  \`).join('')}
+                  \${radioOptions}
                 </div>
               \`;
               break;

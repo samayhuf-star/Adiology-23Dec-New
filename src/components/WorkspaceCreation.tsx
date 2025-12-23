@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Building2, Users, Layout, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -7,8 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/
 import { Alert, AlertDescription } from './ui/alert';
 import { Checkbox } from './ui/checkbox';
 import { workspaceHelpers, type Workspace } from '../utils/workspaces';
-import { getCurrentAuthUser } from '../utils/auth';
-import { supabase } from '../utils/supabase/client';
 import { notifications } from '../utils/notifications';
 
 interface WorkspaceCreationProps {
@@ -39,39 +37,11 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
   const [currentStep, setCurrentStep] = useState<Step>('name');
   const [workspaceName, setWorkspaceName] = useState('');
   const [workspaceDescription, setWorkspaceDescription] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
+  const [inviteEmailInput, setInviteEmailInput] = useState('');
   const [selectedModules, setSelectedModules] = useState<string[]>(DEFAULT_MODULES);
-  const [availableUsers, setAvailableUsers] = useState<Array<{ id: string; email: string; full_name: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchEmail, setSearchEmail] = useState('');
-
-  // Load available users (excluding current user)
-  useEffect(() => {
-    loadAvailableUsers();
-  }, []);
-
-  const loadAvailableUsers = async () => {
-    try {
-      const user = await getCurrentAuthUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, email, full_name')
-        .neq('id', user.id)
-        .order('email');
-
-      if (error) {
-        console.error('Error loading users:', error);
-        return;
-      }
-
-      setAvailableUsers(data || []);
-    } catch (error) {
-      console.error('Error in loadAvailableUsers:', error);
-    }
-  };
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,24 +76,64 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
         description: workspaceDescription.trim() || undefined,
       });
 
-      // Invite selected users
-      if (selectedUsers.length > 0) {
-        const invitePromises = selectedUsers.map((userId) => {
-          const user = availableUsers.find((u) => u.id === userId);
-          if (user) {
-            return workspaceHelpers.inviteMember({
+      // Invite users by email
+      if (inviteEmails.length > 0) {
+        const inviteResults = await Promise.allSettled(
+          inviteEmails.map((email) =>
+            workspaceHelpers.inviteMember({
               workspace_id: workspace.id,
-              user_email: user.email,
+              user_email: email.trim(),
               role: 'member',
-            }).catch((err) => {
-              console.error(`Error inviting user ${user.email}:`, err);
-              return null;
-            });
+            })
+          )
+        );
+
+        const successfulInvites: string[] = [];
+        const failedInvites: Array<{ email: string; reason: string }> = [];
+
+        inviteResults.forEach((result, index) => {
+          const email = inviteEmails[index];
+          if (result.status === 'fulfilled') {
+            successfulInvites.push(email);
+          } else {
+            const error = result.reason;
+            let reason = 'Unknown error';
+            if (error?.message) {
+              if (error.message.includes('not found')) {
+                reason = 'User not found - they need to sign up first';
+              } else if (error.message.includes('already a member')) {
+                reason = 'Already a member of this workspace';
+              } else {
+                reason = error.message;
+              }
+            }
+            failedInvites.push({ email, reason });
+            console.error(`Error inviting user ${email}:`, error);
           }
-          return Promise.resolve(null);
         });
 
-        await Promise.all(invitePromises);
+        // Show notification about invite results
+        if (failedInvites.length > 0 && successfulInvites.length === 0) {
+          // All invites failed
+          notifications.warning('Workspace created, but no invitations were sent', {
+            title: 'Invitation Issues',
+            description: failedInvites.map((f) => `${f.email}: ${f.reason}`).join(', '),
+          });
+        } else if (failedInvites.length > 0) {
+          // Some invites failed
+          notifications.warning(
+            `Workspace created. ${successfulInvites.length} invitation(s) sent, ${failedInvites.length} failed`,
+            {
+              title: 'Partial Success',
+              description: failedInvites.map((f) => `${f.email}: ${f.reason}`).join(', '),
+            }
+          );
+        } else if (successfulInvites.length > 0) {
+          // All invites succeeded
+          notifications.success(`${successfulInvites.length} team member(s) invited successfully`, {
+            title: 'Invitations Sent',
+          });
+        }
       }
 
       // Update modules (already set with defaults, but update to match selection)
@@ -142,10 +152,31 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
     }
   };
 
-  const toggleUserSelection = (userId: string) => {
-    setSelectedUsers((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-    );
+  const handleAddInviteEmail = () => {
+    const email = inviteEmailInput.trim().toLowerCase();
+    
+    if (!email) {
+      setError('Please enter an email address');
+      return;
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (inviteEmails.includes(email)) {
+      setError('This email is already in the invite list');
+      return;
+    }
+
+    setInviteEmails((prev) => [...prev, email]);
+    setInviteEmailInput('');
+    setError('');
+  };
+
+  const handleRemoveInviteEmail = (email: string) => {
+    setInviteEmails((prev) => prev.filter((e) => e !== email));
   };
 
   const toggleModuleSelection = (moduleId: string) => {
@@ -153,11 +184,6 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
       prev.includes(moduleId) ? prev.filter((id) => id !== moduleId) : [...prev, moduleId]
     );
   };
-
-  const filteredUsers = availableUsers.filter((user) =>
-    user.email.toLowerCase().includes(searchEmail.toLowerCase()) ||
-    user.full_name?.toLowerCase().includes(searchEmail.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800 p-4">
@@ -246,42 +272,72 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
           {currentStep === 'members' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Search Users</Label>
-                <Input
-                  placeholder="Search by email or name..."
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
-                />
+                <Label>Invite Team Members by Email</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter email address..."
+                    value={inviteEmailInput}
+                    onChange={(e) => {
+                      setInviteEmailInput(e.target.value);
+                      setError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddInviteEmail();
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={handleAddInviteEmail} variant="outline">
+                    Add
+                  </Button>
+                </div>
+                {error && (
+                  <p className="text-sm text-destructive">{error}</p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Enter email addresses of team members you want to invite to this workspace. 
+                  <span className="block mt-1 text-xs">
+                    Note: Users must have an account in the system. If they don't have an account yet, they'll need to sign up first.
+                  </span>
+                </p>
               </div>
-              <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
-                {filteredUsers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    {searchEmail ? 'No users found' : 'No other users available'}
-                  </p>
-                ) : (
+              {inviteEmails.length > 0 && (
+                <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
                   <div className="space-y-2">
-                    {filteredUsers.map((user) => (
+                    {inviteEmails.map((email) => (
                       <div
-                        key={user.id}
-                        className="flex items-center gap-3 p-2 rounded hover:bg-muted cursor-pointer"
-                        onClick={() => toggleUserSelection(user.id)}
+                        key={email}
+                        className="flex items-center justify-between p-2 rounded hover:bg-muted"
                       >
-                        <Checkbox
-                          checked={selectedUsers.includes(user.id)}
-                          onCheckedChange={() => toggleUserSelection(user.id)}
-                        />
-                        <div className="flex-1">
-                          <p className="font-medium">{user.full_name || 'No name'}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <div className="flex items-center gap-2">
+                          <Checkbox checked={true} disabled />
+                          <p className="text-sm font-medium">{email}</p>
                         </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveInviteEmail(email)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          Remove
+                        </Button>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-              {selectedUsers.length > 0 && (
+                </div>
+              )}
+              {inviteEmails.length === 0 && (
+                <div className="border rounded-lg p-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No team members added yet. You can skip this step and invite members later.
+                  </p>
+                </div>
+              )}
+              {inviteEmails.length > 0 && (
                 <div className="text-sm text-muted-foreground">
-                  {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''} selected
+                  {inviteEmails.length} team member{inviteEmails.length !== 1 ? 's' : ''} will be invited
                 </div>
               )}
               <div className="flex gap-2 justify-end">

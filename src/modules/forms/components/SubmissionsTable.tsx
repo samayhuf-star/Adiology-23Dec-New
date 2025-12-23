@@ -70,7 +70,17 @@ export function SubmissionsTable({ formId }: SubmissionsTableProps) {
     );
   }
 
-  const headers = Object.keys(submissions[0].submission_data || {});
+  // Validate submission_data structure before accessing
+  const firstSubmission = submissions[0];
+  if (!firstSubmission || !firstSubmission.submission_data || typeof firstSubmission.submission_data !== 'object' || Array.isArray(firstSubmission.submission_data)) {
+    return (
+      <div className="text-center py-16 text-red-500">
+        <p>Error: Invalid submission data format</p>
+      </div>
+    );
+  }
+
+  const headers = Object.keys(firstSubmission.submission_data);
 
   return (
     <div className="space-y-4">
