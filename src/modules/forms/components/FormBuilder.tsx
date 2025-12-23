@@ -281,6 +281,14 @@ export function FormBuilder({ formId }: FormBuilderProps) {
           </div>
         </div>
       )}
+
+      {showEmbedModal && (
+        <EmbedCodeModal
+          formId={formId}
+          formName={form?.name || 'Form'}
+          onClose={() => setShowEmbedModal(false)}
+        />
+      )}
     </div>
   );
 }
