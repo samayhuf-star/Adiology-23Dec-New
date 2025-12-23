@@ -381,6 +381,7 @@ const PaymentForm: React.FC<{
     try {
       const { getCurrentAuthUser } = await import('../utils/auth');
       const { userHelpers } = await import('../utils/supabase');
+      const { workspaceHelpers } = await import('../utils/workspaces');
       const user = await getCurrentAuthUser();
       
       if (user) {
@@ -396,6 +397,18 @@ const PaymentForm: React.FC<{
           plan: planMap[plan.name] || plan.name.toLowerCase().replace(/\s+/g, '_'),
           status: 'active',
         });
+
+        // Create admin workspace if it doesn't exist
+        try {
+          const workspaces = await workspaceHelpers.getUserWorkspaces();
+          const hasAdminWorkspace = workspaces.some((w) => w.is_admin_workspace);
+          if (!hasAdminWorkspace) {
+            await workspaceHelpers.createAdminWorkspace(user.id);
+          }
+        } catch (workspaceError) {
+          console.error('Error creating admin workspace:', workspaceError);
+          // Continue even if workspace creation fails
+        }
       }
     } catch (e) {
       console.error('Error updating subscription:', e);
