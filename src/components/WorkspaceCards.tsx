@@ -23,9 +23,14 @@ export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspac
   const [inviteEmailInput, setInviteEmailInput] = useState('');
   const [isInviting, setIsInviting] = useState(false);
   const [error, setError] = useState('');
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
-    refreshWorkspaces();
+    // Refresh workspaces when component mounts
+    refreshWorkspaces().catch((error) => {
+      console.error('Error refreshing workspaces in WorkspaceCards:', error);
+      // Don't block the UI - let it show empty state if needed
+    });
   }, [refreshWorkspaces]);
 
   const handleWorkspaceClick = (workspace: Workspace) => {
@@ -151,7 +156,23 @@ export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspac
     }
   };
 
-  if (isLoading) {
+  // Add timeout to prevent infinite loading
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setLoadingTimeout(true);
+        console.warn('Workspace loading taking too long, showing empty state');
+      }, 8000); // 8 second timeout
+      
+      return () => clearTimeout(timeout);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [isLoading]);
+
+  if (isLoading && !loadingTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800">
         <div className="flex flex-col items-center gap-4">

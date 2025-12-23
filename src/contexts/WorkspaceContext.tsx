@@ -33,10 +33,18 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         // User not authenticated, set empty workspaces
         setWorkspaces([]);
         setCurrentWorkspaceState(null);
+        setIsLoading(false);
         return;
       }
 
-      const userWorkspaces = await workspaceHelpers.getUserWorkspaces();
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise<Workspace[]>((_, reject) => {
+        setTimeout(() => reject(new Error('Workspace loading timeout')), 10000);
+      });
+
+      const workspacesPromise = workspaceHelpers.getUserWorkspaces();
+      const userWorkspaces = await Promise.race([workspacesPromise, timeoutPromise]) as Workspace[];
+      
       setWorkspaces(userWorkspaces);
 
       // Load current workspace from localStorage or set default
@@ -45,7 +53,11 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         const saved = userWorkspaces.find((w) => w.id === savedWorkspaceId);
         if (saved) {
           setCurrentWorkspaceState(saved);
-          await loadWorkspaceModules(saved.id);
+          await loadWorkspaceModules(saved.id).catch(err => {
+            console.error('Error loading workspace modules:', err);
+            // Don't block on module loading errors
+          });
+          setIsLoading(false);
           return;
         }
       }
@@ -56,14 +68,27 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         const defaultWorkspace = adminWorkspace || userWorkspaces[0];
         setCurrentWorkspaceState(defaultWorkspace);
         localStorage.setItem('current_workspace_id', defaultWorkspace.id);
-        await loadWorkspaceModules(defaultWorkspace.id);
+        await loadWorkspaceModules(defaultWorkspace.id).catch(err => {
+          console.error('Error loading workspace modules:', err);
+          // Don't block on module loading errors
+        });
+      } else {
+        // No workspaces - clear any saved workspace ID
+        localStorage.removeItem('current_workspace_id');
+        setCurrentWorkspaceState(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading workspaces:', error);
       // Set empty state on error to prevent breaking the app
       setWorkspaces([]);
       setCurrentWorkspaceState(null);
+      localStorage.removeItem('current_workspace_id');
+      // Log specific error details for debugging
+      if (error?.message) {
+        console.error('Workspace loading error details:', error.message);
+      }
     } finally {
+      // Always set loading to false, even if there was an error
       setIsLoading(false);
     }
   };
