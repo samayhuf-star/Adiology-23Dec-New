@@ -156,9 +156,6 @@ export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspac
     }
   };
 
-  // Add timeout to prevent infinite loading
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
-  
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
