@@ -8,16 +8,27 @@ import { Input } from '../../../components/ui/input';
 import { Textarea } from '../../../components/ui/textarea';
 import { Label } from '../../../components/ui/label';
 import { Checkbox } from '../../../components/ui/checkbox';
-import { X, Eye, Edit, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select';
+import { X, Eye, Edit, ArrowUp, ArrowDown, Code, BarChart3 } from 'lucide-react';
+import { EmbedCodeModal } from './EmbedCodeModal';
+import { FormAnalytics } from './FormAnalytics';
 
 interface FormBuilderProps {
   formId: string;
 }
 
 export function FormBuilder({ formId }: FormBuilderProps) {
-  const { form, fields, loading, addField, updateField, deleteField, reorderFields } = useFormBuilder(formId);
+  const { form, fields, loading, addField, updateField, deleteField, reorderFields, updateForm } = useFormBuilder(formId);
   const [selectedField, setSelectedField] = useState<any>(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [showEmbedModal, setShowEmbedModal] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const handleAddField = async (fieldType: string) => {
     try {
@@ -48,6 +59,14 @@ export function FormBuilder({ formId }: FormBuilderProps) {
     }
   };
 
+  const handleStatusChange = async (status: string) => {
+    try {
+      await updateForm({ status });
+    } catch (error) {
+      console.error('Error updating form status:', error);
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
@@ -55,24 +74,68 @@ export function FormBuilder({ formId }: FormBuilderProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b bg-white">
-        <h2 className="text-xl font-bold">{form?.name || 'Untitled Form'}</h2>
-        <Button
-          variant="outline"
-          onClick={() => setPreviewMode(!previewMode)}
-        >
-          {previewMode ? (
-            <>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </>
-          ) : (
-            <>
-              <Eye className="w-4 h-4 mr-2" />
-              Preview
-            </>
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-bold">{form?.name || 'Untitled Form'}</h2>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm text-gray-600">Status:</Label>
+            <Select
+              value={form?.status || 'draft'}
+              onValueChange={handleStatusChange}
+            >
+              <SelectTrigger className="w-32 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAnalytics(!showAnalytics)}
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Analytics
+          </Button>
+          {form?.status === 'published' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEmbedModal(true)}
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Embed
+            </Button>
           )}
-        </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPreviewMode(!previewMode)}
+          >
+            {previewMode ? (
+              <>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+              </>
+            )}
+          </Button>
+        </div>
       </div>
+
+      {showAnalytics && (
+        <div className="border-b bg-gray-50 p-4">
+          <FormAnalytics formId={formId} />
+        </div>
+      )}
 
       {previewMode ? (
         <div className="flex-1 overflow-auto p-8">
@@ -217,6 +280,14 @@ export function FormBuilder({ formId }: FormBuilderProps) {
             )}
           </div>
         </div>
+      )}
+
+      {showEmbedModal && (
+        <EmbedCodeModal
+          formId={formId}
+          formName={form?.name || 'Form'}
+          onClose={() => setShowEmbedModal(false)}
+        />
       )}
     </div>
   );
