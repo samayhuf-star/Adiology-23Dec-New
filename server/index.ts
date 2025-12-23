@@ -5848,32 +5848,175 @@ app.post('/api/long-tail-keywords/generate', async (c) => {
       return c.json({ error: 'Rate limit exceeded. Please wait a moment before trying again.' }, 429);
     }
     
-    // Generate keyword variations
+    console.log(`🚀 Starting comprehensive long-tail keyword expansion for ${seedKeywords.length} seeds...`);
+    
+    // Normalize seed keywords
+    const normalizedSeeds = seedKeywords
+      .map(k => k.trim().toLowerCase())
+      .filter(k => k.length >= 2 && k.length <= 50)
+      .slice(0, 10); // Limit seeds to prevent explosion
+    
+    if (normalizedSeeds.length === 0) {
+      return c.json({ error: 'No valid seed keywords provided' }, 400);
+    }
+    
+    // ============================================================================
+    // PHASE 1: Use comprehensive expansion engine (same as keywords planner)
+    // ============================================================================
     const keywords: Array<{ keyword: string; source: string; searchVolume: number; cpc: number; difficulty: string }> = [];
+    const seenKeywords = new Set<string>();
     
-    // Use OpenAI to generate long-tail variations
-    const openaiApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY?.includes('DUMMY') 
-      ? process.env.OPENAI_API_KEY 
-      : process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+    try {
+      // Use aggressive expansion mode to generate 500+ keywords
+      const expandedKeywords = expandKeywords(normalizedSeeds, {
+        expansionMode: 'aggressive',
+        includeQuestions: true,
+        includeLongTail: true,
+        maxKeywords: 800 // Generate more than needed, then filter to 3+ words
+      });
+
+      console.log(`✅ Expansion engine generated ${expandedKeywords.length} keywords`);
+
+      // Filter to only include long-tail keywords (3+ words) and convert format
+      for (const expanded of expandedKeywords) {
+        const wordCount = expanded.keyword.trim().split(/\s+/).length;
+        
+        // Only include keywords with 3+ words (long-tail requirement)
+        if (wordCount >= 3) {
+          const normalized = expanded.keyword.toLowerCase().trim();
+          
+          // Skip duplicates
+          if (seenKeywords.has(normalized)) {
+            continue;
+          }
+          seenKeywords.add(normalized);
+          
+          // Convert difficulty from competition level
+          const difficulty = expanded.competition === 'HIGH' ? 'hard' : 
+                            expanded.competition === 'MEDIUM' ? 'medium' : 'easy';
+          
+          keywords.push({
+            keyword: expanded.keyword,
+            source: 'expansion',
+            searchVolume: expanded.avgMonthlySearches,
+            cpc: expanded.avgCpc,
+            difficulty: difficulty
+          });
+        }
+      }
+
+      console.log(`✅ Filtered to ${keywords.length} long-tail keywords (3+ words)`);
+    } catch (error) {
+      console.error('⚠️ Expansion engine failed:', error);
+    }
     
-    if (openaiApiKey) {
-      try {
-        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiApiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `You are a keyword research expert. Generate long-tail keyword variations for the given seed keywords. IMPORTANT: Long-tail keywords MUST have 3 or more words. Focus on commercial intent, question-based queries, and specific variations. Return ONLY a JSON array of keyword objects.`
-              },
-              {
-                role: 'user',
-                content: `Generate 50-80 long-tail keyword variations for these seed keywords: ${seedKeywords.join(', ')}
+    // ============================================================================
+    // PHASE 2: Supplement with additional long-tail patterns if needed
+    // ============================================================================
+    
+    // If we still need more keywords, add additional long-tail combinations
+    if (keywords.length < 500) {
+      const additionalModifiers = [
+        'best affordable', 'top rated', 'professional local', 
+        'how to find', 'what is the', 'where to get', 'when to use',
+        'cost of professional', 'reviews for best', 'alternatives to',
+        'for beginners guide', 'for business owners', 'online services for',
+        'free consultation for', '2024 guide to', '2025 best rated', 'tips for choosing',
+        'how much does', 'where can I', 'why choose the', 'benefits of using',
+        'compare prices for', 'near me with', 'same day service', 'emergency service for',
+        'licensed and insured', 'affordable prices for', 'local expert in', 'trusted provider of',
+        'best way to find', 'how to choose', 'what to look for', 'where to buy',
+        'how to hire', 'what is the best', 'where to find', 'how much is',
+        'best place to get', 'top rated', 'highly recommended', 'customer reviews for',
+        'compare different', 'find the best', 'get quotes from', 'schedule appointment with'
+      ];
+      
+      const locationSuffixes = ['near me', 'in my area', 'nearby', 'local', 'in city'];
+      const contextSuffixes = ['for home', 'for business', 'with free estimate', 'with warranty', 'open now'];
+      
+      // Generate modifier + seed + location combinations
+      for (const seed of normalizedSeeds) {
+        if (keywords.length >= 600) break;
+        
+        for (const mod of additionalModifiers) {
+          if (keywords.length >= 600) break;
+          
+          for (const loc of locationSuffixes) {
+            if (keywords.length >= 600) break;
+            
+            const keyword = `${mod} ${seed} ${loc}`;
+            const normalized = keyword.toLowerCase().trim();
+            const wordCount = keyword.trim().split(/\s+/).length;
+            
+            if (wordCount >= 3 && !seenKeywords.has(normalized)) {
+              seenKeywords.add(normalized);
+              keywords.push({
+                keyword: keyword,
+                source: 'supplement',
+                searchVolume: Math.floor(Math.random() * 5000) + 100,
+                cpc: parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+                difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+              });
+            }
+          }
+        }
+        
+        // Generate seed + context + location combinations
+        for (const context of contextSuffixes) {
+          if (keywords.length >= 600) break;
+          
+          for (const loc of locationSuffixes) {
+            if (keywords.length >= 600) break;
+            
+            const keyword = `${seed} ${context} ${loc}`;
+            const normalized = keyword.toLowerCase().trim();
+            const wordCount = keyword.trim().split(/\s+/).length;
+            
+            if (wordCount >= 3 && !seenKeywords.has(normalized)) {
+              seenKeywords.add(normalized);
+              keywords.push({
+                keyword: keyword,
+                source: 'supplement',
+                searchVolume: Math.floor(Math.random() * 5000) + 100,
+                cpc: parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+                difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+              });
+            }
+          }
+        }
+      }
+      
+      console.log(`✅ Supplemented to ${keywords.length} total long-tail keywords`);
+    }
+    
+    // ============================================================================
+    // PHASE 3: Optional OpenAI enhancement (if available and needed)
+    // ============================================================================
+    
+    // Use OpenAI as a supplement if we still need more variety
+    if (keywords.length < 500) {
+      const openaiApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY?.includes('DUMMY') 
+        ? process.env.OPENAI_API_KEY 
+        : process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+      
+      if (openaiApiKey) {
+        try {
+          const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                {
+                  role: 'system',
+                  content: `You are a keyword research expert. Generate long-tail keyword variations for the given seed keywords. IMPORTANT: Long-tail keywords MUST have 3 or more words. Focus on commercial intent, question-based queries, and specific variations. Return ONLY a JSON array of keyword objects.`
+                },
+                {
+                  role: 'user',
+                  content: `Generate 100-150 long-tail keyword variations for these seed keywords: ${normalizedSeeds.join(', ')}
 
 CRITICAL REQUIREMENT: Every keyword MUST contain 3 or more words. Do NOT include 1-word or 2-word keywords.
 
@@ -5884,71 +6027,54 @@ For each keyword, estimate:
 
 Return ONLY a valid JSON array like:
 [{"keyword": "best dental implants near me", "searchVolume": 1200, "cpc": 2.50, "difficulty": "easy"}, ...]`
-              }
-            ],
-            temperature: 0.8
-          })
-        });
-        
-        if (openaiResponse.ok) {
-          const aiData = await openaiResponse.json();
-          const content = aiData.choices?.[0]?.message?.content || '';
+                }
+              ],
+              temperature: 0.8
+            })
+          });
           
-          // Parse JSON from response
-          const jsonMatch = content.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            const aiKeywords = JSON.parse(jsonMatch[0]);
-            for (const kw of aiKeywords) {
-              // Only include keywords with 3+ words (long-tail requirement)
-              const wordCount = kw.keyword.trim().split(/\s+/).length;
-              if (wordCount >= 3) {
-                keywords.push({
-                  keyword: kw.keyword,
-                  source: 'ai',
-                  searchVolume: kw.searchVolume || Math.floor(Math.random() * 5000) + 100,
-                  cpc: kw.cpc || parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
-                  difficulty: kw.difficulty || ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
-                });
+          if (openaiResponse.ok) {
+            const aiData = await openaiResponse.json();
+            const content = aiData.choices?.[0]?.message?.content || '';
+            
+            // Parse JSON from response
+            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              const aiKeywords = JSON.parse(jsonMatch[0]);
+              for (const kw of aiKeywords) {
+                if (keywords.length >= 600) break;
+                
+                // Only include keywords with 3+ words (long-tail requirement)
+                const wordCount = kw.keyword.trim().split(/\s+/).length;
+                if (wordCount >= 3) {
+                  const normalized = kw.keyword.toLowerCase().trim();
+                  if (!seenKeywords.has(normalized)) {
+                    seenKeywords.add(normalized);
+                    keywords.push({
+                      keyword: kw.keyword,
+                      source: 'ai',
+                      searchVolume: kw.searchVolume || Math.floor(Math.random() * 5000) + 100,
+                      cpc: kw.cpc || parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
+                      difficulty: kw.difficulty || ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
+                    });
+                  }
+                }
               }
             }
           }
-        }
-      } catch (aiError) {
-        console.error('OpenAI error for long-tail keywords:', aiError);
-      }
-    }
-    
-    // Add autocomplete-style variations as fallback or supplement (3+ words required)
-    const modifierPairs = [
-      'best affordable', 'top rated', 'cheap quality', 'professional local', 
-      'how to find', 'what is the', 'where to get', 'when to use',
-      'cost of professional', 'reviews for best', 'alternatives to expensive',
-      'for beginners guide', 'for business owners', 'online services for',
-      'free consultation for', '2024 guide to', '2025 best rated', 'tips for choosing',
-      'how much does', 'where can I', 'why choose the', 'benefits of using',
-      'compare prices for', 'near me with', 'same day service', 'emergency service for',
-      'licensed and insured', 'affordable prices for', 'local expert in', 'trusted provider of'
-    ];
-    
-    for (const seed of seedKeywords.slice(0, 10)) {
-      for (const mod of modifierPairs) {
-        const keyword = `${mod} ${seed}`;
-        const wordCount = keyword.trim().split(/\s+/).length;
-        
-        // Only include if 3+ words (long-tail requirement)
-        if (wordCount >= 3 && !keywords.some(k => k.keyword.toLowerCase() === keyword.toLowerCase())) {
-          keywords.push({
-            keyword,
-            source: 'autocomplete',
-            searchVolume: Math.floor(Math.random() * 5000) + 100,
-            cpc: parseFloat((Math.random() * 5 + 0.5).toFixed(2)),
-            difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)]
-          });
+        } catch (aiError) {
+          console.error('OpenAI error for long-tail keywords:', aiError);
         }
       }
     }
     
-    return c.json({ keywords: keywords.slice(0, 200) });
+    // Sort by search volume (descending) and limit to 600
+    keywords.sort((a, b) => b.searchVolume - a.searchVolume);
+    const finalKeywords = keywords.slice(0, 600);
+    
+    console.log(`✅ Final result: ${finalKeywords.length} long-tail keywords generated`);
+    
+    return c.json({ keywords: finalKeywords });
   } catch (error: any) {
     console.error('Error generating long-tail keywords:', error);
     return c.json({ error: error.message || 'Failed to generate keywords' }, 500);
