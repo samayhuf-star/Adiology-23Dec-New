@@ -20,6 +20,27 @@ const app = new Hono();
 app.use('/*', cors());
 
 // ============================================
+// GLOBAL ERROR HANDLER FOR API ROUTES
+// ============================================
+// This ensures all API errors return JSON, not HTML
+app.onError((err, c) => {
+  // Only handle API routes - let other routes use default error handling
+  if (c.req.path.startsWith('/api/')) {
+    console.error('API Error:', err);
+    return c.json(
+      { 
+        success: false, 
+        error: err.message || 'Internal server error',
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+      },
+      500
+    );
+  }
+  // For non-API routes, throw to let Hono handle it
+  throw err;
+});
+
+// ============================================
 // RATE LIMITING & SECURITY GUARDRAILS
 // ============================================
 
@@ -3700,6 +3721,71 @@ app.delete('/api/notifications/:id', async (c) => {
 // ============================================
 
 // Get dashboard stats for a user
+// General dashboard endpoint (uses authenticated user)
+app.get('/api/dashboard', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    
+    const userId = user.id;
+    
+    // Get campaign history count
+    const campaignsResult = await pool.query(
+      `SELECT COUNT(*) as count FROM campaign_history WHERE user_id = $1`,
+      [userId]
+    );
+    
+    // Get ad search requests count
+    const searchesResult = await pool.query(
+      `SELECT COUNT(*) as count FROM ad_search_requests WHERE user_id = $1`,
+      [userId]
+    );
+    
+    // Get recent campaigns (last 10)
+    const recentCampaignsResult = await pool.query(
+      `SELECT id, campaign_name, structure_type, step, created_at, updated_at
+       FROM campaign_history 
+       WHERE user_id = $1 
+       ORDER BY updated_at DESC 
+       LIMIT 10`,
+      [userId]
+    );
+    
+    // Get unread notifications count
+    const unreadResult = await pool.query(
+      `SELECT COUNT(*) as count FROM user_notifications WHERE user_id = $1 AND read = FALSE`,
+      [userId]
+    );
+    
+    // Get user's workspaces
+    const workspacesResult = await pool.query(
+      `SELECT w.*, wm.role, wm.status
+       FROM workspaces w
+       INNER JOIN workspace_members wm ON w.id = wm.workspace_id
+       WHERE wm.user_id = $1 AND wm.status = 'active'
+       ORDER BY w.created_at DESC`,
+      [userId]
+    );
+    
+    return c.json({
+      success: true,
+      data: {
+        stats: {
+          totalCampaigns: parseInt(campaignsResult.rows[0]?.count || '0'),
+          totalSearches: parseInt(searchesResult.rows[0]?.count || '0'),
+          unreadNotifications: parseInt(unreadResult.rows[0]?.count || '0'),
+        },
+        recentCampaigns: recentCampaignsResult.rows,
+        workspaces: workspacesResult.rows,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching dashboard data:', error);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// Dashboard endpoint with userId parameter (for backward compatibility)
 app.get('/api/dashboard/:userId', async (c) => {
   try {
     const { userId } = c.req.param();
@@ -3733,16 +3819,19 @@ app.get('/api/dashboard/:userId', async (c) => {
     );
     
     return c.json({
-      stats: {
-        totalCampaigns: parseInt(campaignsResult.rows[0]?.count || '0'),
-        totalSearches: parseInt(searchesResult.rows[0]?.count || '0'),
-        unreadNotifications: parseInt(unreadResult.rows[0]?.count || '0'),
+      success: true,
+      data: {
+        stats: {
+          totalCampaigns: parseInt(campaignsResult.rows[0]?.count || '0'),
+          totalSearches: parseInt(searchesResult.rows[0]?.count || '0'),
+          unreadNotifications: parseInt(unreadResult.rows[0]?.count || '0'),
+        },
+        recentCampaigns: recentCampaignsResult.rows,
       },
-      recentCampaigns: recentCampaignsResult.rows,
     });
   } catch (error: any) {
     console.error('Error fetching dashboard data:', error);
-    return c.json({ error: error.message }, 500);
+    return c.json({ success: false, error: error.message }, 500);
   }
 });
 
@@ -6188,6 +6277,12 @@ if (isProduction) {
   
   app.get('*', async (c) => {
     const reqPath = c.req.path;
+    
+    // Never serve HTML for API routes - always return JSON error
+    if (reqPath.startsWith('/api/')) {
+      return c.json({ success: false, error: 'API endpoint not found' }, 404);
+    }
+    
     const distPath = path.join(process.cwd(), 'build');
     
     // Try to serve the exact file
