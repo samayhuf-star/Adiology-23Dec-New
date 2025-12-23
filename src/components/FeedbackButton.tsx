@@ -10,6 +10,17 @@ import { notifications } from '../utils/notifications';
 import { submitFeedback } from '../utils/feedbackService';
 import html2canvas from 'html2canvas';
 
+// html2canvas is used instead of a manual canvas-based screenshot approach to
+// improve screenshot fidelity and cross-browser reliability when capturing
+// complex UI state. Be aware of the following limitations imposed by browser
+// security and html2canvas itself:
+// - Cross-origin images, videos, iframes, and fonts without appropriate CORS
+//   headers may be omitted or can taint the canvas and cause capture to fail.
+// - External or third-party embedded content (e.g. widgets, iframes) may
+//   render as blank or differently than on screen.
+// - Very large viewports can be slow to capture and increase memory usage.
+// As a result, captured screenshots may occasionally differ slightly from the
+// user-visible page in these edge cases.
 interface FeedbackButtonProps {
   variant?: 'floating' | 'sidebar';
   sidebarOpen?: boolean;
