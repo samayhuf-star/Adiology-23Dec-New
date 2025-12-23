@@ -76,7 +76,13 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
         description: workspaceDescription.trim() || undefined,
       });
 
+      // Update modules (already set with defaults, but update to match selection)
+      await workspaceHelpers.updateWorkspaceModules(workspace.id, selectedModules);
+
       // Invite users by email
+      let successfulInvites: string[] = [];
+      let failedInvites: Array<{ email: string; reason: string }> = [];
+
       if (inviteEmails.length > 0) {
         const inviteResults = await Promise.allSettled(
           inviteEmails.map((email) =>
@@ -87,9 +93,6 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
             })
           )
         );
-
-        const successfulInvites: string[] = [];
-        const failedInvites: Array<{ email: string; reason: string }> = [];
 
         inviteResults.forEach((result, index) => {
           const email = inviteEmails[index];
@@ -111,38 +114,37 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
             console.error(`Error inviting user ${email}:`, error);
           }
         });
-
-        // Show notification about invite results
-        if (failedInvites.length > 0 && successfulInvites.length === 0) {
-          // All invites failed
-          notifications.warning('Workspace created, but no invitations were sent', {
-            title: 'Invitation Issues',
-            description: failedInvites.map((f) => `${f.email}: ${f.reason}`).join(', '),
-          });
-        } else if (failedInvites.length > 0) {
-          // Some invites failed
-          notifications.warning(
-            `Workspace created. ${successfulInvites.length} invitation(s) sent, ${failedInvites.length} failed`,
-            {
-              title: 'Partial Success',
-              description: failedInvites.map((f) => `${f.email}: ${f.reason}`).join(', '),
-            }
-          );
-        } else if (successfulInvites.length > 0) {
-          // All invites succeeded
-          notifications.success(`${successfulInvites.length} team member(s) invited successfully`, {
-            title: 'Invitations Sent',
-          });
-        }
       }
 
-      // Update modules (already set with defaults, but update to match selection)
-      await workspaceHelpers.updateWorkspaceModules(workspace.id, selectedModules);
-
-      notifications.success('Workspace created successfully!', {
-        title: 'Success',
-        description: `Your workspace "${workspace.name}" has been created.`,
-      });
+      // Show contextual success notification based on invitation results
+      if (inviteEmails.length === 0) {
+        // No invitations attempted
+        notifications.success('Workspace created successfully!', {
+          title: 'Success',
+          description: `Your workspace "${workspace.name}" has been created.`,
+        });
+      } else if (failedInvites.length > 0 && successfulInvites.length === 0) {
+        // All invites failed
+        notifications.warning('Workspace created, but no invitations were sent', {
+          title: 'Invitation Issues',
+          description: `Your workspace "${workspace.name}" was created, but all invitations failed. ${failedInvites.map((f) => `${f.email}: ${f.reason}`).join('; ')}`,
+        });
+      } else if (failedInvites.length > 0) {
+        // Some invites failed
+        notifications.warning(
+          `Workspace created with partial invitation success`,
+          {
+            title: 'Partial Success',
+            description: `Your workspace "${workspace.name}" was created. ${successfulInvites.length} invitation(s) sent successfully, but ${failedInvites.length} failed: ${failedInvites.map((f) => `${f.email}: ${f.reason}`).join('; ')}`,
+          }
+        );
+      } else {
+        // All invites succeeded
+        notifications.success('Workspace created and all invitations sent!', {
+          title: 'Success',
+          description: `Your workspace "${workspace.name}" has been created and ${successfulInvites.length} team member(s) have been invited successfully.`,
+        });
+      }
 
       onComplete(workspace);
     } catch (err: any) {
