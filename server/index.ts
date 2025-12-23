@@ -6751,10 +6751,7 @@ app.get('/api/forms/:formId/submissions/export', async (c) => {
   }
 });
 
-// Start server FIRST to satisfy port binding requirements
-const apiPort = parseInt(process.env.PORT || '5000', 10);
-const isProduction = process.env.NODE_ENV === 'production';
-
+// Start server (apiPort and isProduction already declared above)
 const server = serve({
   fetch: app.fetch,
   port: apiPort,
