@@ -65,30 +65,26 @@
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: `assets/[name]-[hash].[ext]`,
-        manualChunks: (id) => {
+        manualChunks: (id: string) => {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            // React core - MUST be in main bundle or loaded first
-            // Don't split React out - it needs to be available immediately
-            if (id.includes('react') || id.includes('react-dom')) {
-              // Keep React in the main bundle to avoid loading order issues
-              return undefined;
-            }
-            // Radix UI components
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix-ui';
-            }
-            // Charts
-            if (id.includes('recharts')) {
-              return 'vendor-charts';
-            }
-            // Form libraries
-            if (id.includes('react-hook-form') || id.includes('react-day-picker') || id.includes('input-otp')) {
-              return 'vendor-forms';
-            }
-            // UI utilities
-            if (id.includes('lucide-react') || id.includes('framer-motion') || id.includes('cmdk')) {
-              return 'vendor-ui-utils';
+            // React and React-dependent libraries - Group together to ensure proper loading order
+            // This ensures React is available before any dependent libraries try to use it
+            if (
+              id.includes('react') ||
+              id.includes('react-dom') ||
+              id.includes('@radix-ui') ||
+              id.includes('recharts') ||
+              id.includes('react-hook-form') ||
+              id.includes('react-day-picker') ||
+              id.includes('input-otp') ||
+              id.includes('lucide-react') ||
+              id.includes('framer-motion') ||
+              id.includes('cmdk')
+            ) {
+              // Group React and all React-dependent libraries in a single chunk
+              // This ensures React loads before its dependencies
+              return 'vendor-react';
             }
             // GrapesJS and editor
             if (id.includes('grapesjs')) {
