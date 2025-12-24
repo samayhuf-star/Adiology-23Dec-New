@@ -2197,7 +2197,7 @@ const AppContent = () => {
                 </span>
                 <Switch
                   checked={viewMode === 'admin'}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     const newViewMode = checked ? 'admin' : 'user';
                     setViewMode(newViewMode);
                     // If switching to user view, check if current tab is accessible
