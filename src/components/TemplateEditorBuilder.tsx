@@ -349,7 +349,7 @@ ${exportedHtml || templateData.rawHtml || ''}
                       <div className="flex items-center justify-between mb-2">
                         <span className="px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">CNAME</span>
                         <button
-                          onClick={() => copyToClipboard('adiology.replit.app')}
+                          onClick={() => copyToClipboard('cname.vercel-dns.com')}
                           className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-indigo-600"
                           title="Copy value"
                         >
@@ -363,7 +363,7 @@ ${exportedHtml || templateData.rawHtml || ''}
                         </div>
                         <div>
                           <span className="text-gray-500">Value:</span>
-                          <p className="font-mono font-semibold text-purple-700">adiology.replit.app</p>
+                          <p className="font-mono font-semibold text-purple-700">cname.vercel-dns.com</p>
                         </div>
                         <div>
                           <span className="text-gray-500">TTL:</span>
@@ -377,7 +377,7 @@ ${exportedHtml || templateData.rawHtml || ''}
                       <div className="flex items-center justify-between mb-2">
                         <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-700">TXT</span>
                         <button
-                          onClick={() => copyToClipboard(`replit-site-verification=${generateSlug(currentName)}`)}
+                          onClick={() => copyToClipboard(`vercel-domain-verify=${generateSlug(currentName)}`)}
                           className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-indigo-600"
                           title="Copy value"
                         >
@@ -391,7 +391,7 @@ ${exportedHtml || templateData.rawHtml || ''}
                         </div>
                         <div className="col-span-2">
                           <span className="text-gray-500">Value:</span>
-                          <p className="font-mono font-semibold text-purple-700 break-all">replit-site-verification={generateSlug(currentName)}</p>
+                          <p className="font-mono font-semibold text-purple-700 break-all">vercel-domain-verify={generateSlug(currentName)}</p>
                         </div>
                       </div>
                     </div>

@@ -4,6 +4,19 @@ import { getDatabaseUrl } from './dbConfig';
 let connectionSettings: any;
 
 async function getCredentials() {
+  // First, try standard Stripe environment variables (production-ready)
+  const standardSecretKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY_TEST;
+  const standardPublishableKey = process.env.STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY_LIVE || process.env.STRIPE_PUBLISHABLE_KEY_TEST;
+  
+  if (standardSecretKey && standardPublishableKey) {
+    console.log('Using Stripe keys from environment variables');
+    return {
+      publishableKey: standardPublishableKey,
+      secretKey: standardSecretKey,
+    };
+  }
+
+  // Fallback to Replit connectors (if available)
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -11,8 +24,8 @@ async function getCredentials() {
       ? 'depl ' + process.env.WEB_REPL_RENEWAL
       : null;
 
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+  if (!hostname || !xReplitToken) {
+    throw new Error('Stripe credentials not found. Please set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables, or configure Replit connectors.');
   }
 
   const connectorName = 'stripe';
@@ -42,7 +55,7 @@ async function getCredentials() {
     connectionSettings = data.items?.[0];
 
     if (connectionSettings?.settings?.publishable && connectionSettings?.settings?.secret) {
-      console.log(`Using Stripe ${targetEnvironment} connection`);
+      console.log(`Using Stripe ${targetEnvironment} connection from Replit connectors`);
       return {
         publishableKey: connectionSettings.settings.publishable,
         secretKey: connectionSettings.settings.secret,

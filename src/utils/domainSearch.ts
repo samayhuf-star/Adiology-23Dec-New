@@ -24,7 +24,6 @@ export async function searchDomainResellerClub(
 ): Promise<DomainSearchResult[]> {
   try {
     // Get API credentials from secrets (these are passed via import.meta.env at build time)
-    // The secrets are injected by the Replit platform
     const apiKey = (import.meta.env as any).RESELLERCLUB_API_KEY;
     const apiUrl = (import.meta.env as any).RESELLERCLUB_API_URL;
 
@@ -33,7 +32,7 @@ export async function searchDomainResellerClub(
 
     if (!apiKey || !apiUrl) {
       console.warn(
-        'ResellerClub API credentials not available, using mock data. Please configure secrets in Replit settings.'
+        'ResellerClub API credentials not available, using mock data. Please configure RESELLERCLUB_API_KEY and RESELLERCLUB_API_URL environment variables.'
       );
       return getMockResults(domainName);
     }
