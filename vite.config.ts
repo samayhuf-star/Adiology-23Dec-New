@@ -58,7 +58,7 @@
     sourcemap: false,
     chunkSizeWarningLimit: 2000,
     modulePreload: {
-      polyfill: false,
+      polyfill: true,
     },
     rollupOptions: {
       output: {
@@ -68,9 +68,11 @@
         manualChunks: (id) => {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            // React core
+            // React core - MUST be in main bundle or loaded first
+            // Don't split React out - it needs to be available immediately
             if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react';
+              // Keep React in the main bundle to avoid loading order issues
+              return undefined;
             }
             // Radix UI components
             if (id.includes('@radix-ui')) {
