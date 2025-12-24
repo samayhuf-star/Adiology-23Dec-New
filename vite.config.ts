@@ -68,14 +68,13 @@
         manualChunks: (id: string) => {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            // CRITICAL: Keep React in main bundle to ensure it loads first
+            // CRITICAL: Keep React in main bundle to ensure it loads FIRST
             // This prevents "Cannot read properties of undefined (reading 'useLayoutEffect')" errors
-            // React must be available before any other chunks that depend on it
-            if (id.includes('react') || id.includes('react-dom')) {
+            // React must be available synchronously before any other chunks execute
+            if (id.includes('react/') || id.includes('react-dom/') || id.includes('react\\') || id.includes('react-dom\\')) {
               return undefined; // Keep React in main bundle
             }
-            // React-dependent libraries - separate chunk that will load after main bundle
-            // Vite's module system ensures these only execute after their dependencies (React) are loaded
+            // React-dependent libraries - these MUST load after React chunk
             if (
               id.includes('@radix-ui') ||
               id.includes('recharts') ||
@@ -84,7 +83,20 @@
               id.includes('input-otp') ||
               id.includes('lucide-react') ||
               id.includes('framer-motion') ||
-              id.includes('cmdk')
+              id.includes('cmdk') ||
+              id.includes('sonner') ||
+              id.includes('vaul') ||
+              id.includes('next-themes') ||
+              id.includes('react-resizable-panels') ||
+              id.includes('embla-carousel-react') ||
+              id.includes('class-variance-authority') ||
+              id.includes('tailwind-merge') ||
+              id.includes('clsx') ||
+              id.includes('@floating-ui') ||
+              id.includes('floating-ui') ||
+              id.includes('react-remove-scroll') ||
+              id.includes('use-sidecar') ||
+              id.includes('react-focus-lock')
             ) {
               return 'vendor-react-deps';
             }
@@ -100,7 +112,7 @@
             if (id.includes('stripe') || id.includes('@stripe')) {
               return 'vendor-stripe';
             }
-            // Other large vendors (these may have React deps, so React must load first)
+            // Other vendors that don't depend on React
             return 'vendor-other';
           }
           // CSV exporters
