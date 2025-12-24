@@ -65,11 +65,64 @@
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: `assets/[name]-[hash].[ext]`,
-        manualChunks: {
-          'csv-exporter': ['./src/utils/googleAdsEditorCSVExporter.ts', './src/utils/googleAdsEditorCSVExporterV5.ts'],
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-popover', '@radix-ui/react-select', '@radix-ui/react-tabs'],
-          'vendor-charts': ['recharts'],
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            // React core
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            // Radix UI components
+            if (id.includes('@radix-ui')) {
+              return 'vendor-radix-ui';
+            }
+            // Charts
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            // Form libraries
+            if (id.includes('react-hook-form') || id.includes('react-day-picker') || id.includes('input-otp')) {
+              return 'vendor-forms';
+            }
+            // UI utilities
+            if (id.includes('lucide-react') || id.includes('framer-motion') || id.includes('cmdk')) {
+              return 'vendor-ui-utils';
+            }
+            // GrapesJS and editor
+            if (id.includes('grapesjs')) {
+              return 'vendor-editor';
+            }
+            // Supabase
+            if (id.includes('@supabase') || id.includes('@jsr/supabase')) {
+              return 'vendor-supabase';
+            }
+            // Stripe
+            if (id.includes('stripe') || id.includes('@stripe')) {
+              return 'vendor-stripe';
+            }
+            // Other large vendors
+            return 'vendor-other';
+          }
+          // CSV exporters
+          if (id.includes('googleAdsEditorCSVExporter')) {
+            return 'csv-exporter';
+          }
+          // Campaign builders
+          if (id.includes('CampaignBuilder') || id.includes('OneClickCampaignBuilder')) {
+            return 'campaign-builders';
+          }
+          // Keyword tools
+          if (id.includes('Keyword') || id.includes('keyword')) {
+            return 'keyword-tools';
+          }
+          // Forms module
+          if (id.includes('modules/forms')) {
+            return 'forms-module';
+          }
+          // Workspace components
+          if (id.includes('Workspace') || id.includes('workspace')) {
+            return 'workspace-module';
+          }
         },
       },
     },

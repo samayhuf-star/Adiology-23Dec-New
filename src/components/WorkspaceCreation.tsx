@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { Building, Users, Plus, Mail, Loader2, ArrowRight, ArrowLeft, X, Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
