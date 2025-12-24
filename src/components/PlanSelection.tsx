@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Check, ArrowLeft, Sparkle, Crown, Zap, Rocket, Loader2 } from 'lucide-react';
+
+// Dynamic import wrapper for framer-motion to avoid build-time resolution issues
+const MotionDiv = ({ children, ...props }: any) => {
+  const [Motion, setMotion] = useState<any>(null);
+  
+  useEffect(() => {
+    import('framer-motion').then(({ motion }) => {
+      setMotion(() => motion.div);
+    });
+  }, []);
+  
+  if (!Motion) {
+    return <div {...props}>{children}</div>;
+  }
+  
+  return <Motion {...props}>{children}</Motion>;
+};
 import { Button } from './ui/button';
 
 // API calls use Vite proxy (relative URLs forward to backend on port 3001)
@@ -228,7 +244,7 @@ export const PlanSelection: React.FC<PlanSelectionProps> = ({
           </Button>
         )}
 
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-10"
@@ -248,13 +264,13 @@ export const PlanSelection: React.FC<PlanSelectionProps> = ({
           <p className="text-sm text-indigo-300/80">
             All plans include 14-day money back guarantee
           </p>
-        </motion.div>
+        </MotionDiv>
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {plans.map((plan, index) => {
             const Icon = plan.icon;
             return (
-              <motion.div
+              <MotionDiv
                 key={plan.name}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -307,7 +323,7 @@ export const PlanSelection: React.FC<PlanSelectionProps> = ({
                     Select {plan.displayName}
                   </Button>
                 </div>
-              </motion.div>
+              </MotionDiv>
             );
           })}
         </div>
