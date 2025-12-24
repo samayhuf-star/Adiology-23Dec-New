@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from './ui/checkbox';
 import { notifications } from '../utils/notifications';
 import { submitFeedback } from '../utils/feedbackService';
-import html2canvas from 'html2canvas';
+// Dynamic import to avoid build-time resolution issues
+const html2canvas = () => import('html2canvas').then(m => m.default);
 
 // html2canvas is used instead of a manual canvas-based screenshot approach to
 // improve screenshot fidelity and cross-browser reliability when capturing
@@ -59,7 +60,8 @@ export const FeedbackButton: React.FC<FeedbackButtonProps> = ({
     try {
       const mainContent = document.querySelector('main') || document.body;
       
-      const canvas = await html2canvas(mainContent as HTMLElement, {
+      const html2canvasLib = await html2canvas();
+      const canvas = await html2canvasLib(mainContent as HTMLElement, {
         backgroundColor: '#f8fafc',
         scale: 0.5,
         logging: false,
