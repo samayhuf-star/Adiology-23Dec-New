@@ -139,23 +139,6 @@ export async function fetchSendGridExpenses(): Promise<Partial<ServiceExpense>> 
   return { currentSpend: 0, status: 'inactive' };
 }
 
-// Replit Expense Tracking
-export async function fetchReplitExpenses(): Promise<Partial<ServiceExpense>> {
-  try {
-    const token = import.meta.env.VITE_REPLIT_API_TOKEN;
-    if (!token) return { currentSpend: 0, status: 'inactive' };
-
-    // Replit usage tracking
-    return {
-      currentSpend: 0,
-      lastBilled: new Date().toISOString().split('T')[0],
-      status: 'inactive'
-    };
-  } catch (error) {
-    console.error('Failed to fetch Replit expenses:', error);
-  }
-  return { currentSpend: 0, status: 'inactive' };
-}
 
 // GitHub Expenses (monthly)
 export async function fetchGitHubExpenses(): Promise<Partial<ServiceExpense>> {
@@ -208,13 +191,12 @@ export async function fetchAllExpenses(): Promise<ServiceExpense[]> {
   }
 
   // Fallback to client-side fetching if backend fails
-  const [openai, stripe, supabase, vercel, sendgrid, replit, github] = await Promise.allSettled([
+  const [openai, stripe, supabase, vercel, sendgrid, github] = await Promise.allSettled([
     fetchOpenAIExpenses(),
     fetchStripeExpenses(),
     fetchSupabaseExpenses(),
     fetchVercelExpenses(),
     fetchSendGridExpenses(),
-    fetchReplitExpenses(),
     fetchGitHubExpenses()
   ]);
 
@@ -274,15 +256,6 @@ export async function fetchAllExpenses(): Promise<ServiceExpense[]> {
       lastBilled: (sendgrid.status === 'fulfilled' ? sendgrid.value.lastBilled : new Date().toISOString().split('T')[0]) || new Date().toISOString().split('T')[0]
     },
     {
-      name: 'Replit',
-      icon: '🔥',
-      description: 'Development Platform',
-      monthlyBudget: 30,
-      currentSpend: (replit.status === 'fulfilled' ? replit.value.currentSpend : 0) || 0,
-      status: (replit.status === 'fulfilled' ? replit.value.status : 'inactive') || 'inactive',
-      lastBilled: (replit.status === 'fulfilled' ? replit.value.lastBilled : new Date().toISOString().split('T')[0]) || new Date().toISOString().split('T')[0]
-    },
-    {
       name: 'GitHub',
       icon: '🐙',
       description: 'CI/CD & Actions',
@@ -303,7 +276,6 @@ function getServiceIcon(name: string): string {
     'Vercel': '▲',
     'Redis Cloud': '🔴',
     'SendGrid': '📧',
-    'Replit': '🔥',
     'GitHub': '🐙'
   };
   return icons[name] || '📦';

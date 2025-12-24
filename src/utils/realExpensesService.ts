@@ -33,7 +33,6 @@ export function parseMercuryCSV(csvText: string): RealExpense[] {
     'VERCEL': 'vercel',
     'GITHUB': 'github',
     'SUPABASE': 'supabase',
-    'REPLIT': 'replit',
     'ANTHROPIC': 'anthropic',
     'TWILIO': 'twilio',
     'SENDGRID': 'sendgrid',
