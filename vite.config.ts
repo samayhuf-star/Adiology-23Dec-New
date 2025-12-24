@@ -68,11 +68,13 @@
         manualChunks: (id: string) => {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            // React and React-dependent libraries - Group together to ensure proper loading order
-            // This ensures React is available before any dependent libraries try to use it
+            // CRITICAL: Keep React in main bundle to ensure it loads first
+            // This prevents "Cannot read properties of undefined (reading 'useLayoutEffect')" errors
+            if (id.includes('react') || id.includes('react-dom')) {
+              return undefined; // Keep in main bundle
+            }
+            // React-dependent libraries - can be split but React must load first
             if (
-              id.includes('react') ||
-              id.includes('react-dom') ||
               id.includes('@radix-ui') ||
               id.includes('recharts') ||
               id.includes('react-hook-form') ||
@@ -82,9 +84,7 @@
               id.includes('framer-motion') ||
               id.includes('cmdk')
             ) {
-              // Group React and all React-dependent libraries in a single chunk
-              // This ensures React loads before its dependencies
-              return 'vendor-react';
+              return 'vendor-react-deps';
             }
             // GrapesJS and editor
             if (id.includes('grapesjs')) {
@@ -98,7 +98,7 @@
             if (id.includes('stripe') || id.includes('@stripe')) {
               return 'vendor-stripe';
             }
-            // Other large vendors
+            // Other large vendors (these may have React deps, so React must load first)
             return 'vendor-other';
           }
           // CSV exporters

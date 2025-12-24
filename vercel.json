@@ -26,7 +26,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "frame-src 'self' *.stripe.com https://vercel.live; script-src 'self' 'unsafe-eval' https://js.stripe.com https://vercel.live http://app.microedits.com https://app.microedits.com; script-src-elem 'self' https://vercel.live https://js.stripe.com http://app.microedits.com https://app.microedits.com; connect-src 'self' *.stripe.com https://*.supabase.co https://googleads.googleapis.com https://generativelanguage.googleapis.com https://vercel.live ws://localhost:* wss://localhost:* ws://127.0.0.1:* wss://127.0.0.1:*; style-src 'self' 'unsafe-inline';"
+          "value": "frame-src 'self' *.stripe.com https://vercel.live; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://vercel.live http://app.microedits.com https://app.microedits.com https://9eab4c72-e572-466b-9c9b-eeb8b9b0ac49-00-1tos4g4wuqgec.pike.replit.dev; script-src-elem 'self' 'unsafe-inline' https://vercel.live https://js.stripe.com http://app.microedits.com https://app.microedits.com https://9eab4c72-e572-466b-9c9b-eeb8b9b0ac49-00-1tos4g4wuqgec.pike.replit.dev; connect-src 'self' *.stripe.com https://*.supabase.co https://googleads.googleapis.com https://generativelanguage.googleapis.com https://vercel.live https://9eab4c72-e572-466b-9c9b-eeb8b9b0ac49-00-1tos4g4wuqgec.pike.replit.dev ws://localhost:* wss://localhost:* ws://127.0.0.1:* wss://127.0.0.1:*; style-src 'self' 'unsafe-inline';"
         }
       ]
     },
