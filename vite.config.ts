@@ -4,9 +4,69 @@
   import tailwindcss from '@tailwindcss/vite';
   import path from 'path';
 
-  export default defineConfig({
-    plugins: [react(), tailwindcss()],
-    resolve: {
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    include: [
+      // React core - MUST be pre-bundled first
+      'react',
+      'react-dom',
+      'react/jsx-runtime',
+      // All React-dependent libraries - pre-bundle to ensure they're available when needed
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-aspect-ratio',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-collapsible',
+      '@radix-ui/react-context-menu',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-hover-card',
+      '@radix-ui/react-label',
+      '@radix-ui/react-menubar',
+      '@radix-ui/react-navigation-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-progress',
+      '@radix-ui/react-radio-group',
+      '@radix-ui/react-scroll-area',
+      '@radix-ui/react-select',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-slider',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toggle',
+      '@radix-ui/react-toggle-group',
+      '@radix-ui/react-tooltip',
+      'recharts',
+      'react-hook-form',
+      'react-day-picker',
+      'input-otp',
+      'lucide-react',
+      'framer-motion',
+      'cmdk',
+      'sonner',
+      'vaul',
+      'next-themes',
+      'react-resizable-panels',
+      'embla-carousel-react',
+      'class-variance-authority',
+      'tailwind-merge',
+      'clsx',
+      '@floating-ui/react-dom',
+      '@floating-ui/core',
+      'react-remove-scroll',
+      'use-sidecar',
+      'react-focus-lock',
+    ],
+    exclude: [
+      // Exclude large libraries that should be code-split
+      'grapesjs',
+      '@grapesjs/react',
+    ],
+  },
+  resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
         'vaul@1.1.2': 'vaul',
@@ -68,14 +128,12 @@
         manualChunks: (id: string) => {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            // CRITICAL: Keep React in main bundle to ensure it loads FIRST
-            // This prevents "Cannot read properties of undefined (reading 'useLayoutEffect')" errors
-            // React must be available synchronously before any other chunks execute
-            if (id.includes('react/') || id.includes('react-dom/') || id.includes('react\\') || id.includes('react-dom\\')) {
-              return undefined; // Keep React in main bundle
-            }
-            // React-dependent libraries - these MUST load after React chunk
+            // CRITICAL: Group React and all React-dependent libraries in a single chunk
+            // This ensures React loads before its dependencies and prevents module resolution errors
+            // All React-dependent libraries must be in the same chunk as React to guarantee loading order
             if (
+              id.includes('react') ||
+              id.includes('react-dom') ||
               id.includes('@radix-ui') ||
               id.includes('recharts') ||
               id.includes('react-hook-form') ||
@@ -98,7 +156,9 @@
               id.includes('use-sidecar') ||
               id.includes('react-focus-lock')
             ) {
-              return 'vendor-react-deps';
+              // Group all React and React-dependent libraries together
+              // Vite will ensure proper dependency order within this chunk
+              return 'vendor-react';
             }
             // GrapesJS and editor
             if (id.includes('grapesjs')) {
