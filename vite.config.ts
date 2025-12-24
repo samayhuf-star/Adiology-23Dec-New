@@ -68,13 +68,12 @@
         manualChunks: (id: string) => {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            // CRITICAL: Keep React in main bundle to ensure it loads first
-            // This prevents "Cannot read properties of undefined (reading 'useLayoutEffect')" errors
-            if (id.includes('react') || id.includes('react-dom')) {
-              return undefined; // Keep in main bundle
-            }
-            // React-dependent libraries - can be split but React must load first
+            // CRITICAL: Group React and all React-dependent libraries in a single chunk
+            // This ensures React loads before its dependencies and prevents module resolution errors
+            // All React-dependent libraries must be in the same chunk as React to guarantee loading order
             if (
+              id.includes('react') ||
+              id.includes('react-dom') ||
               id.includes('@radix-ui') ||
               id.includes('recharts') ||
               id.includes('react-hook-form') ||
@@ -84,7 +83,9 @@
               id.includes('framer-motion') ||
               id.includes('cmdk')
             ) {
-              return 'vendor-react-deps';
+              // Group all React and React-dependent libraries together
+              // Vite will ensure proper dependency order within this chunk
+              return 'vendor-react';
             }
             // GrapesJS and editor
             if (id.includes('grapesjs')) {
