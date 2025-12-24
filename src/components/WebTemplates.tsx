@@ -2882,12 +2882,11 @@ const CustomDomainModal = ({ website, onClose }: { website: SavedWebsite; onClos
   
   const userDomain = customDomain.replace(/^www\./, '') || 'yourdomain.com';
   const siteSlug = website.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'site';
-  const replitAppUrl = `adiology.replit.app`;
   
+  // Vercel DNS configuration
   const dnsRecords = [
-    { type: 'A', name: '@', value: '34.132.134.162', description: 'Points apex domain (yourdomain.com) to Replit servers', ttl: '3600' },
-    { type: 'CNAME', name: 'www', value: replitAppUrl, description: 'Points www subdomain to your Replit deployment', ttl: '3600' },
-    { type: 'TXT', name: '@', value: `replit-site-verification=${siteSlug}`, description: 'Verifies domain ownership with Replit', ttl: '3600' }
+    { type: 'A', name: '@', value: '76.76.21.21', description: 'Points apex domain (yourdomain.com) to Vercel servers', ttl: '3600' },
+    { type: 'CNAME', name: 'www', value: 'cname.vercel-dns.com', description: 'Points www subdomain to your Vercel deployment', ttl: '3600' }
   ];
 
   const handleCopy = (text: string, type: string) => {

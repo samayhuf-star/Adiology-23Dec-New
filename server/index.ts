@@ -254,10 +254,11 @@ async function initStripe() {
 
     const stripeSync = await getStripeSync();
 
-    const replitDomain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN;
-    if (replitDomain) {
+    // Get production domain from environment (Vercel provides VERCEL_URL)
+    const productionDomain = process.env.VERCEL_URL || process.env.URL || process.env.DOMAIN;
+    if (productionDomain) {
       console.log('Setting up managed webhook...');
-      const webhookBaseUrl = `https://${replitDomain}`;
+      const webhookBaseUrl = productionDomain.startsWith('http') ? productionDomain : `https://${productionDomain}`;
       try {
         const { webhook, uuid } = await stripeSync.findOrCreateManagedWebhook(
           `${webhookBaseUrl}/api/stripe/webhook`,
@@ -272,7 +273,7 @@ async function initStripe() {
         console.warn('Could not set up managed webhook (may already exist):', webhookError);
       }
     } else {
-      console.warn('REPLIT_DOMAINS not found - skipping webhook setup');
+      console.warn('Production domain not found (VERCEL_URL/URL/DOMAIN) - skipping webhook setup');
     }
 
     console.log('Syncing Stripe data...');
@@ -454,7 +455,7 @@ app.post('/api/stripe/checkout', async (c) => {
       }
     }
 
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const domain = process.env.VERCEL_URL?.replace(/^https?:\/\//, '') || process.env.URL?.replace(/^https?:\/\//, '') || process.env.DOMAIN || 'localhost:5000';
     const protocol = domain.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${domain}`;
     
@@ -486,7 +487,7 @@ app.post('/api/stripe/portal', async (c) => {
       return c.json({ error: 'No billing account found' }, 404);
     }
 
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const domain = process.env.VERCEL_URL?.replace(/^https?:\/\//, '') || process.env.URL?.replace(/^https?:\/\//, '') || process.env.DOMAIN || 'localhost:5000';
     const protocol = domain.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${domain}`;
     
@@ -575,7 +576,7 @@ app.post('/api/promo/trial', async (c) => {
     }
     
     const stripe = await getUncachableStripeClient();
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const domain = process.env.VERCEL_URL?.replace(/^https?:\/\//, '') || process.env.URL?.replace(/^https?:\/\//, '') || process.env.DOMAIN || 'localhost:5000';
     const protocol = domain.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${domain}`;
     
@@ -645,7 +646,7 @@ app.post('/api/promo/trial', async (c) => {
 app.post('/api/promo/lifetime-direct', async (c) => {
   try {
     const stripe = await getUncachableStripeClient();
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const domain = process.env.VERCEL_URL?.replace(/^https?:\/\//, '') || process.env.URL?.replace(/^https?:\/\//, '') || process.env.DOMAIN || 'localhost:5000';
     const protocol = domain.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${domain}`;
     
@@ -1962,7 +1963,7 @@ let googleAdsTokens: { access_token?: string; refresh_token?: string; expiry?: n
 
 // Google Ads OAuth endpoints
 app.get('/api/google-ads/auth-url', async (c) => {
-  const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+  const domain = process.env.VERCEL_URL?.replace(/^https?:\/\//, '') || process.env.URL?.replace(/^https?:\/\//, '') || process.env.DOMAIN || 'localhost:5000';
   const protocol = domain.includes('localhost') ? 'http' : 'https';
   const redirectUri = `${protocol}://${domain}/api/google-ads/callback`;
   
@@ -1983,7 +1984,7 @@ app.get('/api/google-ads/callback', async (c) => {
     return c.redirect('/?error=no_code');
   }
 
-  const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+  const domain = process.env.VERCEL_URL?.replace(/^https?:\/\//, '') || process.env.URL?.replace(/^https?:\/\//, '') || process.env.DOMAIN || 'localhost:5000';
   const protocol = domain.includes('localhost') ? 'http' : 'https';
   const redirectUri = `${protocol}://${domain}/api/google-ads/callback`;
 
