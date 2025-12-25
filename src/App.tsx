@@ -30,10 +30,11 @@ import { supabase } from './utils/supabase/client';
 import { getCurrentUserProfile, isAuthenticated, signOut } from './utils/auth';
 import { getUserPreferences, applyUserPreferences } from './utils/userPreferences';
 import { notifications as notificationService } from './utils/notifications';
-import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { WorkspaceCreation } from './components/WorkspaceCreation';
 import { WorkspaceCards } from './components/WorkspaceCards';
+import { WorkspacesPage } from './components/WorkspacesPage';
 import { workspaceHelpers } from './utils/workspaces';
 import { FeedbackButton } from './components/FeedbackButton';
 import { Auth } from './components/Auth';
@@ -86,7 +87,6 @@ type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' 
 
 const AppContent = () => {
   const { theme } = useTheme();
-  const { hasModuleAccess, currentWorkspace, isLoading: workspaceLoading, refreshWorkspaces, setCurrentWorkspace, availableModules } = useWorkspace();
   const [appView, setAppView] = useState<AppView>('homepage');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -995,58 +995,17 @@ const AppContent = () => {
     ...(isSuperAdmin ? [{ id: 'admin-panel', label: 'Admin Panel', icon: Shield, module: null }] : []),
   ];
 
-  // Check if user can switch views (only owners/admins can see the toggle)
-  const canSwitchViews = currentWorkspace && (currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin');
+  // Simplified - no workspace view switching needed
+  const canSwitchViews = false;
   
-  // Helper function to check module access based on view mode
-  const checkModuleAccess = (moduleName: string): boolean => {
-    // If no workspace, allow access to basic modules (dashboard, blog, forms, settings)
-    // This ensures the menu doesn't disappear completely
-    if (!currentWorkspace) {
-      const basicModules = ['dashboard', 'settings', 'support'];
-      return basicModules.includes(moduleName);
-    }
-    
-    // In user view mode, simulate member access (ignore admin workspace privileges)
-    if (viewMode === 'user') {
-      // Members only see explicitly enabled modules, not admin workspace privileges
-      return availableModules.includes(moduleName);
-    }
-    
-    // Admin view mode: Admin workspace has access to all modules
-    if (currentWorkspace.is_admin_workspace) return true;
-    
-    // Check module access normally
-    return hasModuleAccess(moduleName);
-  };
-  
-  // Filter menu items based on workspace module access and view mode
-  // Show all items while workspace is loading OR if no workspace (to avoid empty menu)
-  const menuItems = (workspaceLoading || !currentWorkspace) ? allMenuItems.filter((item) => {
-    // When loading or no workspace, show basic items: dashboard, blog, forms, settings, support
-    const basicItems = ['dashboard', 'blog', 'forms', 'settings', 'support-help'];
-    if (basicItems.includes(item.id)) return true;
-    // Also show admin panel if user is super admin
-    if (item.id === 'admin-panel' && isSuperAdmin) return true;
-    return false;
-  }) : allMenuItems.filter((item) => {
-    // If no module required, always show (except admin panel in user view)
-    if (!item.module) {
-      // In user view mode, hide admin panel
-      if (item.id === 'admin-panel' && viewMode === 'user') {
-        return false;
-      }
-      return true;
-    }
-    
-    // Check module access based on view mode
-    return checkModuleAccess(item.module);
+  // Simplified menu filtering - show all items except admin panel for non-super-admins
+  const menuItems = allMenuItems.filter((item) => {
+    // Only filter admin panel for non-super-admins
+    if (item.id === 'admin-panel') return isSuperAdmin;
+    return true;
   }).map((item) => {
-    // Filter submenu items as well
-    if (item.submenu) {
-      return {
-        ...item,
-        submenu: item.submenu.filter((subItem) => {
+    // Keep all submenu items - no filtering needed
+    return item;
           if (!subItem.module) return true;
           return checkModuleAccess(subItem.module);
         }),
@@ -1312,22 +1271,11 @@ const AppContent = () => {
     );
   }
 
+  // Removed workspace selection - go directly to user view
   if (appView === 'workspace-selection') {
-    return (
-      <WorkspaceCards
-        onSelectWorkspace={async (workspace) => {
-          await setCurrentWorkspace(workspace);
-          await refreshWorkspaces();
-          window.history.pushState({}, '', '/');
-          setAppView('user');
-          setActiveTabSafe('dashboard');
-        }}
-        onCreateWorkspace={() => {
-          window.history.pushState({}, '', '/');
-          setAppView('workspace-creation');
-        }}
-      />
-    );
+    setAppView('user');
+    setActiveTabSafe('dashboard');
+    return null;
   }
 
   if (appView === 'privacy-policy') {
@@ -1786,6 +1734,12 @@ const AppContent = () => {
             <SettingsPanel defaultTab="billing" />
           </Suspense>
         );
+      case 'workspaces':
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <WorkspacesPage />
+          </Suspense>
+        );
       case 'dashboard':
         return <Dashboard user={user} onNavigate={setActiveTabSafe} />;
       default:
@@ -1809,6 +1763,10 @@ const AppContent = () => {
         if (subItem) return subItem.label;
       }
     }
+    
+    // Handle special cases for bottom menu items
+    if (activeTab === 'workspaces') return 'Workspaces';
+    if (activeTab === 'billing') return 'Billing';
     
     return 'Dashboard';
   };
@@ -2017,7 +1975,7 @@ const AppContent = () => {
           })}
         </nav>
 
-        {/* Bottom Section - Feedback, Billing & Logout */}
+        {/* Bottom Section - Feedback, Workspaces, Billing & Logout */}
         <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
           <FeedbackButton 
             variant="sidebar" 
@@ -2025,6 +1983,25 @@ const AppContent = () => {
             sidebarHovered={userPrefs.sidebarAutoClose && sidebarHovered}
             currentPage={activeTab}
           />
+          <button
+            onClick={() => setActiveTabSafe('workspaces')}
+            className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
+              !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) 
+                ? 'justify-center px-2' 
+                : 'justify-start px-3'
+            } ${
+              activeTab === 'workspaces'
+                ? `theme-gradient text-white shadow-lg`
+                : `text-slate-700 hover:bg-slate-100`
+            }`}
+          >
+            <Building className={`w-5 h-5 shrink-0 ${activeTab === 'workspaces' ? 'text-white' : 'text-slate-500'}`} />
+            {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
+              <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.8125rem, 2.5vw, 0.9375rem)' }}>
+                Workspaces
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setActiveTabSafe('billing')}
             className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
@@ -2147,6 +2124,17 @@ const AppContent = () => {
           </nav>
           
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200/60 bg-white/95 space-y-2">
+            <button
+              onClick={() => setActiveTabSafe('workspaces')}
+              className={`w-full flex items-center gap-2 py-2.5 px-3 rounded-xl transition-all ${
+                activeTab === 'workspaces'
+                  ? 'theme-gradient text-white shadow-lg'
+                  : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Building className={`w-5 h-5 ${activeTab === 'workspaces' ? 'text-white' : 'text-slate-500'}`} />
+              <span className="font-medium">Workspaces</span>
+            </button>
             <button
               onClick={() => setActiveTabSafe('billing')}
               className={`w-full flex items-center gap-2 py-2.5 px-3 rounded-xl transition-all ${
@@ -2340,6 +2328,10 @@ const AppContent = () => {
                 <DropdownMenuItem onClick={() => setActiveTabSafe('settings')}>
                   <User className="w-4 h-4 mr-2 shrink-0" />
                   Account Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTabSafe('workspaces')}>
+                  <Building className="w-4 h-4 mr-2 shrink-0" />
+                  Workspaces
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setActiveTabSafe('billing')}>
                   <Shield className="w-4 h-4 mr-2 shrink-0" />

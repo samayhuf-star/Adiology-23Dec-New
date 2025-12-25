@@ -109,7 +109,11 @@ export default defineConfig({
         '@radix-ui/react-accordion@1.2.3': '@radix-ui/react-accordion',
         '@jsr/supabase__supabase-js@2.49.8': '@jsr/supabase__supabase-js',
         '@': path.resolve(__dirname, './src'),
+        // Ensure React is resolved consistently
+        'react': path.resolve(__dirname, './node_modules/react'),
+        'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
       },
+      dedupe: ['react', 'react-dom'],
     },
   build: {
     target: 'es2015',
@@ -121,80 +125,63 @@ export default defineConfig({
       polyfill: true,
     },
     rollupOptions: {
+      external: [],
       output: {
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: `assets/[name]-[hash].[ext]`,
-        manualChunks: (id: string) => {
-          // Vendor chunks
-          if (id.includes('node_modules')) {
-            // CRITICAL: Group React and all React-dependent libraries in a single chunk
-            // This ensures React loads before its dependencies and prevents module resolution errors
-            // All React-dependent libraries must be in the same chunk as React to guarantee loading order
-            if (
-              id.includes('react') ||
-              id.includes('react-dom') ||
-              id.includes('@radix-ui') ||
-              id.includes('recharts') ||
-              id.includes('react-hook-form') ||
-              id.includes('react-day-picker') ||
-              id.includes('input-otp') ||
-              id.includes('lucide-react') ||
-              id.includes('framer-motion') ||
-              id.includes('cmdk') ||
-              id.includes('sonner') ||
-              id.includes('vaul') ||
-              id.includes('next-themes') ||
-              id.includes('react-resizable-panels') ||
-              id.includes('embla-carousel-react') ||
-              id.includes('class-variance-authority') ||
-              id.includes('tailwind-merge') ||
-              id.includes('clsx') ||
-              id.includes('@floating-ui') ||
-              id.includes('floating-ui') ||
-              id.includes('react-remove-scroll') ||
-              id.includes('use-sidecar') ||
-              id.includes('react-focus-lock')
-            ) {
-              // Group all React and React-dependent libraries together
-              // Vite will ensure proper dependency order within this chunk
-              return 'vendor-react';
-            }
-            // GrapesJS and editor
-            if (id.includes('grapesjs')) {
-              return 'vendor-editor';
-            }
-            // Supabase
-            if (id.includes('@supabase') || id.includes('@jsr/supabase')) {
-              return 'vendor-supabase';
-            }
-            // Stripe
-            if (id.includes('stripe') || id.includes('@stripe')) {
-              return 'vendor-stripe';
-            }
-            // Other vendors that don't depend on React
-            return 'vendor-other';
-          }
-          // CSV exporters
-          if (id.includes('googleAdsEditorCSVExporter')) {
-            return 'csv-exporter';
-          }
-          // Campaign builders
-          if (id.includes('CampaignBuilder') || id.includes('OneClickCampaignBuilder')) {
-            return 'campaign-builders';
-          }
-          // Keyword tools
-          if (id.includes('Keyword') || id.includes('keyword')) {
-            return 'keyword-tools';
-          }
-          // Forms module
-          if (id.includes('modules/forms')) {
-            return 'forms-module';
-          }
-          // Workspace components
-          if (id.includes('Workspace') || id.includes('workspace')) {
-            return 'workspace-module';
-          }
+        manualChunks: {
+          // Force React core into a single chunk that loads first
+          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
+          // All React-dependent UI libraries in one chunk
+          'react-ui': [
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-aspect-ratio',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-collapsible',
+            '@radix-ui/react-context-menu',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-hover-card',
+            '@radix-ui/react-label',
+            '@radix-ui/react-menubar',
+            '@radix-ui/react-navigation-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-radio-group',
+            '@radix-ui/react-scroll-area',
+            '@radix-ui/react-select',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-slider',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toggle',
+            '@radix-ui/react-toggle-group',
+            '@radix-ui/react-tooltip',
+            'lucide-react',
+            'cmdk',
+            'sonner',
+            'vaul',
+            'next-themes',
+            'react-resizable-panels',
+            'embla-carousel-react',
+            'react-hook-form',
+            'react-day-picker',
+            'input-otp'
+          ],
+          // Chart and animation libraries
+          'react-charts': ['recharts', 'framer-motion'],
+          // Utility libraries (non-React dependent)
+          'utils': ['class-variance-authority', 'tailwind-merge', 'clsx'],
+          // Editor (large, separate chunk)
+          'editor': ['grapesjs', '@grapesjs/react'],
+          // Backend services
+          'services': ['@supabase/supabase-js', '@jsr/supabase__supabase-js'],
+          // Payment
+          'stripe': ['@stripe/stripe-js', '@stripe/react-stripe-js']
         },
       },
     },
