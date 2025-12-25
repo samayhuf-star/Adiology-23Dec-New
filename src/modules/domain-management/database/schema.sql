@@ -253,3 +253,98 @@ CREATE TRIGGER check_auto_recharge_trigger
     FOR EACH ROW
     WHEN (NEW.balance_amount < OLD.balance_amount)
     EXECUTE FUNCTION check_auto_recharge();
+
+-- Additional tables for billing separation
+
+-- User payment methods (separate from wallet)
+CREATE TABLE IF NOT EXISTS user_payment_methods (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    payment_method_id VARCHAR(255) NOT NULL,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('card', 'bank')),
+    last4 VARCHAR(4),
+    brand VARCHAR(50),
+    expiry_month INTEGER,
+    expiry_year INTEGER,
+    is_wallet_method BOOLEAN NOT NULL DEFAULT false,
+    is_subscription_method BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, payment_method_id)
+);
+
+-- User subscriptions (separate from wallet)
+CREATE TABLE IF NOT EXISTS user_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    plan_id VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'cancelled', 'past_due')),
+    current_period_start TIMESTAMP WITH TIME ZONE NOT NULL,
+    current_period_end TIMESTAMP WITH TIME ZONE NOT NULL,
+    stripe_subscription_id VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Subscription billing history (separate from wallet transactions)
+CREATE TABLE IF NOT EXISTS subscription_billing_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    subscription_id UUID NOT NULL REFERENCES user_subscriptions(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+    status VARCHAR(20) NOT NULL CHECK (status IN ('succeeded', 'failed', 'pending', 'refunded')),
+    stripe_invoice_id VARCHAR(255),
+    billing_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for new tables
+CREATE INDEX IF NOT EXISTS idx_user_payment_methods_user_id ON user_payment_methods(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON user_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_status ON user_subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_subscription_billing_history_subscription_id ON subscription_billing_history(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_subscription_billing_history_billing_date ON subscription_billing_history(billing_date);
+
+-- RLS policies for new tables
+ALTER TABLE user_payment_methods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscription_billing_history ENABLE ROW LEVEL SECURITY;
+
+-- Payment methods policies
+CREATE POLICY "Users can manage their own payment methods" ON user_payment_methods
+    FOR ALL USING (auth.uid() = user_id);
+
+-- Subscription policies
+CREATE POLICY "Users can view their own subscriptions" ON user_subscriptions
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own subscriptions" ON user_subscriptions
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Subscription billing history policies
+CREATE POLICY "Users can view their own billing history" ON subscription_billing_history
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM user_subscriptions 
+            WHERE user_subscriptions.id = subscription_billing_history.subscription_id 
+            AND user_subscriptions.user_id = auth.uid()
+        )
+    );
+
+-- Function to ensure billing separation
+CREATE OR REPLACE FUNCTION enforce_billing_separation()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Prevent wallet transactions from being used for subscription billing
+    IF NEW.description ILIKE '%subscription%' OR NEW.description ILIKE '%monthly%' THEN
+        RAISE EXCEPTION 'Subscription billing must be separate from wallet transactions';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to enforce billing separation
+CREATE TRIGGER enforce_billing_separation_trigger
+    BEFORE INSERT OR UPDATE ON wallet_transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION enforce_billing_separation();

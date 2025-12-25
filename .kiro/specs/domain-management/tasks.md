@@ -13,7 +13,7 @@ This implementation plan breaks down the domain management system into discrete 
   - Set up testing framework with property-based testing library (fast-check)
   - _Requirements: All requirements - foundational setup_
 
-- [ ] 2. Implement wallet system and billing infrastructure
+- [-] 2. Implement wallet system and billing infrastructure
   - [ ] 2.1 Create wallet service and data models
     - Implement Wallet, WalletTransaction, and WalletSettings models
     - Create WalletService with balance tracking and transaction logging
