@@ -83,17 +83,21 @@
       "devDependencies": {
             "@lambdatest/playwright-node-sdk": "^1.0.2",
             "@playwright/test": "^1.56.1",
+            "@types/jest": "^30.0.0",
             "@types/node": "^20.10.0",
             "@types/xlsx": "^0.0.35",
             "@vitejs/plugin-react-swc": "^3.10.2",
             "autoprefixer": "^10.4.22",
             "dotenv": "^17.2.3",
+            "fast-check": "^4.5.2",
             "fs-extra": "^11.2.0",
             "handlebars": "^4.7.8",
+            "jest": "^30.2.0",
             "postcss": "^8.5.6",
             "prisma": "^7.1.0",
             "rollup": "^4.53.3",
             "tailwindcss": "^4.1.17",
+            "ts-jest": "^29.4.6",
             "vite": "^6.4.1"
       },
       "scripts": {

@@ -9,7 +9,7 @@ import {
   MapPin, 
   Sparkles,
   Rocket,
-  Skip,
+  SkipForward,
   Play
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -19,8 +19,8 @@ import { useOnboarding } from '../../contexts/OnboardingContext';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { ProfileStep } from './steps/ProfileStep';
 import { PreferencesStep } from './steps/PreferencesStep';
-import { TourStep } from './steps/TourStep';
-import { FirstCampaignStep } from './steps/FirstCampaignStep';
+import { EnhancedCard } from '../ui/enhanced-card';
+import { EnhancedButton } from '../ui/enhanced-button';
 
 export const OnboardingWizard: React.FC = () => {
   const { state, nextStep, prevStep, skipOnboarding, completeOnboarding } = useOnboarding();
@@ -74,10 +74,6 @@ export const OnboardingWizard: React.FC = () => {
         return <ProfileStep />;
       case 'preferences':
         return <PreferencesStep />;
-      case 'tour':
-        return <TourStep />;
-      case 'first-campaign':
-        return <FirstCampaignStep />;
       default:
         return <div>Step not found</div>;
     }
@@ -87,16 +83,18 @@ export const OnboardingWizard: React.FC = () => {
   const isFirstStep = state.currentStep === 0;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-50 z-50 overflow-auto">
+    <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-50 backdrop-blur-sm z-50 overflow-auto">
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-4xl">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center shimmer-effect">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">Welcome to Adiology</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Welcome to Adiology
+              </h1>
             </div>
             <p className="text-gray-600 mb-6">Let's get you set up in just a few steps</p>
             
@@ -112,14 +110,14 @@ export const OnboardingWizard: React.FC = () => {
 
           {/* Step Indicators */}
           <div className="flex items-center justify-center mb-8">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 overflow-x-auto pb-2">
               {state.steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
+                <div key={step.id} className="flex items-center flex-shrink-0">
                   <div
                     className={`
-                      w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
+                      w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 float-animation
                       ${index === state.currentStep
-                        ? 'bg-indigo-600 text-white shadow-lg scale-110'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-110 shimmer-effect'
                         : step.completed
                         ? 'bg-green-500 text-white'
                         : index < state.currentStep
@@ -137,8 +135,8 @@ export const OnboardingWizard: React.FC = () => {
                   {index < state.steps.length - 1 && (
                     <div
                       className={`
-                        w-12 h-0.5 mx-2 transition-colors duration-300
-                        ${index < state.currentStep ? 'bg-indigo-600' : 'bg-gray-200'}
+                        w-8 sm:w-12 h-0.5 mx-1 sm:mx-2 transition-colors duration-300
+                        ${index < state.currentStep ? 'bg-gradient-to-r from-indigo-600 to-purple-600' : 'bg-gray-200'}
                       `}
                     />
                   )}
@@ -148,13 +146,15 @@ export const OnboardingWizard: React.FC = () => {
           </div>
 
           {/* Main Content */}
-          <Card className="shadow-xl border-0">
+          <EnhancedCard className="glass-card shadow-xl border-0">
             <CardHeader className="text-center pb-4">
               <div className="flex items-center justify-center gap-3 mb-2">
                 <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
                   {getStepIcon(currentStepData.id)}
                 </div>
-                <CardTitle className="text-xl">{currentStepData.title}</CardTitle>
+                <CardTitle className="text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  {currentStepData.title}
+                </CardTitle>
               </div>
               <p className="text-gray-600">{currentStepData.description}</p>
             </CardHeader>
@@ -169,45 +169,45 @@ export const OnboardingWizard: React.FC = () => {
                 {renderStepContent()}
               </div>
             </CardContent>
-          </Card>
+          </EnhancedCard>
 
           {/* Navigation */}
-          <div className="flex items-center justify-between mt-8">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-8 gap-4">
+            <div className="flex items-center gap-3 order-2 sm:order-1">
               {!isFirstStep && (
-                <Button
+                <EnhancedButton
                   variant="outline"
                   onClick={handlePrev}
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Previous
-                </Button>
+                </EnhancedButton>
               )}
               
-              <Button
+              <EnhancedButton
                 variant="ghost"
                 onClick={skipOnboarding}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X className="w-4 h-4 mr-2" />
                 Skip Setup
-              </Button>
+              </EnhancedButton>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 order-1 sm:order-2">
               {!currentStepData.required && !isLastStep && (
-                <Button
+                <EnhancedButton
                   variant="outline"
                   onClick={handleNext}
                   className="flex items-center gap-2"
                 >
-                  <Skip className="w-4 h-4" />
+                  <SkipForward className="w-4 h-4" />
                   Skip This Step
-                </Button>
+                </EnhancedButton>
               )}
               
-              <Button
+              <EnhancedButton
                 onClick={isLastStep ? handleComplete : handleNext}
                 className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
               >
@@ -222,7 +222,7 @@ export const OnboardingWizard: React.FC = () => {
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
-              </Button>
+              </EnhancedButton>
             </div>
           </div>
 

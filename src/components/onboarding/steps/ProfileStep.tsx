@@ -36,8 +36,9 @@ export const ProfileStep: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { markStepCompleted } = useOnboarding();
-  const { success, error } = useNotification();
+  const { success, contextualError } = useNotification();
 
   useEffect(() => {
     loadExistingProfile();
@@ -68,11 +69,29 @@ export const ProfileStep: React.FC = () => {
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
+    // Clear validation error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!profileData.full_name.trim()) {
+      errors.full_name = 'Full name is required';
+    }
+    
+    if (profileData.website && !profileData.website.match(/^https?:\/\/.+/)) {
+      errors.website = 'Please enter a valid URL (starting with http:// or https://)';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSave = async () => {
-    if (!profileData.full_name.trim()) {
-      error('Please enter your full name', 'This field is required');
+    if (!validateForm()) {
       return;
     }
 
@@ -80,7 +99,7 @@ export const ProfileStep: React.FC = () => {
     try {
       const profile = await getCurrentUserProfile();
       if (!profile) {
-        error('Unable to update profile', 'Please try again');
+        contextualError('Unable to update profile', 'profile', null, 'save');
         return;
       }
 
@@ -176,9 +195,190 @@ export const ProfileStep: React.FC = () => {
         {/* Personal Information */}
         <div className="space-y-4">
           <div>
-            <Label htmlFor="full_name" className="flex items-center gap-2">
+            <Label htmlFor="full_name" className="flex items-center gap-2 text-sm font-medium text-gray-700">
               <User className="w-4 h-4" />
               Full Name *
+            </Label>
+            <Input
+              id="full_name"
+              value={profileData.full_name}
+              onChange={(e) => handleInputChange('full_name', e.target.value)}
+              placeholder="Enter your full name"
+              className={`mt-1 ${validationErrors.full_name ? 'border-red-500 focus:border-red-500' : ''}`}
+            />
+            {validationErrors.full_name && (
+              <p className="text-sm text-red-600 mt-1">{validationErrors.full_name}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="job_title" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Building className="w-4 h-4" />
+              Job Title
+            </Label>
+            <Input
+              id="job_title"
+              value={profileData.job_title}
+              onChange={(e) => handleInputChange('job_title', e.target.value)}
+              placeholder="e.g., Marketing Manager"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="phone" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Phone className="w-4 h-4" />
+              Phone Number
+            </Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={profileData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              placeholder="+1 (555) 123-4567"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="country" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <MapPin className="w-4 h-4" />
+              Country
+            </Label>
+            <Select value={profileData.country} onValueChange={(value) => handleInputChange('country', value)}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select your country" />
+              </SelectTrigger>
+              <SelectContent>
+                {countries.map((country) => (
+                  <SelectItem key={country} value={country}>
+                    {country}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Company Information */}
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="company_name" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Building className="w-4 h-4" />
+              Company Name
+            </Label>
+            <Input
+              id="company_name"
+              value={profileData.company_name}
+              onChange={(e) => handleInputChange('company_name', e.target.value)}
+              placeholder="Enter your company name"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="industry" className="text-sm font-medium text-gray-700">
+              Industry
+            </Label>
+            <Select value={profileData.industry} onValueChange={(value) => handleInputChange('industry', value)}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select your industry" />
+              </SelectTrigger>
+              <SelectContent>
+                {industries.map((industry) => (
+                  <SelectItem key={industry} value={industry}>
+                    {industry}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="company_size" className="text-sm font-medium text-gray-700">
+              Company Size
+            </Label>
+            <Select value={profileData.company_size} onValueChange={(value) => handleInputChange('company_size', value)}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select company size" />
+              </SelectTrigger>
+              <SelectContent>
+                {companySizes.map((size) => (
+                  <SelectItem key={size} value={size}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="website" className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Globe className="w-4 h-4" />
+              Website
+            </Label>
+            <Input
+              id="website"
+              type="url"
+              value={profileData.website}
+              onChange={(e) => handleInputChange('website', e.target.value)}
+              placeholder="https://yourcompany.com"
+              className={`mt-1 ${validationErrors.website ? 'border-red-500 focus:border-red-500' : ''}`}
+            />
+            {validationErrors.website && (
+              <p className="text-sm text-red-600 mt-1">{validationErrors.website}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bio Section */}
+      <div>
+        <Label htmlFor="bio" className="text-sm font-medium text-gray-700">
+          About You (Optional)
+        </Label>
+        <Textarea
+          id="bio"
+          value={profileData.bio}
+          onChange={(e) => handleInputChange('bio', e.target.value)}
+          placeholder="Tell us a bit about yourself and your goals..."
+          rows={3}
+          className="mt-1"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          This helps us provide more personalized recommendations.
+        </p>
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-center pt-4">
+        <Button
+          onClick={handleSave}
+          disabled={loading}
+          className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 px-8 py-2"
+        >
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Save Profile
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Help Text */}
+      <div className="text-center">
+        <p className="text-sm text-gray-500">
+          Don't worry, you can always update this information later in your settings.
+        </p>
+      </div>
+    </div>
+  );
             </Label>
             <Input
               id="full_name"

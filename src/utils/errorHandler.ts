@@ -129,6 +129,136 @@ class ErrorHandlerClass {
   }
 
   /**
+   * Get user-friendly error message based on context and error type
+   */
+  getContextualErrorMessage(
+    error: any,
+    context: string,
+    action?: string
+  ): { message: string; suggestion?: string; canRetry: boolean } {
+    const errorCode = error?.code || error?.error_code || error?.name;
+    const statusCode = error?.status || error?.response?.status;
+    
+    // Context-specific error messages
+    const errorMap: Record<string, Record<string, { message: string; suggestion?: string; canRetry: boolean }>> = {
+      'auth': {
+        'invalid_credentials': {
+          message: 'Email or password is incorrect.',
+          suggestion: 'Double-check your credentials or reset your password.',
+          canRetry: true
+        },
+        'email_not_confirmed': {
+          message: 'Please verify your email address.',
+          suggestion: 'Check your inbox for a verification email.',
+          canRetry: false
+        },
+        'signup_disabled': {
+          message: 'New registrations are temporarily disabled.',
+          suggestion: 'Please try again later or contact support.',
+          canRetry: false
+        },
+        'network_error': {
+          message: 'Connection issue detected.',
+          suggestion: 'Check your internet connection and try again.',
+          canRetry: true
+        }
+      },
+      'profile': {
+        'validation_error': {
+          message: 'Please check the highlighted fields.',
+          suggestion: 'Make sure all required fields are filled correctly.',
+          canRetry: true
+        },
+        'save_failed': {
+          message: 'Unable to save your profile.',
+          suggestion: 'Your changes are saved locally and will sync when connection is restored.',
+          canRetry: true
+        }
+      },
+      'campaign': {
+        'creation_failed': {
+          message: 'Campaign could not be created.',
+          suggestion: 'Please check your inputs and try again.',
+          canRetry: true
+        },
+        'quota_exceeded': {
+          message: 'You\'ve reached your campaign limit.',
+          suggestion: 'Upgrade your plan or delete unused campaigns.',
+          canRetry: false
+        }
+      },
+      'billing': {
+        'payment_failed': {
+          message: 'Payment could not be processed.',
+          suggestion: 'Please check your payment method or try a different card.',
+          canRetry: true
+        },
+        'subscription_expired': {
+          message: 'Your subscription has expired.',
+          suggestion: 'Renew your subscription to continue using all features.',
+          canRetry: false
+        }
+      },
+      'api': {
+        '400': {
+          message: 'Invalid request data.',
+          suggestion: 'Please check your inputs and try again.',
+          canRetry: true
+        },
+        '401': {
+          message: 'Authentication required.',
+          suggestion: 'Please log in again to continue.',
+          canRetry: false
+        },
+        '403': {
+          message: 'Access denied.',
+          suggestion: 'You don\'t have permission for this action.',
+          canRetry: false
+        },
+        '404': {
+          message: 'Resource not found.',
+          suggestion: 'The requested item may have been moved or deleted.',
+          canRetry: false
+        },
+        '429': {
+          message: 'Too many requests.',
+          suggestion: 'Please wait a moment before trying again.',
+          canRetry: true
+        },
+        '500': {
+          message: 'Server error occurred.',
+          suggestion: 'Our team has been notified. Please try again later.',
+          canRetry: true
+        }
+      }
+    };
+
+    // Try to find specific error message
+    const contextErrors = errorMap[context];
+    if (contextErrors) {
+      const specificError = contextErrors[errorCode] || contextErrors[String(statusCode)];
+      if (specificError) {
+        return specificError;
+      }
+    }
+
+    // Fallback based on status code
+    if (statusCode) {
+      const statusError = errorMap['api'][String(statusCode)];
+      if (statusError) {
+        return statusError;
+      }
+    }
+
+    // Generic fallback
+    return {
+      message: 'Something went wrong.',
+      suggestion: 'Our team has been automatically notified. Please try again.',
+      canRetry: true
+    };
+  }
+
+  /**
    * Handle API errors specifically
    */
   handleApiError(

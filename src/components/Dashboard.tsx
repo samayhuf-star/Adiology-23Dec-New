@@ -297,156 +297,215 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
   const extensionsAdded = myCampaigns * 8;
 
   return (
-    <div className="bg-gray-50 min-h-screen p-6 sm:p-8 lg:p-10 space-y-8" style={{
+    <div className="bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 min-h-screen p-6 sm:p-8 lg:p-10 space-y-8" style={{
       '--user-spacing-multiplier': preferences.spacing,
       '--user-font-size-multiplier': preferences.fontSize
     } as React.CSSProperties}>
-      {/* Header */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
-            Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Admin'}!
-          </h1>
-          <span className="text-xs font-medium text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full uppercase">Beta</span>
+      {/* Enhanced Header */}
+      <div className="space-y-4 slide-in-up">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
+                Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Admin'}!
+              </h1>
+              <span className="text-xs font-semibold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full uppercase tracking-wide shadow-sm">Beta</span>
+            </div>
+            <p className="text-lg text-slate-600">Here's what's happening with your campaigns today.</p>
+          </div>
+          <button className="modern-button px-6 py-3 rounded-xl text-white font-medium shadow-lg flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            New Campaign
+          </button>
         </div>
-        <p className="text-sm text-slate-500">Here's what's happening with your campaigns today.</p>
       </div>
 
-      {/* Terminal-Style System Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TerminalCard title="Campaign Statistics" icon={<Terminal className="w-4 h-4" />}>
-          <div className="space-y-2 font-mono text-sm">
+      {/* Enhanced Terminal-Style System Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 slide-in-up">
+        <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50 card-hover">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg float-animation">
+              <Terminal className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-800">Campaign Statistics</h3>
+          </div>
+          <div className="space-y-3 font-mono text-sm">
             <TerminalLine prefix="$" label="total_campaigns:" value={`${myCampaigns}`} valueColor="green" />
             <TerminalLine prefix="$" label="keywords_generated:" value={`${keywordsGenerated.toLocaleString()}`} valueColor="cyan" />
             <TerminalLine prefix="$" label="ads_created:" value={`${adsCreated.toLocaleString()}`} valueColor="yellow" />
             <TerminalLine prefix="$" label="extensions_added:" value={`${extensionsAdded.toLocaleString()}`} valueColor="purple" />
             <TerminalLine prefix="$" label="csv_exports:" value={`${myCampaigns}`} valueColor="white" />
           </div>
-        </TerminalCard>
+        </div>
 
-        <TerminalCard title="System Status" icon={<Activity className="w-4 h-4" />}>
-          <div className="space-y-2 font-mono text-sm">
+        <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50 card-hover">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg float-delay-1">
+              <Activity className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-800">System Status</h3>
+          </div>
+          <div className="space-y-3 font-mono text-sm">
             <TerminalLine prefix="$" label="api_status:" value="ONLINE" valueColor="green" />
             <TerminalLine prefix="$" label="google_ads_api:" value="CONNECTED" valueColor="green" />
             <TerminalLine prefix="$" label="keyword_planner:" value="READY" valueColor="green" />
             <TerminalLine prefix="$" label="subscription:" value={stats?.subscription?.plan?.toUpperCase() || 'FREE'} valueColor="cyan" />
             <TerminalLine prefix="$" label="last_activity:" value={formatRelativeTime(stats?.activity?.lastLogin || null)} valueColor="slate" />
           </div>
-        </TerminalCard>
-      </div>
-
-      {/* My Resources Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-          <Layers className="w-5 h-5 text-indigo-600" />
-          My Resources
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* My Campaigns Card */}
-          <Card className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center shadow-sm">
-                <Layers className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xs font-medium text-rose-500 bg-rose-50 px-2 py-1 rounded-full">Total</span>
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-3xl font-bold text-slate-800">{myCampaigns}</h3>
-              <p className="text-sm text-slate-500">My Campaigns</p>
-            </div>
-            <div className="mt-4 h-1 bg-rose-100 rounded-full overflow-hidden">
-              <div className="h-full bg-rose-400 rounded-full" style={{ width: '60%' }}></div>
-            </div>
-          </Card>
-
-          {/* My Presets Card */}
-          <Card className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-500 flex items-center justify-center shadow-sm">
-                <Package className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xs font-medium text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full">Saved</span>
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-3xl font-bold text-slate-800">{stats?.userResources?.myPresets || 0}</h3>
-              <p className="text-sm text-slate-500">My Presets</p>
-            </div>
-            <div className="mt-4 h-1 bg-indigo-100 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-400 rounded-full" style={{ width: '30%' }}></div>
-            </div>
-          </Card>
-
-          {/* My Domains Card */}
-          <Card className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
-                <Globe className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xs font-medium text-amber-500 bg-amber-50 px-2 py-1 rounded-full">Active</span>
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-3xl font-bold text-slate-800">{stats?.userResources?.myDomains || 0}</h3>
-              <p className="text-sm text-slate-500">My Domains</p>
-            </div>
-            <div className="mt-4 h-1 bg-amber-100 rounded-full overflow-hidden">
-              <div className="h-full bg-amber-400 rounded-full" style={{ width: '20%' }}></div>
-            </div>
-          </Card>
         </div>
       </div>
 
-      {/* Colorful Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Keywords Generated - Indigo */}
-        <div className="rounded-xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' }}>
-          <h3 className="text-3xl font-bold mb-1">{keywordsGenerated.toLocaleString()}</h3>
-          <p className="text-sm font-medium opacity-90 mb-3">Keywords Generated</p>
-          <div className="flex items-center gap-1 text-xs opacity-80">
-            <ArrowUp className="w-3 h-3" />
-            <span>23% from last week</span>
+      {/* Enhanced My Resources Section */}
+      <div className="space-y-6 slide-in-up">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg">
+            <Layers className="w-5 h-5 text-white" />
           </div>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            My Resources
+          </h2>
         </div>
-
-        {/* Ads Created - Coral */}
-        <div className="rounded-xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #F97B5C 0%, #E5684A 100%)' }}>
-          <h3 className="text-3xl font-bold mb-1">{adsCreated.toLocaleString()}</h3>
-          <p className="text-sm font-medium opacity-90 mb-3">Ads Created</p>
-          <div className="flex items-center gap-1 text-xs opacity-80">
-            <ArrowUp className="w-3 h-3" />
-            <span>12% from last week</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Enhanced My Campaigns Card */}
+          <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50 card-hover">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-400 to-rose-500 flex items-center justify-center shadow-lg float-animation">
+                <Layers className="w-7 h-7 text-white" />
+              </div>
+              <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">Total</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-4xl font-bold text-slate-800">{myCampaigns}</h3>
+              <p className="text-sm font-medium text-slate-600">My Campaigns</p>
+            </div>
+            <div className="mt-4 h-2 bg-rose-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all duration-1000" style={{ width: '60%' }}></div>
+            </div>
           </div>
-        </div>
 
-        {/* Extensions Added - Pink/Rose */}
-        <div className="rounded-xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #E75A7C 0%, #D44A6A 100%)' }}>
-          <h3 className="text-3xl font-bold mb-1">{extensionsAdded.toLocaleString()}</h3>
-          <p className="text-sm font-medium opacity-90 mb-3">Extensions Added</p>
-          <div className="flex items-center gap-1 text-xs opacity-80">
-            <ArrowUp className="w-3 h-3" />
-            <span>8% from last week</span>
+          {/* Enhanced My Presets Card */}
+          <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50 card-hover">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-400 to-indigo-500 flex items-center justify-center shadow-lg float-delay-1">
+                <Package className="w-7 h-7 text-white" />
+              </div>
+              <span className="text-xs font-semibold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">Saved</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-4xl font-bold text-slate-800">{stats?.userResources?.myPresets || 0}</h3>
+              <p className="text-sm font-medium text-slate-600">My Presets</p>
+            </div>
+            <div className="mt-4 h-2 bg-indigo-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-full transition-all duration-1000" style={{ width: '30%' }}></div>
+            </div>
+          </div>
+
+          {/* Enhanced My Domains Card */}
+          <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50 card-hover">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg float-delay-2">
+                <Globe className="w-7 h-7 text-white" />
+              </div>
+              <span className="text-xs font-semibold text-amber-500 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">Active</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-4xl font-bold text-slate-800">{stats?.userResources?.myDomains || 0}</h3>
+              <p className="text-sm font-medium text-slate-600">My Domains</p>
+            </div>
+            <div className="mt-4 h-2 bg-amber-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000" style={{ width: '20%' }}></div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-indigo-600" />
-          Quick Actions
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          {quickActions.map((action) => {
+      {/* Enhanced Colorful Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 slide-in-up">
+        {/* Keywords Generated - Enhanced Indigo */}
+        <div className="rounded-2xl p-8 text-white shadow-xl card-hover" style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium opacity-90 mb-2">Keywords Generated</p>
+              <p className="text-4xl font-bold mb-3">{keywordsGenerated.toLocaleString()}</p>
+              <div className="flex items-center gap-2 text-sm opacity-90">
+                <ArrowUp className="w-4 h-4" />
+                <span>23% from last week</span>
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center float-animation">
+              <Target className="w-8 h-8 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Ads Created - Enhanced Coral */}
+        <div className="rounded-2xl p-8 text-white shadow-xl card-hover" style={{ background: 'linear-gradient(135deg, #F97B5C 0%, #E5684A 100%)' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium opacity-90 mb-2">Ads Created</p>
+              <p className="text-4xl font-bold mb-3">{adsCreated.toLocaleString()}</p>
+              <div className="flex items-center gap-2 text-sm opacity-90">
+                <ArrowUp className="w-4 h-4" />
+                <span>12% from last week</span>
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center float-delay-1">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Extensions Added - Enhanced Pink/Rose */}
+        <div className="rounded-2xl p-8 text-white shadow-xl card-hover" style={{ background: 'linear-gradient(135deg, #E75A7C 0%, #D44A6A 100%)' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium opacity-90 mb-2">Extensions Added</p>
+              <p className="text-4xl font-bold mb-3">{extensionsAdded.toLocaleString()}</p>
+              <div className="flex items-center gap-2 text-sm opacity-90">
+                <ArrowUp className="w-4 h-4" />
+                <span>8% from last week</span>
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center float-delay-2">
+              <Package className="w-8 h-8 text-white" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Quick Actions */}
+      <div className="space-y-6 slide-in-up">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+            Quick Actions
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (
-              <Button
+              <button
                 key={action.id}
-                variant="outline"
                 onClick={() => onNavigate(action.id)}
-                className="h-9 px-4 gap-2 bg-white border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 transition-all"
+                className="group glass-card rounded-2xl p-4 shadow-lg border border-white/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 card-hover"
               >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{action.title}</span>
-              </Button>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${
+                    index % 6 === 0 ? 'from-indigo-500 to-purple-500' :
+                    index % 6 === 1 ? 'from-purple-500 to-pink-500' :
+                    index % 6 === 2 ? 'from-cyan-500 to-blue-500' :
+                    index % 6 === 3 ? 'from-green-500 to-emerald-500' :
+                    index % 6 === 4 ? 'from-orange-500 to-red-500' :
+                    'from-rose-500 to-pink-500'
+                  } flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-sm font-semibold text-slate-700 text-center leading-tight">{action.title}</span>
+                </div>
+              </button>
             );
           })}
         </div>

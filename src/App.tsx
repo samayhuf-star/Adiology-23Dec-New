@@ -45,6 +45,7 @@ import { PaymentPage } from './components/PaymentPage';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PlanSelection } from './components/PlanSelection';
 import CreativeMinimalistHomepage from './components/CreativeMinimalistHomepage';
+import { MobileNavigation, MobileQuickActions } from './components/MobileNavigation';
 
 // Lazy load heavy components for code splitting
 const CampaignBuilder3 = lazy(() => import('./components/CampaignBuilder3').then(m => ({ default: m.CampaignBuilder3 })));
@@ -56,7 +57,7 @@ const KeywordSavedLists = lazy(() => import('./components/KeywordSavedLists').th
 const LongTailKeywords = lazy(() => import('./components/LongTailKeywords').then(m => ({ default: m.LongTailKeywords })));
 const CampaignPresets = lazy(() => import('./components/CampaignPresets').then(m => ({ default: m.CampaignPresets })));
 const DraftCampaigns = lazy(() => import('./components/DraftCampaigns').then(m => ({ default: m.DraftCampaigns })));
-const WebTemplates = lazy(() => import('./components/WebTemplates').then(m => ({ default: m.WebTemplates })));
+
 const SettingsPanel = lazy(() => import('./components/SettingsPanel').then(m => ({ default: m.SettingsPanel })));
 const SupportPanel = lazy(() => import('./components/SupportPanel').then(m => ({ default: m.SupportPanel })));
 const SupportHelpCombined = lazy(() => import('./components/SupportHelpCombined').then(m => ({ default: m.SupportHelpCombined })));
@@ -66,6 +67,8 @@ const Blog = lazy(() => import('./components/Blog').then(m => ({ default: m.defa
 const BlogGenerator = lazy(() => import('./components/BlogGenerator').then(m => ({ default: m.default })));
 const SuperAdminPanel = lazy(() => import('./components/SuperAdminPanel').then(m => ({ default: m.SuperAdminPanel })));
 const Forms = lazy(() => import('./modules/forms/components/Forms').then(m => ({ default: m.Forms })));
+const DomainManagement = lazy(() => import('./modules/domain-management/components/DomainManagement').then(m => ({ default: m.default })));
+const VMManagement = lazy(() => import('./modules/vm-management/components/VMManagement').then(m => ({ default: m.default })));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const TermsOfService = lazy(() => import('./components/TermsOfService').then(m => ({ default: m.TermsOfService })));
 const CookiePolicy = lazy(() => import('./components/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
@@ -162,10 +165,9 @@ const AppContent = () => {
     'billing',
     'support',
     'support-help',
-    'web-templates',
-    'saved-websites',
-    'connected-websites',
     'teams',
+    'domains',
+    'virtual-machines',
     'blog',
     'forms',
     // 'call-forwarding', // Hidden - module disabled
@@ -973,18 +975,10 @@ const AppContent = () => {
         { id: 'long-tail-keywords', label: 'Long Tail', icon: Sparkles, module: 'keywords' },
       ]
     },
-    { 
-      id: 'web-templates', 
-      label: 'Web Templates', 
-      icon: Globe,
-      module: 'templates',
-      submenu: [
-        { id: 'web-templates', label: 'Templates', icon: Globe, module: 'templates' },
-        { id: 'saved-websites', label: 'Saved Websites', icon: FolderOpen, module: 'websites' },
-        { id: 'connected-websites', label: 'Connected Websites', icon: Globe, module: 'websites' },
-      ]
-    },
+
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
+    { id: 'domains', label: 'Domains', icon: Globe, module: 'domains' }, // Domain management
+    { id: 'virtual-machines', label: 'Virtual Machines', icon: Building, module: 'vm-management' }, // VM management
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
     { id: 'blog', label: 'Blog', icon: BookOpen, module: null }, // Blog doesn't require module access
@@ -1002,19 +996,6 @@ const AppContent = () => {
   const menuItems = allMenuItems.filter((item) => {
     // Only filter admin panel for non-super-admins
     if (item.id === 'admin-panel') return isSuperAdmin;
-    return true;
-  }).map((item) => {
-    // Keep all submenu items - no filtering needed
-    return item;
-          if (!subItem.module) return true;
-          return checkModuleAccess(subItem.module);
-        }),
-      };
-    }
-    return item;
-  }).filter((item) => {
-    // Remove parent items if all submenu items are filtered out
-    if (item.submenu && item.submenu.length === 0) return false;
     return true;
   });
 
@@ -1185,7 +1166,7 @@ const AppContent = () => {
                   const hasAdminWorkspace = workspaces.some((w) => w.is_admin_workspace);
                   if (!hasAdminWorkspace) {
                     await workspaceHelpers.createAdminWorkspace(userProfile.id);
-                    await refreshWorkspaces();
+                    // await refreshWorkspaces(); // Commented out - function not available
                   }
                 } catch (workspaceError) {
                   console.error('Error creating admin workspace:', workspaceError);
@@ -1259,7 +1240,7 @@ const AppContent = () => {
     return (
       <WorkspaceCreation
         onComplete={async (workspace) => {
-          await refreshWorkspaces();
+          // await refreshWorkspaces(); // Commented out - function not available
           window.history.pushState({}, '', '/');
           setAppView('workspace-selection');
         }}
@@ -1668,24 +1649,7 @@ const AppContent = () => {
             <KeywordSavedLists />
           </Suspense>
         );
-      case 'web-templates':
-        return (
-          <Suspense fallback={<ComponentLoader />}>
-            <WebTemplates />
-          </Suspense>
-        );
-      case 'saved-websites':
-        return (
-          <Suspense fallback={<ComponentLoader />}>
-            <WebTemplates initialTab="saved" />
-          </Suspense>
-        );
-      case 'connected-websites':
-        return (
-          <Suspense fallback={<ComponentLoader />}>
-            <WebTemplates initialTab="connected" />
-          </Suspense>
-        );
+
       case 'support-help':
         return (
           <Suspense fallback={<ComponentLoader />}>
@@ -1742,6 +1706,18 @@ const AppContent = () => {
         );
       case 'dashboard':
         return <Dashboard user={user} onNavigate={setActiveTabSafe} />;
+      case 'domains':
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <DomainManagement user={user} />
+          </Suspense>
+        );
+      case 'virtual-machines':
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <VMManagement user={user} />
+          </Suspense>
+        );
       default:
         // Fallback: redirect to dashboard for any invalid/missing route
         console.warn(`Invalid route/tab "${activeTab}" - redirecting to dashboard`);
@@ -1783,11 +1759,11 @@ const AppContent = () => {
       } as React.CSSProperties}
       data-color-theme={userPrefs.colorTheme}
     >
-      {/* Desktop Sidebar - completely hidden on mobile */}
+      {/* Enhanced Desktop Sidebar */}
       <aside 
         className={`hidden md:flex md:flex-col ${
           (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'md:w-64' : 'md:w-20'
-        } transition-all duration-300 bg-white/80 backdrop-blur-xl border-r border-indigo-100/60 shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto`}
+        } transition-all duration-300 glass-card shadow-2xl relative z-10 flex-shrink-0 overflow-y-auto border-r border-white/30`}
         style={{
           background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240, 253, 250, 0.95) 100%)'
         }}
@@ -1802,19 +1778,19 @@ const AppContent = () => {
           }
         }}
       >
-        {/* Logo Section */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-indigo-100/60 theme-sidebar-header">
+        {/* Enhanced Logo Section */}
+        <div className="h-16 flex items-center justify-between px-5 border-b border-white/30 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
           {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div 
-                className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md theme-gradient"
-                style={{ boxShadow: '0 4px 6px -1px rgba(var(--theme-primary), 0.3)' }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg pulse-glow"
+                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
               >
-                <TrendingUp className="w-5 h-5 text-white" />
+                <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <div className="flex flex-col">
-                <span className="font-bold theme-gradient-text">Adiology</span>
-                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full tracking-wide uppercase">Beta</span>
+                <span className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Adiology</span>
+                <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full tracking-wide uppercase">Beta</span>
               </div>
             </div>
           )}
@@ -1823,25 +1799,22 @@ const AppContent = () => {
               setSidebarOpen(!sidebarOpen);
               setSidebarHovered(false);
             }}
-            className="p-2 rounded-lg hover:bg-indigo-50 transition-all cursor-pointer theme-menu-toggle"
+            className="p-2 rounded-xl hover:bg-indigo-50 transition-all cursor-pointer modern-button"
+            style={{ background: sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered) ? 'rgba(99, 102, 241, 0.1)' : 'transparent' }}
           >
             {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? <X className="w-5 h-5 text-slate-600" /> : <Menu className="w-5 h-5 text-slate-600" />}
           </button>
         </div>
 
-        {/* Workspace Switcher - Show if user is logged in, even if no workspace yet */}
+        {/* Enhanced Workspace Switcher */}
         {user && (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
-          <div className="px-4 py-3 border-b border-indigo-100/60">
-            {currentWorkspace ? (
-              <WorkspaceSwitcher
-                canSwitch={currentWorkspace.role === 'owner' || currentWorkspace.role === 'admin'}
-              />
-            ) : (
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-100">
-                <Building className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-600">No workspace selected</span>
+          <div className="px-4 py-4 border-b border-white/30">
+            {/* Workspace switcher would go here when implemented */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200">
+                <Building className="w-5 h-5 text-slate-500" />
+                <span className="text-sm font-medium text-slate-600">No workspace selected</span>
               </div>
-            )}
+            {/* ) */}
           </div>
         )}
         
@@ -1870,7 +1843,7 @@ const AppContent = () => {
                         currentItem.submenu?.find(sub => sub.id === activeTab);
                       if (itemToCheck) {
                         // Check if item would be accessible in user view mode
-                        if (itemToCheck.module && !availableModules.includes(itemToCheck.module)) {
+                        if (itemToCheck.module && !['dashboard', 'settings', 'support'].includes(itemToCheck.module)) {
                           setActiveTabSafe('dashboard');
                         } else if (itemToCheck.id === 'admin-panel') {
                           setActiveTabSafe('dashboard');
@@ -1885,19 +1858,18 @@ const AppContent = () => {
           </div>
         )}
 
-        {/* Navigation */}
-        <nav className="p-4 space-y-2">
-          {menuItems.map((item) => {
+        {/* Enhanced Navigation */}
+        <nav className="p-4 space-y-3">
+          {menuItems.map((item, index) => {
             const Icon = item.icon;
             const hasSubmenu = item.submenu && item.submenu.length > 0;
             const isExpanded = expandedMenus.has(item.id);
             const isParentActive = activeTab === item.id;
             const hasActiveSubmenu = hasSubmenu && item.submenu?.some(sub => sub.id === activeTab);
-            // Parent should be highlighted only if it's directly active, not when a submenu is active
             const isActive = isParentActive && !hasActiveSubmenu;
             
             return (
-              <div key={item.id}>
+              <div key={item.id} className="slide-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
               <button
                 onClick={() => {
                     if (hasSubmenu) {
@@ -1916,34 +1888,40 @@ const AppContent = () => {
                   setActiveTabSafe(item.id);
                     }
                 }}
-                  className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
+                  className={`sidebar-item w-full flex items-center gap-3 py-3 rounded-2xl transition-all duration-300 group cursor-pointer ${
                     !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) 
-                      ? 'justify-center px-2' 
-                      : 'justify-between px-3'
+                      ? 'justify-center px-3' 
+                      : 'justify-between px-4'
                   } ${
                   isActive
-                      ? `theme-gradient text-white shadow-lg`
+                      ? `bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl`
                       : hasActiveSubmenu
-                    ? `theme-gradient text-white shadow-lg`
-                    : `text-slate-700 hover:bg-slate-100`
+                    ? `bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl`
+                    : `text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:shadow-lg`
                 }`}
                 style={{ minWidth: 0 }}
               >
-                  <div className={`flex items-center ${!(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'justify-center flex-shrink-0' : 'gap-2 flex-1 min-w-0 overflow-hidden justify-start'}`}>
-                    <Icon className={`w-5 h-5 shrink-0 ${isActive || hasActiveSubmenu ? 'text-white' : !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'text-slate-700 group-hover:text-indigo-600' : `text-slate-500 ${COLOR_CLASSES.primaryTextHover}`}`} />
+                  <div className={`flex items-center ${!(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'justify-center flex-shrink-0' : 'gap-3 flex-1 min-w-0 overflow-hidden justify-start'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                      isActive || hasActiveSubmenu 
+                        ? 'bg-white/20 shadow-lg' 
+                        : 'group-hover:bg-indigo-100 group-hover:shadow-md'
+                    }`}>
+                      <Icon className={`w-5 h-5 shrink-0 ${isActive || hasActiveSubmenu ? 'text-white' : 'text-slate-600 group-hover:text-indigo-600'}`} />
+                    </div>
                 {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
-                  <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.8125rem, 2.5vw, 0.9375rem)' }}>
+                  <span className="font-semibold whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.875rem, 2.5vw, 1rem)' }}>
                     {item.label}
                   </span>
                 )}
                   </div>
                   {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && hasSubmenu && (
-                    <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${isActive || hasActiveSubmenu ? 'text-white' : 'text-slate-400'}`} />
+                    <ChevronDown className={`w-5 h-5 shrink-0 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''} ${isActive || hasActiveSubmenu ? 'text-white' : 'text-slate-400'}`} />
                   )}
                 </button>
                 {hasSubmenu && isExpanded && (
-                  <div className={`mt-1 space-y-1 ${(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'ml-4 border-l-2 border-slate-200 pl-2' : ''}`}>
-                    {item.submenu?.map((subItem) => {
+                  <div className={`mt-2 space-y-1 ${(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'ml-6 border-l-2 border-indigo-200 pl-4' : ''}`}>
+                    {item.submenu?.map((subItem, subIndex) => {
                       const SubIcon = subItem.icon;
                       const isSubActive = activeTab === subItem.id;
                       return (
@@ -1952,16 +1930,22 @@ const AppContent = () => {
                           onClick={() => {
                             setActiveTabSafe(subItem.id);
                           }}
-                          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 group cursor-pointer ${
+                          className={`sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group cursor-pointer ${
                             isSubActive
-                              ? `bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200`
-                              : `text-slate-600 hover:bg-indigo-50/50`
-                          } ${!(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'justify-center px-2' : 'justify-start'}`}
-                          style={{ minWidth: 0 }}
+                              ? `bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 shadow-lg border border-indigo-200`
+                              : `text-slate-600 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:shadow-md`
+                          } ${!(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'justify-center px-3' : 'justify-start'}`}
+                          style={{ minWidth: 0, animationDelay: `${subIndex * 0.05}s` }}
                         >
-                          <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-indigo-600' : !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) ? 'text-slate-600 group-hover:text-indigo-600' : 'text-slate-400'}`} />
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                            isSubActive 
+                              ? 'bg-indigo-200 shadow-md' 
+                              : 'group-hover:bg-indigo-100'
+                          }`}>
+                            <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-indigo-700' : 'text-slate-500 group-hover:text-indigo-600'}`} />
+                          </div>
                           {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
-                            <span className={`font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left ${isSubActive ? 'text-indigo-700' : 'text-slate-600'}`} style={{ fontSize: 'clamp(0.75rem, 2.2vw, 0.8125rem)' }}>
+                            <span className={`font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left ${isSubActive ? 'text-indigo-700' : 'text-slate-600'}`} style={{ fontSize: 'clamp(0.8125rem, 2.2vw, 0.875rem)' }}>
                               {subItem.label}
                             </span>
                           )}
@@ -2039,23 +2023,23 @@ const AppContent = () => {
         </div>
       </aside>
 
-      {/* Mobile Sidebar Sheet */}
+      {/* Enhanced Mobile Sidebar Sheet */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-72 p-0 bg-white/95 backdrop-blur-xl">
-          <SheetHeader className="h-16 flex items-center justify-between px-5 border-b border-indigo-100/60">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-md theme-gradient">
-                <TrendingUp className="w-5 h-5 text-white" />
+        <SheetContent side="left" className="w-72 p-0 glass-card border-r border-white/30">
+          <SheetHeader className="h-16 flex items-center justify-between px-5 border-b border-white/30 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg pulse-glow">
+                <TrendingUp className="w-6 h-6 text-white" />
               </div>
               <div className="flex flex-col">
-                <SheetTitle className="font-bold theme-gradient-text">Adiology</SheetTitle>
-                <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full tracking-wide uppercase w-fit">Beta</span>
+                <SheetTitle className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Adiology</SheetTitle>
+                <span className="text-[10px] font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full tracking-wide uppercase w-fit">Enhanced Beta</span>
               </div>
             </div>
           </SheetHeader>
           
-          <nav className="p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
-            {menuItems.map((item) => {
+          <nav className="p-4 space-y-3 overflow-y-auto max-h-[calc(100vh-180px)]">
+            {menuItems.map((item, index) => {
               const Icon = item.icon;
               const hasSubmenu = item.submenu && item.submenu.length > 0;
               const isExpanded = expandedMenus.has(item.id);
@@ -2064,7 +2048,7 @@ const AppContent = () => {
               const isActive = isParentActive && !hasActiveSubmenu;
               
               return (
-                <div key={item.id}>
+                <div key={item.id} className="slide-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
                   <button
                     onClick={() => {
                       if (hasSubmenu) {
@@ -2081,37 +2065,50 @@ const AppContent = () => {
                         setActiveTabSafe(item.id);
                       }
                     }}
-                    className={`w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-xl transition-all duration-200 ${
+                    className={`sidebar-item w-full flex items-center justify-between gap-3 py-3 px-4 rounded-2xl transition-all duration-300 ${
                       isActive || hasActiveSubmenu
-                        ? 'theme-gradient text-white shadow-lg'
-                        : 'text-slate-700 hover:bg-slate-100'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl'
+                        : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:shadow-lg'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <Icon className={`w-5 h-5 shrink-0 ${isActive || hasActiveSubmenu ? 'text-white' : 'text-slate-500'}`} />
-                      <span className="font-medium">{item.label}</span>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                        isActive || hasActiveSubmenu 
+                          ? 'bg-white/20 shadow-lg' 
+                          : 'group-hover:bg-indigo-100'
+                      }`}>
+                        <Icon className={`w-5 h-5 shrink-0 ${isActive || hasActiveSubmenu ? 'text-white' : 'text-slate-600'}`} />
+                      </div>
+                      <span className="font-semibold">{item.label}</span>
                     </div>
                     {hasSubmenu && (
-                      isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />
+                      <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''} ${isActive || hasActiveSubmenu ? 'text-white' : 'text-slate-400'}`} />
                     )}
                   </button>
                   
                   {hasSubmenu && isExpanded && (
-                    <div className="ml-6 mt-1 space-y-1">
-                      {item.submenu!.map((subItem) => {
+                    <div className="ml-6 mt-2 space-y-1">
+                      {item.submenu!.map((subItem, subIndex) => {
                         const SubIcon = subItem.icon;
                         const isSubActive = activeTab === subItem.id;
                         return (
                           <button
                             key={subItem.id}
                             onClick={() => setActiveTabSafe(subItem.id)}
-                            className={`w-full flex items-center gap-2 py-2 px-3 rounded-lg transition-all ${
+                            className={`sidebar-item w-full flex items-center gap-3 py-2.5 px-4 rounded-xl transition-all duration-300 ${
                               isSubActive
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'text-slate-600 hover:bg-slate-100'
+                                ? 'bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 shadow-lg border border-indigo-200'
+                                : 'text-slate-600 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50'
                             }`}
+                            style={{ animationDelay: `${subIndex * 0.05}s` }}
                           >
-                            <SubIcon className={`w-4 h-4 ${isSubActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                              isSubActive 
+                                ? 'bg-indigo-200 shadow-md' 
+                                : 'group-hover:bg-indigo-100'
+                            }`}>
+                              <SubIcon className={`w-4 h-4 ${isSubActive ? 'text-indigo-700' : 'text-slate-500'}`} />
+                            </div>
                             <span className="font-medium text-sm">{subItem.label}</span>
                           </button>
                         );
@@ -2123,35 +2120,49 @@ const AppContent = () => {
             })}
           </nav>
           
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200/60 bg-white/95 space-y-2">
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/30 glass-card space-y-3">
             <button
               onClick={() => setActiveTabSafe('workspaces')}
-              className={`w-full flex items-center gap-2 py-2.5 px-3 rounded-xl transition-all ${
+              className={`sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 ${
                 activeTab === 'workspaces'
-                  ? 'theme-gradient text-white shadow-lg'
-                  : 'text-slate-700 hover:bg-slate-100'
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl'
+                  : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:shadow-lg'
               }`}
             >
-              <Building className={`w-5 h-5 ${activeTab === 'workspaces' ? 'text-white' : 'text-slate-500'}`} />
-              <span className="font-medium">Workspaces</span>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                activeTab === 'workspaces' 
+                  ? 'bg-white/20 shadow-lg' 
+                  : 'group-hover:bg-indigo-100'
+              }`}>
+                <Building className={`w-5 h-5 ${activeTab === 'workspaces' ? 'text-white' : 'text-slate-600'}`} />
+              </div>
+              <span className="font-semibold">Workspaces</span>
             </button>
             <button
               onClick={() => setActiveTabSafe('billing')}
-              className={`w-full flex items-center gap-2 py-2.5 px-3 rounded-xl transition-all ${
+              className={`sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 ${
                 activeTab === 'billing'
-                  ? 'theme-gradient text-white shadow-lg'
-                  : 'text-slate-700 hover:bg-slate-100'
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl'
+                  : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:shadow-lg'
               }`}
             >
-              <CreditCard className={`w-5 h-5 ${activeTab === 'billing' ? 'text-white' : 'text-slate-500'}`} />
-              <span className="font-medium">Billing</span>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                activeTab === 'billing' 
+                  ? 'bg-white/20 shadow-lg' 
+                  : 'group-hover:bg-indigo-100'
+              }`}>
+                <CreditCard className={`w-5 h-5 ${activeTab === 'billing' ? 'text-white' : 'text-slate-600'}`} />
+              </div>
+              <span className="font-semibold">Billing</span>
             </button>
             <button
               onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-              className="w-full flex items-center gap-2 py-2.5 px-3 rounded-xl transition-all text-red-600 hover:bg-red-50"
+              className="sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 text-red-600 hover:bg-red-50 hover:shadow-lg"
             >
-              <LogOut className="w-5 h-5 text-red-500" />
-              <span className="font-medium">Logout</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-red-100">
+                <LogOut className="w-5 h-5 text-red-500" />
+              </div>
+              <span className="font-semibold">Logout</span>
             </button>
           </div>
         </SheetContent>
@@ -2159,36 +2170,35 @@ const AppContent = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0 w-full">
-        {/* Header */}
-        <header className="h-16 bg-white/60 backdrop-blur-xl border-b border-slate-200/60 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm flex-shrink-0">
+        {/* Enhanced Header */}
+        <header className="h-16 glass-card shadow-xl border-b border-white/30 flex items-center justify-between px-4 sm:px-6 lg:px-8 flex-shrink-0">
           <div className="flex items-center gap-2 md:gap-4">
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-indigo-50 transition-all"
+              className="md:hidden p-2 rounded-xl hover:bg-indigo-50 transition-all duration-200 modern-button"
             >
               <Menu className="w-5 h-5 text-slate-600" />
             </button>
           </div>
           
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-slate-800 hidden lg:block">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hidden lg:block">
               {getCurrentPageTitle()}
             </h2>
             
             {/* View Mode Toggle - Only show for owners/admins */}
             {canSwitchViews && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="flex items-center gap-3 px-4 py-2 rounded-xl glass-effect border border-white/30">
                 <Eye className="w-4 h-4 text-slate-600" />
-                <span className="text-sm font-medium text-slate-700 hidden sm:inline">
-                  {viewMode === 'admin' ? 'Admin' : 'User'} View
+                <span className="text-sm font-medium text-slate-700">
+                  {viewMode === 'admin' ? 'Admin View' : 'User View'}
                 </span>
                 <Switch
                   checked={viewMode === 'admin'}
                   onCheckedChange={(checked: boolean) => {
                     const newViewMode = checked ? 'admin' : 'user';
                     setViewMode(newViewMode);
-                    // If switching to user view, check if current tab is accessible
                     if (!checked) {
                       const currentItem = allMenuItems.find(item => 
                         item.id === activeTab || item.submenu?.some(sub => sub.id === activeTab)
@@ -2197,8 +2207,7 @@ const AppContent = () => {
                         const itemToCheck = currentItem.id === activeTab ? currentItem : 
                           currentItem.submenu?.find(sub => sub.id === activeTab);
                         if (itemToCheck) {
-                          // Check if item would be accessible in user view mode
-                          if (itemToCheck.module && !availableModules.includes(itemToCheck.module)) {
+                          if (itemToCheck.module && !['dashboard', 'settings', 'support'].includes(itemToCheck.module)) {
                             setActiveTabSafe('dashboard');
                           } else if (itemToCheck.id === 'admin-panel') {
                             setActiveTabSafe('dashboard');
@@ -2207,18 +2216,108 @@ const AppContent = () => {
                       }
                     }
                   }}
-                  className="ml-1"
+                  className="scale-90"
                 />
               </div>
             )}
             
+            {/* Enhanced Search */}
+            <div className="relative hidden sm:block">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setShowSearchSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
+                className="block w-64 pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 glass-effect placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                placeholder="Search campaigns, keywords..."
+              />
+              
+              {/* Enhanced Search Suggestions */}
+              {showSearchSuggestions && searchSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 glass-card rounded-xl shadow-xl border border-white/50 z-50 max-h-64 overflow-y-auto">
+                  {searchSuggestions.map((suggestion, index) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => handleSearchSuggestionClick(suggestion)}
+                      className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all duration-200 first:rounded-t-xl last:rounded-b-xl border-b border-white/30 last:border-b-0"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Search className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-700">{suggestion}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Enhanced Notifications */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="relative p-3 rounded-xl glass-effect hover:shadow-lg transition-all duration-200 border border-white/30">
+                  <Bell className="w-5 h-5 text-slate-600" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center font-semibold shadow-lg">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Notifications</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Admin/User View Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700 hidden sm:inline">
+                {viewMode === 'admin' ? 'Admin' : 'User'} View
+              </span>
+              <Switch
+                checked={viewMode === 'admin'}
+                onCheckedChange={(checked: boolean) => {
+                  const newViewMode = checked ? 'admin' : 'user';
+                  setViewMode(newViewMode);
+                  // If switching to user view, check if current tab is accessible
+                  if (!checked) {
+                    const currentItem = allMenuItems.find(item => 
+                      item.id === activeTab || item.submenu?.some(sub => sub.id === activeTab)
+                    );
+                    if (currentItem) {
+                      const itemToCheck = currentItem.id === activeTab ? currentItem : 
+                        currentItem.submenu?.find(sub => sub.id === activeTab);
+                      if (itemToCheck) {
+                        // Check if item would be accessible in user view mode
+                        // TODO: Implement module availability check when workspace system is ready
+                        if (itemToCheck.id === 'admin-panel') {
+                          setActiveTabSafe('dashboard');
+                        }
+                      }
+                    }
+                  }
+                }}
+                className="ml-1"
+              />
+            </div>
+            
             {/* Notifications Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-            <button className="relative p-2 rounded-xl hover:bg-indigo-50 transition-colors cursor-pointer">
-              <Bell className="w-5 h-5 text-slate-600" />
+                <button className="relative p-2 rounded-xl hover:bg-indigo-50 transition-colors cursor-pointer">
+                  <Bell className="w-5 h-5 text-slate-600" />
                   {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full"></span>
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full"></span>
                   )}
                 </button>
               </DropdownMenuTrigger>
@@ -2285,10 +2384,10 @@ const AppContent = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Profile Dropdown */}
+            {/* Enhanced Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className={`w-10 h-10 rounded-xl bg-gradient-to-br ${COLOR_CLASSES.primaryGradient} flex items-center justify-center text-white font-medium shadow-lg shadow-indigo-300/30 hover:shadow-xl transition-all cursor-pointer`}>
+                <button className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
                   {user 
                     ? (() => {
                         const name = user.full_name || user.email || 'U';
@@ -2354,10 +2453,23 @@ const AppContent = () => {
           </div>
         </header>
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 w-full min-w-0 relative">
-          {renderContent()}
+        {/* Enhanced Content Area */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10 pb-20 md:pb-6 w-full min-w-0 relative bg-gradient-to-br from-slate-50/50 via-indigo-50/30 to-purple-50/50">
+          <div className="slide-in-up">
+            {renderContent()}
+          </div>
         </main>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation 
+          activeTab={activeTab}
+          onTabChange={setActiveTabSafe}
+        />
+
+        {/* Mobile Quick Actions */}
+        <MobileQuickActions 
+          onNewCampaign={() => setActiveTabSafe('builder-3')}
+        />
       </div>
 
     </div>

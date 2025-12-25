@@ -10,7 +10,7 @@ import { notifications } from "./utils/notifications";
 import { toast } from "sonner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { initializeUserPreferences } from "./utils/userPreferences";
-import ErrorBoundary from "./components/ErrorBoundary";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { validateEnvironment } from "./utils/envCheck";
 import { loggingService } from "./utils/loggingService";
