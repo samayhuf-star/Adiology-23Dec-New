@@ -1,12 +1,13 @@
-// Test setup for property-based testing with fast-check
-import fc from 'fast-check';
+// Test setup for Google Ads compliance tests
+// This file is run before each test suite
 
-// Configure fast-check for consistent test runs
-fc.configureGlobal({
-  numRuns: 100, // Minimum 100 iterations per property test as specified
-  seed: 42, // Fixed seed for reproducible tests in CI
-  verbose: true
-});
+// Mock console methods to reduce noise during testing
+global.console = {
+  ...console,
+  // Uncomment to suppress console.log during tests
+  // log: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+};
 
-// Global test utilities
-global.fc = fc;
+// Set up any global test utilities or mocks here

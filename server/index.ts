@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
@@ -11,6 +12,7 @@ import { analyzeUrlWithCheerio } from './urlAnalyzerLite';
 import { expandKeywords } from '../shared/keywordExpansion.js';
 import { generateDetailedBlog, type BlogConfig } from './blogGenerator.js';
 import { getDatabaseUrl } from './dbConfig';
+import { adminAuthMiddleware, getAdminClient, getAdminServiceStatus, logAdminAction } from './adminAuthService';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
@@ -241,6 +243,19 @@ async function verifySuperAdmin(c: any): Promise<{ authorized: boolean; error?: 
     console.error('Admin auth error:', error);
     return { authorized: false, error: 'Authentication failed' };
   }
+}
+
+// Helper function to use new admin auth in existing endpoints
+async function withAdminAuth(c: any, handler: (adminContext: any) => Promise<Response>): Promise<Response> {
+  const authResult = await adminAuthMiddleware(c);
+  
+  // If it's a Response object, return the error response
+  if (authResult && typeof authResult === 'object' && 'status' in authResult) {
+    return authResult;
+  }
+  
+  // Call the handler with the admin context
+  return handler(authResult);
 }
 
 async function initStripe() {
@@ -4517,59 +4532,215 @@ async function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
+// Admin Configuration Status (for debugging)
+app.get('/api/admin/config-status', async (c) => {
+  return withAdminAuth(c, async (adminContext) => {
+    const status = getAdminServiceStatus();
+    return c.json({
+      success: true,
+      data: {
+        adminService: status,
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          hasSupabaseUrl: !!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
+          hasSupabaseAnonKey: !!(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY),
+          hasSupabaseServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+          hasDatabaseUrl: !!process.env.DATABASE_URL,
+          hasSupabaseDbPassword: !!process.env.SUPABASE_DB_PASSWORD,
+        },
+        adminUser: {
+          id: adminContext.user.id,
+          email: adminContext.user.email,
+          role: adminContext.user.role,
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+  });
+});
+
 // Admin Stats Dashboard
 app.get('/api/admin/stats', async (c) => {
-  const auth = await verifySuperAdmin(c);
-  if (!auth.authorized) {
-    return c.json({ error: auth.error }, 403);
-  }
-  try {
-    const supabase = await getSupabaseAdmin();
-    if (!supabase) {
-      return c.json({ error: 'Supabase not configured' }, 500);
-    }
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const supabase = adminContext.adminClient;
+      if (!supabase) {
+        return c.json({
+          success: false,
+          error: 'Admin client not available',
+          code: 'CONFIG_ERROR',
+          details: { message: 'Supabase admin client not initialized' },
+          timestamp: new Date().toISOString()
+        }, 500);
+      }
 
-    // Get total users from Supabase
-    const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
-    
-    // Get active subscriptions from Supabase subscriptions table
-    const { count: activeSubscriptions } = await supabase
-      .from('subscriptions')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active');
-    
-    // Get feedback count
-    const { count: feedbackCount } = await supabase.from('feedback').select('*', { count: 'exact', head: true });
-    
-    // Get audit logs count (last 24 hours)
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: auditCount } = await supabase
-      .from('audit_logs')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', yesterday);
-    
-    // Get emails sent
-    const { count: emailsSent } = await supabase.from('emails').select('*', { count: 'exact', head: true });
-    
-    // Get payments count for revenue estimate
-    const { data: payments } = await supabase.from('payments').select('*');
-    const monthlyRevenue = (payments || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0) / 100;
-    
-    return c.json({
-      totalUsers: totalUsers || 0,
-      activeSubscriptions: activeSubscriptions || 0,
-      monthlyRevenue: monthlyRevenue || 0,
-      errorCount: auditCount || 0,
-      activeTrials: feedbackCount || 0,
-      emailsSent: emailsSent || 0
-    });
-  } catch (error: any) {
-    console.error('Error fetching admin stats:', error);
-    return c.json({ 
-      totalUsers: 0, activeSubscriptions: 0, monthlyRevenue: 0, 
-      errorCount: 0, activeTrials: 0, emailsSent: 0 
-    });
-  }
+      // Initialize stats object
+      const stats = {
+        totalUsers: 0,
+        activeSubscriptions: 0,
+        monthlyRevenue: 0,
+        errorCount: 0,
+        activeTrials: 0,
+        emailsSent: 0
+      };
+
+      const errors: string[] = [];
+
+      // Get total users from Supabase
+      try {
+        const { count: totalUsers, error } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) {
+          errors.push(`Users table error: ${error.message}`);
+        } else {
+          stats.totalUsers = totalUsers || 0;
+        }
+      } catch (error: any) {
+        errors.push(`Users table query failed: ${error.message}`);
+      }
+      
+      // Get active subscriptions from Supabase subscriptions table
+      try {
+        const { count: activeSubscriptions, error } = await supabase
+          .from('subscriptions')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'active');
+        
+        if (error) {
+          errors.push(`Subscriptions table error: ${error.message}`);
+        } else {
+          stats.activeSubscriptions = activeSubscriptions || 0;
+        }
+      } catch (error: any) {
+        errors.push(`Subscriptions table query failed: ${error.message}`);
+      }
+      
+      // Get monthly revenue from payments table
+      try {
+        const { data: payments, error } = await supabase
+          .from('payments')
+          .select('amount_cents, status')
+          .eq('status', 'succeeded')
+          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        
+        if (error) {
+          errors.push(`Payments table error: ${error.message}`);
+        } else {
+          stats.monthlyRevenue = (payments || []).reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0) / 100;
+        }
+      } catch (error: any) {
+        errors.push(`Payments table query failed: ${error.message}`);
+      }
+      
+      // Get error count from audit logs (last 24 hours)
+      try {
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count: errorCount, error } = await supabase
+          .from('audit_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('level', 'error')
+          .gte('created_at', yesterday);
+        
+        if (error) {
+          errors.push(`Audit logs table error: ${error.message}`);
+        } else {
+          stats.errorCount = errorCount || 0;
+        }
+      } catch (error: any) {
+        errors.push(`Audit logs table query failed: ${error.message}`);
+      }
+      
+      // Get trial count from feedback table (as proxy for trials)
+      try {
+        const { count: feedbackCount, error } = await supabase
+          .from('feedback')
+          .select('*', { count: 'exact', head: true })
+          .eq('type', 'feature_request');
+        
+        if (error) {
+          errors.push(`Feedback table error: ${error.message}`);
+        } else {
+          stats.activeTrials = feedbackCount || 0;
+        }
+      } catch (error: any) {
+        errors.push(`Feedback table query failed: ${error.message}`);
+      }
+      
+      // Get emails sent count
+      try {
+        const { count: emailsSent, error } = await supabase
+          .from('emails')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'sent');
+        
+        if (error) {
+          errors.push(`Emails table error: ${error.message}`);
+        } else {
+          stats.emailsSent = emailsSent || 0;
+        }
+      } catch (error: any) {
+        errors.push(`Emails table query failed: ${error.message}`);
+      }
+
+      // Log the admin action
+      await logAdminAction(
+        adminContext.user.id,
+        'view_admin_stats',
+        'dashboard',
+        'stats',
+        { errors: errors.length > 0 ? errors : undefined },
+        errors.length > 0 ? 'warning' : 'info'
+      );
+
+      // Return response with errors if any
+      if (errors.length > 0) {
+        return c.json({
+          success: false,
+          error: 'Some statistics could not be retrieved',
+          code: 'DATABASE_ERROR',
+          data: stats,
+          details: {
+            message: 'One or more database queries failed',
+            errors,
+            tablesWithErrors: errors.length,
+            tablesQueried: 6
+          },
+          timestamp: new Date().toISOString()
+        }, 206); // 206 Partial Content
+      }
+
+      return c.json({
+        success: true,
+        data: stats,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      console.error('Error fetching admin stats:', error);
+      
+      await logAdminAction(
+        adminContext.user.id,
+        'view_admin_stats_error',
+        'dashboard',
+        'stats',
+        { error: error.message },
+        'error'
+      );
+
+      return c.json({
+        success: false,
+        error: 'Failed to retrieve dashboard statistics',
+        code: 'DATABASE_ERROR',
+        details: {
+          message: error.message,
+          suggestion: 'Check database connection and table existence'
+        },
+        timestamp: new Date().toISOString()
+      }, 500);
+    }
+  });
 });
 
 // Get all users for admin

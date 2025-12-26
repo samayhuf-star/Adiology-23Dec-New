@@ -59,10 +59,10 @@ export interface ValidationReport {
 }
 
 /**
- * Strip quotation marks from ad text
+ * Strip quotation marks from ad text with enhanced DKI handling
  * Google Ads does not allow quotes in ad copy, especially around DKI syntax
- * Wrong: "{KeyWord:Adiology Service}"
- * Right: {KeyWord:Adiology Service}
+ * Wrong: "{KeyWord:Adiology Service}" or 'Best {KeyWord:Service}'
+ * Right: {KeyWord:Adiology Service} or Best {KeyWord:Service}
  */
 export function stripQuotesFromAdText(text: string): string {
   if (!text) return '';
@@ -74,15 +74,22 @@ export function stripQuotesFromAdText(text: string): string {
   cleaned = cleaned.replace(/^[']+|[']+$/g, '');
   
   // Remove quotes around DKI syntax specifically: "{KeyWord:...}" -> {KeyWord:...}
-  cleaned = cleaned.replace(/"(\{KeyWord:[^}]+\})"/g, '$1');
-  cleaned = cleaned.replace(/'(\{KeyWord:[^}]+\})'/g, '$1');
+  cleaned = cleaned.replace(/"(\{(?:keyword|Keyword|KeyWord|KEYWord):[^}]+\})"/g, '$1');
+  cleaned = cleaned.replace(/'(\{(?:keyword|Keyword|KeyWord|KEYWord):[^}]+\})'/g, '$1');
+  
+  // Remove quotes around entire phrases containing DKI
+  cleaned = cleaned.replace(/"([^"]*\{(?:keyword|Keyword|KeyWord|KEYWord):[^}]+\}[^"]*)"/g, '$1');
+  cleaned = cleaned.replace(/'([^']*\{(?:keyword|Keyword|KeyWord|KEYWord):[^}]+\}[^']*)'/g, '$1');
   
   // Remove any stray quotes that shouldn't be in ad text
   // But be careful to preserve apostrophes in words like "don't" or "we're"
   // Only remove quotes at word boundaries or that are clearly formatting
   cleaned = cleaned.replace(/^"+|"+$/g, ''); // Quotes at start/end
-  cleaned = cleaned.replace(/\s"+|"+\s/g, ' '); // Quotes with spaces
+  cleaned = cleaned.replace(/\s"+|"+\s/g, ' '); // Quotes with spaces around them
   cleaned = cleaned.replace(/^'+|'+$/g, ''); // Single quotes at start/end
+  
+  // Remove quotes that are clearly not apostrophes (not between letters)
+  cleaned = cleaned.replace(/(?<![a-zA-Z])['"](?![a-zA-Z])/g, '');
   
   return cleaned.trim();
 }

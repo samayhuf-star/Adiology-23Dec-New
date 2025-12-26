@@ -107,6 +107,9 @@
             "preview": "vite preview --host 0.0.0.0 --port 5000",
             "prod": "NODE_ENV=production npx tsx server/index.ts",
             "seed:products": "npx tsx server/seed-products.ts",
+            "test": "jest",
+            "test:watch": "jest --watch",
+            "test:coverage": "jest --coverage",
             "test:lambdatest": "playwright test --config=playwright.lambdatest.config.ts",
             "generate:templates": "node scripts/generate.js",
             "preview:templates": "node scripts/generate.js && npx serve dist"

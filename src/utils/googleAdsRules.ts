@@ -200,6 +200,7 @@ export interface CallOnlyValidationResult {
 
 /**
  * Check if two strings are too similar (near-duplicate)
+ * Enhanced to meet Google's "substantially different" requirement
  */
 export function areHeadlinesSimilar(h1: string, h2: string): boolean {
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -208,14 +209,29 @@ export function areHeadlinesSimilar(h1: string, h2: string): boolean {
   
   if (n1 === n2) return true;
   
-  // Levenshtein distance check - if less than 20% different, too similar
+  // Google requires headlines to be "substantially different"
+  // More strict similarity check - if less than 40% different, too similar
   const distance = levenshteinDistance(n1, n2);
   const maxLen = Math.max(n1.length, n2.length);
-  if (maxLen > 0 && distance / maxLen < 0.25) return true;
+  if (maxLen > 0 && distance / maxLen < 0.4) return true;
   
   // Check if one is just plural/singular of other
   if (n1 + 's' === n2 || n2 + 's' === n1) return true;
   if (n1.replace(/s$/, '') === n2 || n2.replace(/s$/, '') === n1) return true;
+  
+  // Check if headlines start with same 3+ words (Google considers this too similar)
+  const words1 = h1.toLowerCase().split(/\s+/);
+  const words2 = h2.toLowerCase().split(/\s+/);
+  if (words1.length >= 3 && words2.length >= 3) {
+    const first3Words1 = words1.slice(0, 3).join(' ');
+    const first3Words2 = words2.slice(0, 3).join(' ');
+    if (first3Words1 === first3Words2) return true;
+  }
+  
+  // Check for common patterns that Google considers too similar
+  const pattern1 = h1.toLowerCase().replace(/\b(get|call|free|best|top|quality)\b/g, 'X');
+  const pattern2 = h2.toLowerCase().replace(/\b(get|call|free|best|top|quality)\b/g, 'X');
+  if (pattern1 === pattern2 && pattern1.includes('X')) return true;
   
   return false;
 }
@@ -406,7 +422,7 @@ export function validateRSA(
 // ============================================================================
 
 /**
- * Validate DKI syntax
+ * Validate DKI syntax with enhanced Google Ads compliance
  */
 export function validateDKISyntax(text: string): DKIValidationResult {
   const errors: string[] = [];
@@ -419,6 +435,11 @@ export function validateDKISyntax(text: string): DKIValidationResult {
   // Check for multiple DKI in same field (not allowed)
   if (matches.length > 1) {
     errors.push('Only one DKI insertion allowed per text field');
+  }
+  
+  // Check for quotes around DKI (prohibited)
+  if (text.includes('"{') && text.includes('}"') || text.includes("'{") && text.includes("'}")) {
+    errors.push('DKI syntax must not be enclosed in quotes. Use {KeyWord:Default} not "{KeyWord:Default}"');
   }
   
   // Check for invalid syntax
@@ -453,9 +474,25 @@ export function validateDKISyntax(text: string): DKIValidationResult {
       defaultTextValid = false;
     }
     
-    // Check grammar considerations
-    if (defaultText.includes(' ') === false && text.includes('Getting ')) {
-      warnings.push('Watch grammar: "Getting [keyword]" may not work with all keyword variations');
+    // Enhanced grammar validation
+    const textBefore = text.substring(0, text.indexOf(match[0]));
+    const textAfter = text.substring(text.indexOf(match[0]) + match[0].length);
+    
+    // Check for common grammar issues
+    if (textBefore.endsWith('a ') && !defaultText.match(/^[aeiou]/i)) {
+      warnings.push('Grammar issue: "a [keyword]" may not work with consonant-starting keywords. Consider "a/an" or rephrase.');
+    }
+    if (textBefore.endsWith('an ') && !defaultText.match(/^[aeiou]/i)) {
+      warnings.push('Grammar issue: "an [keyword]" may not work with consonant-starting keywords');
+    }
+    if (textBefore.match(/\b(is|are)\s*$/i) && defaultText.includes(' ')) {
+      warnings.push('Grammar issue: Plural keywords with singular verb form may create grammar errors');
+    }
+    
+    // Check for promotional text in default (not recommended)
+    const promotionalWords = ['best', 'top', '#1', 'leading', 'premier'];
+    if (promotionalWords.some(word => defaultText.toLowerCase().includes(word))) {
+      warnings.push('Avoid promotional words in DKI default text - use neutral service/product names');
     }
   }
   
@@ -508,15 +545,26 @@ export function formatDKI(
 // ============================================================================
 
 /**
- * Validate phone number format
+ * Validate phone number format with enhanced Google Ads compliance
  */
 export function validatePhoneNumber(phone: string): { valid: boolean; error?: string } {
   // Remove formatting
   const cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
   
-  // Check for premium rate numbers (prohibited)
-  if (/^1?(900|976)/.test(cleaned)) {
-    return { valid: false, error: 'Premium-rate phone numbers (900, 976) are prohibited' };
+  // Check for premium rate numbers (prohibited by Google)
+  if (/^1?(900|976|550|540)/.test(cleaned)) {
+    return { valid: false, error: 'Premium-rate phone numbers (900, 976, 550, 540) are prohibited' };
+  }
+  
+  // Check for international premium numbers
+  if (/^(\+1900|\+1976)/.test(cleaned)) {
+    return { valid: false, error: 'International premium-rate numbers are prohibited' };
+  }
+  
+  // Check for fake/test numbers
+  const fakePatterns = ['5551234567', '1234567890', '0000000000', '1111111111'];
+  if (fakePatterns.includes(cleaned)) {
+    return { valid: false, error: 'Test/fake phone numbers are not allowed' };
   }
   
   // US format check
@@ -528,11 +576,11 @@ export function validatePhoneNumber(phone: string): { valid: boolean; error?: st
     return { valid: true };
   }
   
-  return { valid: false, error: 'Invalid phone number format' };
+  return { valid: false, error: 'Invalid phone number format. Use US format (10 digits) or international format (+country code)' };
 }
 
 /**
- * Validate Call-Only ad
+ * Validate Call-Only ad with enhanced Google Ads compliance
  */
 export function validateCallOnlyAd(ad: {
   headlines: string[];
@@ -564,22 +612,36 @@ export function validateCallOnlyAd(ad: {
     }
   });
   
-  // Validate business name
+  // Validate business name with enhanced checks
   if (!ad.businessName || ad.businessName.trim().length === 0) {
     errors.push('Business name is required');
   } else if (ad.businessName.length > CHARACTER_LIMITS.CALL_ONLY.BUSINESS_NAME) {
     errors.push(`Business name exceeds ${CHARACTER_LIMITS.CALL_ONLY.BUSINESS_NAME} characters`);
   }
   
-  // Check if business name is promotional (not allowed)
-  const promotionalPatterns = ['best', 'top', 'call now', '#1', 'number one', '24/7'];
+  // Enhanced promotional text detection in business name
+  const promotionalPatterns = [
+    'best', 'top', 'call now', '#1', 'number one', '24/7', 'leading', 'premier', 
+    'award winning', 'trusted', 'professional', 'expert', 'quality', 'affordable',
+    'cheap', 'discount', 'sale', 'offer', 'deal', 'free', 'guaranteed'
+  ];
   const businessNameLower = ad.businessName.toLowerCase();
-  if (promotionalPatterns.some(p => businessNameLower.includes(p))) {
-    warnings.push('Business name should not contain promotional text');
+  const foundPromotional = promotionalPatterns.filter(p => businessNameLower.includes(p));
+  if (foundPromotional.length > 0) {
+    errors.push(`Business name cannot contain promotional text: ${foundPromotional.join(', ')}. Use your actual business name only.`);
+  }
+  
+  // Check for generic business names (not allowed)
+  const genericNames = ['plumber', 'electrician', 'lawyer', 'dentist', 'contractor', 'service', 'company', 'business'];
+  if (genericNames.some(name => businessNameLower === name || businessNameLower === name + 's')) {
+    errors.push('Business name cannot be generic service terms. Use your actual business name.');
   }
   
   // Validate phone number
   const phoneResult = validatePhoneNumber(ad.phoneNumber);
+  if (!phoneResult.valid) {
+    errors.push(phoneResult.error!);
+  }
   
   // Validate verification URL
   if (ad.verificationUrl) {
@@ -590,15 +652,29 @@ export function validateCallOnlyAd(ad: {
     errors.push('Verification URL is required for Call-Only ads');
   }
   
-  // Call-Only specific warnings
-  const headlines = ad.headlines.join(' ').toLowerCase();
-  if (!headlines.includes('call') && !headlines.includes('tap')) {
-    warnings.push('Consider including "Call" or "Tap" in headlines for Call-Only ads');
+  // Call-Only specific requirements - must include call-to-action
+  const allText = [...ad.headlines, ...ad.descriptions].join(' ').toLowerCase();
+  const callActions = ['call', 'tap', 'phone', 'dial', 'contact'];
+  if (!callActions.some(action => allText.includes(action))) {
+    errors.push('Call-Only ads must include a call-to-action word like "Call", "Tap", "Phone", or "Contact"');
+  }
+  
+  // Check for misleading availability claims
+  const availabilityClaims = ['24/7', '24 hours', 'always open', 'never closed'];
+  const hasAvailabilityClaim = availabilityClaims.some(claim => allText.includes(claim.toLowerCase()));
+  if (hasAvailabilityClaim) {
+    warnings.push('Ensure availability claims are accurate. Google may verify 24/7 claims.');
+  }
+  
+  // Check for location specificity
+  const locationWords = ['local', 'nearby', 'area', 'city', 'town'];
+  if (!locationWords.some(word => allText.includes(word))) {
+    warnings.push('Consider adding location-specific terms to improve local relevance');
   }
   
   return {
-    valid: errors.length === 0 && phoneResult.valid,
-    errors: phoneResult.valid ? errors : [...errors, phoneResult.error!],
+    valid: errors.length === 0,
+    errors,
     warnings,
     phoneValid: phoneResult.valid,
     businessNameValid: !errors.some(e => e.includes('Business name'))
@@ -688,13 +764,15 @@ export const BEST_PRACTICES = {
 
 /**
  * Sanitize ad text to comply with Google Ads policies
- * Removes prohibited special characters and fixes common issues
+ * Enhanced version with comprehensive character and formatting validation
  * 
  * Google Ads Policy prohibits:
  * - Excessive punctuation (multiple !, ?, etc.)
  * - Special characters at beginning of headlines
  * - Most special symbols (@ # $ % ^ * < > { } [ ] | \ ~ `)
  * - Misleading symbols or formatting
+ * - All caps text (except acronyms)
+ * - Repetitive characters or words
  */
 export function sanitizeAdText(text: string): string {
   if (!text) return '';
@@ -711,7 +789,12 @@ export function sanitizeAdText(text: string): string {
   // Prohibited: @ # ^ * < > { } [ ] | \ ~ ` = + _ " /
   sanitized = sanitized.replace(/[@#^*<>{}\[\]|\\~`=+_"\/]/g, '');
   
-  // 4. Remove excessive exclamation marks (only 1 allowed per ad field)
+  // 4. Fix all caps text (except for acronyms 2-4 letters)
+  sanitized = sanitized.replace(/\b[A-Z]{5,}\b/g, (match) => {
+    return match.charAt(0) + match.slice(1).toLowerCase();
+  });
+  
+  // 5. Remove excessive exclamation marks (only 1 allowed per ad field)
   const exclamationCount = (sanitized.match(/!/g) || []).length;
   if (exclamationCount > 1) {
     // Keep only the last exclamation mark
@@ -725,23 +808,42 @@ export function sanitizeAdText(text: string): string {
     }).reverse().join('');
   }
   
-  // 5. Remove exclamation at the beginning of text
+  // 6. Remove excessive question marks (only 1 allowed)
+  const questionCount = (sanitized.match(/\?/g) || []).length;
+  if (questionCount > 1) {
+    let found = false;
+    sanitized = sanitized.split('').reverse().map(char => {
+      if (char === '?') {
+        if (found) return '';
+        found = true;
+      }
+      return char;
+    }).reverse().join('');
+  }
+  
+  // 7. Remove punctuation at the beginning of text
   sanitized = sanitized.replace(/^[!?.,;:]+\s*/, '');
   
-  // 6. Remove multiple consecutive punctuation (e.g., "!!" or "??")
+  // 8. Remove multiple consecutive punctuation (e.g., "!!" or "??")
   sanitized = sanitized.replace(/([!?.,;:])\1+/g, '$1');
   
-  // 7. Remove punctuation followed by punctuation (e.g., "!?" or ".!")
+  // 9. Remove punctuation followed by different punctuation (e.g., "!?" or ".!")
   sanitized = sanitized.replace(/([!?])([!?.,;:])/g, '$1');
   
-  // 8. Clean up multiple spaces
+  // 10. Remove repetitive words (e.g., "Best Best Service" -> "Best Service")
+  sanitized = sanitized.replace(/\b(\w+)(\s+\1\b)+/gi, '$1');
+  
+  // 11. Clean up multiple spaces
   sanitized = sanitized.replace(/\s+/g, ' ').trim();
   
-  // 9. Remove trailing punctuation that's not period, exclamation, or question
+  // 12. Remove trailing punctuation that's not period, exclamation, or question
   sanitized = sanitized.replace(/[,;:]+$/, '');
   
-  // 10. Ensure text doesn't start with a symbol
+  // 13. Ensure text doesn't start with a symbol
   sanitized = sanitized.replace(/^[-&]+\s*/, '');
+  
+  // 14. Remove leading/trailing hyphens that might be formatting artifacts
+  sanitized = sanitized.replace(/^-+\s*|\s*-+$/g, '');
   
   return sanitized;
 }

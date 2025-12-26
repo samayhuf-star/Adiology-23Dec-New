@@ -22,7 +22,7 @@
  * - No truncation: Every line is a complete thought
  */
 
-import { CHARACTER_LIMITS, buildDKIDefault, applyDKICapitalization } from './googleAdsRules';
+import { CHARACTER_LIMITS, buildDKIDefault, applyDKICapitalization, sanitizeAdText, formatHeadline, formatDescription, areHeadlinesSimilar } from './googleAdsRules';
 
 export interface UniversalAdInput {
   industry: string;
@@ -510,9 +510,26 @@ export function generateUniversalRSA(input: UniversalAdInput): UniversalRSA {
   const pillar4 = generatePillar4CTA(input);
   
   let allHeadlines = [...pillar1, ...pillar2, ...pillar3, ...pillar4];
+  
+  // Apply Google Ads compliance validation and sanitization
+  allHeadlines = allHeadlines.map(h => {
+    const sanitized = sanitizeAdText(h);
+    return formatHeadline(sanitized);
+  }).filter(h => h.length > 0);
+  
+  // Ensure substantial differences between headlines (Google requirement)
   allHeadlines = ensureDiversity(allHeadlines);
   
-  // Generate varied fallback headlines if needed to reach 15
+  // Additional diversity check using Google's similarity rules
+  const finalHeadlines: string[] = [];
+  for (const headline of allHeadlines) {
+    const isTooSimilar = finalHeadlines.some(existing => areHeadlinesSimilar(headline, existing));
+    if (!isTooSimilar) {
+      finalHeadlines.push(headline);
+    }
+  }
+  
+  // Generate varied fallback headlines if needed to reach optimal count (10-15)
   const keywords = cleanKeywords(input.keywords);
   const fallbackTemplates = [
     (kw: string) => `${titleCase(kw)} Experts`,
@@ -528,31 +545,54 @@ export function generateUniversalRSA(input: UniversalAdInput): UniversalRSA {
   ];
   
   let templateIndex = 0;
-  while (allHeadlines.length < 15 && templateIndex < fallbackTemplates.length) {
+  while (finalHeadlines.length < 15 && templateIndex < fallbackTemplates.length) {
     const kwIndex = templateIndex % Math.max(1, keywords.length);
     const extraKw = keywords[kwIndex] || input.industry;
-    const candidate = truncateToTarget(fallbackTemplates[templateIndex](extraKw));
+    const candidate = formatHeadline(sanitizeAdText(fallbackTemplates[templateIndex](extraKw)));
     
-    // Only add if it passes diversity check
-    const candidatePrefix = getFirstThreeWords(candidate);
-    const existingPrefixes = new Set(allHeadlines.map(h => getFirstThreeWords(h)));
-    
-    if (!existingPrefixes.has(candidatePrefix)) {
-      allHeadlines.push(candidate);
+    // Only add if it passes Google's similarity check
+    const isTooSimilar = finalHeadlines.some(existing => areHeadlinesSimilar(candidate, existing));
+    if (!isTooSimilar && candidate.length > 0) {
+      finalHeadlines.push(candidate);
     }
     templateIndex++;
   }
   
-  // Final diversity enforcement
-  allHeadlines = ensureDiversity(allHeadlines).slice(0, 15);
+  // Ensure minimum 3 headlines (Google requirement)
+  while (finalHeadlines.length < 3) {
+    const fallback = formatHeadline(`${input.businessName} Service`);
+    if (!finalHeadlines.includes(fallback)) {
+      finalHeadlines.push(fallback);
+    } else {
+      finalHeadlines.push(formatHeadline(`Professional ${input.industry}`));
+      break;
+    }
+  }
   
-  const descriptions = generateDescriptions(input);
+  // Generate descriptions with validation
+  let descriptions = generateDescriptions(input);
+  descriptions = descriptions.map(d => {
+    const sanitized = sanitizeAdText(d);
+    return formatDescription(sanitized);
+  }).filter(d => d.length > 0);
+  
+  // Ensure minimum 2 descriptions (Google requirement)
+  while (descriptions.length < 2) {
+    const fallback = formatDescription(`Professional ${input.industry} services. Contact us today for expert solutions.`);
+    if (!descriptions.includes(fallback)) {
+      descriptions.push(fallback);
+    } else {
+      descriptions.push(formatDescription(`Quality service guaranteed. Get your free quote now.`));
+      break;
+    }
+  }
+  
   const displayPath = buildDisplayPath(input);
   const finalUrl = buildFinalUrl(input);
   
   return {
-    headlines: allHeadlines,
-    descriptions,
+    headlines: finalHeadlines.slice(0, 15), // Max 15 headlines
+    descriptions: descriptions.slice(0, 4), // Max 4 descriptions
     finalUrl,
     displayPath,
     pillarBreakdown: {

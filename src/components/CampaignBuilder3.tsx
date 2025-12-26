@@ -39,6 +39,7 @@ import {
 import { exportCampaignToCSVV3, validateCSVBeforeExport } from '../utils/csvGeneratorV3';
 import { exportCampaignToGoogleAdsEditorCSV, campaignStructureToCSVRows, GOOGLE_ADS_EDITOR_HEADERS } from '../utils/googleAdsEditorCSVExporter';
 import { validateAndFixAds, formatValidationReport } from '../utils/adValidationUtils';
+import { validateRSA, validateDKISyntax, validateCallOnlyAd } from '../utils/googleAdsRules';
 import Papa from 'papaparse';
 import { historyService } from '../utils/historyService';
 import { generateCSVWithBackend } from '../utils/csvExportBackend';
@@ -1542,8 +1543,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         }
       }
 
-      // Universal Ad Generator - 4-Pillar Bucket System
-      // Generate RSA, DKI, and Call ads using the new architecture
+      // Universal Ad Generator - 4-Pillar Bucket System with Enhanced Google Ads Compliance
+      // Generate RSA, DKI, and Call ads using the new architecture with validation
       const adTypesToGenerate = ['rsa', 'dki', 'call'];
       
       // Build Universal Ad Input
@@ -1561,8 +1562,15 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       for (const adType of adTypesToGenerate) {
         try {
           if (adType === 'rsa') {
-            // Generate RSA using 4-Pillar System
+            // Generate RSA using 4-Pillar System with Google Ads compliance
             const rsa = generateUniversalRSA(universalInput);
+            
+            // Validate the generated RSA
+            const validation = validateRSA(rsa.headlines, rsa.descriptions, rsa.displayPath);
+            if (!validation.valid) {
+              console.warn('RSA validation issues:', validation.headlineErrors, validation.descriptionErrors);
+            }
+            
             ads.push({
               id: `ad-${Date.now()}-${Math.random()}`,
               type: 'rsa',
@@ -1574,10 +1582,27 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               selected: false,
               extensions: [],
               pillarBreakdown: rsa.pillarBreakdown,
+              adStrength: validation.adStrength,
+              validationWarnings: validation.warnings,
             });
           } else if (adType === 'dki') {
-            // Generate DKI ad
+            // Generate DKI ad with enhanced validation
             const dki = generateUniversalDKI(universalInput);
+            
+            // Validate DKI syntax in generated headlines and descriptions
+            const dkiValidation = {
+              headline1: validateDKISyntax(dki.headline1 || ''),
+              headline2: validateDKISyntax(dki.headline2 || ''),
+              headline3: validateDKISyntax(dki.headline3 || ''),
+              description1: validateDKISyntax(dki.description1 || ''),
+              description2: validateDKISyntax(dki.description2 || ''),
+            };
+            
+            const hasValidationErrors = Object.values(dkiValidation).some(v => !v.valid);
+            if (hasValidationErrors) {
+              console.warn('DKI validation issues:', dkiValidation);
+            }
+            
             ads.push({
               id: `ad-${Date.now()}-${Math.random()}`,
               type: 'dki',
@@ -1591,10 +1616,25 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               finalUrl: dki.finalUrl || campaignData.url || '',
               selected: false,
               extensions: [],
+              dkiValidation: dkiValidation,
             });
           } else if (adType === 'call') {
-            // Generate Call-Only ad
+            // Generate Call-Only ad with enhanced validation
             const call = generateUniversalCallAd(universalInput);
+            
+            // Validate Call-Only ad
+            const callValidation = validateCallOnlyAd({
+              headlines: [call.headline1 || '', call.headline2 || ''],
+              descriptions: [call.description1 || '', call.description2 || ''],
+              businessName: call.businessName || businessName,
+              phoneNumber: call.phoneNumber || '',
+              verificationUrl: call.verificationUrl || campaignData.url || '',
+            });
+            
+            if (!callValidation.valid) {
+              console.warn('Call-Only ad validation issues:', callValidation.errors);
+            }
+            
             ads.push({
               id: `ad-${Date.now()}-${Math.random()}`,
               type: 'call',
@@ -1608,6 +1648,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               finalUrl: call.verificationUrl || campaignData.url || '',
               selected: false,
               extensions: [],
+              callValidation: callValidation,
             });
           }
         } catch (adError) {
