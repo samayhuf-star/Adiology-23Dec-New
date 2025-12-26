@@ -1,7 +1,7 @@
 import { FormTemplate } from './formTemplates';
 
 // Complete collection of 100+ form templates
-export const allFormTemplates: FormTemplate[] = [
+const baseFormTemplates: FormTemplate[] = [
   // BUSINESS FORMS - Lead Generation (10 templates)
   {
     id: 'lead-gen-basic',
@@ -453,9 +453,12 @@ const realEstateTemplates: FormTemplate[] = [
 ];
 
 // Combine all templates
-export const allFormTemplates: FormTemplate[] = [
-  ...allFormTemplates,
+const completeTemplateCollection: FormTemplate[] = [
+  ...baseFormTemplates,
   ...surveyTemplates,
   ...hrTemplates,
   ...realEstateTemplates
 ];
+
+// Export the complete template collection
+export { completeTemplateCollection as formTemplates };

@@ -4745,71 +4745,350 @@ app.get('/api/admin/stats', async (c) => {
 
 // Get all users for admin
 app.get('/api/admin/users', async (c) => {
-  try {
-    const supabase = await getSupabaseAdmin();
-    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-    console.log('[Admin Users] Service role key available:', hasServiceKey);
-    
-    if (!supabase) {
-      console.log('[Admin Users] No Supabase client');
-      return c.json({ users: [], debug: { hasServiceKey, supabaseConfigured: false } });
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const supabase = adminContext.adminClient;
+      if (!supabase) {
+        return c.json({
+          success: false,
+          error: 'Admin client not available',
+          code: 'CONFIG_ERROR',
+          details: { message: 'Supabase admin client not initialized' },
+          timestamp: new Date().toISOString()
+        }, 500);
+      }
+      
+      // Get search/filter parameters
+      const search = c.req.query('search') || '';
+      const role = c.req.query('role') || '';
+      const plan = c.req.query('plan') || '';
+      const status = c.req.query('status') || '';
+      const limit = parseInt(c.req.query('limit') || '100');
+      const offset = parseInt(c.req.query('offset') || '0');
+      
+      // Build query
+      let query = supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      // Apply filters
+      if (search) {
+        query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%`);
+      }
+      if (role) {
+        query = query.eq('role', role);
+      }
+      if (plan) {
+        query = query.eq('subscription_plan', plan);
+      }
+      if (status) {
+        query = query.eq('subscription_status', status);
+      }
+      
+      const { data: users, error, count } = await query;
+      
+      if (error) {
+        await logAdminAction(
+          adminContext.user.id,
+          'view_users_error',
+          'users',
+          'list',
+          { error: error.message, filters: { search, role, plan, status } },
+          'error'
+        );
+        
+        return c.json({
+          success: false,
+          error: 'Failed to retrieve users',
+          code: 'DATABASE_ERROR',
+          details: {
+            message: error.message,
+            filters: { search, role, plan, status }
+          },
+          timestamp: new Date().toISOString()
+        }, 500);
+      }
+      
+      // Log the admin action
+      await logAdminAction(
+        adminContext.user.id,
+        'view_users',
+        'users',
+        'list',
+        { 
+          userCount: users?.length || 0,
+          filters: { search, role, plan, status },
+          limit,
+          offset
+        },
+        'info'
+      );
+      
+      return c.json({
+        success: true,
+        data: {
+          users: users || [],
+          pagination: {
+            limit,
+            offset,
+            total: count || users?.length || 0
+          },
+          filters: { search, role, plan, status }
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      
+      await logAdminAction(
+        adminContext.user.id,
+        'view_users_error',
+        'users',
+        'list',
+        { error: error.message },
+        'error'
+      );
+      
+      return c.json({
+        success: false,
+        error: 'Failed to retrieve users',
+        code: 'DATABASE_ERROR',
+        details: {
+          message: error.message,
+          suggestion: 'Check database connection and users table'
+        },
+        timestamp: new Date().toISOString()
+      }, 500);
     }
-    
-    // First try to get all columns
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500);
-    
-    if (error) {
-      console.error('[Admin Users] Supabase error:', error);
-      return c.json({ users: [], debug: { error: error.message, hasServiceKey } });
-    }
-    
-    console.log('[Admin Users] Found users:', users?.length || 0);
-    return c.json({ users: (users || []).map((u: any) => ({ ...u, is_blocked: false })) });
-  } catch (error: any) {
-    console.error('[Admin Users] Error:', error);
-    return c.json({ users: [], error: error.message });
-  }
+  });
 });
 
-// Block/unblock user (placeholder - would need is_blocked column added to users table)
+// Block/unblock user
 app.post('/api/admin/users/:userId/block', async (c) => {
-  try {
-    const userId = c.req.param('userId');
-    const { blocked } = await c.req.json();
-    
-    // Log this action (blocking not fully implemented - needs is_blocked column)
-    await pool.query(
-      "INSERT INTO admin_logs (level, source, message, details, created_at) VALUES ('info', 'admin', $1, $2, NOW())",
-      [`User ${blocked ? 'blocked' : 'unblocked'} (action logged)`, JSON.stringify({ userId, blocked })]
-    );
-    
-    return c.json({ success: true });
-  } catch (error: any) {
-    console.error('Error blocking user:', error);
-    return c.json({ error: error.message }, 500);
-  }
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const userId = c.req.param('userId');
+      const { blocked } = await c.req.json();
+      
+      if (!userId) {
+        return c.json({
+          success: false,
+          error: 'User ID is required',
+          code: 'VALIDATION_ERROR',
+          timestamp: new Date().toISOString()
+        }, 400);
+      }
+      
+      const supabase = adminContext.adminClient;
+      if (!supabase) {
+        return c.json({
+          success: false,
+          error: 'Admin client not available',
+          code: 'CONFIG_ERROR',
+          timestamp: new Date().toISOString()
+        }, 500);
+      }
+      
+      // Update user blocked status
+      const { data, error } = await supabase
+        .from('users')
+        .update({ 
+          is_blocked: blocked,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+      
+      if (error) {
+        await logAdminAction(
+          adminContext.user.id,
+          'block_user_error',
+          'users',
+          userId,
+          { error: error.message, blocked },
+          'error'
+        );
+        
+        return c.json({
+          success: false,
+          error: 'Failed to update user status',
+          code: 'DATABASE_ERROR',
+          details: { message: error.message },
+          timestamp: new Date().toISOString()
+        }, 500);
+      }
+      
+      // Log the admin action
+      await logAdminAction(
+        adminContext.user.id,
+        blocked ? 'block_user' : 'unblock_user',
+        'users',
+        userId,
+        { 
+          blocked,
+          userEmail: data?.email,
+          reason: 'Admin action'
+        },
+        'info'
+      );
+      
+      return c.json({
+        success: true,
+        data: {
+          userId,
+          blocked,
+          message: `User ${blocked ? 'blocked' : 'unblocked'} successfully`
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('Error blocking user:', error);
+      
+      await logAdminAction(
+        adminContext.user.id,
+        'block_user_error',
+        'users',
+        c.req.param('userId'),
+        { error: error.message },
+        'error'
+      );
+      
+      return c.json({
+        success: false,
+        error: 'Failed to update user status',
+        code: 'DATABASE_ERROR',
+        details: { message: error.message },
+        timestamp: new Date().toISOString()
+      }, 500);
+    }
+  });
 });
 
 // Update user role
 app.post('/api/admin/users/:userId/role', async (c) => {
-  try {
-    const userId = c.req.param('userId');
-    const { role } = await c.req.json();
-    
-    const supabase = await getSupabaseAdmin();
-    if (supabase) {
-      await supabase.from('users').update({ role, updated_at: new Date().toISOString() }).eq('id', userId);
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const userId = c.req.param('userId');
+      const { role } = await c.req.json();
+      
+      if (!userId || !role) {
+        return c.json({
+          success: false,
+          error: 'User ID and role are required',
+          code: 'VALIDATION_ERROR',
+          timestamp: new Date().toISOString()
+        }, 400);
+      }
+      
+      // Validate role
+      const validRoles = ['user', 'admin', 'superadmin'];
+      if (!validRoles.includes(role)) {
+        return c.json({
+          success: false,
+          error: 'Invalid role specified',
+          code: 'VALIDATION_ERROR',
+          details: { validRoles },
+          timestamp: new Date().toISOString()
+        }, 400);
+      }
+      
+      const supabase = adminContext.adminClient;
+      if (!supabase) {
+        return c.json({
+          success: false,
+          error: 'Admin client not available',
+          code: 'CONFIG_ERROR',
+          timestamp: new Date().toISOString()
+        }, 500);
+      }
+      
+      // Get current user data for logging
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('email, role')
+        .eq('id', userId)
+        .single();
+      
+      // Update user role
+      const { data, error } = await supabase
+        .from('users')
+        .update({ 
+          role,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+      
+      if (error) {
+        await logAdminAction(
+          adminContext.user.id,
+          'update_user_role_error',
+          'users',
+          userId,
+          { error: error.message, newRole: role, oldRole: currentUser?.role },
+          'error'
+        );
+        
+        return c.json({
+          success: false,
+          error: 'Failed to update user role',
+          code: 'DATABASE_ERROR',
+          details: { message: error.message },
+          timestamp: new Date().toISOString()
+        }, 500);
+      }
+      
+      // Log the admin action
+      await logAdminAction(
+        adminContext.user.id,
+        'update_user_role',
+        'users',
+        userId,
+        { 
+          oldRole: currentUser?.role,
+          newRole: role,
+          userEmail: currentUser?.email
+        },
+        'info'
+      );
+      
+      return c.json({
+        success: true,
+        data: {
+          userId,
+          role,
+          message: `User role updated to ${role} successfully`
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('Error updating user role:', error);
+      
+      await logAdminAction(
+        adminContext.user.id,
+        'update_user_role_error',
+        'users',
+        c.req.param('userId'),
+        { error: error.message },
+        'error'
+      );
+      
+      return c.json({
+        success: false,
+        error: 'Failed to update user role',
+        code: 'DATABASE_ERROR',
+        details: { message: error.message },
+        timestamp: new Date().toISOString()
+      }, 500);
     }
-    
-    return c.json({ success: true });
-  } catch (error: any) {
-    console.error('Error updating user role:', error);
-    return c.json({ error: error.message }, 500);
-  }
+  });
 });
 
 // Get system logs (from Supabase audit_logs)
@@ -7619,7 +7898,985 @@ app.delete('/api/vm-management/vms/:id', async (c) => {
   }
 });
 
+// Get VM pricing for configuration
+app.post('/api/vm-management/pricing', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const config = await c.req.json();
+    
+    // Validate required fields
+    if (!config.operatingSystem || !config.region || !config.size) {
+      return c.json({ error: 'Missing required configuration' }, 400);
+    }
+
+    // Base pricing calculation (mock provider rates)
+    const basePricing = {
+      'small': 0.05,   // $0.05/hour
+      'medium': 0.10,  // $0.10/hour
+      'large': 0.20,   // $0.20/hour
+      'xlarge': 0.40   // $0.40/hour
+    };
+
+    // Get base rate based on size
+    let baseRate = 0.05; // default
+    if (config.size.cpu === 1 && config.size.ram === 2) baseRate = 0.05;
+    else if (config.size.cpu === 2 && config.size.ram === 4) baseRate = 0.10;
+    else if (config.size.cpu === 4 && config.size.ram === 8) baseRate = 0.20;
+    else if (config.size.cpu === 8 && config.size.ram === 16) baseRate = 0.40;
+
+    // Apply regional multiplier
+    const regionalMultipliers = {
+      'us-east-1': 1.0,
+      'us-west-2': 1.1,
+      'eu-west-2': 1.2,
+      'eu-central-1': 1.15,
+      'ap-southeast-1': 1.3,
+      'ap-southeast-2': 1.25
+    };
+
+    const regionMultiplier = regionalMultipliers[config.region.code] || 1.0;
+    const providerRate = baseRate * regionMultiplier;
+
+    // Apply 20% markup
+    const markup = 0.20;
+    const hourlyRate = providerRate * (1 + markup);
+    const monthlyRate = hourlyRate * 730; // 730 hours per month
+
+    const pricing = {
+      hourlyRate: Math.round(hourlyRate * 10000) / 10000, // Round to 4 decimal places
+      monthlyRate: Math.round(monthlyRate * 100) / 100,   // Round to 2 decimal places
+      providerRate: Math.round(providerRate * 10000) / 10000,
+      markup,
+      currency: 'USD'
+    };
+
+    return c.json({ success: true, pricing });
+  } catch (error: any) {
+    console.error('Error calculating pricing:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get provider pricing for configuration
+app.post('/api/vm-management/pricing/provider', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const config = await c.req.json();
+    
+    // Validate required fields
+    if (!config.operatingSystem || !config.region || !config.size) {
+      return c.json({ error: 'Missing required configuration' }, 400);
+    }
+
+    // Base provider rates (before markup)
+    let baseRate = 0.05; // default
+    if (config.size.cpu === 1 && config.size.ram === 2) baseRate = 0.05;
+    else if (config.size.cpu === 2 && config.size.ram === 4) baseRate = 0.10;
+    else if (config.size.cpu === 4 && config.size.ram === 8) baseRate = 0.20;
+    else if (config.size.cpu === 8 && config.size.ram === 16) baseRate = 0.40;
+
+    // Apply regional multiplier
+    const regionalMultipliers = {
+      'us-east-1': 1.0,
+      'us-west-2': 1.1,
+      'eu-west-2': 1.2,
+      'eu-central-1': 1.15,
+      'ap-southeast-1': 1.3,
+      'ap-southeast-2': 1.25
+    };
+
+    const regionMultiplier = regionalMultipliers[config.region.code] || 1.0;
+    const providerRate = baseRate * regionMultiplier;
+
+    return c.json({ 
+      success: true, 
+      hourlyRate: Math.round(providerRate * 10000) / 10000 
+    });
+  } catch (error: any) {
+    console.error('Error getting provider pricing:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Generate VM connection information
+app.post('/api/vm-management/vms/:id/connection', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const vmId = c.req.param('id');
+    const { method } = await c.req.json();
+    
+    // Get VM details
+    const result = await pool.query(
+      `SELECT * FROM vms WHERE id = $1 AND user_id = $2`,
+      [vmId, user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return c.json({ error: 'VM not found' }, 404);
+    }
+
+    const vm = result.rows[0];
+    const connectionInfo = typeof vm.connection_info === 'string' 
+      ? JSON.parse(vm.connection_info) 
+      : vm.connection_info;
+
+    // Generate connection credentials
+    const credentials = {
+      username: 'administrator',
+      password: `VM${vmId.slice(-8)}!`
+    };
+
+    const connectionData = {
+      method,
+      credentials,
+      ...(method === 'rdp' && {
+        rdpFile: null // Will be generated on download
+      }),
+      ...(method === 'browser' && {
+        browserURL: connectionInfo.browserURL || `https://vm-console.example.com/${vmId}`
+      })
+    };
+
+    return c.json({ success: true, connectionInfo: connectionData });
+  } catch (error: any) {
+    console.error('Error generating connection:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Generate RDP file for download
+app.get('/api/vm-management/vms/:id/rdp', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const vmId = c.req.param('id');
+    
+    // Get VM details
+    const result = await pool.query(
+      `SELECT * FROM vms WHERE id = $1 AND user_id = $2`,
+      [vmId, user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return c.json({ error: 'VM not found' }, 404);
+    }
+
+    const vm = result.rows[0];
+    const connectionInfo = typeof vm.connection_info === 'string' 
+      ? JSON.parse(vm.connection_info) 
+      : vm.connection_info;
+
+    // Generate RDP file content
+    const rdpContent = `screen mode id:i:2
+use multimon:i:0
+desktopwidth:i:1920
+desktopheight:i:1080
+session bpp:i:32
+compression:i:1
+keyboardhook:i:2
+audiocapturemode:i:0
+videoplaybackmode:i:1
+connection type:i:7
+displayconnectionbar:i:1
+full address:s:${connectionInfo.ipAddress}:${connectionInfo.rdpPort}
+audiomode:i:0
+redirectprinters:i:1
+redirectcomports:i:0
+redirectsmartcards:i:1
+redirectclipboard:i:1
+autoreconnection enabled:i:1
+authentication level:i:2
+prompt for credentials:i:0
+negotiate security layer:i:1
+username:s:administrator`;
+
+    // Set appropriate headers for file download
+    c.header('Content-Type', 'application/rdp');
+    c.header('Content-Disposition', `attachment; filename="${vm.name.replace(/[^a-zA-Z0-9]/g, '_')}.rdp"`);
+    
+    return c.body(rdpContent);
+  } catch (error: any) {
+    console.error('Error generating RDP file:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get browser connection URL
+app.get('/api/vm-management/vms/:id/browser-url', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const vmId = c.req.param('id');
+    
+    // Get VM details
+    const result = await pool.query(
+      `SELECT * FROM vms WHERE id = $1 AND user_id = $2`,
+      [vmId, user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return c.json({ error: 'VM not found' }, 404);
+    }
+
+    const vm = result.rows[0];
+    const connectionInfo = typeof vm.connection_info === 'string' 
+      ? JSON.parse(vm.connection_info) 
+      : vm.connection_info;
+
+    const browserURL = connectionInfo.browserURL || `https://vm-console.example.com/${vmId}`;
+
+    return c.json({ success: true, url: browserURL });
+  } catch (error: any) {
+    console.error('Error getting browser connection URL:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Validate VM connection availability
+app.get('/api/vm-management/vms/:id/connection/validate', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const vmId = c.req.param('id');
+    
+    // Get VM details
+    const result = await pool.query(
+      `SELECT status FROM vms WHERE id = $1 AND user_id = $2`,
+      [vmId, user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return c.json({ error: 'VM not found' }, 404);
+    }
+
+    const vm = result.rows[0];
+    const available = vm.status === 'running';
+
+    return c.json({ success: true, available });
+  } catch (error: any) {
+    console.error('Error validating connection:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get user's prepaid balance
+app.get('/api/vm-management/billing/balance/:userId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const userId = c.req.param('userId');
+    
+    // Ensure user can only access their own balance or admin access
+    if (user.id !== userId && !user.is_super_admin) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    // Get or create billing account
+    const account = await getOrCreateBillingAccount(userId);
+    
+    return c.json({
+      success: true,
+      balance: account.balance_cents / 100, // Convert cents to dollars
+      currency: 'USD',
+      lastUpdated: account.updated_at
+    });
+  } catch (error: any) {
+    console.error('Error getting balance:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Charge user for VM creation
+app.post('/api/vm-management/billing/charge', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const { userId, vmId, amount, type, description } = await c.req.json();
+    
+    // Ensure user can only charge their own account
+    if (user.id !== userId) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    // Get billing account
+    const account = await getOrCreateBillingAccount(userId);
+    const amountCents = Math.round(amount * 100);
+    
+    // Check sufficient balance
+    if (account.balance_cents < amountCents) {
+      return c.json({ 
+        error: 'Insufficient balance',
+        required: amount,
+        available: account.balance_cents / 100
+      }, 400);
+    }
+
+    // Deduct from balance
+    const newBalance = account.balance_cents - amountCents;
+    
+    await pool.query(`
+      UPDATE billing_accounts 
+      SET balance_cents = $1, updated_at = NOW() 
+      WHERE user_id = $2
+    `, [newBalance, userId]);
+
+    // Create billing record
+    const recordId = `bill-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    await pool.query(`
+      INSERT INTO vm_billing_records (id, vm_id, user_id, amount_cents, type, description, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [recordId, vmId, userId, amountCents, type, description]);
+
+    const billingRecord = {
+      id: recordId,
+      vmId,
+      userId,
+      amount,
+      type,
+      description,
+      timestamp: new Date()
+    };
+
+    return c.json({ success: true, billingRecord });
+  } catch (error: any) {
+    console.error('Error processing charge:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get billing history
+app.get('/api/vm-management/billing/history/:userId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const userId = c.req.param('userId');
+    
+    // Ensure user can only access their own history
+    if (user.id !== userId && !user.is_super_admin) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    // Create table if not exists
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS vm_billing_records (
+        id VARCHAR(255) PRIMARY KEY,
+        vm_id VARCHAR(255),
+        user_id VARCHAR(255) NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    const result = await pool.query(`
+      SELECT * FROM vm_billing_records 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC 
+      LIMIT 100
+    `, [userId]);
+
+    const records = result.rows.map(row => ({
+      id: row.id,
+      vmId: row.vm_id,
+      userId: row.user_id,
+      amount: row.amount_cents / 100,
+      type: row.type,
+      description: row.description,
+      timestamp: row.created_at
+    }));
+
+    return c.json({ success: true, records });
+  } catch (error: any) {
+    console.error('Error getting billing history:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Track hourly usage
+app.post('/api/vm-management/billing/usage', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const { vmId, hours, timestamp } = await c.req.json();
+    
+    // Verify VM belongs to user
+    const vmResult = await pool.query(
+      `SELECT user_id FROM vms WHERE id = $1`,
+      [vmId]
+    );
+
+    if (vmResult.rows.length === 0 || vmResult.rows[0].user_id !== user.id) {
+      return c.json({ error: 'VM not found or access denied' }, 404);
+    }
+
+    // Create usage tracking table if not exists
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS vm_usage_tracking (
+        id SERIAL PRIMARY KEY,
+        vm_id VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        hours DECIMAL(10,4) NOT NULL,
+        tracked_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Insert usage record
+    await pool.query(`
+      INSERT INTO vm_usage_tracking (vm_id, user_id, hours, tracked_at)
+      VALUES ($1, $2, $3, $4)
+    `, [vmId, user.id, hours, timestamp]);
+
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error tracking usage:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Process refund
+app.post('/api/vm-management/billing/refund', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const { userId, vmId, amount, type, description } = await c.req.json();
+    
+    // Ensure user can only refund their own account
+    if (user.id !== userId) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    // Get billing account
+    const account = await getOrCreateBillingAccount(userId);
+    const amountCents = Math.round(amount * 100);
+    
+    // Add to balance
+    const newBalance = account.balance_cents + amountCents;
+    
+    await pool.query(`
+      UPDATE billing_accounts 
+      SET balance_cents = $1, updated_at = NOW() 
+      WHERE user_id = $2
+    `, [newBalance, userId]);
+
+    // Create billing record
+    const recordId = `refund-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    await pool.query(`
+      INSERT INTO vm_billing_records (id, vm_id, user_id, amount_cents, type, description, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `, [recordId, vmId, userId, amountCents, type, description]);
+
+    const billingRecord = {
+      id: recordId,
+      vmId,
+      userId,
+      amount,
+      type,
+      description,
+      timestamp: new Date()
+    };
+
+    return c.json({ success: true, billingRecord });
+  } catch (error: any) {
+    console.error('Error processing refund:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get VM billing summary
+app.get('/api/vm-management/billing/vm/:vmId/summary', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const vmId = c.req.param('vmId');
+    
+    // Verify VM belongs to user
+    const vmResult = await pool.query(
+      `SELECT user_id FROM vms WHERE id = $1`,
+      [vmId]
+    );
+
+    if (vmResult.rows.length === 0 || vmResult.rows[0].user_id !== user.id) {
+      return c.json({ error: 'VM not found or access denied' }, 404);
+    }
+
+    // Get billing records for this VM
+    const result = await pool.query(`
+      SELECT * FROM vm_billing_records 
+      WHERE vm_id = $1 
+      ORDER BY created_at DESC
+    `, [vmId]);
+
+    const records = result.rows.map(row => ({
+      id: row.id,
+      vmId: row.vm_id,
+      userId: row.user_id,
+      amount: row.amount_cents / 100,
+      type: row.type,
+      description: row.description,
+      timestamp: row.created_at
+    }));
+
+    // Calculate totals
+    const totalCharged = records
+      .filter(r => r.type === 'creation' || r.type === 'monthly')
+      .reduce((sum, r) => sum + r.amount, 0);
+    
+    const totalRefunded = records
+      .filter(r => r.type === 'refund')
+      .reduce((sum, r) => sum + r.amount, 0);
+
+    const summary = {
+      totalCharged,
+      totalRefunded,
+      netAmount: totalCharged - totalRefunded,
+      records
+    };
+
+    return c.json({ success: true, summary });
+  } catch (error: any) {
+    console.error('Error getting VM billing summary:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ============================================================================
+// ADMIN BILLING DATA CONNECTIVITY (Task 5)
+// ============================================================================
+
+// Get billing data for admin panel
+app.get('/api/admin/billing', async (c) => {
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const adminClient = adminContext.adminClient;
+      
+      // Get subscription data
+      const { data: subscriptions, error: subsError } = await adminClient
+        .from('subscriptions')
+        .select(`
+          id,
+          user_id,
+          plan_id,
+          status,
+          current_period_start,
+          current_period_end,
+          amount,
+          currency,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
+
+      if (subsError) {
+        console.error('Error fetching subscriptions:', subsError);
+      }
+
+      // Get payment data
+      const { data: payments, error: paymentsError } = await adminClient
+        .from('payments')
+        .select(`
+          id,
+          user_id,
+          amount,
+          currency,
+          status,
+          payment_method,
+          description,
+          created_at
+        `)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (paymentsError) {
+        console.error('Error fetching payments:', paymentsError);
+      }
+
+      // Calculate revenue metrics
+      const totalRevenue = payments?.reduce((sum, payment) => {
+        return payment.status === 'succeeded' ? sum + (payment.amount || 0) : sum;
+      }, 0) || 0;
+
+      const monthlyRevenue = payments?.filter(payment => {
+        const paymentDate = new Date(payment.created_at);
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return paymentDate >= monthStart && payment.status === 'succeeded';
+      }).reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+
+      const activeSubscriptions = subscriptions?.filter(sub => sub.status === 'active').length || 0;
+
+      return c.json({
+        success: true,
+        data: {
+          subscriptions: subscriptions || [],
+          payments: payments || [],
+          metrics: {
+            totalRevenue: totalRevenue / 100, // Convert from cents to dollars
+            monthlyRevenue: monthlyRevenue / 100,
+            activeSubscriptions,
+            totalSubscriptions: subscriptions?.length || 0,
+            totalPayments: payments?.length || 0
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Admin billing data error:', error);
+      return c.json({
+        success: false,
+        error: 'Failed to fetch billing data',
+        code: 'BILLING_FETCH_ERROR',
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        timestamp: new Date().toISOString()
+      }, 500);
+    }
+  });
+});
+
+// Get subscription details for admin
+app.get('/api/admin/billing/subscriptions', async (c) => {
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const adminClient = adminContext.adminClient;
+      const limit = parseInt(c.req.query('limit') || '50');
+      const offset = parseInt(c.req.query('offset') || '0');
+      const status = c.req.query('status');
+
+      let query = adminClient
+        .from('subscriptions')
+        .select(`
+          id,
+          user_id,
+          plan_id,
+          status,
+          current_period_start,
+          current_period_end,
+          amount,
+          currency,
+          trial_end,
+          cancel_at_period_end,
+          created_at,
+          updated_at,
+          users!inner(email, full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data: subscriptions, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      return c.json({
+        success: true,
+        subscriptions: subscriptions || [],
+        pagination: {
+          limit,
+          offset,
+          total: subscriptions?.length || 0
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Admin subscriptions error:', error);
+      return c.json({
+        success: false,
+        error: 'Failed to fetch subscriptions',
+        code: 'SUBSCRIPTIONS_FETCH_ERROR',
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        timestamp: new Date().toISOString()
+      }, 500);
+    }
+  });
+});
+
+// Get payment details for admin
+app.get('/api/admin/billing/payments', async (c) => {
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const adminClient = adminContext.adminClient;
+      const limit = parseInt(c.req.query('limit') || '50');
+      const offset = parseInt(c.req.query('offset') || '0');
+      const status = c.req.query('status');
+
+      let query = adminClient
+        .from('payments')
+        .select(`
+          id,
+          user_id,
+          amount,
+          currency,
+          status,
+          payment_method,
+          description,
+          stripe_payment_intent_id,
+          created_at,
+          updated_at,
+          users!inner(email, full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data: payments, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      return c.json({
+        success: true,
+        payments: payments || [],
+        pagination: {
+          limit,
+          offset,
+          total: payments?.length || 0
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Admin payments error:', error);
+      return c.json({
+        success: false,
+        error: 'Failed to fetch payments',
+        code: 'PAYMENTS_FETCH_ERROR',
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        timestamp: new Date().toISOString()
+      }, 500);
+    }
+  });
+});
+
+// ============================================================================
+// ADMIN EMAIL MANAGEMENT DATA CONNECTIVITY (Task 7)
+// ============================================================================
+
+// Get email management data for admin panel
+app.get('/api/admin/emails', async (c) => {
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const adminClient = adminContext.adminClient;
+      
+      // Get email logs
+      const { data: emailLogs, error: emailError } = await adminClient
+        .from('emails')
+        .select(`
+          id,
+          user_id,
+          to_email,
+          from_email,
+          subject,
+          template_id,
+          status,
+          sent_at,
+          delivered_at,
+          opened_at,
+          clicked_at,
+          bounced_at,
+          error_message,
+          created_at,
+          users!inner(email, full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (emailError) {
+        console.error('Error fetching emails:', emailError);
+      }
+
+      // Calculate email metrics
+      const totalSent = emailLogs?.length || 0;
+      const delivered = emailLogs?.filter(email => email.delivered_at).length || 0;
+      const opened = emailLogs?.filter(email => email.opened_at).length || 0;
+      const clicked = emailLogs?.filter(email => email.clicked_at).length || 0;
+      const bounced = emailLogs?.filter(email => email.bounced_at).length || 0;
+
+      const deliveryRate = totalSent > 0 ? (delivered / totalSent * 100).toFixed(2) : '0';
+      const openRate = delivered > 0 ? (opened / delivered * 100).toFixed(2) : '0';
+      const clickRate = delivered > 0 ? (clicked / delivered * 100).toFixed(2) : '0';
+      const bounceRate = totalSent > 0 ? (bounced / totalSent * 100).toFixed(2) : '0';
+
+      // Get today's email count
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayEmails = emailLogs?.filter(email => {
+        const emailDate = new Date(email.created_at);
+        return emailDate >= today;
+      }).length || 0;
+
+      return c.json({
+        success: true,
+        data: {
+          emails: emailLogs || [],
+          metrics: {
+            totalSent,
+            delivered,
+            opened,
+            clicked,
+            bounced,
+            todayEmails,
+            deliveryRate: parseFloat(deliveryRate),
+            openRate: parseFloat(openRate),
+            clickRate: parseFloat(clickRate),
+            bounceRate: parseFloat(bounceRate)
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Admin email data error:', error);
+      return c.json({
+        success: false,
+        error: 'Failed to fetch email data',
+        code: 'EMAIL_FETCH_ERROR',
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        timestamp: new Date().toISOString()
+      }, 500);
+    }
+  });
+});
+
+// Send test email (admin only)
+app.post('/api/admin/emails/test', async (c) => {
+  return withAdminAuth(c, async (adminContext) => {
+    try {
+      const { to, subject, message } = await c.req.json();
+      
+      if (!to || !subject || !message) {
+        return c.json({
+          success: false,
+          error: 'Missing required fields: to, subject, message',
+          code: 'VALIDATION_ERROR'
+        }, 400);
+      }
+
+      // Log the admin action
+      await logAdminAction(
+        adminContext.user.id,
+        'send_test_email',
+        'email',
+        undefined,
+        { to, subject },
+        'info'
+      );
+
+      // Here you would integrate with your email service (Sendune, SendGrid, etc.)
+      // For now, we'll just log it and return success
+      console.log('Test email would be sent:', { to, subject, message });
+
+      return c.json({
+        success: true,
+        message: 'Test email sent successfully',
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Send test email error:', error);
+      return c.json({
+        success: false,
+        error: 'Failed to send test email',
+        code: 'EMAIL_SEND_ERROR',
+        details: {
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        timestamp: new Date().toISOString()
+      }, 500);
+    }
+  });
+});
+
+// ============================================================================
+// ADMIN COMPREHENSIVE ERROR HANDLING (Task 10)
+// ============================================================================
+
+// Global admin error handler
+app.use('/api/admin/*', async (c, next) => {
+  try {
+    await next();
+  } catch (error) {
+    console.error('Admin API Error:', error);
+    
+    // Log the error to audit logs if possible
+    try {
+      const adminClient = getAdminClient();
+      if (adminClient) {
+        await adminClient
+          .from('audit_logs')
+          .insert({
+            action: 'api_error',
+            resource_type: 'admin_api',
+            level: 'error',
+            details: {
+              path: c.req.path,
+              method: c.req.method,
+              error: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined
+            },
+            created_at: new Date().toISOString()
+          });
+      }
+    } catch (logError) {
+      console.error('Failed to log admin error:', logError);
+    }
+
+    return c.json({
+      success: false,
+      error: 'Internal server error',
+      code: 'ADMIN_API_ERROR',
+      details: {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        path: c.req.path,
+        method: c.req.method
+      },
+      timestamp: new Date().toISOString()
+    }, 500);
+  }
+});
+
 console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
+
+// Start the server
+serve({
+  fetch: app.fetch,
+  port: apiPort,
+});
 
 // Initialize Stripe in the background AFTER server is running (non-blocking)
 initStripe().catch(err => console.error('Stripe init error:', err));
