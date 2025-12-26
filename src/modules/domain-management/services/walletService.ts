@@ -225,18 +225,49 @@ class WalletServiceImpl implements WalletService {
         };
       }
 
+      // Get wallet payment method
+      const { data: paymentMethod, error: pmError } = await supabase
+        .from('user_payment_methods')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('payment_method_id', wallet.payment_method_id)
+        .eq('is_wallet_method', true)
+        .single();
+
+      if (pmError || !paymentMethod) {
+        return {
+          success: false,
+          error: 'No valid payment method found for auto-recharge'
+        };
+      }
+
       // In a real implementation, this would integrate with Stripe or another payment processor
-      // For now, we'll simulate a successful recharge
+      // For now, we'll simulate payment processing
       const rechargeAmount = { 
         amount: wallet.recharge_amount, 
         currency: wallet.balance_currency 
       };
 
+      // Simulate payment processing delay and potential failure
+      const paymentSuccess = Math.random() > 0.1; // 90% success rate for simulation
+
+      if (!paymentSuccess) {
+        // Send notification about failed auto-recharge
+        await this.sendAutoRechargeNotification(userId, 'failed', rechargeAmount);
+        return {
+          success: false,
+          error: 'Payment processing failed'
+        };
+      }
+
       const transaction = await this.creditWallet(
         userId, 
         rechargeAmount, 
-        'Auto-recharge'
+        `Auto-recharge via ${paymentMethod.brand} ****${paymentMethod.last4}`
       );
+
+      // Send success notification
+      await this.sendAutoRechargeNotification(userId, 'success', rechargeAmount, transaction.id);
 
       return {
         success: true,
@@ -245,10 +276,42 @@ class WalletServiceImpl implements WalletService {
       };
     } catch (error) {
       console.error('Error triggering auto-recharge:', error);
+      await this.sendAutoRechargeNotification(userId, 'error', { amount: 0, currency: 'USD' });
       return {
         success: false,
         error: 'Failed to process auto-recharge'
       };
+    }
+  }
+
+  private async sendAutoRechargeNotification(
+    userId: string, 
+    status: 'success' | 'failed' | 'error', 
+    amount: Money,
+    transactionId?: string
+  ): Promise<void> {
+    try {
+      const notificationData = {
+        user_id: userId,
+        type: 'auto_recharge',
+        status,
+        data: {
+          amount: amount.amount,
+          currency: amount.currency,
+          transactionId,
+          timestamp: new Date().toISOString()
+        },
+        created_at: new Date().toISOString()
+      };
+
+      // In a real implementation, this would integrate with a notification service
+      // For now, we'll log to a notifications table or external service
+      console.log('Auto-recharge notification:', notificationData);
+      
+      // Could also send email, push notification, etc.
+      // await emailService.sendAutoRechargeNotification(userId, status, amount);
+    } catch (error) {
+      console.error('Error sending auto-recharge notification:', error);
     }
   }
 

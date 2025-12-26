@@ -342,7 +342,7 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
   // Header row
   rows.push([...MASTER_CSV_HEADERS]);
   
-  // Campaign row (first data row)
+  // Campaign row (first data row) - REQUIRED for Google Ads Editor
   const campaignRow = createEmptyRow();
   campaignRow[COLUMN_INDEX['Campaign']] = campaign.campaignName;
   campaignRow[COLUMN_INDEX['Campaign Daily Budget']] = String(campaign.dailyBudget || 100);
@@ -350,14 +350,13 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
   campaignRow[COLUMN_INDEX['Bid Strategy Type']] = campaign.bidStrategy || 'Maximize Conversions';
   campaignRow[COLUMN_INDEX['Networks']] = campaign.networks || 'Google search';
   campaignRow[COLUMN_INDEX['EU political ads']] = 'No';
-  campaignRow[COLUMN_INDEX['Desktop Bid adj.']] = '-100%';
+  campaignRow[COLUMN_INDEX['Desktop Bid adj.']] = '0%';
   campaignRow[COLUMN_INDEX['Mobile Bid adj.']] = '0%';
-  campaignRow[COLUMN_INDEX['Tablet Bid adj.']] = '-100%';
+  campaignRow[COLUMN_INDEX['Tablet Bid adj.']] = '0%';
   campaignRow[COLUMN_INDEX['Start Date']] = campaign.startDate || '';
   campaignRow[COLUMN_INDEX['End Date']] = campaign.endDate || '';
   campaignRow[COLUMN_INDEX['Campaign Status']] = campaign.status || 'Enabled';
   campaignRow[COLUMN_INDEX['Campaign Labels']] = campaign.labels || '';
-  campaignRow[COLUMN_INDEX['Ad Group Status']] = 'Enabled';
   
   // Add sitelinks to campaign row if available
   if (campaign.sitelinks && campaign.sitelinks.length > 0) {
@@ -388,6 +387,10 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
       campaignRow[COLUMN_INDEX['Structured Snippet Header']] = campaign.snippets[0].header || '';
       campaignRow[COLUMN_INDEX['Structured Snippet Values']] = campaign.snippets[0].values || '';
     }
+    if (campaign.snippets[1]) {
+      campaignRow[COLUMN_INDEX['Structured Snippet 1 Header']] = campaign.snippets[1].header || '';
+      campaignRow[COLUMN_INDEX['Structured Snippet 1 Values']] = campaign.snippets[1].values || '';
+    }
   }
   
   // Add business info
@@ -401,7 +404,7 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
   
   rows.push(campaignRow);
   
-  // Ad Group rows (one per ad group)
+  // Ad Group rows (one per ad group) - REQUIRED for Google Ads Editor
   campaign.adGroups.forEach(adGroup => {
     const agRow = createEmptyRow();
     agRow[COLUMN_INDEX['Campaign']] = campaign.campaignName;
@@ -413,7 +416,7 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
     rows.push(agRow);
   });
   
-  // Keyword rows
+  // Keyword rows - REQUIRED for Google Ads Editor
   campaign.adGroups.forEach(adGroup => {
     adGroup.keywords.forEach(keyword => {
       const kwRow = createEmptyRow();
@@ -432,7 +435,7 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
     });
   });
   
-  // Ad rows (RSA, DKI, Call-Only)
+  // Ad rows (RSA, DKI, Call-Only) - REQUIRED for Google Ads Editor
   campaign.adGroups.forEach(adGroup => {
     adGroup.ads.forEach(ad => {
       // Skip ads with no headlines or descriptions (invalid ads)
@@ -498,7 +501,7 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
     });
   });
   
-  // Negative keyword rows
+  // Negative keyword rows - IMPORTANT for Google Ads Editor
   if (campaign.negativeKeywords && campaign.negativeKeywords.length > 0) {
     campaign.negativeKeywords.forEach(negKw => {
       const negRow = createEmptyRow();
@@ -511,7 +514,7 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
     });
   }
   
-  // Location targeting rows
+  // Location targeting rows - REQUIRED for Google Ads Editor
   if (campaign.locations) {
     const countryCode = campaign.locations.countryCode || 'US';
     

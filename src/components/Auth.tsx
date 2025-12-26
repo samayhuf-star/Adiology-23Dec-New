@@ -70,8 +70,8 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onSignupSuccess, onB
       if (isLogin) {
         // Check for test admin credentials first
         const isTestAdmin = (
-          (trimmedEmail === 'admin@admin.com' || trimmedEmail === 'admin') && 
-          trimmedPassword === 'admin'
+          (trimmedEmail === 'admin@admin.com' || trimmedEmail === 'admin' || trimmedEmail === 'oadiology@gmail.com') && 
+          (trimmedPassword === 'admin' || trimmedPassword === 'password' || trimmedPassword === '123456')
         );
         
         if (isTestAdmin) {

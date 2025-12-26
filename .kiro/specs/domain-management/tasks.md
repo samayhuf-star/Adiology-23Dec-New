@@ -13,8 +13,8 @@ This implementation plan breaks down the domain management system into discrete 
   - Set up testing framework with property-based testing library (fast-check)
   - _Requirements: All requirements - foundational setup_
 
-- [-] 2. Implement wallet system and billing infrastructure
-  - [ ] 2.1 Create wallet service and data models
+- [x] 2. Implement wallet system and billing infrastructure
+  - [x] 2.1 Create wallet service and data models
     - Implement Wallet, WalletTransaction, and WalletSettings models
     - Create WalletService with balance tracking and transaction logging
     - Implement wallet creation and settings management
@@ -24,7 +24,7 @@ This implementation plan breaks down the domain management system into discrete 
     - **Property 6: Comprehensive Wallet Deduction**
     - **Validates: Requirements 2.2, 5.5, 7.2**
 
-  - [ ] 2.3 Implement auto-recharge system
+  - [x] 2.3 Implement auto-recharge system
     - Create auto-recharge trigger logic based on threshold
     - Implement payment method integration for recharges
     - Add notification system for recharge events
@@ -34,7 +34,7 @@ This implementation plan breaks down the domain management system into discrete 
     - **Property 21: Auto-recharge Trigger**
     - **Validates: Requirements 5.2**
 
-  - [ ] 2.5 Implement billing separation logic
+  - [x] 2.5 Implement billing separation logic
     - Create separate billing flows for subscription vs wallet
     - Implement payment method separation
     - Add billing history with transaction categorization
@@ -44,8 +44,8 @@ This implementation plan breaks down the domain management system into discrete 
     - **Property 23: Billing Separation**
     - **Validates: Requirements 6.2, 6.4**
 
-- [ ] 3. Implement pricing calculator and markup system
-  - [ ] 3.1 Create pricing calculator service
+- [x] 3. Implement pricing calculator and markup system
+  - [x] 3.1 Create pricing calculator service
     - Implement PricingCalculator with 20% markup logic
     - Add currency conversion support
     - Create price display formatting with wallet balance
@@ -55,7 +55,7 @@ This implementation plan breaks down the domain management system into discrete 
     - **Property 2: Pricing Markup Consistency**
     - **Validates: Requirements 1.3, 7.1, 7.4**
 
-  - [ ] 3.3 Implement revenue tracking system
+  - [x] 3.3 Implement revenue tracking system
     - Create revenue metrics collection
     - Add cost analysis for domain services
     - Implement reporting dashboard for revenue data
@@ -65,7 +65,7 @@ This implementation plan breaks down the domain management system into discrete 
     - **Property 27: Revenue Tracking Completeness**
     - **Validates: Requirements 7.5**
 
-- [ ] 4. Checkpoint - Ensure wallet and pricing systems pass all tests
+- [-] 4. Checkpoint - Ensure wallet and pricing systems pass all tests
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Implement domain search engine

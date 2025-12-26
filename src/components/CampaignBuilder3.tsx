@@ -883,6 +883,18 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       notifications.error('Please select a campaign structure', { title: 'Structure Required' });
       return;
     }
+    
+    // Validate structure-specific requirements
+    if (campaignData.selectedStructure === 'geo' && (!campaignData.selectedGeoCountries || campaignData.selectedGeoCountries.filter(c => c).length === 0)) {
+      notifications.error('Please select at least one country for GEO-Segmented campaigns', { title: 'Countries Required' });
+      return;
+    }
+    
+    if (campaignData.selectedStructure === 'seasonal' && (!campaignData.startDate || !campaignData.endDate)) {
+      notifications.error('Please set start and end dates for Seasonal campaigns', { title: 'Dates Required' });
+      return;
+    }
+    
     setCurrentStep(3);
   };
 
@@ -2350,6 +2362,42 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           });
         }
       });
+      
+      // Add default extensions if none found to ensure CSV always has extensions
+      if (sitelinks.length === 0) {
+        sitelinks.push(
+          {
+            text: 'Contact Us',
+            description1: 'Get in touch today',
+            description2: 'Free consultation',
+            finalUrl: campaignData.url || '',
+            status: 'Enabled'
+          },
+          {
+            text: 'Our Services',
+            description1: 'View all services',
+            description2: 'Professional solutions',
+            finalUrl: campaignData.url || '',
+            status: 'Enabled'
+          }
+        );
+      }
+      
+      if (callouts.length === 0) {
+        callouts.push(
+          { text: '24/7 Support', status: 'Enabled' },
+          { text: 'Free Consultation', status: 'Enabled' },
+          { text: 'Expert Service', status: 'Enabled' }
+        );
+      }
+      
+      if (snippets.length === 0) {
+        snippets.push({
+          header: 'Services',
+          values: 'Professional Service, Expert Solutions, Quality Work',
+          status: 'Enabled'
+        });
+      }
       
       console.log('📦 Extensions collected for CSV:', { 
         sitelinks: sitelinks.length, 

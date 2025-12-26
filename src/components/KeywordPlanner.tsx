@@ -1068,8 +1068,8 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                     </TabsList>
                     
                     <TabsContent value="planner" className="mt-0">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Left Panel: Configuration */}
+                        <div className="max-w-4xl mx-auto space-y-6">
+                            {/* Configuration Panel */}
                             <div className="relative group">
                                 <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
                                 <div className="relative bg-white rounded-2xl p-6 border border-gray-200 shadow-lg">
@@ -1233,7 +1233,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                 </div>
                             </div>
 
-                            {/* Right Panel: Generated Keywords */}
+                            {/* Results Panel */}
                             <div className="relative group">
                                 <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
                                 <div className="relative bg-white rounded-2xl p-6 border border-gray-200 shadow-lg h-full flex flex-col">

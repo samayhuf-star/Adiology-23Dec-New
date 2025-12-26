@@ -358,6 +358,10 @@ const AppContent = () => {
   const handleLogout = async () => {
     if (confirm('Are you sure you want to logout?')) {
       try {
+        // Clear profile cache before logout
+        const { clearProfileCache } = await import('./utils/auth');
+        clearProfileCache();
+        
         // Bug_62, Bug_76: Ensure proper logout
         await signOut();
         // Clear user state
@@ -455,6 +459,7 @@ const AppContent = () => {
     let profileFetchInProgress = false;
     let lastProcessedUserId: string | null = null;
     let authChangeTimeout: NodeJS.Timeout | null = null;
+    let profileFetchAbortController: AbortController | null = null;
     
     // Check initial session
     const initializeAuth = async () => {
@@ -507,6 +512,13 @@ const AppContent = () => {
       // Clear any pending auth change processing
       if (authChangeTimeout) {
         clearTimeout(authChangeTimeout);
+        authChangeTimeout = null;
+      }
+
+      // Abort any ongoing profile fetch
+      if (profileFetchAbortController) {
+        profileFetchAbortController.abort();
+        profileFetchAbortController = null;
       }
 
       // Debounce auth state changes to prevent rapid-fire updates
@@ -542,20 +554,31 @@ const AppContent = () => {
             subscription_status: 'inactive',
           };
           
-          // Only update if user actually changed
-          setUser((prevUser: any) => {
-            if (prevUser?.id === minimalUser.id) {
-              // Same user, don't update unless we have more complete data
-              return prevUser;
-            }
-            return minimalUser;
-          });
+          // Only update if user actually changed and component is still mounted
+          if (isMounted) {
+            setUser((prevUser: any) => {
+              if (prevUser?.id === minimalUser.id) {
+                // Same user, don't update unless we have more complete data
+                return prevUser;
+              }
+              return minimalUser;
+            });
+          }
+          
+          // Create abort controller for profile fetch
+          profileFetchAbortController = new AbortController();
+          const currentAbortController = profileFetchAbortController;
           
           // Fetch full profile in background (non-blocking)
           getCurrentUserProfile()
             .then((userProfile) => {
+              // Check if this request was aborted or component unmounted
+              if (currentAbortController.signal.aborted || !isMounted) {
+                return;
+              }
+              
               profileFetchInProgress = false;
-              if (userProfile && isMounted && lastProcessedUserId === session.user.id) {
+              if (userProfile && lastProcessedUserId === session.user.id) {
                 setUser((prevUser: any) => {
                   // Only update if still the same user and we got new data
                   if (prevUser?.id === userProfile.id) {
@@ -567,6 +590,11 @@ const AppContent = () => {
               }
             })
             .catch((error) => {
+              // Check if this request was aborted
+              if (currentAbortController.signal.aborted || !isMounted) {
+                return;
+              }
+              
               profileFetchInProgress = false;
               // Silently handle - minimal user already set
               // Only log if it's not a permission error
@@ -618,6 +646,9 @@ const AppContent = () => {
                                        window.location.pathname.includes('/verify-email');
           
           if (isEmailVerification) {
+            // Clean up URL immediately to prevent token exposure
+            window.history.replaceState({}, '', '/');
+            
             // Show success notification
             notificationService.success('Email verified successfully!', {
               title: 'Verification Complete',
@@ -626,8 +657,6 @@ const AppContent = () => {
             
             setTimeout(() => {
               if (isMounted) {
-                // Clean up URL and redirect to auth/login
-                window.history.replaceState({}, '', '/');
                 setAppView('auth');
                 setAuthMode('login');
               }
@@ -641,6 +670,9 @@ const AppContent = () => {
       isMounted = false;
       if (authChangeTimeout) {
         clearTimeout(authChangeTimeout);
+      }
+      if (profileFetchAbortController) {
+        profileFetchAbortController.abort();
       }
       subscription.unsubscribe();
     };

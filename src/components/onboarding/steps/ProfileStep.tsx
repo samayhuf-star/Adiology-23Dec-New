@@ -38,7 +38,7 @@ export const ProfileStep: React.FC = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { markStepCompleted } = useOnboarding();
-  const { success, contextualError } = useNotification();
+  const { success, error } = useNotification();
 
   useEffect(() => {
     loadExistingProfile();
@@ -99,7 +99,7 @@ export const ProfileStep: React.FC = () => {
     try {
       const profile = await getCurrentUserProfile();
       if (!profile) {
-        contextualError('Unable to update profile', 'profile', null, 'save');
+        error('Unable to update profile', 'Please try again');
         return;
       }
 
@@ -245,7 +245,7 @@ export const ProfileStep: React.FC = () => {
               <MapPin className="w-4 h-4" />
               Country
             </Label>
-            <Select value={profileData.country} onValueChange={(value) => handleInputChange('country', value)}>
+            <Select value={profileData.country} onValueChange={(value: string) => handleInputChange('country', value)}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select your country" />
               </SelectTrigger>
@@ -280,7 +280,7 @@ export const ProfileStep: React.FC = () => {
             <Label htmlFor="industry" className="text-sm font-medium text-gray-700">
               Industry
             </Label>
-            <Select value={profileData.industry} onValueChange={(value) => handleInputChange('industry', value)}>
+            <Select value={profileData.industry} onValueChange={(value: string) => handleInputChange('industry', value)}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select your industry" />
               </SelectTrigger>
@@ -298,7 +298,7 @@ export const ProfileStep: React.FC = () => {
             <Label htmlFor="company_size" className="text-sm font-medium text-gray-700">
               Company Size
             </Label>
-            <Select value={profileData.company_size} onValueChange={(value) => handleInputChange('company_size', value)}>
+            <Select value={profileData.company_size} onValueChange={(value: string) => handleInputChange('company_size', value)}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select company size" />
               </SelectTrigger>
@@ -376,186 +376,6 @@ export const ProfileStep: React.FC = () => {
         <p className="text-sm text-gray-500">
           Don't worry, you can always update this information later in your settings.
         </p>
-      </div>
-    </div>
-  );
-            </Label>
-            <Input
-              id="full_name"
-              value={profileData.full_name}
-              onChange={(e) => handleInputChange('full_name', e.target.value)}
-              placeholder="John Doe"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="job_title" className="flex items-center gap-2">
-              <Building className="w-4 h-4" />
-              Job Title
-            </Label>
-            <Input
-              id="job_title"
-              value={profileData.job_title}
-              onChange={(e) => handleInputChange('job_title', e.target.value)}
-              placeholder="Marketing Manager"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="phone" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              Phone Number
-            </Label>
-            <Input
-              id="phone"
-              value={profileData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              placeholder="+1 (555) 123-4567"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="country" className="flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              Country
-            </Label>
-            <Select
-              value={profileData.country}
-              onValueChange={(value) => handleInputChange('country', value)}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select your country" />
-              </SelectTrigger>
-              <SelectContent>
-                {countries.map((country) => (
-                  <SelectItem key={country} value={country}>
-                    {country}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Company Information */}
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="company_name" className="flex items-center gap-2">
-              <Building className="w-4 h-4" />
-              Company Name
-            </Label>
-            <Input
-              id="company_name"
-              value={profileData.company_name}
-              onChange={(e) => handleInputChange('company_name', e.target.value)}
-              placeholder="Acme Corp"
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="industry" className="flex items-center gap-2">
-              <Building className="w-4 h-4" />
-              Industry
-            </Label>
-            <Select
-              value={profileData.industry}
-              onValueChange={(value) => handleInputChange('industry', value)}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select your industry" />
-              </SelectTrigger>
-              <SelectContent>
-                {industries.map((industry) => (
-                  <SelectItem key={industry} value={industry}>
-                    {industry}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="company_size" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Company Size
-            </Label>
-            <Select
-              value={profileData.company_size}
-              onValueChange={(value) => handleInputChange('company_size', value)}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select company size" />
-              </SelectTrigger>
-              <SelectContent>
-                {companySizes.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="website" className="flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-              Website
-            </Label>
-            <Input
-              id="website"
-              value={profileData.website}
-              onChange={(e) => handleInputChange('website', e.target.value)}
-              placeholder="https://example.com"
-              className="mt-1"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Bio */}
-      <div>
-        <Label htmlFor="bio" className="flex items-center gap-2">
-          <User className="w-4 h-4" />
-          About You (Optional)
-        </Label>
-        <Textarea
-          id="bio"
-          value={profileData.bio}
-          onChange={(e) => handleInputChange('bio', e.target.value)}
-          placeholder="Tell us a bit about yourself and your marketing goals..."
-          rows={3}
-          className="mt-1"
-        />
-      </div>
-
-      {/* Save Button */}
-      <div className="flex justify-center pt-4">
-        <Button
-          onClick={handleSave}
-          disabled={loading || !profileData.full_name.trim()}
-          className="flex items-center gap-2 px-8"
-        >
-          {loading ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4" />
-              Save Profile
-            </>
-          )}
-        </Button>
-      </div>
-
-      <div className="text-center text-sm text-gray-500">
-        <p>* Required fields</p>
-        <p className="mt-1">Your information is secure and will never be shared with third parties.</p>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { supabase } from '../../../utils/supabase/client';
+import { formsApi } from '../../../api/forms';
 
 const API_BASE = '/api/forms';
 
@@ -38,48 +39,73 @@ async function safeJsonResponse(response: Response): Promise<any> {
 export const formApi = {
   // Forms CRUD
   async createForm(data: { name: string; description?: string }) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(API_BASE, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.createForm(data);
+    } catch (error) {
+      console.error('Create form error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch(API_BASE, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   async getUserForms(page = 1, limit = 50) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE}?page=${page}&limit=${limit}`, {
-      headers,
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.getUserForms(page, limit);
+    } catch (error) {
+      console.error('Get user forms error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE}?page=${page}&limit=${limit}`, {
+        headers,
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   async getForm(formId: string) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE}/${formId}`, {
-      headers,
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.getForm(formId);
+    } catch (error) {
+      console.error('Get form error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE}/${formId}`, {
+        headers,
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   async updateForm(formId: string, data: { name?: string; description?: string; status?: string }) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE}/${formId}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(data),
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.updateForm(formId, data);
+    } catch (error) {
+      console.error('Update form error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE}/${formId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(data),
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   async deleteForm(formId: string) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE}/${formId}`, {
-      method: 'DELETE',
-      headers,
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.deleteForm(formId);
+    } catch (error) {
+      console.error('Delete form error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_BASE}/${formId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   // Fields
@@ -173,55 +199,85 @@ export const formApi = {
 
   // Templates
   async getFeaturedTemplates(limit = 6) {
-    const response = await fetch(`/api/templates/featured?limit=${limit}`);
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.getFeaturedTemplates(limit);
+    } catch (error) {
+      console.error('Get featured templates error:', error);
+      const response = await fetch(`/api/templates/featured?limit=${limit}`);
+      return safeJsonResponse(response);
+    }
   },
 
   async getAllTemplates(filters?: { category?: string; featured?: boolean; limit?: number }) {
-    const headers = await getAuthHeaders();
-    const params = new URLSearchParams();
-    if (filters?.category) params.append('category', filters.category);
-    if (filters?.featured) params.append('featured', 'true');
-    if (filters?.limit) params.append('limit', filters.limit.toString());
-    
-    const response = await fetch(`/api/templates?${params.toString()}`, {
-      headers,
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.getAllTemplates(filters);
+    } catch (error) {
+      console.error('Get all templates error:', error);
+      const headers = await getAuthHeaders();
+      const params = new URLSearchParams();
+      if (filters?.category) params.append('category', filters.category);
+      if (filters?.featured) params.append('featured', 'true');
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+      
+      const response = await fetch(`/api/templates?${params.toString()}`, {
+        headers,
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   async searchTemplates(query: string) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`/api/templates/search?q=${encodeURIComponent(query)}`, {
-      headers,
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.searchTemplates(query);
+    } catch (error) {
+      console.error('Search templates error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/templates/search?q=${encodeURIComponent(query)}`, {
+        headers,
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   async getTemplatesByCategory(category: string) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`/api/templates/category/${encodeURIComponent(category)}`, {
-      headers,
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.getAllTemplates({ category });
+    } catch (error) {
+      console.error('Get templates by category error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/templates/category/${encodeURIComponent(category)}`, {
+        headers,
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   async getTemplate(templateId: string) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`/api/templates/${encodeURIComponent(templateId)}`, {
-      headers,
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.getTemplate(templateId);
+    } catch (error) {
+      console.error('Get template error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/templates/${encodeURIComponent(templateId)}`, {
+        headers,
+      });
+      return safeJsonResponse(response);
+    }
   },
 
   async createFormFromTemplate(data: { template_id: string; form_name?: string }) {
-    const headers = await getAuthHeaders();
-    const response = await fetch('/api/forms/from-template', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-    });
-    return safeJsonResponse(response);
+    try {
+      return await formsApi.createFormFromTemplate(data);
+    } catch (error) {
+      console.error('Create form from template error:', error);
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/forms/from-template', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+      return safeJsonResponse(response);
+    }
   },
 };
 

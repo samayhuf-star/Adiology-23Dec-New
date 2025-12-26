@@ -24,10 +24,9 @@ if (typeof window !== 'undefined') {
   window.addEventListener('error', async (event) => {
     const errorMessage = String(event.error || event.message || '');
     
-    // Ignore browser extension errors
+    // Ignore browser extension errors but allow mobx-state-tree errors to show
+    // so we can verify our fixes worked
     if (
-      errorMessage.includes('sw.js') ||
-      errorMessage.includes('mobx-state-tree') ||
       errorMessage.includes('setDetectedLibs') ||
       errorMessage.includes('installHook.js') ||
       errorMessage.includes('host-additional-hooks.js') ||
@@ -36,7 +35,7 @@ if (typeof window !== 'undefined') {
       return;
     }
 
-    // Handle real errors
+    // Handle real errors (including mobx-state-tree to verify fixes)
     if (event.error) {
       try {
         const { ErrorHandler } = await import('./utils/errorHandler');

@@ -105,7 +105,7 @@ export const VMDashboard: React.FC<VMDashboardProps> = ({
 
             {/* Filter Toggle */}
             <EnhancedButton
-              variant={showFilters ? "default" : "outline"}
+              variant={showFilters ? "primary" : "outline"}
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center space-x-2"
             >

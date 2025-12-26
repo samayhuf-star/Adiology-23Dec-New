@@ -56,20 +56,19 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       }
 
       // Add timeout to prevent infinite loading (reduced to 5 seconds)
-      const timeoutPromise = new Promise<Workspace[]>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Workspace loading timeout after 5 seconds'));
-        }, 5000);
-      });
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, 5000);
 
-      const workspacesPromise = workspaceHelpers.getUserWorkspaces();
-      
       let userWorkspaces: Workspace[];
       try {
-        userWorkspaces = await Promise.race([workspacesPromise, timeoutPromise]) as Workspace[];
+        userWorkspaces = await workspaceHelpers.getUserWorkspaces();
+        clearTimeout(timeoutId);
       } catch (raceError: any) {
-        // If timeout wins, log and use empty array
-        if (raceError?.message?.includes('timeout')) {
+        clearTimeout(timeoutId);
+        // If aborted due to timeout, use empty array
+        if (abortController.signal.aborted) {
           console.warn('Workspace loading timed out, showing empty state');
           userWorkspaces = [];
         } else {
@@ -86,14 +85,21 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         const saved = userWorkspaces.find((w) => w.id === savedWorkspaceId);
         if (saved) {
           setCurrentWorkspaceState(saved);
-          // Load modules with timeout
-          Promise.race([
-            loadWorkspaceModules(saved.id),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Module loading timeout')), 3000))
-          ]).catch(err => {
-            console.error('Error loading workspace modules:', err);
-            // Don't block on module loading errors
-          });
+          // Load modules with timeout using AbortController
+          const moduleAbortController = new AbortController();
+          const moduleTimeoutId = setTimeout(() => {
+            moduleAbortController.abort();
+          }, 3000);
+          
+          loadWorkspaceModules(saved.id)
+            .then(() => clearTimeout(moduleTimeoutId))
+            .catch(err => {
+              clearTimeout(moduleTimeoutId);
+              if (!moduleAbortController.signal.aborted) {
+                console.error('Error loading workspace modules:', err);
+              }
+              // Don't block on module loading errors
+            });
           setIsLoading(false);
           return;
         }
@@ -105,14 +111,21 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         const defaultWorkspace = adminWorkspace || userWorkspaces[0];
         setCurrentWorkspaceState(defaultWorkspace);
         localStorage.setItem('current_workspace_id', defaultWorkspace.id);
-        // Load modules with timeout
-        Promise.race([
-          loadWorkspaceModules(defaultWorkspace.id),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Module loading timeout')), 3000))
-        ]).catch(err => {
-          console.error('Error loading workspace modules:', err);
-          // Don't block on module loading errors
-        });
+        // Load modules with timeout using AbortController
+        const moduleAbortController = new AbortController();
+        const moduleTimeoutId = setTimeout(() => {
+          moduleAbortController.abort();
+        }, 3000);
+        
+        loadWorkspaceModules(defaultWorkspace.id)
+          .then(() => clearTimeout(moduleTimeoutId))
+          .catch(err => {
+            clearTimeout(moduleTimeoutId);
+            if (!moduleAbortController.signal.aborted) {
+              console.error('Error loading workspace modules:', err);
+            }
+            // Don't block on module loading errors
+          });
       } else {
         // No workspaces - clear any saved workspace ID
         localStorage.removeItem('current_workspace_id');

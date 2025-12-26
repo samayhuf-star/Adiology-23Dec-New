@@ -211,8 +211,13 @@ export interface WalletService {
 export interface BillingService {
   setupWallet(userId: string, paymentMethod: PaymentMethod, settings: WalletSettings): Promise<void>;
   updateWalletSettings(userId: string, settings: WalletSettings): Promise<void>;
-  processSubscription(userId: string): Promise<SubscriptionResult>;
+  processSubscription(userId: string, paymentMethodId?: string): Promise<SubscriptionResult>;
   getWalletSettings(userId: string): Promise<WalletSettings>;
+  getPaymentMethods(userId: string, type?: 'wallet' | 'subscription'): Promise<PaymentMethod[]>;
+  addPaymentMethod(userId: string, paymentMethod: PaymentMethod, purpose?: 'wallet' | 'subscription' | 'both'): Promise<void>;
+  removePaymentMethod(userId: string, paymentMethodId: string): Promise<void>;
+  manualRecharge(userId: string, amount: Money, paymentMethodId: string): Promise<SubscriptionResult>;
+  getBillingHistory(userId: string, type?: 'wallet' | 'subscription' | 'all'): Promise<any[]>;
 }
 
 export interface PricingCalculator {

@@ -51,6 +51,7 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [timeouts, setTimeouts] = useState<{ [id: string]: NodeJS.Timeout }>({});
 
   const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -65,19 +66,37 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     // Auto-remove after duration (unless persistent)
     if (!newNotification.persistent && newNotification.duration && newNotification.duration > 0) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         removeNotification(id);
       }, newNotification.duration);
+      
+      setTimeouts(prev => ({ ...prev, [id]: timeoutId }));
     }
 
     return id;
   }, []);
 
   const removeNotification = useCallback((id: string) => {
+    // Clear timeout if it exists
+    setTimeouts(prev => {
+      if (prev[id]) {
+        clearTimeout(prev[id]);
+        const { [id]: removed, ...rest } = prev;
+        return rest;
+      }
+      return prev;
+    });
+    
     setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
   const clearAll = useCallback(() => {
+    // Clear all timeouts
+    setTimeouts(prev => {
+      Object.values(prev).forEach(timeout => clearTimeout(timeout));
+      return {};
+    });
+    
     setNotifications([]);
   }, []);
 
@@ -324,58 +343,6 @@ const NotificationToast: React.FC<NotificationToastProps> = ({ notification, onC
               <X className="h-4 w-4" />
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-        return 'border-l-red-500';
-      case 'warning':
-        return 'border-l-yellow-500';
-      case 'info':
-        return 'border-l-blue-500';
-      default:
-        return 'border-l-gray-500';
-    }
-  };
-
-  return (
-    <div
-      className={`
-        bg-white border-l-4 ${getBorderColor()} rounded-lg shadow-lg p-4 
-        animate-in slide-in-from-right-full duration-300
-        max-w-sm w-full
-      `}
-    >
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          {getIcon()}
-        </div>
-        <div className="ml-3 flex-1">
-          <h4 className="text-sm font-semibold text-gray-900">
-            {notification.title}
-          </h4>
-          {notification.message && (
-            <p className="text-sm text-gray-600 mt-1">
-              {notification.message}
-            </p>
-          )}
-          {notification.action && (
-            <button
-              onClick={notification.action.onClick}
-              className="text-sm text-blue-600 hover:text-blue-800 mt-2 font-medium"
-            >
-              {notification.action.label}
-            </button>
-          )}
-        </div>
-        <div className="ml-4 flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </div>

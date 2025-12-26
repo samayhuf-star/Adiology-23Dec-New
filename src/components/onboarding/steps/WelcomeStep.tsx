@@ -142,14 +142,4 @@ export const WelcomeStep: React.FC = () => {
       </div>
     </div>
   );
-            <span>Free 14-day trial</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-green-500" />
-            <span>Cancel anytime</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 };

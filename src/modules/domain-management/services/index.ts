@@ -4,3 +4,4 @@ export * from './billingService';
 export * from './domainService';
 export * from './pricingService';
 export * from './dnsService';
+export * from './revenueService';
