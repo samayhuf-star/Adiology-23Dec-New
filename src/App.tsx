@@ -476,15 +476,15 @@ const AppContent = () => {
           } catch (error) {
             console.error('Error fetching user profile during init:', error);
             if (isMounted && lastProcessedUserId === session.user.id) {
-              // Set minimal user on error - subscription_status is 'inactive' to ensure
-              // routing logic redirects to plan-selection
+              // Set minimal user on error - subscription_status is 'active' by default
+              // to prevent unnecessary redirects to plan-selection
               setUser({
                 id: session.user.id,
                 email: session.user.email || '',
                 full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
                 role: 'user',
                 subscription_plan: 'free',
-                subscription_status: 'inactive',
+                subscription_status: 'active',
               });
             }
           }
@@ -543,7 +543,7 @@ const AppContent = () => {
           profileFetchInProgress = true;
           
           // Set minimal user immediately to avoid UI flicker
-          // Note: subscription_status is 'inactive' to ensure routing logic redirects to plan-selection
+          // Note: subscription_status is 'active' by default to prevent unnecessary redirects
           // until we fetch the real profile data with actual subscription info
           const minimalUser = {
             id: session.user.id,
@@ -551,7 +551,7 @@ const AppContent = () => {
             full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
             role: 'user',
             subscription_plan: 'free',
-            subscription_status: 'inactive',
+            subscription_status: 'active',
           };
           
           // Only update if user actually changed and component is still mounted
@@ -832,16 +832,22 @@ const AppContent = () => {
         // If user is logged in, check subscription status
         if (user) {
           const subscriptionPlan = user.subscription_plan || 'free';
-          const subscriptionStatus = user.subscription_status || 'inactive';
+          const subscriptionStatus = user.subscription_status || 'active'; // Default to active instead of inactive
           const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
           const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
           
           if (hasPaidPlan) {
             setView('user');
           } else {
-            // Redirect unpaid users to plan selection
-            window.history.replaceState({}, '', '/plan-selection');
-            setView('plan-selection');
+            // Only redirect to plan selection if user explicitly has inactive status
+            // This prevents new users from being immediately redirected
+            if (subscriptionStatus === 'inactive' && subscriptionPlan === 'free') {
+              window.history.replaceState({}, '', '/plan-selection');
+              setView('plan-selection');
+            } else {
+              // For new users or users with active free plans, show the user dashboard
+              setView('user');
+            }
           }
           return;
         }
@@ -853,14 +859,19 @@ const AppContent = () => {
       // For non-root paths, use normal logic
       if (user) {
         const subscriptionPlan = user.subscription_plan || 'free';
-        const subscriptionStatus = user.subscription_status || 'inactive';
+        const subscriptionStatus = user.subscription_status || 'active'; // Default to active instead of inactive
         const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
         const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
         
         if (hasPaidPlan) {
           setView('user');
         } else {
-          setView('plan-selection');
+          // Only redirect to plan selection if explicitly inactive
+          if (subscriptionStatus === 'inactive') {
+            setView('plan-selection');
+          } else {
+            setView('user');
+          }
         }
       } else {
         setView('homepage');
@@ -913,14 +924,19 @@ const AppContent = () => {
       
       if (user) {
         const subscriptionPlan = user.subscription_plan || 'free';
-        const subscriptionStatus = user.subscription_status || 'inactive';
+        const subscriptionStatus = user.subscription_status || 'active'; // Default to active instead of inactive
         const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
         const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
         
         if (hasPaidPlan) {
           setAppView('user');
         } else {
-          setAppView('plan-selection');
+          // Only redirect to plan selection if explicitly inactive
+          if (subscriptionStatus === 'inactive') {
+            setAppView('plan-selection');
+          } else {
+            setAppView('user');
+          }
         }
       } else {
         // Show homepage for all paths when not logged in
@@ -1514,7 +1530,7 @@ const AppContent = () => {
               full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
               role: 'user' as const,
               subscription_plan: 'free',
-              subscription_status: 'inactive' as const,
+              subscription_status: 'active' as const,
             };
             
             setUser(fullUser);
