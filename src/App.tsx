@@ -67,7 +67,7 @@ const Blog = lazy(() => import('./components/Blog').then(m => ({ default: m.defa
 const BlogGenerator = lazy(() => import('./components/BlogGenerator').then(m => ({ default: m.default })));
 const SuperAdminPanel = lazy(() => import('./components/SuperAdminPanel').then(m => ({ default: m.SuperAdminPanel })));
 const Forms = lazy(() => import('./modules/forms/components/Forms').then(m => ({ default: m.Forms })));
-const DomainManagement = lazy(() => import('./modules/domain-management/components/DomainManagement').then(m => ({ default: m.default })));
+
 const VMManagement = lazy(() => import('./modules/vm-management/components/VMManagement').then(m => ({ default: m.default })));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const TermsOfService = lazy(() => import('./components/TermsOfService').then(m => ({ default: m.TermsOfService })));
@@ -166,7 +166,6 @@ const AppContent = () => {
     'support',
     'support-help',
     'teams',
-    'domains',
     'virtual-machines',
     'blog',
     'forms',
@@ -1025,7 +1024,6 @@ const AppContent = () => {
     },
 
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
-    { id: 'domains', label: 'Domains', icon: Globe, module: 'domains' }, // Domain management
     { id: 'virtual-machines', label: 'Virtual Machines', icon: Building, module: 'vm-management' }, // VM management
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
@@ -1754,12 +1752,6 @@ const AppContent = () => {
         );
       case 'dashboard':
         return <Dashboard user={user} onNavigate={setActiveTabSafe} />;
-      case 'domains':
-        return (
-          <Suspense fallback={<ComponentLoader />}>
-            <DomainManagement user={user} />
-          </Suspense>
-        );
       case 'virtual-machines':
         return (
           <Suspense fallback={<ComponentLoader />}>

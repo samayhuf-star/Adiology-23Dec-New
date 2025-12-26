@@ -143,15 +143,77 @@ model user_notifications {
 }
 
 model users {
-  id                     String    @id @db.VarChar(255)
-  email                  String    @db.VarChar(255)
-  full_name              String?   @db.VarChar(255)
-  subscription_plan      String?   @default("free") @db.VarChar(50)
-  subscription_status    String?   @default("active") @db.VarChar(50)
-  role                   String?   @default("user") @db.VarChar(50)
-  ai_usage               Int?      @default(0)
-  created_at             DateTime? @default(now()) @db.Timestamp(6)
-  updated_at             DateTime? @default(now()) @db.Timestamp(6)
+  id                     String              @id @db.VarChar(255)
+  email                  String              @db.VarChar(255)
+  full_name              String?             @db.VarChar(255)
+  subscription_plan      String?             @default("free") @db.VarChar(50)
+  subscription_status    String?             @default("active") @db.VarChar(50)
+  role                   String?             @default("user") @db.VarChar(50)
+  ai_usage               Int?                @default(0)
+  created_at             DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at             DateTime?           @default(now()) @db.Timestamp(6)
   stripe_customer_id     String?
   stripe_subscription_id String?
+  
+  // Workspace relationships
+  owned_workspaces       workspaces[]        @relation("WorkspaceOwner")
+  workspace_memberships  workspace_members[] @relation("WorkspaceMember")
+  invited_memberships    workspace_members[] @relation("WorkspaceInviter")
+}
+
+model workspaces {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String
+  description         String?
+  owner_id            String              @db.VarChar(255)
+  is_admin_workspace  Boolean?            @default(false)
+  created_at          DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?           @default(now()) @db.Timestamptz(6)
+  
+  // Relationships
+  owner               users               @relation("WorkspaceOwner", fields: [owner_id], references: [id], onDelete: Cascade)
+  members             workspace_members[]
+  modules             workspace_modules[]
+  
+  @@index([owner_id], map: "idx_workspaces_owner_id")
+  @@index([is_admin_workspace], map: "idx_workspaces_is_admin")
+}
+
+model workspace_members {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String    @db.Uuid
+  user_id      String    @db.VarChar(255)
+  role         String?   @default("member") @db.VarChar(50)
+  invited_by   String?   @db.VarChar(255)
+  invited_at   DateTime? @default(now()) @db.Timestamptz(6)
+  joined_at    DateTime? @db.Timestamptz(6)
+  status       String?   @default("pending") @db.VarChar(50)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  
+  // Relationships
+  workspace    workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  user         users      @relation("WorkspaceMember", fields: [user_id], references: [id], onDelete: Cascade)
+  inviter      users?     @relation("WorkspaceInviter", fields: [invited_by], references: [id], onDelete: SetNull)
+  
+  @@unique([workspace_id, user_id])
+  @@index([workspace_id], map: "idx_workspace_members_workspace_id")
+  @@index([user_id], map: "idx_workspace_members_user_id")
+  @@index([status], map: "idx_workspace_members_status")
+}
+
+model workspace_modules {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace_id String    @db.Uuid
+  module_name  String
+  enabled      Boolean?  @default(true)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  
+  // Relationships
+  workspace    workspaces @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  
+  @@unique([workspace_id, module_name])
+  @@index([workspace_id], map: "idx_workspace_modules_workspace_id")
+  @@index([module_name], map: "idx_workspace_modules_module_name")
 }
