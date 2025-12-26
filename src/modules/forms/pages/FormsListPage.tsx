@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
 import { Plus, FileText, Trash2, Eye, Edit, LayoutTemplate } from 'lucide-react';
 import { TemplateGallery } from '../components/TemplateGallery';
+import { EnhancedTemplateGallery } from '../components/EnhancedTemplateGallery';
 
 export function FormsListPage() {
   const [forms, setForms] = useState<any[]>([]);
@@ -72,8 +73,9 @@ export function FormsListPage() {
 
   if (showTemplateGallery) {
     return (
-      <TemplateGallery
+      <EnhancedTemplateGallery
         onFormCreated={handleFormCreatedFromTemplate}
+        onBack={() => setShowTemplateGallery(false)}
       />
     );
   }

@@ -16,7 +16,9 @@ import {
   Crown,
   Clock
 } from 'lucide-react';
-import { formCategories, formTemplates, FormTemplate } from '../data/formTemplates';
+import { formCategories } from '../data/formTemplates';
+import { formTemplates } from '../data/templateData';
+import { FormTemplate } from '../data/formTemplates';
 import { formApi } from '../services/formApi';
 
 interface EnhancedTemplateGalleryProps {
