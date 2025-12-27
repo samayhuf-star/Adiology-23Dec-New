@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { WorkspaceCards } from './WorkspaceCards';
 import { WorkspaceCreation } from './WorkspaceCreation';
 import { WorkspaceErrorBoundary } from './WorkspaceErrorBoundary';
+import { WorkspacePerformanceMonitor } from './workspace-performance-monitor';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { type Workspace } from '../utils/workspaces';
 import { Dialog, DialogContent } from './ui/dialog';
@@ -173,6 +174,9 @@ export const WorkspacesPage: React.FC = () => {
             </WorkspaceErrorBoundary>
           </DialogContent>
         </Dialog>
+
+        {/* Performance Monitor */}
+        <WorkspacePerformanceMonitor />
       </div>
     </div>
   );

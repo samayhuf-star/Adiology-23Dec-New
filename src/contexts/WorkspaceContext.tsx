@@ -3,6 +3,7 @@ import { workspaceHelpers, type Workspace } from '../utils/workspaces';
 import { workspacePersistence } from '../utils/workspacePersistence';
 import { getCurrentAuthUser } from '../utils/auth';
 import { moduleAccessControl, ModulePermission } from '../utils/module-access-control';
+import { WorkspaceCacheManager } from '../utils/workspace-cache';
 
 interface WorkspaceError {
   type: 'network' | 'auth' | 'permission' | 'timeout' | 'unknown';
@@ -114,16 +115,55 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         return;
       }
 
+      // Try to get cached workspaces first for better performance
+      let userWorkspaces: Workspace[] | null = null;
+      if (!isRetry) {
+        userWorkspaces = WorkspaceCacheManager.getCachedUserWorkspaces(user.id);
+        if (userWorkspaces) {
+          console.log('Using cached workspaces for better performance');
+          setWorkspaces(userWorkspaces);
+          
+          // Continue with the rest of the initialization using cached data
+          const savedSession = workspacePersistence.validateSession(userWorkspaces);
+          if (savedSession) {
+            const saved = userWorkspaces.find((w) => w.id === savedSession.workspaceId);
+            if (saved) {
+              setCurrentWorkspaceState(saved);
+              loadWorkspaceModules(saved.id).catch(console.error);
+              setIsLoading(false);
+              setIsInitialized(true);
+              setLastUpdated(new Date());
+              
+              // Refresh data in background
+              setTimeout(() => {
+                workspaceHelpers.getUserWorkspaces().then(freshWorkspaces => {
+                  if (freshWorkspaces) {
+                    setWorkspaces(freshWorkspaces);
+                    WorkspaceCacheManager.cacheUserWorkspaces(user.id, freshWorkspaces);
+                  }
+                }).catch(console.error);
+              }, 100);
+              
+              return;
+            }
+          }
+        }
+      }
+
       // Add timeout to prevent infinite loading (reduced to 5 seconds)
       const abortController = new AbortController();
       const timeoutId = setTimeout(() => {
         abortController.abort();
       }, 5000);
 
-      let userWorkspaces: Workspace[];
       try {
         userWorkspaces = await workspaceHelpers.getUserWorkspaces();
         clearTimeout(timeoutId);
+        
+        // Cache the fresh data
+        if (userWorkspaces && user.id) {
+          WorkspaceCacheManager.cacheUserWorkspaces(user.id, userWorkspaces);
+        }
       } catch (raceError: any) {
         clearTimeout(timeoutId);
         // If aborted due to timeout, use empty array
@@ -247,6 +287,29 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
   const loadWorkspaceModules = async (workspaceId: string) => {
     try {
+      // Try to get cached modules first
+      const cachedModules = WorkspaceCacheManager.getCachedWorkspaceModules(workspaceId);
+      if (cachedModules) {
+        console.log('Using cached modules for workspace:', workspaceId);
+        setAvailableModules(cachedModules);
+        
+        // Load permissions in background
+        moduleAccessControl.getWorkspaceModulePermissions(workspaceId)
+          .then(permissions => {
+            setModulePermissions(permissions);
+            const enabledModules = permissions
+              .filter(p => p.enabled)
+              .map(p => p.module_name);
+            
+            // Update cache with fresh data
+            WorkspaceCacheManager.cacheWorkspaceModules(workspaceId, enabledModules);
+            setAvailableModules(enabledModules);
+          })
+          .catch(console.error);
+        
+        return;
+      }
+
       // Use enhanced module access control system
       const permissions = await moduleAccessControl.getWorkspaceModulePermissions(workspaceId);
       const enabledModules = permissions
@@ -255,6 +318,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       
       setModulePermissions(permissions);
       setAvailableModules(enabledModules);
+      
+      // Cache the modules for better performance
+      WorkspaceCacheManager.cacheWorkspaceModules(workspaceId, enabledModules);
 
       // Setup real-time subscription for permission updates
       await moduleAccessControl.subscribeToPermissionUpdates(workspaceId, (updatedPermissions) => {
@@ -264,6 +330,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         
         setModulePermissions(updatedPermissions);
         setAvailableModules(updatedEnabledModules);
+        
+        // Update cache with real-time changes
+        WorkspaceCacheManager.cacheWorkspaceModules(workspaceId, updatedEnabledModules);
         
         console.log(`Module permissions updated for workspace: ${workspaceId}`);
       });
@@ -290,6 +359,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         // Clear workspace-specific cached data using the persistence utility
         workspacePersistence.clearWorkspaceData(previousWorkspace.id);
         
+        // Invalidate cache for previous workspace
+        WorkspaceCacheManager.invalidateWorkspaceCache(previousWorkspace.id);
+        
         // Clear modules from previous workspace
         setAvailableModules([]);
         setModulePermissions([]);
@@ -299,6 +371,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       setCurrentWorkspaceState(workspace);
       
       if (workspace) {
+        // Preload workspace data for better performance
+        WorkspaceCacheManager.preloadWorkspaceData(workspace.id);
+        
         // Load modules for new workspace using enhanced system
         await loadWorkspaceModules(workspace.id);
         

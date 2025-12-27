@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Building, Users, Plus, Mail, Loader2, ArrowRight, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Building, Users, Plus, Mail, Loader2, ArrowRight, X, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -16,6 +16,10 @@ interface WorkspaceCardsProps {
   isSelecting?: boolean;
 }
 
+// Performance constants
+const WORKSPACES_PER_PAGE = 12;
+const SEARCH_DEBOUNCE_MS = 300;
+
 export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspace, onCreateWorkspace, isSelecting = false }) => {
   const { workspaces, refreshWorkspaces, isLoading } = useWorkspace();
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
@@ -25,6 +29,42 @@ export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspac
   const [isInviting, setIsInviting] = useState(false);
   const [error, setError] = useState('');
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  // Pagination and search state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when searching
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Filtered and paginated workspaces
+  const { filteredWorkspaces, totalPages, currentPageWorkspaces } = useMemo(() => {
+    // Filter workspaces based on search query
+    const filtered = workspaces.filter(workspace => 
+      workspace.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      (workspace.description && workspace.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+    );
+
+    // Calculate pagination
+    const total = Math.ceil(filtered.length / WORKSPACES_PER_PAGE);
+    const startIndex = (currentPage - 1) * WORKSPACES_PER_PAGE;
+    const endIndex = startIndex + WORKSPACES_PER_PAGE;
+    const paginated = filtered.slice(startIndex, endIndex);
+
+    return {
+      filteredWorkspaces: filtered,
+      totalPages: total,
+      currentPageWorkspaces: paginated
+    };
+  }, [workspaces, debouncedSearchQuery, currentPage]);
 
   useEffect(() => {
     // Refresh workspaces when component mounts
@@ -189,6 +229,24 @@ export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspac
           <p className="text-slate-300">Select a workspace to get started or create a new one</p>
         </div>
 
+        {/* Search and Controls */}
+        {workspaces.length > 0 && (
+          <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+              <Input
+                placeholder="Search workspaces..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+              />
+            </div>
+            <div className="text-sm text-slate-300">
+              {filteredWorkspaces.length} workspace{filteredWorkspaces.length !== 1 ? 's' : ''} found
+            </div>
+          </div>
+        )}
+
         {workspaces.length === 0 ? (
           <Card className="p-12 text-center">
             <Building className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
@@ -203,76 +261,166 @@ export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspac
               </Button>
             )}
           </Card>
+        ) : filteredWorkspaces.length === 0 ? (
+          <Card className="p-12 text-center">
+            <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-2xl font-semibold mb-2">No workspaces found</h2>
+            <p className="text-muted-foreground mb-6">
+              Try adjusting your search terms or create a new workspace
+            </p>
+            {onCreateWorkspace && (
+              <Button onClick={onCreateWorkspace} size="lg">
+                <Plus className="mr-2 h-5 w-5" />
+                Create Workspace
+              </Button>
+            )}
+          </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {workspaces.map((workspace) => (
-              <Card
-                key={workspace.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow relative group"
-                onClick={() => handleWorkspaceClick(workspace)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Building className="h-6 w-6 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg truncate">{workspace.name}</CardTitle>
-                        {workspace.is_admin_workspace && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary mt-1 inline-block">
-                            Admin
-                          </span>
-                        )}
+          <>
+            {/* Workspaces Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {currentPageWorkspaces.map((workspace) => (
+                <Card
+                  key={workspace.id}
+                  className="cursor-pointer hover:shadow-lg transition-all duration-200 relative group hover:scale-105"
+                  onClick={() => handleWorkspaceClick(workspace)}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <Building className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-lg truncate">{workspace.name}</CardTitle>
+                          {workspace.is_admin_workspace && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary mt-1 inline-block">
+                              Admin
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  {workspace.description && (
-                    <CardDescription className="mt-2 line-clamp-2">
-                      {workspace.description}
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>{workspace.member_count || 1} member{workspace.member_count !== 1 ? 's' : ''}</span>
+                    {workspace.description && (
+                      <CardDescription className="mt-2 line-clamp-2">
+                        {workspace.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="h-4 w-4" />
+                        <span>{workspace.member_count || 1} member{workspace.member_count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => handleInviteClick(e, workspace)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Mail className="h-4 w-4 mr-1" />
+                        Invite
+                      </Button>
                     </div>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => handleInviteClick(e, workspace)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="w-full mt-4"
+                      onClick={() => handleWorkspaceClick(workspace)}
+                      disabled={isSelecting}
                     >
-                      <Mail className="h-4 w-4 mr-1" />
-                      Invite
+                      {isSelecting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Opening...
+                        </>
+                      ) : (
+                        <>
+                          Open Workspace
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
                     </Button>
-                  </div>
-                  <Button
-                    className="w-full mt-4"
-                    onClick={() => handleWorkspaceClick(workspace)}
-                  >
-                    Open Workspace
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
 
-            {onCreateWorkspace && (
-              <Card
-                className="cursor-pointer hover:shadow-lg transition-shadow border-dashed border-2 flex items-center justify-center min-h-[200px]"
-                onClick={onCreateWorkspace}
-              >
-                <CardContent className="text-center p-6">
-                  <Plus className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <CardTitle className="mb-2">Create New Workspace</CardTitle>
-                  <CardDescription>Start a new workspace for your team</CardDescription>
-                </CardContent>
-              </Card>
+              {/* Create New Workspace Card - only show on first page */}
+              {onCreateWorkspace && currentPage === 1 && (
+                <Card
+                  className="cursor-pointer hover:shadow-lg transition-all duration-200 border-dashed border-2 flex items-center justify-center min-h-[200px] hover:scale-105"
+                  onClick={onCreateWorkspace}
+                >
+                  <CardContent className="text-center p-6">
+                    <Plus className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <CardTitle className="mb-2">Create New Workspace</CardTitle>
+                    <CardDescription>Start a new workspace for your team</CardDescription>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current page
+                    const showPage = page === 1 || 
+                                   page === totalPages || 
+                                   Math.abs(page - currentPage) <= 1;
+                    
+                    if (!showPage) {
+                      // Show ellipsis for gaps
+                      if (page === 2 && currentPage > 4) {
+                        return <span key={page} className="text-slate-400">...</span>;
+                      }
+                      if (page === totalPages - 1 && currentPage < totalPages - 3) {
+                        return <span key={page} className="text-slate-400">...</span>;
+                      }
+                      return null;
+                    }
+                    
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className={currentPage === page 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-white/10 border-white/20 text-white hover:bg-white/20"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
