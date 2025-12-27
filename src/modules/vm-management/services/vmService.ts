@@ -1,21 +1,33 @@
-// VM Service - Core VM operations and API integration
+// VM Service - Core VM operations with workspace isolation
 
 import { VM, VMConfiguration, VMStatus, CreateVMResponse, VMListResponse } from '../types';
+import { makeWorkspaceApiCall, getCurrentWorkspaceContext, validateWorkspaceAccess } from '../../../utils/workspace-api';
+import { loggingService } from '../../../utils/loggingService';
 
 class VMService {
   private baseURL = '/api/vm-management';
 
   /**
-   * Create a new virtual machine
+   * Create a new virtual machine with workspace context
    */
   async createVM(config: VMConfiguration): Promise<VM> {
     try {
-      const response = await fetch(`${this.baseURL}/vms`, {
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'createVM', {
+        workspaceId: context.workspaceId,
+        vmName: config.name
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/vms`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config),
+        body: JSON.stringify({
+          ...config,
+          workspaceId: context.workspaceId
+        }),
       });
 
       const data: CreateVMResponse = await response.json();
@@ -26,17 +38,28 @@ class VMService {
 
       return data.vm;
     } catch (error) {
-      console.error('Error creating VM:', error);
+      loggingService.addLog('error', 'VMService', 'Error creating VM', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
 
   /**
-   * Get list of VMs for a user
+   * Get list of VMs for current workspace
    */
-  async getVMList(userId: string): Promise<VM[]> {
+  async getVMList(): Promise<VM[]> {
     try {
-      const response = await fetch(`${this.baseURL}/vms?userId=${userId}`);
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'getVMList', {
+        workspaceId: context.workspaceId
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/vms`);
       const data: VMListResponse = await response.json();
 
       if (!data.success || !data.vms) {
@@ -50,17 +73,29 @@ class VMService {
         lastConnected: vm.lastConnected ? new Date(vm.lastConnected) : undefined,
       }));
     } catch (error) {
-      console.error('Error fetching VM list:', error);
+      loggingService.addLog('error', 'VMService', 'Error fetching VM list', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
 
   /**
-   * Get VM status from provider
+   * Get VM status from provider with workspace validation
    */
   async getVMStatus(vmId: string): Promise<VMStatus> {
     try {
-      const response = await fetch(`${this.baseURL}/vms/${vmId}/status`);
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'getVMStatus', {
+        workspaceId: context.workspaceId,
+        vmId
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/vms/${vmId}/status`);
       const data = await response.json();
 
       if (!data.success) {
@@ -69,17 +104,29 @@ class VMService {
 
       return data.status;
     } catch (error) {
-      console.error('Error getting VM status:', error);
+      loggingService.addLog('error', 'VMService', 'Error getting VM status', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
 
   /**
-   * Delete a virtual machine
+   * Delete a virtual machine with workspace validation
    */
   async deleteVM(vmId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseURL}/vms/${vmId}`, {
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'deleteVM', {
+        workspaceId: context.workspaceId,
+        vmId
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/vms/${vmId}`, {
         method: 'DELETE',
       });
 
@@ -89,17 +136,29 @@ class VMService {
         throw new Error(data.error || 'Failed to delete VM');
       }
     } catch (error) {
-      console.error('Error deleting VM:', error);
+      loggingService.addLog('error', 'VMService', 'Error deleting VM', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
 
   /**
-   * Start a stopped VM
+   * Start a stopped VM with workspace validation
    */
   async startVM(vmId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseURL}/vms/${vmId}/start`, {
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'startVM', {
+        workspaceId: context.workspaceId,
+        vmId
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/vms/${vmId}/start`, {
         method: 'POST',
       });
 
@@ -109,17 +168,29 @@ class VMService {
         throw new Error(data.error || 'Failed to start VM');
       }
     } catch (error) {
-      console.error('Error starting VM:', error);
+      loggingService.addLog('error', 'VMService', 'Error starting VM', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
 
   /**
-   * Stop a running VM
+   * Stop a running VM with workspace validation
    */
   async stopVM(vmId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseURL}/vms/${vmId}/stop`, {
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'stopVM', {
+        workspaceId: context.workspaceId,
+        vmId
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/vms/${vmId}/stop`, {
         method: 'POST',
       });
 
@@ -129,7 +200,9 @@ class VMService {
         throw new Error(data.error || 'Failed to stop VM');
       }
     } catch (error) {
-      console.error('Error stopping VM:', error);
+      loggingService.addLog('error', 'VMService', 'Error stopping VM', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
@@ -139,7 +212,16 @@ class VMService {
    */
   async getAvailableRegions() {
     try {
-      const response = await fetch(`${this.baseURL}/regions`);
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'getAvailableRegions', {
+        workspaceId: context.workspaceId
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/regions`);
       const data = await response.json();
 
       if (!data.success) {
@@ -148,7 +230,9 @@ class VMService {
 
       return data.regions;
     } catch (error) {
-      console.error('Error fetching regions:', error);
+      loggingService.addLog('error', 'VMService', 'Error fetching regions', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
@@ -158,7 +242,16 @@ class VMService {
    */
   async getAvailableSizes() {
     try {
-      const response = await fetch(`${this.baseURL}/sizes`);
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'getAvailableSizes', {
+        workspaceId: context.workspaceId
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/sizes`);
       const data = await response.json();
 
       if (!data.success) {
@@ -167,7 +260,9 @@ class VMService {
 
       return data.sizes;
     } catch (error) {
-      console.error('Error fetching VM sizes:', error);
+      loggingService.addLog('error', 'VMService', 'Error fetching VM sizes', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
@@ -177,7 +272,16 @@ class VMService {
    */
   async getOperatingSystems() {
     try {
-      const response = await fetch(`${this.baseURL}/operating-systems`);
+      const context = await getCurrentWorkspaceContext();
+      if (!context) {
+        throw new Error('No workspace context available');
+      }
+
+      loggingService.logTransaction('VMService', 'getOperatingSystems', {
+        workspaceId: context.workspaceId
+      });
+
+      const response = await makeWorkspaceApiCall(`${this.baseURL}/operating-systems`);
       const data = await response.json();
 
       if (!data.success) {
@@ -186,7 +290,9 @@ class VMService {
 
       return data.operatingSystems;
     } catch (error) {
-      console.error('Error fetching operating systems:', error);
+      loggingService.addLog('error', 'VMService', 'Error fetching operating systems', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }

@@ -12,6 +12,7 @@ import { notifications } from '../utils/notifications';
 interface WorkspaceCreationProps {
   onComplete: (workspace: Workspace) => void;
   onSkip?: () => void;
+  onCancel?: () => void;
 }
 
 type Step = 'name' | 'members' | 'modules';
@@ -33,7 +34,7 @@ const AVAILABLE_MODULES = [
 
 const DEFAULT_MODULES = ['dashboard', 'settings', 'support', 'help', 'ticket'];
 
-export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete, onSkip }) => {
+export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete, onSkip, onCancel }) => {
   const [currentStep, setCurrentStep] = useState<Step>('name');
   const [workspaceName, setWorkspaceName] = useState('');
   const [workspaceDescription, setWorkspaceDescription] = useState('');
@@ -45,11 +46,45 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!workspaceName.trim()) {
+    
+    // Clear previous errors
+    setError('');
+    
+    // Validate workspace name
+    const trimmedName = workspaceName.trim();
+    if (!trimmedName) {
       setError('Please enter a workspace name');
       return;
     }
-    setError('');
+    
+    if (trimmedName.length < 2) {
+      setError('Workspace name must be at least 2 characters long');
+      return;
+    }
+    
+    if (trimmedName.length > 50) {
+      setError('Workspace name must be less than 50 characters');
+      return;
+    }
+    
+    // Check for invalid characters
+    const invalidChars = /[<>:"/\\|?*]/;
+    if (invalidChars.test(trimmedName)) {
+      setError('Workspace name contains invalid characters. Please avoid: < > : " / \\ | ? *');
+      return;
+    }
+    
+    // Validate description if provided
+    const trimmedDescription = workspaceDescription.trim();
+    if (trimmedDescription && trimmedDescription.length > 200) {
+      setError('Workspace description must be less than 200 characters');
+      return;
+    }
+    
+    // Update state with trimmed values
+    setWorkspaceName(trimmedName);
+    setWorkspaceDescription(trimmedDescription);
+    
     setCurrentStep('members');
   };
 
@@ -70,14 +105,27 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
     setError('');
 
     try {
+      // Final validation before creation
+      const trimmedName = workspaceName.trim();
+      const trimmedDescription = workspaceDescription.trim();
+      
+      if (!trimmedName) {
+        throw new Error('Workspace name is required');
+      }
+
       // Create workspace
       const workspace = await workspaceHelpers.createWorkspace({
-        name: workspaceName.trim(),
-        description: workspaceDescription.trim() || undefined,
+        name: trimmedName,
+        description: trimmedDescription || undefined,
       });
 
       // Update modules (already set with defaults, but update to match selection)
-      await workspaceHelpers.updateWorkspaceModules(workspace.id, selectedModules);
+      try {
+        await workspaceHelpers.updateWorkspaceModules(workspace.id, selectedModules);
+      } catch (moduleError) {
+        console.warn('Error updating workspace modules (non-critical):', moduleError);
+        // Don't fail the entire creation for module errors
+      }
 
       // Invite users by email
       let successfulInvites: string[] = [];
@@ -146,9 +194,20 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
         });
       }
 
+      // Call completion handler (this will switch to the new workspace)
       onComplete(workspace);
+      
+      // Reset form state only after successful completion
+      setWorkspaceName('');
+      setWorkspaceDescription('');
+      setInviteEmails([]);
+      setInviteEmailInput('');
+      setSelectedModules(DEFAULT_MODULES);
+      setCurrentStep('name');
+      
     } catch (err: any) {
       console.error('Error creating workspace:', err);
+      
       // Log full error details for better debugging
       if (err instanceof Error) {
         console.error('Error details:', {
@@ -166,7 +225,28 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
       } else {
         console.error('Error object:', JSON.stringify(err, null, 2));
       }
-      setError(err?.message || 'Failed to create workspace. Please try again.');
+      
+      // Determine user-friendly error message
+      let errorMessage = 'Failed to create workspace. Please try again.';
+      
+      if (err?.message) {
+        if (err.message.includes('duplicate') || err.message.includes('already exists')) {
+          errorMessage = 'A workspace with this name already exists. Please choose a different name.';
+        } else if (err.message.includes('permission') || err.message.includes('unauthorized')) {
+          errorMessage = 'You do not have permission to create workspaces. Please contact your administrator.';
+        } else if (err.message.includes('network') || err.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (err.message.includes('quota') || err.message.includes('limit')) {
+          errorMessage = 'You have reached the maximum number of workspaces. Please contact support.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+      
+      // Don't reset form state on error - preserve user input
+      // Only reset loading state
       setIsLoading(false);
     }
   };
@@ -174,13 +254,24 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
   const handleAddInviteEmail = () => {
     const email = inviteEmailInput.trim().toLowerCase();
     
+    // Clear previous errors
+    setError('');
+    
     if (!email) {
       setError('Please enter an email address');
       return;
     }
 
-    if (!email.includes('@') || !email.includes('.')) {
+    // Enhanced email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       setError('Please enter a valid email address');
+      return;
+    }
+
+    // Check for common email issues
+    if (email.length > 254) {
+      setError('Email address is too long');
       return;
     }
 
@@ -189,9 +280,14 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
       return;
     }
 
+    // Limit number of invites
+    if (inviteEmails.length >= 10) {
+      setError('You can invite up to 10 people at once');
+      return;
+    }
+
     setInviteEmails((prev) => [...prev, email]);
     setInviteEmailInput('');
-    setError('');
   };
 
   const handleRemoveInviteEmail = (email: string) => {
@@ -280,6 +376,11 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
                     Skip for Now
                   </Button>
                 )}
+                {onCancel && (
+                  <Button type="button" variant="outline" onClick={onCancel}>
+                    Cancel
+                  </Button>
+                )}
                 <Button type="submit">
                   Next <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -311,9 +412,6 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
                     Add
                   </Button>
                 </div>
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
                 <p className="text-sm text-muted-foreground">
                   Enter email addresses of team members you want to invite to this workspace. 
                   <span className="block mt-1 text-xs">
@@ -330,7 +428,7 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
                         className="flex items-center justify-between p-2 rounded hover:bg-muted"
                       >
                         <div className="flex items-center gap-2">
-                          <Checkbox checked={true} disabled />
+                          <Mail className="h-4 w-4 text-muted-foreground" />
                           <p className="text-sm font-medium">{email}</p>
                         </div>
                         <Button
@@ -340,7 +438,7 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
                           onClick={() => handleRemoveInviteEmail(email)}
                           className="text-destructive hover:text-destructive"
                         >
-                          Remove
+                          <X className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}
@@ -421,4 +519,3 @@ export const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ onComplete
     </div>
   );
 };
-

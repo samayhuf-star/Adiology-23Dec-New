@@ -30,11 +30,12 @@ import { supabase } from './utils/supabase/client';
 import { getCurrentUserProfile, isAuthenticated, signOut } from './utils/auth';
 import { getUserPreferences, applyUserPreferences } from './utils/userPreferences';
 import { notifications as notificationService } from './utils/notifications';
-import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
 import { WorkspaceCreation } from './components/WorkspaceCreation';
 import { WorkspaceCards } from './components/WorkspaceCards';
 import { WorkspacesPage } from './components/WorkspacesPage';
+import { WorkspaceErrorBoundary } from './components/WorkspaceErrorBoundary';
 import { workspaceHelpers } from './utils/workspaces';
 import { FeedbackButton } from './components/FeedbackButton';
 import { Auth } from './components/Auth';
@@ -90,6 +91,7 @@ type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' 
 
 const AppContent = () => {
   const { theme } = useTheme();
+  const { refreshWorkspaces } = useWorkspace();
   const [appView, setAppView] = useState<AppView>('homepage');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -169,6 +171,7 @@ const AppContent = () => {
     'virtual-machines',
     'blog',
     'forms',
+    'workspaces', // Add workspaces to valid tab IDs
     // 'call-forwarding', // Hidden - module disabled
   ]);
 
@@ -1024,7 +1027,8 @@ const AppContent = () => {
     },
 
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
-    { id: 'virtual-machines', label: 'Virtual Machines', icon: Building, module: 'vm-management' }, // VM management
+    { id: 'workspaces', label: 'Workspaces', icon: Building, module: null }, // Workspaces management
+    { id: 'virtual-machines', label: 'Virtual Machines', icon: TestTube, module: 'vm-management' }, // VM management
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
     { id: 'blog', label: 'Blog', icon: BookOpen, module: null }, // Blog doesn't require module access
@@ -1212,7 +1216,7 @@ const AppContent = () => {
                   const hasAdminWorkspace = workspaces.some((w) => w.is_admin_workspace);
                   if (!hasAdminWorkspace) {
                     await workspaceHelpers.createAdminWorkspace(userProfile.id);
-                    // await refreshWorkspaces(); // Commented out - function not available
+                    await refreshWorkspaces(); // Refresh workspaces after creating admin workspace
                   }
                 } catch (workspaceError) {
                   console.error('Error creating admin workspace:', workspaceError);
@@ -1286,7 +1290,7 @@ const AppContent = () => {
     return (
       <WorkspaceCreation
         onComplete={async (workspace) => {
-          // await refreshWorkspaces(); // Commented out - function not available
+          await refreshWorkspaces(); // Refresh workspaces after creation
           window.history.pushState({}, '', '/');
           setAppView('workspace-selection');
         }}
@@ -1849,12 +1853,15 @@ const AppContent = () => {
         {/* Enhanced Workspace Switcher */}
         {user && (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
           <div className="px-4 py-4 border-b border-white/30">
-            {/* Workspace switcher would go here when implemented */}
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200">
-                <Building className="w-5 h-5 text-slate-500" />
-                <span className="text-sm font-medium text-slate-600">No workspace selected</span>
-              </div>
-            {/* ) */}
+            <WorkspaceErrorBoundary>
+              <WorkspaceSwitcher 
+                canSwitch={true}
+                onCreateWorkspace={() => {
+                  // Handle workspace creation completion
+                  // This could trigger a refresh or navigation if needed
+                }}
+              />
+            </WorkspaceErrorBoundary>
           </div>
         )}
         

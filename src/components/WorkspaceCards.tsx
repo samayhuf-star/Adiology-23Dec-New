@@ -13,9 +13,10 @@ import { notifications } from '../utils/notifications';
 interface WorkspaceCardsProps {
   onSelectWorkspace: (workspace: Workspace) => void;
   onCreateWorkspace?: () => void;
+  isSelecting?: boolean;
 }
 
-export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspace, onCreateWorkspace }) => {
+export const WorkspaceCards: React.FC<WorkspaceCardsProps> = ({ onSelectWorkspace, onCreateWorkspace, isSelecting = false }) => {
   const { workspaces, refreshWorkspaces, isLoading } = useWorkspace();
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);

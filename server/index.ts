@@ -6722,9 +6722,9 @@ app.delete('/api/long-tail-keywords/lists/:listId', async (c) => {
   }
 });
 
-// Determine ports - in production, use PORT env var; in development, use 3001 for API
+// Determine ports - use PORT env var if provided, otherwise use defaults
 const isProduction = process.env.NODE_ENV === 'production';
-const apiPort = isProduction ? parseInt(process.env.PORT || '5000', 10) : 3001;
+const apiPort = parseInt(process.env.PORT || (isProduction ? '5000' : '3001'), 10);
 
 // In production, serve static files from dist/
 if (isProduction) {
