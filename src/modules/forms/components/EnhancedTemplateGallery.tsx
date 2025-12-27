@@ -113,18 +113,19 @@ export function EnhancedTemplateGallery({ onFormCreated, onBack }: EnhancedTempl
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              {onBack && (
-                <Button variant="ghost" size="sm" onClick={onBack}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              )}
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Form Templates</h1>
                 <p className="text-sm text-gray-500">Choose from 100+ professional templates</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '#forms/my-forms'}
+              >
+                My Forms
+              </Button>
               <Button
                 variant={viewMode === 'grid' ? 'default' : 'outline'}
                 size="sm"

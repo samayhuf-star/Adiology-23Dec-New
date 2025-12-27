@@ -3,14 +3,11 @@ import { formApi } from '../services/formApi';
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
 import { Plus, FileText, Trash2, Eye, Edit, LayoutTemplate } from 'lucide-react';
-import { TemplateGallery } from '../components/TemplateGallery';
-import { EnhancedTemplateGallery } from '../components/EnhancedTemplateGallery';
 
 export function FormsListPage() {
   const [forms, setForms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
 
@@ -71,15 +68,6 @@ export function FormsListPage() {
     }
   };
 
-  if (showTemplateGallery) {
-    return (
-      <EnhancedTemplateGallery
-        onFormCreated={handleFormCreatedFromTemplate}
-        onBack={() => setShowTemplateGallery(false)}
-      />
-    );
-  }
-
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
   }
@@ -87,11 +75,20 @@ export function FormsListPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Forms</h1>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.location.href = '#forms'}
+          >
+            ← Back to Templates
+          </Button>
+          <h1 className="text-2xl font-bold">My Forms</h1>
+        </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => setShowTemplateGallery(true)}
+            onClick={() => window.location.href = '#forms'}
           >
             <LayoutTemplate className="w-4 h-4 mr-2" />
             Browse Templates
