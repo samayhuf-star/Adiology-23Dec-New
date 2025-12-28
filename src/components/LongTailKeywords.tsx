@@ -194,7 +194,9 @@ export function LongTailKeywords() {
   };
 
   const selectAll = () => {
-    setSelectedKeywords(new Set(keywords.map(k => k.keyword)));
+    // Select only long-tail keywords (4+ words)
+    const longTailKws = keywords.filter(k => k.keyword.trim().split(/\s+/).filter(w => w.length > 0).length >= 4);
+    setSelectedKeywords(new Set(longTailKws.map(k => k.keyword)));
   };
 
   const deselectAll = () => {
@@ -207,9 +209,11 @@ export function LongTailKeywords() {
       return;
     }
 
+    // Only save long-tail keywords (4+ words)
+    const longTailKws = keywords.filter(k => k.keyword.trim().split(/\s+/).filter(w => w.length > 0).length >= 4);
     const keywordsToSave = selectedKeywords.size > 0 
-      ? Array.from(selectedKeywords)
-      : keywords.map(k => k.keyword);
+      ? Array.from(selectedKeywords).filter(kw => kw.trim().split(/\s+/).filter(w => w.length > 0).length >= 4)
+      : longTailKws.map(k => k.keyword);
 
     if (keywordsToSave.length === 0) {
       notifications.warning('No keywords to save');
@@ -281,22 +285,31 @@ export function LongTailKeywords() {
     }
   };
 
+  // Helper to count words in a keyword
+  const getWordCount = (keyword: string): number => {
+    return keyword.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
+  // Filter to only show long-tail keywords (4+ words)
+  const longTailKeywords = keywords.filter(k => getWordCount(k.keyword) >= 4);
+
   const exportCSV = () => {
     const keywordsToExport = selectedKeywords.size > 0 
-      ? keywords.filter(k => selectedKeywords.has(k.keyword))
-      : keywords;
+      ? longTailKeywords.filter(k => selectedKeywords.has(k.keyword))
+      : longTailKeywords;
 
     if (keywordsToExport.length === 0) {
       notifications.warning('No keywords to export');
       return;
     }
 
-    const headers = ['Keyword', 'Search Volume', 'CPC', 'Difficulty'];
+    const headers = ['Keyword', 'Search Volume', 'CPC', 'Difficulty', 'Word Count'];
     const rows = keywordsToExport.map(k => [
       k.keyword,
       k.searchVolume?.toString() || '',
       k.cpc ? `$${k.cpc.toFixed(2)}` : '',
-      k.difficulty || ''
+      k.difficulty || '',
+      getWordCount(k.keyword).toString()
     ]);
 
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -318,8 +331,8 @@ export function LongTailKeywords() {
 
   const copyAllKeywords = () => {
     const keywordsToCopy = selectedKeywords.size > 0 
-      ? Array.from(selectedKeywords)
-      : keywords.map(k => k.keyword);
+      ? Array.from(selectedKeywords).filter(kw => getWordCount(kw) >= 4)
+      : longTailKeywords.map(k => k.keyword);
     
     navigator.clipboard.writeText(keywordsToCopy.join('\n'));
     notifications.success(`Copied ${keywordsToCopy.length} keywords to clipboard`);
@@ -334,7 +347,7 @@ export function LongTailKeywords() {
     }
   };
 
-  const sortedKeywords = [...keywords].sort((a, b) => {
+  const sortedKeywords = [...longTailKeywords].sort((a, b) => {
     const direction = sortDirection === 'asc' ? 1 : -1;
     switch (sortColumn) {
       case 'keyword':
@@ -392,18 +405,22 @@ export function LongTailKeywords() {
             <span className="text-xs text-slate-400 ml-2 font-mono">longtail_stats.sh</span>
           </div>
           <div className="p-4 font-mono">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-3">
               <div className="space-y-1 text-center">
                 <div className="text-2xl font-bold text-violet-400">{keywords.length}</div>
-                <div className="text-xs text-slate-400">Generated</div>
+                <div className="text-xs text-slate-400">Total</div>
+              </div>
+              <div className="space-y-1 text-center">
+                <div className="text-2xl font-bold text-cyan-400">{longTailKeywords.length}</div>
+                <div className="text-xs text-slate-400">4+ Words</div>
               </div>
               <div className="space-y-1 text-center">
                 <div className="text-2xl font-bold text-emerald-400">{savedLists.length}</div>
                 <div className="text-xs text-slate-400">Saved</div>
               </div>
               <div className="space-y-1 text-center">
-                <div className="text-2xl font-bold text-amber-400">AI+</div>
-                <div className="text-xs text-slate-400">Hybrid</div>
+                <div className="text-2xl font-bold text-amber-400">4+</div>
+                <div className="text-xs text-slate-400">Min Words</div>
               </div>
             </div>
           </div>
@@ -538,18 +555,18 @@ export function LongTailKeywords() {
           )}
 
           {/* Keywords Table */}
-          {keywords.length > 0 && !isGenerating && (
+          {longTailKeywords.length > 0 && !isGenerating && (
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
                     <CardTitle className="text-lg">
-                      Generated Keywords ({keywords.length})
+                      Long-Tail Keywords ({longTailKeywords.length})
                     </CardTitle>
                     <CardDescription>
                       {selectedKeywords.size > 0 
                         ? `${selectedKeywords.size} keywords selected`
-                        : 'Select keywords to save or export'}
+                        : 'Showing only keywords with 4+ words'}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
@@ -571,7 +588,7 @@ export function LongTailKeywords() {
                         <tr>
                           <th className="w-10 px-3 py-3 text-left">
                             <Checkbox
-                              checked={selectedKeywords.size === keywords.length && keywords.length > 0}
+                              checked={selectedKeywords.size === longTailKeywords.length && longTailKeywords.length > 0}
                               onCheckedChange={(checked: boolean) => checked ? selectAll() : deselectAll()}
                             />
                           </th>
