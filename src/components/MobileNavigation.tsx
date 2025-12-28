@@ -4,7 +4,6 @@ import {
   Zap, 
   Search, 
   Settings, 
-  FileText,
   Users,
   HelpCircle
 } from 'lucide-react';
@@ -40,11 +39,6 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
       id: 'keyword-planner',
       label: 'Keywords',
       icon: Search,
-    },
-    {
-      id: 'forms',
-      label: 'Forms',
-      icon: FileText,
     },
     {
       id: 'settings',

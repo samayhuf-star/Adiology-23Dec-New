@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { 
-  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, TestTube, Code, Download, GitCompare, CreditCard, ArrowRight, Users, BookOpen, PhoneCall, Wand2, FileText, Building, Eye
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, Code, Download, GitCompare, CreditCard, ArrowRight, Users, BookOpen, PhoneCall, Wand2, Eye
 } from 'lucide-react';
 
 declare global {
@@ -60,9 +60,6 @@ const CallForwarding = lazy(() => import('./components/CallForwarding').then(m =
 const Blog = lazy(() => import('./components/Blog').then(m => ({ default: m.default })));
 const BlogGenerator = lazy(() => import('./components/BlogGenerator').then(m => ({ default: m.default })));
 const SuperAdminPanel = lazy(() => import('./components/SuperAdminPanel').then(m => ({ default: m.SuperAdminPanel })));
-const Forms = lazy(() => import('./modules/forms/components/Forms').then(m => ({ default: m.Forms })));
-
-const VMManagement = lazy(() => import('./modules/vm-management/components/VMManagement').then(m => ({ default: m.default })));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const TermsOfService = lazy(() => import('./components/TermsOfService').then(m => ({ default: m.TermsOfService })));
 const CookiePolicy = lazy(() => import('./components/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
@@ -160,9 +157,7 @@ const AppContent = () => {
     'support',
     'support-help',
     'teams',
-    'virtual-machines',
     'blog',
-    'forms',
     // 'call-forwarding', // Hidden - module disabled
   ]);
 
@@ -1018,11 +1013,9 @@ const AppContent = () => {
     },
 
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
-    { id: 'virtual-machines', label: 'Virtual Machines', icon: TestTube, module: 'vm-management' }, // VM management
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
     { id: 'blog', label: 'Blog', icon: BookOpen, module: null }, // Blog doesn't require module access
-    { id: 'forms', label: 'Forms', icon: FileText, module: null }, // Forms doesn't require module access
     { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle, module: 'support' },
     // Super Admin Panel - only visible to super admins
@@ -1661,12 +1654,6 @@ const AppContent = () => {
             <Blog />
           </Suspense>
         );
-      case 'forms':
-        return (
-          <Suspense fallback={<ComponentLoader />}>
-            <Forms />
-          </Suspense>
-        );
       case 'settings':
         return (
           <Suspense fallback={<ComponentLoader />}>
@@ -1681,12 +1668,6 @@ const AppContent = () => {
         );
       case 'dashboard':
         return <Dashboard user={user} onNavigate={setActiveTabSafe} />;
-      case 'virtual-machines':
-        return (
-          <Suspense fallback={<ComponentLoader />}>
-            <VMManagement user={user} />
-          </Suspense>
-        );
       default:
         // Fallback: redirect to dashboard for any invalid/missing route
         console.warn(`Invalid route/tab "${activeTab}" - redirecting to dashboard`);

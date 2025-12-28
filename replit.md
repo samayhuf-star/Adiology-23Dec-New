@@ -8,15 +8,27 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## December 28, 2025 - Workspace System Removal
+## December 28, 2025 - Module Cleanup and Simplification
+### Workspace System Removal
 - Completely removed the workspace isolation system to simplify architecture
 - Removed WorkspaceProvider, WorkspaceContext, and all workspace-related components
 - Updated historyService.ts, api.ts, and PaymentPage.tsx to remove workspace dependencies
 - Deleted workspace utility files: workspaces.ts, workspace-api.ts, workspace-cache.ts, workspacePersistence.ts
 - Deleted workspace components: WorkspaceSwitcher.tsx, WorkspaceCreation.tsx, WorkspaceCards.tsx, WorkspacesPage.tsx
 - Removed module-access-control.ts and related permission management
-- Sidebar navigation no longer includes "Workspaces" menu item
 - Users now have direct access to all features without workspace selection
+
+### Virtual Machines Module Removal
+- Completely removed the Virtual Machines module from the platform
+- Deleted src/modules/vm-management/ directory with all components, services, and hooks
+- Removed VM-related scripts and test files
+- Removed "Virtual Machines" from sidebar and navigation
+
+### Forms Module Removal
+- Completely removed the Forms module from the platform
+- Deleted src/modules/forms/ directory with all components and pages
+- Deleted src/api/forms.ts
+- Removed "Forms" from sidebar and mobile navigation
 
 # System Architecture
 
