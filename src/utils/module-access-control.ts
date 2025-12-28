@@ -165,6 +165,7 @@ export class ModuleAccessControlService {
 
   /**
    * Get all module permissions for a workspace with caching
+   * Access is always granted - no workspace validation needed
    */
   async getWorkspaceModulePermissions(workspaceId: string): Promise<ModulePermission[]> {
     try {
@@ -176,35 +177,39 @@ export class ModuleAccessControlService {
         return cached;
       }
 
-      // Validate workspace access
-      if (!await validateWorkspaceAccess(workspaceId, 'read_modules')) {
-        throw new Error('Access denied to workspace modules');
-      }
-
-      const { data, error } = await supabase
-        .from('workspace_modules')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('module_name');
-
-      if (error) {
-        throw new Error(`Database error: ${error.message}`);
-      }
-
-      const permissions = data || [];
+      // Full access - no validation needed, return default all-access permissions
+      // This provides all modules with full permissions
+      const allModulePermissions: ModulePermission[] = Object.values(AVAILABLE_MODULES).map(moduleName => ({
+        id: `${workspaceId}-${moduleName}`,
+        workspace_id: workspaceId,
+        module_name: moduleName,
+        enabled: true,
+        permissions: ADMIN_WORKSPACE_PERMISSIONS,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
       
       // Update cache
-      this.permissionCache.set(workspaceId, permissions);
+      this.permissionCache.set(workspaceId, allModulePermissions);
       this.cacheExpiry.set(workspaceId, Date.now() + this.CACHE_TTL);
 
-      return permissions;
+      return allModulePermissions;
 
     } catch (error) {
       loggingService.addLog('error', 'ModuleAccessControl', 'Error getting workspace module permissions', {
         error: error instanceof Error ? error.message : String(error),
         workspaceId
       });
-      throw error;
+      // Return full access on error as fallback
+      return Object.values(AVAILABLE_MODULES).map(moduleName => ({
+        id: `${workspaceId}-${moduleName}`,
+        workspace_id: workspaceId,
+        module_name: moduleName,
+        enabled: true,
+        permissions: ADMIN_WORKSPACE_PERMISSIONS,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
     }
   }
 
@@ -315,14 +320,10 @@ export class ModuleAccessControlService {
 
   /**
    * Setup real-time subscription for module permission changes
+   * Access is always granted - no validation needed
    */
   async subscribeToPermissionUpdates(workspaceId: string, callback: (permissions: ModulePermission[]) => void): Promise<void> {
     try {
-      // Validate workspace access
-      if (!await validateWorkspaceAccess(workspaceId, 'read_modules')) {
-        throw new Error('Access denied to workspace modules');
-      }
-
       // Remove existing subscription if any
       this.unsubscribeFromPermissionUpdates(workspaceId);
 

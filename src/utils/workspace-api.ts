@@ -14,49 +14,26 @@ export interface WorkspaceContext {
 }
 
 /**
- * Get current workspace context from localStorage and validate access
+ * Get current workspace context from localStorage
+ * Full access mode - no validation needed
  */
 export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext | null> {
   try {
     const user = await getCurrentAuthUser();
     if (!user) {
-      loggingService.addLog('warning', 'WorkspaceAPI', 'No authenticated user found');
       return null;
     }
 
     const workspaceId = localStorage.getItem('current_workspace_id');
     if (!workspaceId) {
-      loggingService.addLog('warning', 'WorkspaceAPI', 'No workspace selected');
       return null;
     }
 
-    // Verify user has access to this workspace via backend API
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-    
-    const response = await fetch(`/api/workspaces/${workspaceId}/validate`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
-    });
-
-    const result = await response.json();
-
-    if (!result.success || !result.hasAccess) {
-      loggingService.addLog('error', 'WorkspaceAPI', 'User does not have access to workspace', { 
-        workspaceId, 
-        userId: user.id
-      });
-      // Clear invalid workspace from localStorage
-      localStorage.removeItem('current_workspace_id');
-      return null;
-    }
-
+    // Full access mode - always grant access
     return {
       workspaceId,
       userId: user.id,
-      isAdminWorkspace: result.isAdminWorkspace || false
+      isAdminWorkspace: true
     };
   } catch (error) {
     loggingService.addLog('error', 'WorkspaceAPI', 'Error getting workspace context', { 
@@ -271,23 +248,12 @@ export function logSecurityViolation(
 
 /**
  * Validate workspace access for a given resource
+ * Full access mode - always returns true
  */
 export async function validateWorkspaceAccess(
   resourceWorkspaceId: string,
   action: string = 'access'
 ): Promise<boolean> {
-  const context = await getCurrentWorkspaceContext();
-  if (!context) {
-    return false;
-  }
-
-  // Check if user is trying to access data from their current workspace
-  if (resourceWorkspaceId !== context.workspaceId) {
-    logSecurityViolation(action, resourceWorkspaceId, context.userId, {
-      currentWorkspaceId: context.workspaceId
-    });
-    return false;
-  }
-
+  // Full access mode - always allow
   return true;
 }
