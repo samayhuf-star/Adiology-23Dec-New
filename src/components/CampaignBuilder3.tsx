@@ -2652,7 +2652,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       let keywords = 0;
       let negativeKeywords = 0;
       let ads = 0;
-      let extensions = 0;
       let locations = 0;
       
       rows.forEach(row => {
@@ -2691,6 +2690,14 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         // Count locations
         if (locationType) {
           locations++;
+        }
+      });
+      
+      // Count extensions from campaignData.ads (stored as ad.extensions arrays)
+      let extensions = 0;
+      (campaignData.ads || []).forEach((ad: any) => {
+        if (ad.extensions && Array.isArray(ad.extensions)) {
+          extensions += ad.extensions.length;
         }
       });
       

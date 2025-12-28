@@ -82,31 +82,35 @@ export function KeywordFilters({ filters, onFiltersChange, compact = false }: Ke
   const selectedDevice = DEVICES.find(d => d.id === filters.device);
 
   return (
-    <div className={`flex ${compact ? 'gap-2' : 'gap-4'} items-end flex-wrap`}>
-      <div className={compact ? 'min-w-[140px]' : 'min-w-[180px]'}>
-        <Label className="text-xs text-slate-500 mb-1 flex items-center gap-1">
-          <Globe className="h-3 w-3" /> Country
+    <div className={`flex ${compact ? 'gap-3' : 'gap-5'} items-center flex-wrap`}>
+      {/* Country Filter */}
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+            <Globe className="h-2.5 w-2.5 text-white" />
+          </div>
+          Country
         </Label>
         <Select
           value={filters.country}
           onValueChange={(value) => onFiltersChange({ ...filters, country: value })}
         >
-          <SelectTrigger className={compact ? 'h-8 text-sm' : 'h-9'}>
+          <SelectTrigger className={`${compact ? 'h-9 text-sm min-w-[160px]' : 'h-10 min-w-[200px]'} bg-white/80 backdrop-blur-sm border-slate-200 hover:border-indigo-300 hover:bg-white transition-all shadow-sm rounded-lg`}>
             <SelectValue>
               {selectedCountry && (
-                <span className="flex items-center gap-2">
-                  <span>{selectedCountry.flag}</span>
-                  <span>{selectedCountry.name}</span>
+                <span className="flex items-center gap-2.5">
+                  <span className="text-lg">{selectedCountry.flag}</span>
+                  <span className="font-medium text-slate-700">{selectedCountry.name}</span>
                 </span>
               )}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent className="max-h-[300px]">
+          <SelectContent className="max-h-[320px] bg-white/95 backdrop-blur-lg border-slate-200 shadow-xl rounded-xl">
             {COUNTRIES.map((country) => (
-              <SelectItem key={country.code} value={country.code}>
-                <span className="flex items-center gap-2">
-                  <span>{country.flag}</span>
-                  <span>{country.name}</span>
+              <SelectItem key={country.code} value={country.code} className="rounded-lg hover:bg-indigo-50">
+                <span className="flex items-center gap-2.5">
+                  <span className="text-lg">{country.flag}</span>
+                  <span className="font-medium">{country.name}</span>
                 </span>
               </SelectItem>
             ))}
@@ -114,30 +118,34 @@ export function KeywordFilters({ filters, onFiltersChange, compact = false }: Ke
         </Select>
       </div>
 
-      <div className={compact ? 'min-w-[120px]' : 'min-w-[150px]'}>
-        <Label className="text-xs text-slate-500 mb-1 flex items-center gap-1">
-          <Smartphone className="h-3 w-3" /> Device
+      {/* Device Filter */}
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+            <Smartphone className="h-2.5 w-2.5 text-white" />
+          </div>
+          Device
         </Label>
         <Select
           value={filters.device}
           onValueChange={(value) => onFiltersChange({ ...filters, device: value })}
         >
-          <SelectTrigger className={compact ? 'h-8 text-sm' : 'h-9'}>
+          <SelectTrigger className={`${compact ? 'h-9 text-sm min-w-[130px]' : 'h-10 min-w-[160px]'} bg-white/80 backdrop-blur-sm border-slate-200 hover:border-purple-300 hover:bg-white transition-all shadow-sm rounded-lg`}>
             <SelectValue>
               {selectedDevice && (
                 <span className="flex items-center gap-2">
-                  <selectedDevice.icon className="h-4 w-4" />
-                  <span>{selectedDevice.name}</span>
+                  <selectedDevice.icon className="h-4 w-4 text-violet-600" />
+                  <span className="font-medium text-slate-700">{selectedDevice.name}</span>
                 </span>
               )}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white/95 backdrop-blur-lg border-slate-200 shadow-xl rounded-xl">
             {DEVICES.map((device) => (
-              <SelectItem key={device.id} value={device.id}>
+              <SelectItem key={device.id} value={device.id} className="rounded-lg hover:bg-purple-50">
                 <span className="flex items-center gap-2">
-                  <device.icon className="h-4 w-4" />
-                  <span>{device.name}</span>
+                  <device.icon className="h-4 w-4 text-violet-600" />
+                  <span className="font-medium">{device.name}</span>
                 </span>
               </SelectItem>
             ))}
