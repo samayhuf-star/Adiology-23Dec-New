@@ -4609,23 +4609,26 @@ app.post('/api/campaigns/save', async (c) => {
   try {
     const campaignData = await c.req.json();
     
-    // Use provided user_id or default to 'anonymous' for non-authenticated saves
-    const userId = campaignData.user_id || 'anonymous';
+    // Use provided user_id or default to null for non-authenticated saves
+    const userId = campaignData.user_id || null;
     
+    // Insert using correct column names: name, data, status
     const result = await pool.query(
       `INSERT INTO campaign_history (
-        user_id, campaign_name, business_name, website_url, status, 
-        campaign_data, created_at, updated_at, source
-      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7)
+        user_id, name, type, data, status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING id`,
       [
         userId,
-        campaignData.campaign_name,
-        campaignData.business_name,
-        campaignData.website_url,
-        'draft',
-        JSON.stringify(campaignData.campaign_data),
-        campaignData.source || 'one-click-builder'
+        campaignData.campaign_name || campaignData.name || 'Untitled Campaign',
+        'campaign',
+        JSON.stringify({
+          ...campaignData.campaign_data,
+          business_name: campaignData.business_name,
+          website_url: campaignData.website_url,
+          source: campaignData.source || 'one-click-builder'
+        }),
+        'draft'
       ]
     );
 
