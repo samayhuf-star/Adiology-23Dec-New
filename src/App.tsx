@@ -1015,7 +1015,8 @@ const AppContent = () => {
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
-    { id: 'blog', label: 'Blog', icon: BookOpen, module: null }, // Blog doesn't require module access
+    // Blog hidden - disabled
+    // { id: 'blog', label: 'Blog', icon: BookOpen, module: null },
     { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' },
     { id: 'support-help', label: 'Support & Help', icon: HelpCircle, module: 'support' },
     // Super Admin Panel - only visible to super admins
