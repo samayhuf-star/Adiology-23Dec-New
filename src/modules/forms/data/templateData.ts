@@ -275,8 +275,6 @@ const baseFormTemplates: FormTemplate[] = [
   }
 ];
 
-// Export the complete template collection
-export { allFormTemplates as formTemplates };
 // Adding more templates to reach 100+ total
 
 // SURVEYS & RESEARCH FORMS (20 templates)

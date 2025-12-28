@@ -287,30 +287,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
   const loadWorkspaceModules = async (workspaceId: string) => {
     try {
-      // Try to get cached modules first
-      const cachedModules = WorkspaceCacheManager.getCachedWorkspaceModules(workspaceId);
-      if (cachedModules) {
-        console.log('Using cached modules for workspace:', workspaceId);
-        setAvailableModules(cachedModules);
-        
-        // Load permissions in background
-        moduleAccessControl.getWorkspaceModulePermissions(workspaceId)
-          .then(permissions => {
-            setModulePermissions(permissions);
-            const enabledModules = permissions
-              .filter(p => p.enabled)
-              .map(p => p.module_name);
-            
-            // Update cache with fresh data
-            WorkspaceCacheManager.cacheWorkspaceModules(workspaceId, enabledModules);
-            setAvailableModules(enabledModules);
-          })
-          .catch(console.error);
-        
-        return;
-      }
-
-      // Use enhanced module access control system
+      // Full access mode - grant all modules with full permissions immediately
       const permissions = await moduleAccessControl.getWorkspaceModulePermissions(workspaceId);
       const enabledModules = permissions
         .filter(p => p.enabled)
@@ -321,27 +298,11 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       
       // Cache the modules for better performance
       WorkspaceCacheManager.cacheWorkspaceModules(workspaceId, enabledModules);
-
-      // Setup real-time subscription for permission updates
-      await moduleAccessControl.subscribeToPermissionUpdates(workspaceId, (updatedPermissions) => {
-        const updatedEnabledModules = updatedPermissions
-          .filter(p => p.enabled)
-          .map(p => p.module_name);
-        
-        setModulePermissions(updatedPermissions);
-        setAvailableModules(updatedEnabledModules);
-        
-        // Update cache with real-time changes
-        WorkspaceCacheManager.cacheWorkspaceModules(workspaceId, updatedEnabledModules);
-        
-        console.log(`Module permissions updated for workspace: ${workspaceId}`);
-      });
-
     } catch (error) {
-      console.error('Error loading workspace modules:', error);
-      setAvailableModules([]);
+      // Full access fallback - grant all modules even on error
+      const allModules = ['campaign_builder', 'keyword_planner', 'forms', 'vm_management', 'analytics', 'billing', 'team_management', 'api_access', 'integrations', 'advanced_features'];
+      setAvailableModules(allModules);
       setModulePermissions([]);
-      // Don't set error for module loading failures as it's not critical
     }
   };
 
@@ -351,11 +312,6 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       
       // Clear cache from previous workspace if switching
       if (previousWorkspace && workspace && previousWorkspace.id !== workspace.id) {
-        console.log(`Clearing cache for previous workspace: ${previousWorkspace.name}`);
-        
-        // Unsubscribe from previous workspace permission updates
-        moduleAccessControl.unsubscribeFromPermissionUpdates(previousWorkspace.id);
-        
         // Clear workspace-specific cached data using the persistence utility
         workspacePersistence.clearWorkspaceData(previousWorkspace.id);
         
@@ -426,21 +382,8 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
   };
 
   const hasModuleAccess = (moduleName: string, requiredPermission: 'read' | 'write' | 'delete' | 'admin' = 'read'): boolean => {
-    if (!currentWorkspace) return false;
-    
-    // Admin workspace has access to all modules with all permissions
-    if (currentWorkspace.is_admin_workspace) return true;
-    
-    // Check if module is enabled
-    if (!availableModules.includes(moduleName)) return false;
-    
-    // Find the specific module permission
-    const modulePermission = modulePermissions.find(mp => mp.module_name === moduleName);
-    if (!modulePermission || !modulePermission.enabled) return false;
-    
-    // Check if user has the required permission level
-    return modulePermission.permissions.includes(requiredPermission) || 
-           modulePermission.permissions.includes('admin');
+    // Full access mode - always grant access to all modules
+    return true;
   };
 
   const refreshModulePermissions = async () => {
@@ -453,20 +396,12 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
     loadWorkspaces();
     
     // Safety mechanism: Force loading to false after 15 seconds maximum
-    // This ensures the app never gets stuck in loading state
     const safetyTimeout = setTimeout(() => {
-      console.warn('Force-setting isLoading to false after 15 seconds (safety mechanism)');
       setIsLoading(false);
     }, 15000);
     
-    // Cleanup subscriptions on unmount
     return () => {
       clearTimeout(safetyTimeout);
-      
-      // Unsubscribe from all permission updates
-      if (currentWorkspace) {
-        moduleAccessControl.unsubscribeFromPermissionUpdates(currentWorkspace.id);
-      }
     };
   }, []);
 
