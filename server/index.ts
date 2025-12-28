@@ -185,62 +185,60 @@ const pool = new Pool({
 // Rate limiting store
 const requestCounts: Record<string, { count: number; resetAt: number }> = {};
 
-// Super Admin Authentication Helper
-async function verifySuperAdmin(c: any): Promise<{ authorized: boolean; error?: string }> {
+// Super Admin Authentication Helper - PRODUCTION READY
+// Only allows access via:
+// 1. Valid Supabase token + superadmin/super_admin role in database
+// 2. ADMIN_SECRET_KEY header for server-to-server calls (if configured)
+async function verifySuperAdmin(c: any): Promise<{ authorized: boolean; error?: string; userId?: string }> {
   try {
     const authHeader = c.req.header('Authorization');
     const adminKey = c.req.header('X-Admin-Key');
-    const emailHeader = c.req.header('X-Admin-Email');
     
-    // Check for admin bypass key (for development/testing)
-    if (adminKey === process.env.ADMIN_SECRET_KEY) {
-      return { authorized: true };
+    // Server-to-server authentication via secret key (for cron jobs, webhooks, etc.)
+    // Only works if ADMIN_SECRET_KEY is explicitly set in environment
+    if (adminKey && process.env.ADMIN_SECRET_KEY && adminKey === process.env.ADMIN_SECRET_KEY) {
+      console.log('[Admin Auth] Server-to-server auth via ADMIN_SECRET_KEY');
+      return { authorized: true, userId: 'system' };
     }
     
-    // Check email-based auth header (simple auth for now)
-    if (emailHeader === 'd@d.com') {
-      return { authorized: true };
+    // Primary authentication: Supabase token with role verification
+    if (!authHeader?.startsWith('Bearer ')) {
+      return { authorized: false, error: 'Unauthorized: Bearer token required' };
     }
     
-    // Allow any authenticated user for development (remove in production)
-    if (process.env.NODE_ENV !== 'production') {
-      return { authorized: true };
+    const token = authHeader.substring(7);
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[Admin Auth] Supabase not configured');
+      return { authorized: false, error: 'Authentication service not configured' };
     }
     
-    // Verify via Supabase token if provided
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      // Verify token with Supabase
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (user && !error) {
-          // Check if user is super admin
-          const isSuperAdmin = user.email === 'd@d.com';
-          if (isSuperAdmin) {
-            return { authorized: true };
-          }
-          
-          // Check role in database
-          const roleResult = await pool.query(
-            'SELECT role FROM users WHERE id = $1',
-            [user.id]
-          );
-          if (roleResult.rows[0]?.role === 'superadmin' || roleResult.rows[0]?.role === 'super_admin') {
-            return { authorized: true };
-          }
-        }
-      }
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      return { authorized: false, error: 'Invalid or expired token' };
     }
     
-    return { authorized: false, error: 'Unauthorized: Super admin access required' };
+    // Check role in database - ONLY superadmin or super_admin role is allowed
+    const roleResult = await pool.query(
+      'SELECT role FROM users WHERE id = $1',
+      [user.id]
+    );
+    
+    const userRole = roleResult.rows[0]?.role;
+    if (userRole === 'superadmin' || userRole === 'super_admin') {
+      return { authorized: true, userId: user.id };
+    }
+    
+    // Log unauthorized access attempts for security monitoring
+    console.warn(`[Admin Auth] Unauthorized admin access attempt by user ${user.id} (${user.email}) with role: ${userRole || 'none'}`);
+    return { authorized: false, error: 'Unauthorized: Super admin role required' };
   } catch (error) {
-    console.error('Admin auth error:', error);
+    console.error('[Admin Auth] Authentication error:', error);
     return { authorized: false, error: 'Authentication failed' };
   }
 }
