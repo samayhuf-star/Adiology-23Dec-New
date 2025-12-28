@@ -30,6 +30,12 @@ Preferred communication style: Simple, everyday language.
 - Deleted src/api/forms.ts
 - Removed "Forms" from sidebar and mobile navigation
 
+### Campaign Preset Keyword Expansion
+- Expanded electrician and plumber presets from ~20 to 130+ keywords each
+- Created keywordExpander.ts utility for generating 100-150 keywords per industry
+- Follows Google Ads best practices with distribution: 40% high-intent, 30% commercial/pricing, 15% problem-solution, 10% trust, 5% urgency
+- Theme-based ad groups: High Intent, Emergency, Cost & Pricing, Trust & Quality, Problem Solutions, Residential/Commercial
+
 # System Architecture
 
 ## Frontend
