@@ -1,28 +1,27 @@
 import { localStorageHistory, HistoryItem } from './localStorageHistory';
-import { createWorkspaceQuery, getCurrentWorkspaceContext } from './workspace-api';
 import { supabase } from './supabase/client';
 
 /**
- * History service with workspace isolation
+ * History service
  * Provides a consistent API for saving and retrieving keyword plans, mixer results, etc.
- * Falls back to localStorage when workspace context is unavailable
+ * Falls back to localStorage when database is unavailable
  */
 export const historyService = {
   /**
-   * Save a history item with workspace context
-   * Uses workspace-aware database storage when available, falls back to localStorage
+   * Save a history item
+   * Uses database storage when available, falls back to localStorage
    */
   async save(type: string, name: string, data: any, status: 'draft' | 'completed' = 'completed'): Promise<string> {
     try {
-      const context = await getCurrentWorkspaceContext();
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (context) {
-        // Save to database with workspace context
+      if (user) {
+        // Save to database
         const { data: savedItem, error } = await supabase
           .from('campaign_history')
           .insert({
-            user_id: context.userId,
-            workspace_id: context.workspaceId,
+            user_id: user.id,
             campaign_name: name,
             business_name: data.businessName || '',
             website_url: data.websiteUrl || '',
@@ -39,32 +38,32 @@ export const historyService = {
           throw error;
         }
 
-        console.log('✅ Saved to database with workspace context:', savedItem.id);
+        console.log('Saved to database:', savedItem.id);
         return savedItem.id;
       } else {
-        throw new Error('No workspace context available');
+        throw new Error('No user context available');
       }
     } catch (error) {
       // Fallback to localStorage for reliability
-      console.log('📁 Falling back to localStorage storage');
+      console.log('Falling back to localStorage storage');
       await localStorageHistory.save(type, name, data, status);
       const items = localStorageHistory.getAll();
       const savedItem = items[items.length - 1];
-      console.log('✅ Saved to localStorage:', savedItem?.id);
+      console.log('Saved to localStorage:', savedItem?.id);
       return savedItem?.id || crypto.randomUUID();
     }
   },
 
   /**
-   * Update an existing item (for drafts) with workspace validation
+   * Update an existing item (for drafts)
    * If item doesn't exist, creates a new one (upsert behavior)
    */
   async update(id: string, data: any, name?: string): Promise<void> {
     try {
-      const context = await getCurrentWorkspaceContext();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (context) {
-        // Update in database with workspace validation
+      if (user) {
+        // Update in database
         const { error } = await supabase
           .from('campaign_history')
           .update({
@@ -73,35 +72,34 @@ export const historyService = {
             updated_at: new Date().toISOString()
           })
           .eq('id', id)
-          .eq('user_id', context.userId)
-          .eq('workspace_id', context.workspaceId);
+          .eq('user_id', user.id);
 
         if (error) {
           console.warn('Failed to update in database, falling back to localStorage:', error);
           throw error;
         }
 
-        console.log('✅ Updated in database with workspace validation:', id);
+        console.log('Updated in database:', id);
         return;
       } else {
-        throw new Error('No workspace context available');
+        throw new Error('No user context available');
       }
     } catch (error) {
       // Fallback to localStorage
-      console.log('📁 Falling back to localStorage update');
+      console.log('Falling back to localStorage update');
       await localStorageHistory.update(id, data, name);
     }
   },
 
   /**
-   * Mark a draft as completed with workspace validation
+   * Mark a draft as completed
    */
   async markAsCompleted(id: string): Promise<void> {
     try {
-      const context = await getCurrentWorkspaceContext();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (context) {
-        // Update status in database with workspace validation
+      if (user) {
+        // Update status in database
         const { error } = await supabase
           .from('campaign_history')
           .update({
@@ -109,38 +107,39 @@ export const historyService = {
             updated_at: new Date().toISOString()
           })
           .eq('id', id)
-          .eq('user_id', context.userId)
-          .eq('workspace_id', context.workspaceId);
+          .eq('user_id', user.id);
 
         if (error) {
           console.warn('Failed to mark as completed in database, falling back to localStorage:', error);
           throw error;
         }
 
-        console.log('✅ Marked as completed in database:', id);
+        console.log('Marked as completed in database:', id);
         return;
       } else {
-        throw new Error('No workspace context available');
+        throw new Error('No user context available');
       }
     } catch (error) {
       // Fallback to localStorage
-      console.log('📁 Falling back to localStorage completion');
+      console.log('Falling back to localStorage completion');
       await localStorageHistory.markAsCompleted(id);
     }
   },
 
   /**
-   * Get all history items for current workspace
-   * Uses workspace-aware database query when available, falls back to localStorage
+   * Get all history items for current user
+   * Uses database query when available, falls back to localStorage
    */
   async getAll(): Promise<HistoryItem[]> {
     try {
-      const workspaceQuery = await createWorkspaceQuery('campaign_history');
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (workspaceQuery) {
-        // Get from database with workspace filtering
-        const { data, error } = await workspaceQuery
+      if (user) {
+        // Get from database
+        const { data, error } = await supabase
+          .from('campaign_history')
           .select('*')
+          .eq('user_id', user.id)
           .order('updated_at', { ascending: false });
 
         if (error) {
@@ -159,14 +158,14 @@ export const historyService = {
           lastModified: record.updated_at,
         }));
 
-        console.log(`✅ Loaded ${items.length} items from database`);
+        console.log(`Loaded ${items.length} items from database`);
         return items;
       } else {
-        throw new Error('No workspace context available');
+        throw new Error('No user context available');
       }
     } catch (error) {
       // Fallback to localStorage for reliability
-      console.log('📁 Falling back to localStorage retrieval');
+      console.log('Falling back to localStorage retrieval');
       try {
         const localItems = localStorageHistory.getAll();
         // Validate and sanitize localStorage items
@@ -195,34 +194,33 @@ export const historyService = {
   },
 
   /**
-   * Delete a history item with workspace validation
+   * Delete a history item
    */
   async delete(id: string): Promise<void> {
     try {
-      const context = await getCurrentWorkspaceContext();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (context) {
-        // Delete from database with workspace validation
+      if (user) {
+        // Delete from database
         const { error } = await supabase
           .from('campaign_history')
           .delete()
           .eq('id', id)
-          .eq('user_id', context.userId)
-          .eq('workspace_id', context.workspaceId);
+          .eq('user_id', user.id);
 
         if (error) {
           console.warn('Failed to delete from database, falling back to localStorage:', error);
           throw error;
         }
 
-        console.log('✅ Deleted from database:', id);
+        console.log('Deleted from database:', id);
         return;
       } else {
-        throw new Error('No workspace context available');
+        throw new Error('No user context available');
       }
     } catch (error) {
       // Fallback to localStorage
-      console.log('📁 Falling back to localStorage deletion');
+      console.log('Falling back to localStorage deletion');
       await localStorageHistory.delete(id);
     }
   },
@@ -235,7 +233,7 @@ export const historyService = {
   },
 
   /**
-   * Get items by type for current workspace
+   * Get items by type for current user
    */
   async getByType(type: string): Promise<HistoryItem[]> {
     const items = await this.getAll();

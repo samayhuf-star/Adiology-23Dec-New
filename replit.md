@@ -6,6 +6,18 @@ Adiology is a Google Ads campaign builder platform designed to automate and stre
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Changes
+
+## December 28, 2025 - Workspace System Removal
+- Completely removed the workspace isolation system to simplify architecture
+- Removed WorkspaceProvider, WorkspaceContext, and all workspace-related components
+- Updated historyService.ts, api.ts, and PaymentPage.tsx to remove workspace dependencies
+- Deleted workspace utility files: workspaces.ts, workspace-api.ts, workspace-cache.ts, workspacePersistence.ts
+- Deleted workspace components: WorkspaceSwitcher.tsx, WorkspaceCreation.tsx, WorkspaceCards.tsx, WorkspacesPage.tsx
+- Removed module-access-control.ts and related permission management
+- Sidebar navigation no longer includes "Workspaces" menu item
+- Users now have direct access to all features without workspace selection
+
 # System Architecture
 
 ## Frontend

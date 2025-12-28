@@ -30,13 +30,6 @@ import { supabase } from './utils/supabase/client';
 import { getCurrentUserProfile, isAuthenticated, signOut } from './utils/auth';
 import { getUserPreferences, applyUserPreferences } from './utils/userPreferences';
 import { notifications as notificationService } from './utils/notifications';
-import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
-import { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
-import { WorkspaceCreation } from './components/WorkspaceCreation';
-import { WorkspaceCards } from './components/WorkspaceCards';
-import { WorkspacesPage } from './components/WorkspacesPage';
-import { WorkspaceErrorBoundary } from './components/WorkspaceErrorBoundary';
-import { workspaceHelpers } from './utils/workspaces';
 import { FeedbackButton } from './components/FeedbackButton';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
@@ -87,11 +80,10 @@ const ComponentLoader = () => (
   </div>
 );
 
-type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel' | 'workspace-creation' | 'workspace-selection';
+type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel';
 
 const AppContent = () => {
   const { theme } = useTheme();
-  const { refreshWorkspaces } = useWorkspace();
   const [appView, setAppView] = useState<AppView>('homepage');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -171,7 +163,6 @@ const AppContent = () => {
     'virtual-machines',
     'blog',
     'forms',
-    'workspaces', // Add workspaces to valid tab IDs
     // 'call-forwarding', // Hidden - module disabled
   ]);
 
@@ -193,7 +184,7 @@ const AppContent = () => {
       }
     } else {
       // Known view-only IDs (not tabs) - don't warn for these
-      const viewOnlyIds = ['admin-panel', 'workspace-creation', 'workspace-selection'];
+      const viewOnlyIds = ['admin-panel'];
       if (!viewOnlyIds.includes(tabId)) {
         console.warn(`Invalid tab ID "${tabId}" - redirecting to dashboard`);
       }
@@ -1027,7 +1018,6 @@ const AppContent = () => {
     },
 
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
-    { id: 'workspaces', label: 'Workspaces', icon: Building, module: null }, // Workspaces management
     { id: 'virtual-machines', label: 'Virtual Machines', icon: TestTube, module: 'vm-management' }, // VM management
     // Call Forwarding module hidden - disabled for all users
     // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
@@ -1210,33 +1200,9 @@ const AppContent = () => {
               if (userProfile) {
                 setUser(userProfile);
                 
-                // Create admin workspace if it doesn't exist
-                try {
-                  const workspaces = await workspaceHelpers.getUserWorkspaces();
-                  const hasAdminWorkspace = workspaces.some((w) => w.is_admin_workspace);
-                  if (!hasAdminWorkspace) {
-                    await workspaceHelpers.createAdminWorkspace(userProfile.id);
-                    await refreshWorkspaces(); // Refresh workspaces after creating admin workspace
-                  }
-                } catch (workspaceError) {
-                  console.error('Error creating admin workspace:', workspaceError);
-                  // Continue even if workspace creation fails
-                }
               }
             } catch (error) {
               console.warn('Error refreshing user profile:', error);
-            }
-            
-            // Check if user needs to create a workspace
-            try {
-              const needsWorkspace = await workspaceHelpers.needsWorkspaceCreation();
-              if (needsWorkspace) {
-                window.history.pushState({}, '', '/');
-                setAppView('workspace-creation');
-                return;
-              }
-            } catch (workspaceError) {
-              console.error('Error checking workspace creation need:', workspaceError);
             }
             
             window.history.pushState({}, '', '/');
@@ -1286,28 +1252,6 @@ const AppContent = () => {
     );
   }
 
-  if (appView === 'workspace-creation') {
-    return (
-      <WorkspaceCreation
-        onComplete={async (workspace) => {
-          await refreshWorkspaces(); // Refresh workspaces after creation
-          window.history.pushState({}, '', '/');
-          setAppView('workspace-selection');
-        }}
-        onSkip={() => {
-          window.history.pushState({}, '', '/');
-          setAppView('workspace-selection');
-        }}
-      />
-    );
-  }
-
-  // Removed workspace selection - go directly to user view
-  if (appView === 'workspace-selection') {
-    setAppView('user');
-    setActiveTabSafe('dashboard');
-    return null;
-  }
 
   if (appView === 'privacy-policy') {
     return (
@@ -1548,19 +1492,6 @@ const AppContent = () => {
             
             // Check if user has paid plan - redirect to dashboard or plan selection
             if (hasPaidPlan) {
-              // Check if user needs to create a workspace (has no non-admin workspaces)
-              try {
-                const needsWorkspace = await workspaceHelpers.needsWorkspaceCreation();
-                if (needsWorkspace) {
-                  // User needs to create a workspace first
-                  setAppView('workspace-creation');
-                  return;
-                }
-              } catch (workspaceError) {
-                console.error('Error checking workspace creation need:', workspaceError);
-                // Continue to dashboard on error
-              }
-
               // Check for pending navigation tab from footer links
               const pendingTab = sessionStorage.getItem('pendingNavTab');
               if (pendingTab) {
@@ -1748,12 +1679,6 @@ const AppContent = () => {
             <SettingsPanel defaultTab="billing" />
           </Suspense>
         );
-      case 'workspaces':
-        return (
-          <Suspense fallback={<ComponentLoader />}>
-            <WorkspacesPage />
-          </Suspense>
-        );
       case 'dashboard':
         return <Dashboard user={user} onNavigate={setActiveTabSafe} />;
       case 'virtual-machines':
@@ -1785,7 +1710,6 @@ const AppContent = () => {
     }
     
     // Handle special cases for bottom menu items
-    if (activeTab === 'workspaces') return 'Workspaces';
     if (activeTab === 'billing') return 'Billing';
     
     return 'Dashboard';
@@ -1850,20 +1774,6 @@ const AppContent = () => {
           </button>
         </div>
 
-        {/* Enhanced Workspace Switcher */}
-        {user && (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
-          <div className="px-4 py-4 border-b border-white/30">
-            <WorkspaceErrorBoundary>
-              <WorkspaceSwitcher 
-                canSwitch={true}
-                onCreateWorkspace={() => {
-                  // Handle workspace creation completion
-                  // This could trigger a refresh or navigation if needed
-                }}
-              />
-            </WorkspaceErrorBoundary>
-          </div>
-        )}
         
         {/* View Mode Indicator in Sidebar - Only show for owners/admins */}
         {canSwitchViews && (sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
@@ -2006,7 +1916,7 @@ const AppContent = () => {
           })}
         </nav>
 
-        {/* Bottom Section - Feedback, Workspaces, Billing & Logout */}
+        {/* Bottom Section - Feedback, Billing & Logout */}
         <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
           <FeedbackButton 
             variant="sidebar" 
@@ -2014,25 +1924,6 @@ const AppContent = () => {
             sidebarHovered={userPrefs.sidebarAutoClose && sidebarHovered}
             currentPage={activeTab}
           />
-          <button
-            onClick={() => setActiveTabSafe('workspaces')}
-            className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
-              !(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) 
-                ? 'justify-center px-2' 
-                : 'justify-start px-3'
-            } ${
-              activeTab === 'workspaces'
-                ? `theme-gradient text-white shadow-lg`
-                : `text-slate-700 hover:bg-slate-100`
-            }`}
-          >
-            <Building className={`w-5 h-5 shrink-0 ${activeTab === 'workspaces' ? 'text-white' : 'text-slate-500'}`} />
-            {(sidebarOpen || (userPrefs.sidebarAutoClose && sidebarHovered)) && (
-              <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 text-left" style={{ fontSize: 'clamp(0.8125rem, 2.5vw, 0.9375rem)' }}>
-                Workspaces
-              </span>
-            )}
-          </button>
           <button
             onClick={() => setActiveTabSafe('billing')}
             className={`w-full flex items-center gap-2 py-2.5 rounded-xl transition-all duration-200 group cursor-pointer ${
@@ -2168,23 +2059,6 @@ const AppContent = () => {
           </nav>
           
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/30 glass-card space-y-3">
-            <button
-              onClick={() => setActiveTabSafe('workspaces')}
-              className={`sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 ${
-                activeTab === 'workspaces'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl'
-                  : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:shadow-lg'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                activeTab === 'workspaces' 
-                  ? 'bg-white/20 shadow-lg' 
-                  : 'group-hover:bg-indigo-100'
-              }`}>
-                <Building className={`w-5 h-5 ${activeTab === 'workspaces' ? 'text-white' : 'text-slate-600'}`} />
-              </div>
-              <span className="font-semibold">Workspaces</span>
-            </button>
             <button
               onClick={() => setActiveTabSafe('billing')}
               className={`sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 ${
@@ -2475,10 +2349,6 @@ const AppContent = () => {
                   <User className="w-4 h-4 mr-2 shrink-0" />
                   Account Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveTabSafe('workspaces')}>
-                  <Building className="w-4 h-4 mr-2 shrink-0" />
-                  Workspaces
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setActiveTabSafe('billing')}>
                   <Shield className="w-4 h-4 mr-2 shrink-0" />
                   Billing
@@ -2524,11 +2394,7 @@ const AppContent = () => {
 };
 
 const App = () => {
-  return (
-    <WorkspaceProvider>
-      <AppContent />
-    </WorkspaceProvider>
-  );
+  return <AppContent />;
 };
 
 export default App;

@@ -1,7 +1,6 @@
 import { projectId, publicAnonKey } from './supabase/info';
 import { captureError } from './errorTracking';
 import { loggingService } from './loggingService';
-import { getCurrentWorkspaceContext } from './workspace-api';
 
 // Base URL for API calls
 const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-6757d0ca`;
@@ -38,15 +37,11 @@ export const api = {
     }
 
     try {
-      // Get workspace context for multi-tenant isolation
-      const workspaceContext = await getCurrentWorkspaceContext();
-      
       // Only log transaction for non-404 endpoints to reduce noise
       if (!endpoint.includes('/history/') && !endpoint.includes('/generate-ads')) {
         loggingService.logTransaction('API', `POST ${endpoint}`, { 
           endpoint, 
-          bodySize: JSON.stringify(body).length,
-          workspaceId: workspaceContext?.workspaceId 
+          bodySize: JSON.stringify(body).length
         });
       }
       
@@ -57,18 +52,11 @@ export const api = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       
-      // Prepare headers with workspace context
+      // Prepare headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${publicAnonKey}`
       };
-
-      // Add workspace context headers for multi-tenant isolation
-      if (workspaceContext) {
-        headers['X-Workspace-Id'] = workspaceContext.workspaceId;
-        headers['X-User-Id'] = workspaceContext.userId;
-        headers['X-Is-Admin-Workspace'] = workspaceContext.isAdminWorkspace.toString();
-      }
       
       let response;
       try {
@@ -97,8 +85,7 @@ export const api = {
           loggingService.addLog('error', 'API', `POST ${endpoint} → ${response.status}`, { 
             endpoint, 
             status: response.status,
-            statusText: response.statusText,
-            workspaceId: workspaceContext?.workspaceId
+            statusText: response.statusText
           });
         }
         throw new Error(errorMessage);
@@ -107,8 +94,7 @@ export const api = {
       const data = await response.json();
       loggingService.logTransaction('API', `POST ${endpoint} succeeded`, { 
         endpoint, 
-        status: response.status,
-        workspaceId: workspaceContext?.workspaceId 
+        status: response.status
       });
       return data;
     } catch (e) {
@@ -153,28 +139,15 @@ export const api = {
     }
 
     try {
-      // Get workspace context for multi-tenant isolation
-      const workspaceContext = await getCurrentWorkspaceContext();
-      
       // Only log transaction for non-404 endpoints to reduce noise
       if (!endpoint.includes('/history/') && !endpoint.includes('/generate-ads')) {
-        loggingService.logTransaction('API', `GET ${endpoint}`, { 
-          endpoint,
-          workspaceId: workspaceContext?.workspaceId 
-        });
+        loggingService.logTransaction('API', `GET ${endpoint}`, { endpoint });
       }
 
-      // Prepare headers with workspace context
+      // Prepare headers
       const headers: Record<string, string> = {
         'Authorization': `Bearer ${publicAnonKey}`
       };
-
-      // Add workspace context headers for multi-tenant isolation
-      if (workspaceContext) {
-        headers['X-Workspace-Id'] = workspaceContext.workspaceId;
-        headers['X-User-Id'] = workspaceContext.userId;
-        headers['X-Is-Admin-Workspace'] = workspaceContext.isAdminWorkspace.toString();
-      }
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
         headers
@@ -195,8 +168,7 @@ export const api = {
           loggingService.addLog('error', 'API', `GET ${endpoint} → ${response.status}`, { 
             endpoint, 
             status: response.status,
-            statusText: response.statusText,
-            workspaceId: workspaceContext?.workspaceId
+            statusText: response.statusText
           });
         }
         throw new Error(errorMessage);
@@ -205,8 +177,7 @@ export const api = {
       const data = await response.json();
       loggingService.logTransaction('API', `GET ${endpoint} succeeded`, { 
         endpoint, 
-        status: response.status,
-        workspaceId: workspaceContext?.workspaceId 
+        status: response.status
       });
       return data;
     } catch (e) {
