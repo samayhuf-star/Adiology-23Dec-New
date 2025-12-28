@@ -1,0 +1,367 @@
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, uuid, decimal, varchar, unique, index, inet } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+import { relations, sql } from "drizzle-orm";
+
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").unique().notNull(),
+  fullName: text("full_name"),
+  avatarUrl: text("avatar_url"),
+  role: text("role").default("user"),
+  subscriptionPlan: text("subscription_plan").default("free"),
+  subscriptionStatus: text("subscription_status").default("active"),
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  aiUsage: integer("ai_usage").default(0),
+  isBlocked: boolean("is_blocked").default(false),
+  lastSignIn: timestamp("last_sign_in"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  emailIdx: index("idx_users_email").on(table.email),
+  roleIdx: index("idx_users_role").on(table.role),
+  subscriptionPlanIdx: index("idx_users_subscription_plan").on(table.subscriptionPlan),
+  subscriptionStatusIdx: index("idx_users_subscription_status").on(table.subscriptionStatus),
+  stripeCustomerIdIdx: index("idx_users_stripe_customer_id").on(table.stripeCustomerId),
+  createdAtIdx: index("idx_users_created_at").on(table.createdAt),
+  isBlockedIdx: index("idx_users_is_blocked").on(table.isBlocked),
+}));
+
+export const workspaces = pgTable("workspaces", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").unique().notNull(),
+  ownerId: uuid("owner_id").references(() => users.id),
+  isAdminWorkspace: boolean("is_admin_workspace").default(false),
+  settings: jsonb("settings").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const workspaceMembers = pgTable("workspace_members", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  userId: uuid("user_id").references(() => users.id),
+  role: text("role").default("member"),
+  status: text("status").default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  workspaceUserUnique: unique("workspace_user_unique").on(table.workspaceId, table.userId),
+}));
+
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripePriceId: text("stripe_price_id"),
+  planName: text("plan_name").notNull(),
+  status: text("status").notNull(),
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  canceledAt: timestamp("canceled_at"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_subscriptions_user_id").on(table.userId),
+  statusIdx: index("idx_subscriptions_status").on(table.status),
+  stripeIdIdx: index("idx_subscriptions_stripe_id").on(table.stripeSubscriptionId),
+  planIdx: index("idx_subscriptions_plan").on(table.planName),
+  stripeCustomerIdIdx: index("idx_subscriptions_stripe_customer_id").on(table.stripeCustomerId),
+}));
+
+export const payments = pgTable("payments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id),
+  subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
+  stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
+  stripeInvoiceId: text("stripe_invoice_id"),
+  amountCents: integer("amount_cents").notNull(),
+  currency: text("currency").notNull().default("usd"),
+  status: text("status").notNull(),
+  paymentMethodType: text("payment_method_type"),
+  description: text("description"),
+  receiptUrl: text("receipt_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  paidAt: timestamp("paid_at"),
+}, (table) => ({
+  userIdIdx: index("idx_payments_user_id").on(table.userId),
+  subscriptionIdIdx: index("idx_payments_subscription_id").on(table.subscriptionId),
+  statusIdx: index("idx_payments_status").on(table.status),
+  stripePaymentIntentIdx: index("idx_payments_stripe_payment_intent").on(table.stripePaymentIntentId),
+  createdAtIdx: index("idx_payments_created_at").on(table.createdAt),
+}));
+
+export const invoices = pgTable("invoices", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  stripeInvoiceId: text("stripe_invoice_id").unique(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("usd"),
+  status: text("status").notNull().default("pending"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_invoices_user_id").on(table.userId),
+  stripeInvoiceIdIdx: index("idx_invoices_stripe_invoice_id").on(table.stripeInvoiceId),
+}));
+
+export const emails = pgTable("emails", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id),
+  recipientEmail: text("recipient_email").notNull(),
+  senderEmail: text("sender_email").default("noreply@adiology.com"),
+  subject: text("subject").notNull(),
+  templateName: text("template_name"),
+  templateData: jsonb("template_data"),
+  status: text("status").notNull().default("queued"),
+  provider: text("provider").default("aws_ses"),
+  providerMessageId: text("provider_message_id"),
+  errorMessage: text("error_message"),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  bouncedAt: timestamp("bounced_at"),
+  complainedAt: timestamp("complained_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_emails_user_id").on(table.userId),
+  recipientIdx: index("idx_emails_recipient").on(table.recipientEmail),
+  statusIdx: index("idx_emails_status").on(table.status),
+  templateIdx: index("idx_emails_template").on(table.templateName),
+  createdAtIdx: index("idx_emails_created_at").on(table.createdAt),
+  sentAtIdx: index("idx_emails_sent_at").on(table.sentAt),
+}));
+
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id),
+  adminUserId: uuid("admin_user_id").references(() => users.id),
+  action: text("action").notNull(),
+  resourceType: text("resource_type"),
+  resourceId: text("resource_id"),
+  oldValues: jsonb("old_values"),
+  newValues: jsonb("new_values"),
+  ipAddress: inet("ip_address"),
+  userAgent: text("user_agent"),
+  level: text("level").notNull().default("info"),
+  details: jsonb("details"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_audit_logs_user_id").on(table.userId),
+  adminUserIdIdx: index("idx_audit_logs_admin_user_id").on(table.adminUserId),
+  actionIdx: index("idx_audit_logs_action").on(table.action),
+  resourceIdx: index("idx_audit_logs_resource").on(table.resourceType, table.resourceId),
+  levelIdx: index("idx_audit_logs_level").on(table.level),
+  createdAtIdx: index("idx_audit_logs_created_at").on(table.createdAt),
+}));
+
+export const securityRules = pgTable("security_rules", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(),
+  value: text("value").notNull(),
+  reason: text("reason").notNull(),
+  active: boolean("active").default(true),
+  priority: integer("priority").default(100),
+  expiresAt: timestamp("expires_at"),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  typeIdx: index("idx_security_rules_type").on(table.type),
+  activeIdx: index("idx_security_rules_active").on(table.active),
+  priorityIdx: index("idx_security_rules_priority").on(table.priority),
+  expiresAtIdx: index("idx_security_rules_expires_at").on(table.expiresAt),
+  createdByIdx: index("idx_security_rules_created_by").on(table.createdBy),
+}));
+
+export const campaignHistory = pgTable("campaign_history", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  type: text("type").notNull(),
+  name: text("name").notNull(),
+  data: jsonb("data").notNull(),
+  status: text("status").notNull().default("completed"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_campaign_history_user_id").on(table.userId),
+  typeIdx: index("idx_campaign_history_type").on(table.type),
+  statusIdx: index("idx_campaign_history_status").on(table.status),
+  createdAtIdx: index("idx_campaign_history_created_at").on(table.createdAt),
+  workspaceIdIdx: index("idx_campaign_history_workspace_id").on(table.workspaceId),
+}));
+
+export const templates = pgTable("templates", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  htmlTemplate: text("html_template").notNull(),
+  assets: jsonb("assets").default([]),
+  placeholders: jsonb("placeholders").default([]),
+  category: text("category"),
+  thumbnail: text("thumbnail"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  slugIdx: index("idx_templates_slug").on(table.slug),
+  categoryIdx: index("idx_templates_category").on(table.category),
+}));
+
+export const savedSites = pgTable("saved_sites", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  templateId: uuid("template_id").references(() => templates.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  slug: text("slug").notNull(),
+  title: text("title").notNull(),
+  html: text("html").notNull(),
+  assets: jsonb("assets").default([]),
+  metadata: jsonb("metadata").default({}),
+  status: text("status").notNull().default("draft"),
+  vercel: jsonb("vercel").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_saved_sites_user_id").on(table.userId),
+  statusIdx: index("idx_saved_sites_status").on(table.status),
+  templateIdIdx: index("idx_saved_sites_template_id").on(table.templateId),
+  createdAtIdx: index("idx_saved_sites_created_at").on(table.createdAt),
+  workspaceIdIdx: index("idx_saved_sites_workspace_id").on(table.workspaceId),
+  userSlugUnique: unique("saved_sites_user_id_slug").on(table.userId, table.slug),
+}));
+
+export const activityLog = pgTable("activity_log", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  savedSiteId: uuid("saved_site_id").references(() => savedSites.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  action: text("action").notNull(),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_activity_log_user_id").on(table.userId),
+  savedSiteIdIdx: index("idx_activity_log_saved_site_id").on(table.savedSiteId),
+  actionIdx: index("idx_activity_log_action").on(table.action),
+  createdAtIdx: index("idx_activity_log_created_at").on(table.createdAt),
+  workspaceIdIdx: index("idx_activity_log_workspace_id").on(table.workspaceId),
+}));
+
+export const publishedWebsites = pgTable("published_websites", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
+  templateId: text("template_id").notNull(),
+  templateData: jsonb("template_data").notNull(),
+  vercelDeploymentId: text("vercel_deployment_id").notNull(),
+  vercelUrl: text("vercel_url").notNull(),
+  vercelProjectId: text("vercel_project_id").notNull(),
+  status: text("status").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_published_websites_user_id").on(table.userId),
+  createdAtIdx: index("idx_published_websites_created_at").on(table.createdAt),
+}));
+
+export const feedback = pgTable("feedback", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id),
+  userEmail: text("user_email"),
+  type: text("type").notNull(),
+  rating: integer("rating"),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("new"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_feedback_user_id").on(table.userId),
+  typeIdx: index("idx_feedback_type").on(table.type),
+  statusIdx: index("idx_feedback_status").on(table.status),
+  createdAtIdx: index("idx_feedback_created_at").on(table.createdAt),
+}));
+
+export const forms = pgTable("forms", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  name: text("name").notNull(),
+  fields: jsonb("fields").default([]),
+  settings: jsonb("settings").default({}),
+  status: text("status").default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_forms_user_id").on(table.userId),
+  workspaceIdIdx: index("idx_forms_workspace_id").on(table.workspaceId),
+}));
+
+export const formSubmissions = pgTable("form_submissions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  formId: uuid("form_id").references(() => forms.id).notNull(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  data: jsonb("data").notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+}, (table) => ({
+  formIdIdx: index("idx_form_submissions_form_id").on(table.formId),
+  workspaceIdIdx: index("idx_form_submissions_workspace_id").on(table.workspaceId),
+}));
+
+export const promoTrials = pgTable("promo_trials", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+  convertedAt: timestamp("converted_at"),
+}, (table) => ({
+  emailIdx: index("idx_promo_trials_email").on(table.email),
+  statusIdx: index("idx_promo_trials_status").on(table.status),
+}));
+
+export const kvStore = pgTable("kv_store_6757d0ca", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCampaignHistorySchema = createInsertSchema(campaignHistory).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type CampaignHistory = typeof campaignHistory.$inferSelect;
+export type InsertCampaignHistory = z.infer<typeof insertCampaignHistorySchema>;
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;

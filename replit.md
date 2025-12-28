@@ -30,7 +30,8 @@ Preferred communication style: Simple, everyday language.
 - **Ad Generation Guardrails**: Enforces Google Search Ads policies for RSA, DKI, Call-Only ads, uniqueness checks (Levenshtein distance), and ad strength calculation.
 
 ## Data Storage
-- **Primary Database**: Supabase (PostgreSQL) for user data, campaign history, subscriptions, and billing.
+- **Primary Database**: Replit PostgreSQL (Neon-backed) for user data, campaign history, subscriptions, and billing. Managed via Drizzle ORM.
+- **Schema**: Defined in `shared/schema.ts` with Drizzle schema definitions. Use `npm run db:push` to sync schema changes.
 - **Caching**: KV store for edge functions, localStorage for offline data, and Redis for Celery.
 - **Data Models**: Supports campaign structure, user profiles, and billing records.
 - **Website Analysis Storage**: localStorage-based analysis service for quick reuse of URL analysis results, with backend sync.

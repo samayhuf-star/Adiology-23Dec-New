@@ -52,7 +52,12 @@
             "class-variance-authority": "^0.7.1",
             "clsx": "*",
             "cmdk": "^1.1.1",
+            "date-fns": "^4.1.0",
+            "drizzle-kit": "^0.31.8",
+            "drizzle-orm": "^0.45.1",
+            "drizzle-zod": "^0.8.3",
             "embla-carousel-react": "^8.6.0",
+            "esbuild-register": "^3.6.0",
             "framer-motion": "^12.23.24",
             "grapesjs": "^0.22.14",
             "grapesjs-blocks-basic": "^1.0.2",
@@ -70,6 +75,7 @@
             "react": "^18.3.1",
             "react-day-picker": "^8.10.1",
             "react-dom": "^18.3.1",
+            "react-focus-lock": "^2.13.7",
             "react-hook-form": "^7.55.0",
             "react-resizable-panels": "^2.1.7",
             "recharts": "^2.15.2",
@@ -78,6 +84,7 @@
             "stripe": "^20.1.0",
             "stripe-replit-sync": "^1.0.0",
             "tailwind-merge": "*",
+            "tsconfig-paths": "^4.2.0",
             "tsx": "^4.21.0",
             "vaul": "^1.1.2",
             "xlsx-js-style": "^1.2.0",
@@ -115,6 +122,8 @@
             "test:coverage": "jest --coverage",
             "test:lambdatest": "playwright test --config=playwright.lambdatest.config.ts",
             "generate:templates": "node scripts/generate.js",
-            "preview:templates": "node scripts/generate.js && npx serve dist"
+            "preview:templates": "node scripts/generate.js && npx serve dist",
+            "db:push": "drizzle-kit push",
+            "db:studio": "drizzle-kit studio"
       }
 }
