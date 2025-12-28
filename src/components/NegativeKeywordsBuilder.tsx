@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Sparkles, Download, Globe, Type, ShieldAlert, Save, Filter, BarChart3, FileText, CheckCircle2, RefreshCw, FolderOpen, Trash2, Clock, Zap, Brain } from 'lucide-react';
+import { Sparkles, Download, Globe, Type, ShieldAlert, Save, Filter, BarChart3, FileText, RefreshCw, FolderOpen, Trash2, Clock, Zap, Brain, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -7,25 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Checkbox } from './ui/checkbox';
-import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { api } from '../utils/api';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
 import { KeywordFilters, KeywordFiltersState, DEFAULT_FILTERS } from './KeywordFilters';
-import { TerminalProgressConsole, NEGATIVE_KEYWORDS_MESSAGES } from './TerminalProgressConsole';
-import { TerminalResultsConsole, ResultStat } from './TerminalResultsConsole';
 import {
     NEGATIVE_KEYWORD_CATEGORIES,
-    buildUserPrompt,
-    SYSTEM_PROMPT,
     deduplicateKeywords,
     filterProfanity,
     addMisspellings,
     handleBrandNames,
     exportToCSV,
-    exportToGoogleAdsEditorCSV,
     getCategoryStats,
     type NegativeKeyword,
     type NegativeKeywordCategory
@@ -121,8 +113,19 @@ const buildUrlWithPath = (baseUrl: string, slug: string) => {
     return `${sanitized}/${slug}`;
 };
 
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+    'DIY / Self-Help': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+    'Budget / Price Sensitive': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+    'Job / Career Seekers': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+    'Competitor Searches': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+    'Educational / Academic': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+    'Information Seekers': { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+    'Negative Outcomes / Complaints': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+    'Unqualified Leads': { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' },
+    'Wrong Location': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+};
+
 export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) => {
-    // Input State
     const [url, setUrl] = useState('');
     const [urlError, setUrlError] = useState('');
     const [coreKeywords, setCoreKeywords] = useState('');
@@ -134,21 +137,17 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
     const [generationMode, setGenerationMode] = useState<'smart' | 'ai'>('smart');
     const [selectedVertical, setSelectedVertical] = useState('');
     
-    // Generation State
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedKeywords, setGeneratedKeywords] = useState<GeneratedKeyword[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('builder');
     const [filters, setFilters] = useState<KeywordFiltersState>(DEFAULT_FILTERS);
-    const [showTerminalConsole, setShowTerminalConsole] = useState(false);
-    const [terminalComplete, setTerminalComplete] = useState(false);
-    const [showResultsConsole, setShowResultsConsole] = useState(false);
     const [savedItems, setSavedItems] = useState<any[]>([]);
     
-    // Filter & Export State
     const [selectedCategories, setSelectedCategories] = useState<Set<NegativeKeywordCategory>>(new Set());
     const [exportFormat, setExportFormat] = useState<'exact' | 'phrase' | 'broad' | 'all'>('all');
     const [showStats, setShowStats] = useState(true);
+    const [mobileInputExpanded, setMobileInputExpanded] = useState(true);
 
     const handleFillInfo = () => {
         const preset = pickNegativePreset(NEGATIVE_FILL_INFO_PRESETS);
@@ -170,7 +169,6 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
         setUrlError('');
     };
 
-    // Load form data from localStorage on mount (Bug_34: Persist form fields)
     useEffect(() => {
         const savedFormData = localStorage.getItem('negative-keywords-form-data');
         if (savedFormData) {
@@ -196,7 +194,6 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
         }
     }, [initialData]);
 
-    // Save form data to localStorage whenever fields change (Bug_34: Persist form fields)
     useEffect(() => {
         try {
             const formData = {
@@ -210,12 +207,10 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
             };
             localStorage.setItem('negative-keywords-form-data', JSON.stringify(formData));
         } catch (error) {
-            // Silently fail if localStorage is full - not critical data
             console.warn('Could not save form data to localStorage:', error);
         }
     }, [url, coreKeywords, userGoal, targetLocation, competitorBrands, excludeCompetitors, keywordCount]);
 
-    // URL validation function (Bug_28: Add URL validation)
     const validateUrl = (urlValue: string): boolean => {
         if (!urlValue.trim()) {
             setUrlError('URL is required');
@@ -245,12 +240,10 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
                 `Negatives: ${coreKeywords.substring(0, 20)}...`,
                 { url, coreKeywords, userGoal, generatedKeywords }
             );
-            // Bug_35: Use toast notification instead of alert
             notifications.success('Negative keywords saved successfully!', {
                 title: 'Saved',
                 description: 'Your negative keywords have been saved.'
             });
-            // Refresh saved items list
             await loadSavedItems();
         } catch (error) {
             console.error("Save failed", error);
@@ -315,14 +308,11 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
         loadSavedItems();
     }, []);
 
-    // AI Generation Logic using Gemini
     const handleGenerate = async () => {
-        // Bug_28: Validate URL before generation
         if (!validateUrl(url)) {
             return;
         }
         
-        // URL is now mandatory
         if (!url.trim() || !coreKeywords.trim() || !userGoal) {
             notifications.warning('Please fill in all required fields including the URL', {
                 title: 'Missing Fields'
@@ -331,9 +321,8 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
         }
         
         setIsGenerating(true);
-        setShowTerminalConsole(true);
-        setTerminalComplete(false);
         setGeneratedKeywords([]);
+        setMobileInputExpanded(false);
 
         try {
             console.log('Attempting AI negative keyword generation via backend...');
@@ -401,7 +390,6 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
         }
     };
 
-    // Smart Local Generation (instant, no API needed)
     const handleSmartGenerate = () => {
         if (!coreKeywords.trim()) {
             notifications.warning('Please enter core keywords', {
@@ -412,6 +400,7 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
 
         setIsGenerating(true);
         setGeneratedKeywords([]);
+        setMobileInputExpanded(false);
 
         try {
             const keywordsList = coreKeywords.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
@@ -453,24 +442,19 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
         }
     };
 
-    // Filter keywords by selected categories
     const filteredKeywords = useMemo(() => {
         if (selectedCategories.size === 0) return generatedKeywords;
         
         return generatedKeywords.filter(kw => {
-            // Find category key from label - handle both exact match and normalized match
             const categoryKey = Object.keys(NEGATIVE_KEYWORD_CATEGORIES).find(
                 key => {
                     const categoryLabel = NEGATIVE_KEYWORD_CATEGORIES[key as NegativeKeywordCategory].label;
-                    // Exact match
                     if (categoryLabel === kw.category) return true;
-                    // Normalized match (trim whitespace, case-insensitive)
                     if (categoryLabel.trim().toLowerCase() === kw.category.trim().toLowerCase()) return true;
                     return false;
                 }
             ) as NegativeKeywordCategory | undefined;
             
-            // If category key found and it's in selected categories, include this keyword
             if (categoryKey && selectedCategories.has(categoryKey)) {
                 return true;
             }
@@ -479,7 +463,6 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
         });
     }, [generatedKeywords, selectedCategories]);
 
-    // Get category statistics
     const categoryStats = useMemo(() => {
         if (generatedKeywords.length === 0) return {};
         
@@ -498,7 +481,6 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
             return;
         }
 
-        // Convert GeneratedKeyword back to NegativeKeyword format
         const negativeKeywords: NegativeKeyword[] = filteredKeywords.map(kw => {
             const cleanKeyword = kw.keyword.replace(/[\[\]"]/g, '');
             const categoryKey = Object.keys(NEGATIVE_KEYWORD_CATEGORIES).find(
@@ -518,7 +500,6 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
 
         try {
             if (format === 'google-ads-editor') {
-                // Use new Google Ads Editor format
                 filename = `negative_keywords_google_ads_editor_${new Date().toISOString().split('T')[0]}.csv`;
                 
                 const validation = exportNegativeKeywordsToCSV(
@@ -534,7 +515,7 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
                     notifications.warning(
                         warningMessage,
                         { 
-                            title: '⚠️  CSV Validation Warnings',
+                            title: 'CSV Validation Warnings',
                             description: 'Your campaign will export, but consider fixing these warnings.',
                             duration: 10000
                         }
@@ -546,7 +527,6 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
                     });
                 }
             } else {
-                // For other formats, use legacy export functions from negativeKeywordsGenerator
                 let csvContent: string;
                 csvContent = exportToCSV(negativeKeywords, exportFormat);
                 filename = `negative_keywords_${exportFormat}_${new Date().toISOString().split('T')[0]}.csv`;
@@ -565,590 +545,520 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
                 }
                 
                 notifications.success('Negative keywords exported successfully!', {
-                    title: 'Export Complete'
+                    title: 'Export Complete',
+                    description: `Exported ${negativeKeywords.length} negative keyword(s) to CSV.`
                 });
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Export error:', error);
             notifications.error(
-                error?.message || 'An unexpected error occurred during export',
+                'Failed to export keywords. Please try again.',
                 { 
-                    title: '❌ Export Failed',
+                    title: 'Export Failed',
                     description: 'Please try again or contact support if the issue persists.'
                 }
             );
         }
     };
 
+    const topCategories = useMemo(() => {
+        const entries = Object.entries(categoryStats);
+        entries.sort((a, b) => b[1] - a[1]);
+        return entries.slice(0, 5);
+    }, [categoryStats]);
+
     return (
-        <div className="p-4 max-w-5xl mx-auto">
-            {/* Header */}
-            <div className="mb-4 flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-800">Negative Keywords</h1>
-                    <p className="text-xs text-slate-500">AI-powered negative keyword generation to protect your ad spend</p>
-                </div>
-                <button
-                    onClick={handleFillInfo}
-                    className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm transition-all flex items-center gap-1.5"
-                >
-                    <RefreshCw className="w-3 h-3" />
-                    Sample
-                </button>
-            </div>
-
-            {/* Shell View - Two Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* Card 1: Stats */}
-                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
-                        <div className="flex gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                {/* Compact Header with Filters */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+                            <ShieldAlert className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-xs text-slate-400 ml-2 font-mono">negative_stats.sh</span>
-                    </div>
-                    <div className="p-4 font-mono">
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="space-y-1 text-center">
-                                <div className="text-2xl font-bold text-violet-400">{generatedKeywords.length}</div>
-                                <div className="text-xs text-slate-400">Generated</div>
-                            </div>
-                            <div className="space-y-1 text-center">
-                                <div className="text-2xl font-bold text-emerald-400">AI</div>
-                                <div className="text-xs text-slate-400">Engine</div>
-                            </div>
-                            <div className="space-y-1 text-center">
-                                <div className="text-2xl font-bold text-amber-400">EXACT</div>
-                                <div className="text-xs text-slate-400">Match</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Card 2: Config */}
-                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
-                        <div className="flex gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        </div>
-                        <span className="text-xs text-slate-400 ml-2 font-mono">negative_config.sh</span>
-                    </div>
-                    <div className="p-4 font-mono space-y-2 text-xs">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-slate-500">url:</span>
-                            <span className="text-cyan-400 max-w-[180px] truncate">{url || '—'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-slate-500">goal:</span>
-                            <span className="text-pink-400">{userGoal || '—'}</span>
-                            <span className="text-slate-600 mx-1">|</span>
-                            <span className="text-slate-500">core:</span>
-                            <span className="text-blue-400">{coreKeywords.split(',').filter(k => k.trim()).length}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-slate-500">country:</span>
-                            <span className="text-orange-400">{filters.country}</span>
-                            <span className="text-slate-600 mx-1">|</span>
-                            <span className="text-slate-500">categories:</span>
-                            <span className="text-emerald-400">18+</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Compact Filters */}
-            <div className="mb-4 flex items-center gap-3">
-                <KeywordFilters filters={filters} onFiltersChange={setFilters} compact={true} />
-            </div>
-
-            {/* Inline Generation Progress */}
-            {showTerminalConsole && (
-                <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden mb-4">
-                    <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
-                        <div className="flex items-center gap-2">
-                            <div className="flex gap-1.5">
-                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            </div>
-                            <span className="text-xs text-slate-400 font-mono">generating_negatives.sh</span>
-                        </div>
-                        {terminalComplete && (
-                            <button
-                                onClick={() => {
-                                    setShowTerminalConsole(false);
-                                    setIsGenerating(false);
-                                    setShowResultsConsole(true);
-                                }}
-                                className="text-xs text-emerald-400 hover:text-emerald-300 font-mono"
-                            >
-                                View Results →
-                            </button>
-                        )}
-                    </div>
-                    <div className="p-4 font-mono text-sm space-y-1 max-h-48 overflow-y-auto">
-                        <p className="text-green-400">✓ AI engine initialized</p>
-                        <p className="text-slate-400">&gt; Analyzing target URL...</p>
-                        <p className="text-green-400">✓ Website content extracted</p>
-                        <p className="text-slate-400">&gt; Processing core keywords...</p>
-                        <p className="text-green-400">✓ Industry identified: {url ? 'detected' : 'pending'}</p>
-                        <p className="text-slate-400">&gt; Generating negative keywords...</p>
-                        {!terminalComplete ? (
-                            <p className="text-cyan-400 animate-pulse">&gt; Processing with AI...</p>
-                        ) : (
-                            <p className="text-emerald-400">✓ Complete! {generatedKeywords.length} negatives ready</p>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-                <TabsList>
-                    <TabsTrigger value="builder">Negative Keywords Builder</TabsTrigger>
-                    <TabsTrigger value="history">History</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="builder">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Panel: Inputs */}
-                <Card className="lg:col-span-1 border-slate-200/60 bg-white/60 backdrop-blur-xl shadow-xl h-fit">
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="flex items-center gap-2">
-                                    <ShieldAlert className="h-5 w-5 text-indigo-600" />
-                                </CardTitle>
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleFillInfo}
-                                className="flex items-center gap-2"
-                            >
-                                <RefreshCw className="h-4 w-4" />
-                                Fill Info
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                <Globe className="h-4 w-4 text-slate-400" />
-                                Target URL <span className="text-red-500">*</span>
-                            </label>
-                            <Input 
-                                placeholder="https://example.com/landing-page" 
-                                value={url}
-                                onChange={(e) => {
-                                    setUrl(e.target.value);
-                                    if (urlError) {
-                                        validateUrl(e.target.value);
-                                    }
-                                }}
-                                onBlur={(e) => validateUrl(e.target.value)}
-                                className={`bg-white/80 ${urlError ? 'border-red-500' : ''}`}
-                                required
-                            />
-                            {urlError && (
-                                <p className="text-xs text-red-500 mt-1">
-                                    {urlError}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                <Type className="h-4 w-4 text-slate-400" />
-                                Core Keywords <span className="text-red-500">*</span>
-                            </label>
-                            <Textarea 
-                                placeholder="e.g. plumbing services, emergency plumber, drain cleaning" 
-                                value={coreKeywords}
-                                onChange={(e) => setCoreKeywords(e.target.value)}
-                                className="bg-white/80 min-h-[100px]"
-                            />
-                            <p className="text-xs text-slate-500">Enter the main keywords you are targeting.</p>
-                        </div>
-
-                        {/* Generation Mode Toggle */}
-                        <div className="space-y-3">
-                            <label className="text-sm font-medium text-slate-700">Generation Mode</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setGenerationMode('smart')}
-                                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                                        generationMode === 'smart'
-                                            ? 'border-purple-500 bg-purple-50 text-purple-700'
-                                            : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                                    }`}
-                                >
-                                    <Zap className="h-4 w-4" />
-                                    <div className="text-left">
-                                        <div className="text-sm font-semibold">Smart Engine</div>
-                                        <div className="text-xs opacity-75">Instant · 1,000+ negatives</div>
-                                    </div>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setGenerationMode('ai')}
-                                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                                        generationMode === 'ai'
-                                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                                            : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                                    }`}
-                                >
-                                    <Brain className="h-4 w-4" />
-                                    <div className="text-left">
-                                        <div className="text-sm font-semibold">AI Contextual</div>
-                                        <div className="text-xs opacity-75">~10s · URL analysis</div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Smart Mode: Vertical Selector */}
-                        {generationMode === 'smart' && (
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                    <Filter className="h-4 w-4 text-slate-400" />
-                                    Business Vertical (optional)
-                                </label>
-                                <Select value={selectedVertical || 'general'} onValueChange={(val) => setSelectedVertical(val === 'general' ? '' : val)}>
-                                    <SelectTrigger className="bg-white/80">
-                                        <SelectValue placeholder="Select a vertical for extra modifiers..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="general">General (All Industries)</SelectItem>
-                                        {getAllVerticals().map(v => (
-                                            <SelectItem key={v.key} value={v.key}>{v.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {coreKeywords.trim() && (
-                                    <p className="text-xs text-purple-600">
-                                        Est. {estimateNegativeCount(
-                                            coreKeywords.split(/[\n,]+/).filter(k => k.trim()).length,
-                                            selectedVertical || undefined
-                                        ).average.toLocaleString()} negatives from {coreKeywords.split(/[\n,]+/).filter(k => k.trim()).length} keywords
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* AI Mode: Goal Selector */}
-                        {generationMode === 'ai' && (
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                                    <ShieldAlert className="h-4 w-4 text-slate-400" />
-                                    User Desire / Goal <span className="text-red-500">*</span>
-                                </label>
-                                <Select value={userGoal} onValueChange={setUserGoal}>
-                                    <SelectTrigger className="bg-white/80">
-                                        <SelectValue placeholder="Select primary goal" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="leads">Leads (High-Intent)</SelectItem>
-                                        <SelectItem value="calls">Calls / Appointments</SelectItem>
-                                        <SelectItem value="signups">Signups / Trials</SelectItem>
-                                        <SelectItem value="branding">Branding / Awareness</SelectItem>
-                                        <SelectItem value="ecommerce">E-commerce (Transactional)</SelectItem>
-                                        <SelectItem value="other">Other</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-
-                        {/* Generate Button */}
-                        {generationMode === 'smart' ? (
-                            <Button 
-                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg"
-                                size="lg"
-                                onClick={handleSmartGenerate}
-                                disabled={isGenerating || !coreKeywords}
-                            >
-                                {isGenerating ? (
-                                    <>
-                                        <Zap className="h-4 w-4 mr-2 animate-pulse" />
-                                        Generating...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Zap className="h-4 w-4 mr-2" />
-                                        Generate Smart Negatives
-                                    </>
-                                )}
-                            </Button>
-                        ) : (
-                            <Button 
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"
-                                size="lg"
-                                onClick={handleGenerate}
-                                disabled={isGenerating || !url || !coreKeywords || !userGoal}
-                            >
-                                {isGenerating ? (
-                                    <>
-                                        <Sparkles className="h-4 w-4 mr-2 animate-spin" />
-                                        Analyzing Website...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="h-4 w-4 mr-2" />
-                                        Generate AI Negatives
-                                    </>
-                                )}
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Right Panel: Results */}
-                <Card className="lg:col-span-2 border-slate-200/60 bg-white/60 backdrop-blur-xl shadow-xl min-h-[600px] flex flex-col">
-                    {/* Terminal Results Console */}
-                    {showResultsConsole && generatedKeywords.length > 0 && (
-                        <div className="p-4">
-                            <TerminalResultsConsole
-                                title="Negative Keywords Export Console"
-                                isVisible={showResultsConsole}
-                                stats={[
-                                    { label: 'Negative Keywords', value: generatedKeywords.length, color: 'green' },
-                                    { label: 'Categories', value: Object.keys(getCategoryStats(generatedKeywords as any)).length, color: 'cyan' },
-                                    { label: 'Match Type', value: 'Exact', color: 'yellow' },
-                                    { label: 'Target URL', value: url.substring(0, 30) + (url.length > 30 ? '...' : ''), color: 'purple' },
-                                ]}
-                                onDownloadCSV={() => handleDownload('google-ads-editor')}
-                                onSave={handleSave}
-                                onGenerateAnother={() => {
-                                    setShowResultsConsole(false);
-                                    setGeneratedKeywords([]);
-                                }}
-                                showDownload={true}
-                                showSave={true}
-                                showCopy={false}
-                                downloadButtonText="Download for Google Ads"
-                                saveButtonText="Save to History"
-                                isSaving={isSaving}
-                            />
-                        </div>
-                    )}
-
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div>
-                            <CardTitle>Generated Keywords</CardTitle>
+                            <h1 className="text-lg sm:text-xl font-bold text-slate-900">Negative Keywords</h1>
+                            <p className="text-xs text-slate-500 hidden sm:block">Protect your ad spend with AI-powered negatives</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            {generatedKeywords.length > 0 && (
-                                <>
-                                    <Button 
-                                        variant="outline" 
-                                        onClick={() => setShowStats(!showStats)}
-                                        className="gap-2"
-                                    >
-                                        <BarChart3 className="h-4 w-4" />
-                                        Stats
-                                    </Button>
-                                    <Button 
-                                        variant="outline" 
-                                        onClick={handleSave}
-                                        disabled={isSaving}
-                                        className="gap-2"
-                                    >
-                                        <Save className="h-4 w-4" />
-                                        {isSaving ? 'Saving...' : 'Save'}
-                                    </Button>
-                                    <Select value={exportFormat} onValueChange={(v: any) => setExportFormat(v)}>
-                                        <SelectTrigger className="w-32">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Formats</SelectItem>
-                                            <SelectItem value="exact">Exact Only</SelectItem>
-                                            <SelectItem value="phrase">Phrase Only</SelectItem>
-                                            <SelectItem value="broad">Broad Only</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Button variant="outline" onClick={() => handleDownload('standard')} className="gap-2">
-                                        <Download className="h-4 w-4" />
-                                        CSV
-                                    </Button>
-                                    <Button variant="outline" onClick={() => handleDownload('google-ads-editor')} className="gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        Google Ads
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                    </CardHeader>
-                    
-                    {/* Stats & Filters */}
-                    {generatedKeywords.length > 0 && (
-                        <div className="px-6 py-3 bg-slate-50/50 border-y border-slate-100 space-y-3">
-                            {showStats && (
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
-                                    <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-2 border border-indigo-400">
-                                        <div className="text-xs text-indigo-100">Total Negatives</div>
-                                        <div className="text-xl font-bold text-white">{generatedKeywords.length.toLocaleString()}</div>
-                                    </div>
-                                    {Object.entries(categoryStats).map(([category, count]) => (
-                                        <div key={category} className="bg-white rounded-lg p-2 border border-slate-200">
-                                            <div className="text-xs text-slate-500">{category}</div>
-                                            <div className="text-lg font-semibold text-slate-800">{count}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    <CardContent className="p-0 flex-1">
-                        {filteredKeywords.length > 0 ? (
-                            <div className="max-h-[600px] overflow-auto">
-                                <Table>
-                                    <TableHeader className="bg-slate-50 sticky top-0 z-10">
-                                        <TableRow>
-                                            <TableHead className="w-[30%]">Negative Keyword</TableHead>
-                                            <TableHead className="w-[15%]">Match Type</TableHead>
-                                            <TableHead className="w-[35%]">Reason</TableHead>
-                                            <TableHead className="w-[20%]">Category</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredKeywords.map((item) => (
-                                            <TableRow key={item.id} className="hover:bg-slate-50/50">
-                                                <TableCell className="font-medium text-slate-700 font-mono text-sm">
-                                                    {item.keyword}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {(item.matchType || 'exact').charAt(0).toUpperCase() + (item.matchType || 'exact').slice(1)}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-slate-500 text-sm">{item.reason}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-1">
-                                                        <Badge variant="secondary" className="font-normal text-slate-500 bg-slate-100 hover:bg-slate-200 w-fit">
-                                                            {item.category}
-                                                        </Badge>
-                                                        {item.subcategory && (
-                                                            <span className="text-xs text-slate-400">{item.subcategory}</span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        ) : generatedKeywords.length > 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center p-12 text-center min-h-[400px]">
-                                <Filter className="h-12 w-12 text-slate-300 mb-4" />
-                                <h3 className="text-lg font-semibold text-slate-800">No Keywords Match Filters</h3>
-                                <p className="text-slate-500 max-w-md mt-2">
-                                    Try adjusting your category filters to see more results.
-                                </p>
-                                <Button variant="outline" onClick={() => setSelectedCategories(new Set())} className="mt-4">
-                                    Clear All Filters
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center p-12 text-center opacity-60 min-h-[400px]">
-                                <div className="bg-slate-100 rounded-full p-6 mb-4">
-                                    <Sparkles className="h-10 w-10 text-slate-400" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-slate-800">Ready to Generate</h3>
-                                <p className="text-slate-500 max-w-md mt-2">
-                                    Fill out the configuration including your website URL. AI will analyze your website to understand your business and generate a comprehensive list of negative keywords.
-                                </p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
                     </div>
-                </TabsContent>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <KeywordFilters filters={filters} onFiltersChange={setFilters} compact={true} />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleFillInfo}
+                            className="gap-1.5 text-xs bg-white hover:bg-indigo-50 border-indigo-200 text-indigo-600"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Fill Sample</span>
+                        </Button>
+                    </div>
+                </div>
 
-                <TabsContent value="history">
-                    <Card className="border-slate-200/60 bg-white/60 backdrop-blur-xl shadow-xl">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Filter className="h-5 w-5 text-indigo-600" />
-                                Saved Negative Keyword Lists
-                            </CardTitle>
-                            <CardDescription>
-                                View, load, or delete your saved negative keyword lists
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {savedItems.length > 0 ? (
-                                <div className="space-y-4">
-                                    {savedItems.map(item => (
-                                        <div
-                                            key={item.id}
-                                            className="px-4 py-3 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
-                                        >
-                                            <div className="flex justify-between items-center">
-                                                <div className="space-y-1 flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-slate-800">{item.name}</span>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                    <TabsList className="bg-white/80 backdrop-blur border border-slate-200 p-1 rounded-xl shadow-sm">
+                        <TabsTrigger value="builder" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+                            Negative Keywords Builder
+                        </TabsTrigger>
+                        <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
+                            History
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="builder" className="space-y-4 mt-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                            {/* Left Panel: Inputs */}
+                            <div className="lg:col-span-4 space-y-4">
+                                {/* Mobile Collapse Toggle */}
+                                <button
+                                    className="w-full lg:hidden flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-sm"
+                                    onClick={() => setMobileInputExpanded(!mobileInputExpanded)}
+                                >
+                                    <span className="font-medium text-slate-700 flex items-center gap-2">
+                                        <Globe className="w-4 h-4 text-indigo-500" />
+                                        Configuration
+                                    </span>
+                                    {mobileInputExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+
+                                <div className={`space-y-4 ${mobileInputExpanded ? 'block' : 'hidden lg:block'}`}>
+                                    {/* URL Input Card */}
+                                    <Card className="border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+                                        <CardContent className="p-4 space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                    <Globe className="h-4 w-4 text-indigo-500" />
+                                                    Target URL <span className="text-red-500">*</span>
+                                                </label>
+                                                <Input 
+                                                    placeholder="https://example.com/landing-page" 
+                                                    value={url}
+                                                    onChange={(e) => {
+                                                        setUrl(e.target.value);
+                                                        if (urlError) validateUrl(e.target.value);
+                                                    }}
+                                                    onBlur={(e) => validateUrl(e.target.value)}
+                                                    className={`bg-white text-sm ${urlError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'}`}
+                                                />
+                                                {urlError && (
+                                                    <p className="text-xs text-red-500 flex items-center gap-1">
+                                                        <X className="w-3 h-3" /> {urlError}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                                    <Type className="h-4 w-4 text-indigo-500" />
+                                                    Core Keywords <span className="text-red-500">*</span>
+                                                </label>
+                                                <Textarea 
+                                                    placeholder="gps telematics platform, fleet tracking, dot compliance..." 
+                                                    value={coreKeywords}
+                                                    onChange={(e) => setCoreKeywords(e.target.value)}
+                                                    className="bg-white min-h-[80px] text-sm border-slate-200 focus:ring-indigo-500 resize-none"
+                                                />
+                                                <p className="text-xs text-slate-400">Enter the main keywords you are targeting</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Generation Mode Card */}
+                                    <Card className="border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+                                        <CardContent className="p-4 space-y-3">
+                                            <label className="text-sm font-medium text-slate-700">Generation Mode</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setGenerationMode('smart')}
+                                                    className={`relative p-3 rounded-xl border-2 transition-all text-left ${
+                                                        generationMode === 'smart'
+                                                            ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-200'
+                                                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                                                    }`}
+                                                >
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${
+                                                        generationMode === 'smart' ? 'bg-violet-500' : 'bg-slate-100'
+                                                    }`}>
+                                                        <Zap className={`h-4 w-4 ${generationMode === 'smart' ? 'text-white' : 'text-slate-500'}`} />
                                                     </div>
-                                                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                                                        <span className="flex items-center gap-1">
-                                                            <Clock className="w-3 h-3" />
-                                                            {new Date(item.timestamp).toLocaleDateString()} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                        {item.data?.coreKeywords && (
-                                                            <span className="text-slate-600">
-                                                                {item.data.coreKeywords.substring(0, 30)}...
-                                                            </span>
-                                                        )}
-                                                        {item.data?.generatedKeywords && (
-                                                            <span className="text-slate-600">
-                                                                {item.data.generatedKeywords.length} keywords
-                                                            </span>
-                                                        )}
+                                                    <div className={`text-sm font-semibold ${generationMode === 'smart' ? 'text-violet-700' : 'text-slate-700'}`}>
+                                                        Smart Engine
                                                     </div>
+                                                    <div className={`text-xs ${generationMode === 'smart' ? 'text-violet-500' : 'text-slate-400'}`}>
+                                                        Instant · 1,000+ negatives
+                                                    </div>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setGenerationMode('ai')}
+                                                    className={`relative p-3 rounded-xl border-2 transition-all text-left ${
+                                                        generationMode === 'ai'
+                                                            ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200'
+                                                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                                                    }`}
+                                                >
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${
+                                                        generationMode === 'ai' ? 'bg-indigo-500' : 'bg-slate-100'
+                                                    }`}>
+                                                        <Brain className={`h-4 w-4 ${generationMode === 'ai' ? 'text-white' : 'text-slate-500'}`} />
+                                                    </div>
+                                                    <div className={`text-sm font-semibold ${generationMode === 'ai' ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                                        AI Contextual
+                                                    </div>
+                                                    <div className={`text-xs ${generationMode === 'ai' ? 'text-indigo-500' : 'text-slate-400'}`}>
+                                                        ~10s · URL analysis
+                                                    </div>
+                                                </button>
+                                            </div>
+
+                                            {generationMode === 'smart' && (
+                                                <div className="space-y-2 pt-2">
+                                                    <label className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                                                        <Filter className="h-3.5 w-3.5 text-slate-400" />
+                                                        Business Vertical
+                                                    </label>
+                                                    <Select value={selectedVertical || 'general'} onValueChange={(val: string) => setSelectedVertical(val === 'general' ? '' : val)}>
+                                                        <SelectTrigger className="bg-white text-sm">
+                                                            <SelectValue placeholder="Select vertical..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="general">General (All Industries)</SelectItem>
+                                                            {getAllVerticals().map(v => (
+                                                                <SelectItem key={v.key} value={v.key}>{v.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {coreKeywords.trim() && (
+                                                        <p className="text-xs text-violet-600 bg-violet-50 px-2 py-1 rounded-md">
+                                                            Est. {estimateNegativeCount(
+                                                                coreKeywords.split(/[\n,]+/).filter(k => k.trim()).length,
+                                                                selectedVertical || undefined
+                                                            ).average.toLocaleString()} negatives
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        onClick={() => handleLoadSavedItem(item.id)}
-                                                        variant="outline"
+                                            )}
+
+                                            {generationMode === 'ai' && (
+                                                <div className="space-y-2 pt-2">
+                                                    <label className="text-sm font-medium text-slate-600">
+                                                        User Goal <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <Select value={userGoal} onValueChange={setUserGoal}>
+                                                        <SelectTrigger className="bg-white text-sm">
+                                                            <SelectValue placeholder="Select goal..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="leads">Leads (High-Intent)</SelectItem>
+                                                            <SelectItem value="calls">Calls / Appointments</SelectItem>
+                                                            <SelectItem value="signups">Signups / Trials</SelectItem>
+                                                            <SelectItem value="branding">Branding / Awareness</SelectItem>
+                                                            <SelectItem value="ecommerce">E-commerce</SelectItem>
+                                                            <SelectItem value="other">Other</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+
+                                            {/* Generate Button */}
+                                            <Button 
+                                                className={`w-full mt-2 shadow-lg transition-all ${
+                                                    generationMode === 'smart' 
+                                                        ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-200' 
+                                                        : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 shadow-indigo-200'
+                                                }`}
+                                                size="lg"
+                                                onClick={generationMode === 'smart' ? handleSmartGenerate : handleGenerate}
+                                                disabled={isGenerating || !coreKeywords || (generationMode === 'ai' && (!url || !userGoal))}
+                                            >
+                                                {isGenerating ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                                                        Generating...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {generationMode === 'smart' ? <Zap className="h-4 w-4 mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                                                        Generate {generationMode === 'smart' ? 'Smart' : 'AI'} Negatives
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+
+                            {/* Right Panel: Results */}
+                            <div className="lg:col-span-8">
+                                <Card className="border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+                                    {/* Results Header */}
+                                    <CardHeader className="border-b border-slate-100 bg-white/50 py-3 px-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
+                                                Generated Keywords
+                                                {generatedKeywords.length > 0 && (
+                                                    <Badge className="bg-gradient-to-r from-violet-500 to-indigo-500 text-white border-0 font-semibold">
+                                                        {generatedKeywords.length.toLocaleString()}
+                                                    </Badge>
+                                                )}
+                                            </CardTitle>
+                                            {generatedKeywords.length > 0 && (
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <Button 
+                                                        variant="ghost" 
                                                         size="sm"
-                                                        className="gap-2"
+                                                        onClick={() => setShowStats(!showStats)}
+                                                        className="gap-1.5 text-xs h-8"
                                                     >
-                                                        <FolderOpen className="w-4 h-4" />
-                                                        Load
+                                                        <BarChart3 className="h-3.5 w-3.5" />
+                                                        <span className="hidden sm:inline">Stats</span>
                                                     </Button>
-                                                    <Button
-                                                        onClick={() => handleDeleteSavedItem(item.id)}
-                                                        variant="outline"
+                                                    <Button 
+                                                        variant="ghost" 
                                                         size="sm"
-                                                        className="gap-2 bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                                                        onClick={handleSave}
+                                                        disabled={isSaving}
+                                                        className="gap-1.5 text-xs h-8"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
-                                                        Delete
+                                                        <Save className="h-3.5 w-3.5" />
+                                                        <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
+                                                    </Button>
+                                                    <Select value={exportFormat} onValueChange={(v: any) => setExportFormat(v)}>
+                                                        <SelectTrigger className="w-24 h-8 text-xs">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="all">All Formats</SelectItem>
+                                                            <SelectItem value="exact">Exact</SelectItem>
+                                                            <SelectItem value="phrase">Phrase</SelectItem>
+                                                            <SelectItem value="broad">Broad</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        onClick={() => handleDownload('standard')} 
+                                                        className="gap-1.5 text-xs h-8"
+                                                    >
+                                                        <Download className="h-3.5 w-3.5" />
+                                                        <span className="hidden sm:inline">CSV</span>
+                                                    </Button>
+                                                    <Button 
+                                                        size="sm"
+                                                        onClick={() => handleDownload('google-ads-editor')} 
+                                                        className="gap-1.5 text-xs h-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0"
+                                                    >
+                                                        <FileText className="h-3.5 w-3.5" />
+                                                        <span className="hidden sm:inline">Google Ads</span>
                                                     </Button>
                                                 </div>
+                                            )}
+                                        </div>
+                                    </CardHeader>
+                                    
+                                    {/* Stats Section */}
+                                    {generatedKeywords.length > 0 && showStats && (
+                                        <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-indigo-50/30 border-b border-slate-100">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                                                {/* Total Count - Highlighted */}
+                                                <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl p-3 text-white shadow-lg shadow-indigo-200">
+                                                    <div className="text-xs font-medium text-white/80">Total Negatives</div>
+                                                    <div className="text-2xl font-bold">{generatedKeywords.length.toLocaleString()}</div>
+                                                </div>
+                                                
+                                                {/* Top Categories */}
+                                                {topCategories.map(([category, count]) => {
+                                                    const colors = CATEGORY_COLORS[category] || { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' };
+                                                    return (
+                                                        <div 
+                                                            key={category} 
+                                                            className={`${colors.bg} rounded-xl p-3 border ${colors.border}`}
+                                                        >
+                                                            <div className={`text-xs font-medium ${colors.text} opacity-70 truncate`}>{category}</div>
+                                                            <div className={`text-xl font-bold ${colors.text}`}>{count}</div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-center h-full py-20">
-                                    <div className="text-center">
-                                        <Filter className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                        <p className="text-slate-500">
-                                            No saved negative keyword lists found. Save your generated keywords to see them here.
+                                    )}
+
+                                    <CardContent className="p-0">
+                                        {filteredKeywords.length > 0 ? (
+                                            <div className="max-h-[500px] overflow-auto">
+                                                {/* Mobile Card View */}
+                                                <div className="sm:hidden divide-y divide-slate-100">
+                                                    {filteredKeywords.slice(0, 50).map((item) => {
+                                                        const colors = CATEGORY_COLORS[item.category] || { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
+                                                        return (
+                                                            <div key={item.id} className="p-3 hover:bg-slate-50/50">
+                                                                <div className="flex items-start justify-between gap-2">
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="font-mono text-sm font-medium text-slate-800 truncate">
+                                                                            {item.keyword}
+                                                                        </div>
+                                                                        <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                                                                            {item.reason}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end gap-1 shrink-0">
+                                                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-indigo-50 text-indigo-600 border-indigo-200">
+                                                                            {item.matchType || 'Phrase'}
+                                                                        </Badge>
+                                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${colors.bg} ${colors.text}`}>
+                                                                            {item.category.split(' ')[0]}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {filteredKeywords.length > 50 && (
+                                                        <div className="p-3 text-center text-xs text-slate-500">
+                                                            Showing 50 of {filteredKeywords.length} keywords. Export to see all.
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Desktop Table View */}
+                                                <Table className="hidden sm:table">
+                                                    <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                                                        <TableRow>
+                                                            <TableHead className="w-[15%] text-xs font-semibold text-slate-600">Match Type</TableHead>
+                                                            <TableHead className="w-[45%] text-xs font-semibold text-slate-600">Reason</TableHead>
+                                                            <TableHead className="w-[20%] text-xs font-semibold text-slate-600">Category</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {filteredKeywords.map((item) => {
+                                                            const colors = CATEGORY_COLORS[item.category] || { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
+                                                            return (
+                                                                <TableRow key={item.id} className="hover:bg-indigo-50/30 transition-colors">
+                                                                    <TableCell>
+                                                                        <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
+                                                                            {(item.matchType || 'Phrase').charAt(0).toUpperCase() + (item.matchType || 'phrase').slice(1)}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-slate-600 text-sm">
+                                                                        <span className="font-mono text-indigo-600 mr-2">{item.keyword}</span>
+                                                                        {item.reason}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <span className={`inline-flex px-2 py-1 rounded-md text-xs font-medium ${colors.bg} ${colors.text} ${colors.border} border`}>
+                                                                            {item.category}
+                                                                        </span>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            );
+                                                        })}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        ) : generatedKeywords.length > 0 ? (
+                                            <div className="flex flex-col items-center justify-center p-12 text-center">
+                                                <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                                                    <Filter className="h-8 w-8 text-slate-400" />
+                                                </div>
+                                                <h3 className="text-lg font-semibold text-slate-800">No Keywords Match Filters</h3>
+                                                <p className="text-slate-500 max-w-md mt-2 text-sm">
+                                                    Try adjusting your category filters to see more results.
+                                                </p>
+                                                <Button variant="outline" onClick={() => setSelectedCategories(new Set())} className="mt-4">
+                                                    Clear All Filters
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center p-12 text-center min-h-[400px]">
+                                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center mb-4">
+                                                    <Sparkles className="h-10 w-10 text-indigo-400" />
+                                                </div>
+                                                <h3 className="text-lg font-semibold text-slate-800">Ready to Generate</h3>
+                                                <p className="text-slate-500 max-w-md mt-2 text-sm">
+                                                    Fill in your target URL and core keywords. Our AI will analyze your website to generate comprehensive negative keywords.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="history">
+                        <Card className="border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm">
+                            <CardHeader className="border-b border-slate-100">
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <FolderOpen className="h-5 w-5 text-indigo-500" />
+                                    Saved Negative Keyword Lists
+                                </CardTitle>
+                                <CardDescription className="text-sm">
+                                    View, load, or delete your saved negative keyword lists
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4">
+                                {savedItems.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {savedItems.map(item => (
+                                            <div
+                                                key={item.id}
+                                                className="p-4 bg-white rounded-xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all"
+                                            >
+                                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                                                    <div className="space-y-1 flex-1 min-w-0">
+                                                        <div className="font-semibold text-slate-800 truncate">{item.name}</div>
+                                                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                                            <span className="flex items-center gap-1">
+                                                                <Clock className="w-3 h-3" />
+                                                                {new Date(item.timestamp).toLocaleDateString()}
+                                                            </span>
+                                                            {item.data?.generatedKeywords && (
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    {item.data.generatedKeywords.length} keywords
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            onClick={() => handleLoadSavedItem(item.id)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="gap-1.5 text-xs"
+                                                        >
+                                                            <FolderOpen className="w-3.5 h-3.5" />
+                                                            Load
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleDeleteSavedItem(item.id)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="gap-1.5 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                            Delete
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                                        <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                                            <FolderOpen className="w-8 h-8 text-slate-400" />
+                                        </div>
+                                        <p className="text-slate-500 text-sm">
+                                            No saved negative keyword lists found.<br />
+                                            Save your generated keywords to see them here.
                                         </p>
                                     </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </div>
         </div>
     );
 };

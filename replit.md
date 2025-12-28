@@ -36,6 +36,15 @@ Preferred communication style: Simple, everyday language.
 - Follows Google Ads best practices with distribution: 40% high-intent, 30% commercial/pricing, 15% problem-solution, 10% trust, 5% urgency
 - Theme-based ad groups: High Intent, Emergency, Cost & Pricing, Trust & Quality, Problem Solutions, Residential/Commercial
 
+### Negative Keywords Builder UI Redesign
+- Complete redesign with modern gradient backgrounds and glass-morphism effects
+- Mobile-responsive layout with collapsible input section for small screens
+- Improved stats visualization with color-coded category badges
+- Mobile card view for keyword results (instead of table on small screens)
+- Streamlined header with compact filter controls
+- Better visual hierarchy with gradient buttons and shadow effects
+- Cleaner card layouts and improved typography
+
 # System Architecture
 
 ## Frontend
