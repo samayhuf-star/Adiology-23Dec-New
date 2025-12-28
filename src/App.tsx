@@ -799,8 +799,8 @@ const AppContent = () => {
       const hostname = window.location.hostname;
       const isAdminSubdomain = hostname.startsWith('admin.') || hostname === 'admin.adiology.io';
       if (isAdminSubdomain || path.startsWith('/admin')) {
-        // Check if user is super admin
-        if (user && (user.email === 'd@d.com' || user.role === 'superadmin' || user.role === 'super_admin')) {
+        // Check if user is super admin - use database role only
+        if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
           setView('admin-panel');
           return;
         }
@@ -821,7 +821,7 @@ const AppContent = () => {
         if (user) {
           const subscriptionPlan = user.subscription_plan || 'free';
           const subscriptionStatus = user.subscription_status || 'active'; // Default to active instead of inactive
-          const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
+          const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin';
           const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
           
           if (hasPaidPlan) {
@@ -848,7 +848,7 @@ const AppContent = () => {
       if (user) {
         const subscriptionPlan = user.subscription_plan || 'free';
         const subscriptionStatus = user.subscription_status || 'active'; // Default to active instead of inactive
-        const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
+        const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin';
         const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
         
         if (hasPaidPlan) {
@@ -913,7 +913,7 @@ const AppContent = () => {
       if (user) {
         const subscriptionPlan = user.subscription_plan || 'free';
         const subscriptionStatus = user.subscription_status || 'active'; // Default to active instead of inactive
-        const isSuperAdmin = user.email === 'd@d.com' || user.role === 'superadmin';
+        const isSuperAdmin = user.role === 'superadmin' || user.role === 'super_admin';
         const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
         
         if (hasPaidPlan) {
@@ -981,8 +981,8 @@ const AppContent = () => {
     }
   };
 
-  // Check if current user is super admin
-  const isSuperAdmin = user && (user.email === 'd@d.com' || user.role === 'superadmin' || user.role === 'super_admin');
+  // Check if current user is super admin - ONLY use database role, no hardcoded emails
+  const isSuperAdmin = user && (user.role === 'superadmin' || user.role === 'super_admin');
 
   // Default: User view (protected) navigation structure
   const allMenuItems = [
@@ -1457,10 +1457,10 @@ const AppContent = () => {
               console.warn('⚠️ Profile fetch failed (non-critical):', profileError);
             }
             
-            // Determine subscription status
+            // Determine subscription status - use database role only, no hardcoded emails
             const subscriptionPlan = userProfile?.subscription_plan || 'free';
             const subscriptionStatus = userProfile?.subscription_status || 'inactive';
-            const isSuperAdmin = authUser.email === 'd@d.com' || userProfile?.role === 'superadmin';
+            const isSuperAdmin = userProfile?.role === 'superadmin' || userProfile?.role === 'super_admin';
             const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
             
             // Set user with subscription info
