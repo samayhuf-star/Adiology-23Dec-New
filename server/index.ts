@@ -5252,10 +5252,26 @@ app.get('/api/admin/logs', async (c) => {
   }
 });
 
-// Add log entry
+// Add log entry - REQUIRES ADMIN AUTH
 app.post('/api/admin/logs', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const { level, source, message, details } = await c.req.json();
+    
+    // Validate required fields
+    if (!level || !source || !message) {
+      return c.json({ error: 'level, source, and message are required' }, 400);
+    }
+    
+    // Validate log level
+    const validLevels = ['info', 'warning', 'error', 'debug'];
+    if (!validLevels.includes(level)) {
+      return c.json({ error: `Invalid level. Must be one of: ${validLevels.join(', ')}` }, 400);
+    }
     
     await pool.query(
       'INSERT INTO admin_logs (level, source, message, details, created_at) VALUES ($1, $2, $3, $4, NOW())',
@@ -5269,8 +5285,13 @@ app.post('/api/admin/logs', async (c) => {
   }
 });
 
-// Get security rules
+// Get security rules - REQUIRES ADMIN AUTH
 app.get('/api/admin/security/rules', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const result = await pool.query('SELECT * FROM security_rules ORDER BY created_at DESC');
     return c.json({ rules: result.rows });
@@ -5280,22 +5301,39 @@ app.get('/api/admin/security/rules', async (c) => {
   }
 });
 
-// Add security rule
+// Add security rule - REQUIRES ADMIN AUTH
 app.post('/api/admin/security/rules', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const { type, value, reason } = await c.req.json();
     
+    // Validate required fields
+    if (!type || !value) {
+      return c.json({ error: 'type and value are required' }, 400);
+    }
+    
+    // Validate security rule type
+    const validTypes = ['ip_block', 'email_block', 'domain_block', 'rate_limit'];
+    if (!validTypes.includes(type)) {
+      return c.json({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` }, 400);
+    }
+    
     const result = await pool.query(
       'INSERT INTO security_rules (type, value, reason, active, created_at) VALUES ($1, $2, $3, true, NOW()) RETURNING *',
-      [type, value, reason]
+      [type, value, reason || 'No reason provided']
     );
     
     // Log this action
     await pool.query(
       "INSERT INTO admin_logs (level, source, message, details, created_at) VALUES ('warning', 'security', $1, $2, NOW())",
-      [`Security rule added: ${type}`, JSON.stringify({ type, value, reason })]
+      [`Security rule added: ${type}`, JSON.stringify({ type, value, reason, addedBy: auth.userId })]
     );
     
+    console.log(`[Admin] Security rule added by ${auth.userId}: ${type} - ${value}`);
     return c.json({ rule: result.rows[0] });
   } catch (error: any) {
     console.error('Error adding security rule:', error);
@@ -5303,11 +5341,23 @@ app.post('/api/admin/security/rules', async (c) => {
   }
 });
 
-// Delete security rule
+// Delete security rule - REQUIRES ADMIN AUTH
 app.delete('/api/admin/security/rules/:ruleId', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const ruleId = c.req.param('ruleId');
+    
+    // Validate ruleId is a number
+    if (!ruleId || isNaN(Number(ruleId))) {
+      return c.json({ error: 'Valid rule ID is required' }, 400);
+    }
+    
     await pool.query('DELETE FROM security_rules WHERE id = $1', [ruleId]);
+    console.log(`[Admin] Security rule ${ruleId} deleted by ${auth.userId}`);
     return c.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting security rule:', error);
@@ -5315,8 +5365,13 @@ app.delete('/api/admin/security/rules/:ruleId', async (c) => {
   }
 });
 
-// Get database tables
+// Get database tables - REQUIRES ADMIN AUTH
 app.get('/api/admin/database/tables', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const result = await pool.query(`
       SELECT table_name 
@@ -5332,8 +5387,13 @@ app.get('/api/admin/database/tables', async (c) => {
   }
 });
 
-// Get table data
+// Get table data - REQUIRES ADMIN AUTH
 app.get('/api/admin/database/table/:tableName', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const tableName = c.req.param('tableName');
     
@@ -5366,13 +5426,23 @@ app.get('/api/admin/database/table/:tableName', async (c) => {
   }
 });
 
-// Update table row
+// Update table row - REQUIRES ADMIN AUTH
 app.post('/api/admin/database/table/:tableName/update', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const tableName = c.req.param('tableName');
     const { id, data } = await c.req.json();
     
-    // Validate table name
+    // Validate required fields
+    if (!id || !data || typeof data !== 'object') {
+      return c.json({ error: 'Invalid request: id and data are required' }, 400);
+    }
+    
+    // Validate table name against actual database tables
     const validTables = await pool.query(`
       SELECT table_name FROM information_schema.tables 
       WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -5383,12 +5453,25 @@ app.post('/api/admin/database/table/:tableName/update', async (c) => {
       return c.json({ error: 'Invalid table name' }, 400);
     }
     
-    // Build update query
+    // Validate column names against actual table columns to prevent injection
+    const columnsResult = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1`,
+      [tableName]
+    );
+    const validColumns = new Set(columnsResult.rows.map((r: any) => r.column_name));
+    
+    const invalidColumns = Object.keys(data).filter(col => !validColumns.has(col));
+    if (invalidColumns.length > 0) {
+      return c.json({ error: `Invalid columns: ${invalidColumns.join(', ')}` }, 400);
+    }
+    
+    // Build update query with validated columns
     const setClauses = Object.keys(data).map((key, i) => `"${key}" = $${i + 2}`).join(', ');
     const values = [id, ...Object.values(data)];
     
     await pool.query(`UPDATE "${tableName}" SET ${setClauses} WHERE id = $1`, values);
     
+    console.log(`[Admin] Table ${tableName} row ${id} updated by ${auth.userId}`);
     return c.json({ success: true });
   } catch (error: any) {
     console.error('Error updating row:', error);
@@ -5396,13 +5479,29 @@ app.post('/api/admin/database/table/:tableName/update', async (c) => {
   }
 });
 
-// Send email via Sendune
+// Send email via Sendune - REQUIRES ADMIN AUTH
 // Note: Sendune uses template-based emails. Each template in Sendune has its own template-key.
 // The API sends the recipient, subject, and any replace tags to fill in the template.
 // Create email templates at app.sendune.com and use their template keys.
 app.post('/api/admin/email/send', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const { to, subject, templateKey, replaceTags } = await c.req.json();
+    
+    // Validate required fields
+    if (!to || !subject) {
+      return c.json({ error: 'Email recipient (to) and subject are required' }, 400);
+    }
+    
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      return c.json({ error: 'Invalid email format' }, 400);
+    }
     
     // Template key is required - either pass a specific one or use the default from env
     const senduneTemplateKey = templateKey || process.env.SENDUNE_API_KEY;
@@ -5464,7 +5563,13 @@ app.post('/api/admin/email/send', async (c) => {
 });
 
 // Get email logs
+// Get email logs - REQUIRES ADMIN AUTH
 app.get('/api/admin/email/logs', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
   try {
     const result = await pool.query(
       'SELECT * FROM email_logs ORDER BY sent_at DESC LIMIT 100'
