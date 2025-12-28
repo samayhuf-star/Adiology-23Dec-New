@@ -1375,31 +1375,6 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                                         <Download className="w-3.5 h-3.5 mr-1.5" />
                                                         Export
                                                     </Button>
-                                                    <Button
-                                                        onClick={() => {
-                                                            const keywordsForSeed = generatedKeywords.slice(0, 20);
-                                                            const event = new CustomEvent('navigate', { 
-                                                                detail: { 
-                                                                    tab: 'builder-3',
-                                                                    data: {
-                                                                        seedKeywords: keywordsForSeed,
-                                                                        negativeKeywords: negativeKeywords,
-                                                                        startAtStep: 1
-                                                                    }
-                                                                } 
-                                                            });
-                                                            window.dispatchEvent(event);
-                                                            if (window.location.hash !== '#builder-3') {
-                                                                window.location.hash = '#builder-3';
-                                                            }
-                                                        }}
-                                                        disabled={generatedKeywords.length === 0}
-                                                        size="sm"
-                                                        className="h-9 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white border-0 shadow-lg shadow-violet-500/20 text-xs font-medium rounded-lg ml-auto"
-                                                    >
-                                                        <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
-                                                        Create Campaign
-                                                    </Button>
                                                 </div>
 
                                                 {/* Keywords Table */}
