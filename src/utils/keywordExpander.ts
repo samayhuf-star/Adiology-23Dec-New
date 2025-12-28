@@ -2,148 +2,134 @@
  * Keyword Expander Utility
  * Generates 100-150 high-quality keywords following Google Ads best practices
  * 
- * Structure:
- * - 40% High-intent buyer keywords
- * - 30% Long-tail commercial keywords
- * - 15% Problem-solution keywords
- * - 10% Brand/trust keywords
- * - 5% Urgency keywords
+ * Target Distribution (for 130 keywords):
+ * - 40% High-intent buyer keywords (~52 keywords)
+ * - 30% Long-tail commercial/pricing keywords (~39 keywords)
+ * - 15% Problem-solution keywords (~20 keywords)
+ * - 10% Brand/trust keywords (~13 keywords)
+ * - 5% Urgency keywords (~6 keywords)
  */
 
 interface KeywordExpansionConfig {
   baseService: string;
   serviceVariations: string[];
   problems: string[];
-  locations?: string[];
-  urgencyModifiers?: string[];
-  trustModifiers?: string[];
-  commercialModifiers?: string[];
+  targetTotal?: number;
 }
 
-const DEFAULT_URGENCY_MODIFIERS = [
+const URGENCY_MODIFIERS = [
   "emergency", "24 hour", "same day", "urgent", "after hours", 
-  "weekend", "immediate", "fast", "quick", "rush"
+  "weekend", "immediate", "fast", "quick"
 ];
 
-const DEFAULT_TRUST_MODIFIERS = [
+const TRUST_MODIFIERS = [
   "licensed", "certified", "insured", "professional", "trusted",
   "top rated", "best rated", "5 star", "reliable", "experienced",
-  "affordable", "cheap", "low cost", "budget", "quality"
-];
-
-const DEFAULT_COMMERCIAL_MODIFIERS = [
-  "near me", "close to me", "in my area", "local", "nearby",
-  "hire", "find", "get", "need", "looking for",
-  "cost", "price", "quote", "estimate", "rates",
-  "service", "services", "company", "contractor", "specialist"
+  "quality", "master", "bonded"
 ];
 
 const LOCATION_MODIFIERS = [
-  "near me", "in my area", "local", "nearby", "close to me"
+  "near me", "local", "nearby", "in my area", "close to me"
 ];
 
 const ACTION_MODIFIERS = [
-  "call now", "book now", "schedule", "get quote", "free estimate"
+  "hire", "find", "get", "need"
 ];
 
-export function expandKeywords(config: KeywordExpansionConfig): string[] {
-  const {
-    baseService,
-    serviceVariations,
-    problems,
-    urgencyModifiers = DEFAULT_URGENCY_MODIFIERS,
-    trustModifiers = DEFAULT_TRUST_MODIFIERS,
-    commercialModifiers = DEFAULT_COMMERCIAL_MODIFIERS
-  } = config;
+const PRICING_MODIFIERS = [
+  "cost", "price", "quote", "estimate", "rates"
+];
 
-  const keywords: Set<string> = new Set();
-  
-  // 1. HIGH-INTENT BUYER KEYWORDS (40%)
-  // "service near me" patterns
-  serviceVariations.forEach(service => {
-    LOCATION_MODIFIERS.forEach(loc => {
-      keywords.add(`${service} ${loc}`);
-    });
-    
-    // Direct action keywords
-    keywords.add(`hire ${service}`);
-    keywords.add(`find ${service}`);
-    keywords.add(`get ${service}`);
-    keywords.add(`need ${service}`);
-    keywords.add(`${service} company`);
-    keywords.add(`${service} contractor`);
-    keywords.add(`${service} service`);
-    keywords.add(`${service} services`);
-  });
-  
-  // 2. LONG-TAIL COMMERCIAL KEYWORDS (30%)
-  // Cost/pricing keywords
-  serviceVariations.forEach(service => {
-    keywords.add(`${service} cost`);
-    keywords.add(`${service} price`);
-    keywords.add(`${service} pricing`);
-    keywords.add(`${service} rates`);
-    keywords.add(`${service} quote`);
-    keywords.add(`${service} estimate`);
-    keywords.add(`free ${service} estimate`);
-    keywords.add(`free ${service} quote`);
-    keywords.add(`${service} cost near me`);
-    keywords.add(`how much does ${service} cost`);
-    keywords.add(`${service} price per hour`);
-  });
-  
-  // Trust + Service combinations
-  trustModifiers.slice(0, 10).forEach(trust => {
-    serviceVariations.slice(0, 5).forEach(service => {
-      keywords.add(`${trust} ${service}`);
-      keywords.add(`${trust} ${service} near me`);
-    });
-  });
-  
-  // 3. PROBLEM-SOLUTION KEYWORDS (15%)
-  problems.forEach(problem => {
-    keywords.add(problem);
-    keywords.add(`${problem} near me`);
-    keywords.add(`${problem} service`);
-    keywords.add(`fix ${problem}`);
-    keywords.add(`repair ${problem}`);
-    keywords.add(`${problem} help`);
-    keywords.add(`${problem} company`);
-  });
-  
-  // 4. BRAND/TRUST KEYWORDS (10%)
-  trustModifiers.forEach(trust => {
-    keywords.add(`${trust} ${baseService}`);
-    keywords.add(`${trust} ${baseService} near me`);
-  });
-  
-  // 5. URGENCY KEYWORDS (5%)
-  urgencyModifiers.forEach(urgency => {
-    keywords.add(`${urgency} ${baseService}`);
-    keywords.add(`${urgency} ${baseService} near me`);
-    serviceVariations.slice(0, 3).forEach(service => {
-      keywords.add(`${urgency} ${service}`);
-    });
-  });
-  
-  // 6. ACTION-ORIENTED KEYWORDS
-  ACTION_MODIFIERS.forEach(action => {
-    keywords.add(`${baseService} ${action}`);
-  });
-  
-  // 7. RESIDENTIAL vs COMMERCIAL
-  serviceVariations.slice(0, 5).forEach(service => {
-    keywords.add(`residential ${service}`);
-    keywords.add(`commercial ${service}`);
-    keywords.add(`home ${service}`);
-    keywords.add(`house ${service}`);
-    keywords.add(`business ${service}`);
-  });
-  
-  return Array.from(keywords).slice(0, 150);
+function addKeyword(arr: string[], kw: string, limit: number): boolean {
+  if (arr.length >= limit) return false;
+  arr.push(kw);
+  return true;
 }
 
-// Pre-defined expansion configs for common industries
+export function expandKeywords(config: KeywordExpansionConfig): string[] {
+  const { baseService, serviceVariations, problems, targetTotal = 130 } = config;
+
+  // Calculate exact limits - ensure they sum to targetTotal
+  const highIntentLimit = Math.floor(targetTotal * 0.40);
+  const commercialLimit = Math.floor(targetTotal * 0.30);
+  const problemLimit = Math.floor(targetTotal * 0.15);
+  const trustLimit = Math.floor(targetTotal * 0.10);
+  const urgencyLimit = targetTotal - highIntentLimit - commercialLimit - problemLimit - trustLimit;
+
+  const highIntentKeywords: string[] = [];
+  const commercialKeywords: string[] = [];
+  const problemKeywords: string[] = [];
+  const trustKeywords: string[] = [];
+  const urgencyKeywords: string[] = [];
+
+  // 1. HIGH-INTENT BUYER KEYWORDS (40%) - Mix location and action modifiers
+  const halfHighIntent = Math.floor(highIntentLimit / 2);
+  
+  // First half: location-based keywords
+  outerLoop1: for (const service of serviceVariations) {
+    for (const loc of LOCATION_MODIFIERS) {
+      if (!addKeyword(highIntentKeywords, `${service} ${loc}`, halfHighIntent)) break outerLoop1;
+    }
+  }
+  
+  // Second half: action-based and service keywords
+  outerLoop2: for (const service of serviceVariations.slice(0, 10)) {
+    for (const action of ACTION_MODIFIERS) {
+      if (!addKeyword(highIntentKeywords, `${action} ${service}`, highIntentLimit)) break outerLoop2;
+    }
+  }
+  for (const service of serviceVariations.slice(0, 8)) {
+    if (!addKeyword(highIntentKeywords, `${service} company`, highIntentLimit)) break;
+    if (!addKeyword(highIntentKeywords, `${service} contractor`, highIntentLimit)) break;
+    if (!addKeyword(highIntentKeywords, `${service} service`, highIntentLimit)) break;
+  }
+
+  // 2. LONG-TAIL COMMERCIAL/PRICING KEYWORDS (30%)
+  outerLoop3: for (const service of serviceVariations.slice(0, 8)) {
+    for (const price of PRICING_MODIFIERS) {
+      if (!addKeyword(commercialKeywords, `${service} ${price}`, commercialLimit)) break outerLoop3;
+    }
+  }
+  for (const service of serviceVariations.slice(0, 6)) {
+    if (!addKeyword(commercialKeywords, `how much does ${service} cost`, commercialLimit)) break;
+    if (!addKeyword(commercialKeywords, `${service} price per hour`, commercialLimit)) break;
+    if (!addKeyword(commercialKeywords, `free ${service} quote`, commercialLimit)) break;
+    if (!addKeyword(commercialKeywords, `${service} estimate near me`, commercialLimit)) break;
+  }
+
+  // 3. PROBLEM-SOLUTION KEYWORDS (15%)
+  for (const problem of problems) {
+    if (!addKeyword(problemKeywords, `${problem} repair`, problemLimit)) break;
+    if (!addKeyword(problemKeywords, `fix ${problem}`, problemLimit)) break;
+    if (!addKeyword(problemKeywords, `${problem} service near me`, problemLimit)) break;
+  }
+
+  // 4. BRAND/TRUST KEYWORDS (10%)
+  for (const trust of TRUST_MODIFIERS) {
+    if (!addKeyword(trustKeywords, `${trust} ${baseService}`, trustLimit)) break;
+  }
+  for (const trust of TRUST_MODIFIERS.slice(0, 6)) {
+    if (!addKeyword(trustKeywords, `${trust} ${baseService} near me`, trustLimit)) break;
+  }
+
+  // 5. URGENCY KEYWORDS (5%)
+  for (const urgency of URGENCY_MODIFIERS) {
+    if (!addKeyword(urgencyKeywords, `${urgency} ${baseService}`, urgencyLimit)) break;
+  }
+  for (const urgency of URGENCY_MODIFIERS.slice(0, 3)) {
+    if (!addKeyword(urgencyKeywords, `${urgency} ${baseService} near me`, urgencyLimit)) break;
+  }
+
+  // Combine all keywords - no final slice needed since limits enforced per-category
+  return [
+    ...highIntentKeywords,
+    ...commercialKeywords,
+    ...problemKeywords,
+    ...trustKeywords,
+    ...urgencyKeywords
+  ];
+}
+
 export const INDUSTRY_KEYWORD_CONFIGS: Record<string, KeywordExpansionConfig> = {
   electrician: {
     baseService: "electrician",
@@ -158,8 +144,8 @@ export const INDUSTRY_KEYWORD_CONFIGS: Record<string, KeywordExpansionConfig> = 
     ],
     problems: [
       "no power", "power outage", "flickering lights", "tripped breaker",
-      "electrical fire", "sparking outlet", "buzzing sound", "burning smell electrical",
-      "dead outlet", "overloaded circuit", "electrical shock", "dimming lights",
+      "electrical fire", "sparking outlet", "buzzing sound electrical",
+      "dead outlet", "overloaded circuit", "dimming lights",
       "faulty wiring", "short circuit", "electrical surge", "ground fault"
     ]
   },
@@ -176,7 +162,7 @@ export const INDUSTRY_KEYWORD_CONFIGS: Record<string, KeywordExpansionConfig> = 
     problems: [
       "clogged drain", "leaky pipe", "burst pipe", "no hot water", "low water pressure",
       "running toilet", "backed up sewer", "water leak", "gas leak", "frozen pipe",
-      "dripping faucet", "slow drain", "toilet overflow", "water damage", "sewage smell"
+      "dripping faucet", "slow drain", "toilet overflow", "water damage"
     ]
   },
   
@@ -193,7 +179,7 @@ export const INDUSTRY_KEYWORD_CONFIGS: Record<string, KeywordExpansionConfig> = 
       "ac not cooling", "no heat", "furnace not working", "ac blowing warm air",
       "hvac noise", "ac leaking water", "thermostat not working", "uneven heating",
       "high energy bills", "poor air quality", "ac frozen", "furnace cycling",
-      "weak airflow", "strange smell from hvac", "ac compressor issues"
+      "weak airflow", "ac compressor issues"
     ]
   },
   
@@ -208,8 +194,8 @@ export const INDUSTRY_KEYWORD_CONFIGS: Record<string, KeywordExpansionConfig> = 
     ],
     problems: [
       "roof leak", "missing shingles", "storm damage", "roof damage", "sagging roof",
-      "water damage ceiling", "roof inspection needed", "hail damage roof",
-      "ice dam", "roof moss", "cracked tiles", "worn shingles", "roof emergency"
+      "water damage ceiling", "hail damage roof", "ice dam", "roof moss",
+      "cracked tiles", "worn shingles", "roof emergency"
     ]
   },
   
@@ -219,7 +205,7 @@ export const INDUSTRY_KEYWORD_CONFIGS: Record<string, KeywordExpansionConfig> = 
       "locksmith", "lock service", "key service", "lock repair", "lock replacement",
       "lockout service", "key cutting", "lock installation", "rekey locks",
       "automotive locksmith", "commercial locksmith", "residential locksmith",
-      "safe locksmith", "lock picking", "master key system", "smart lock installation",
+      "safe locksmith", "master key system", "smart lock installation",
       "deadbolt installation", "lock change", "security locks", "emergency locksmith"
     ],
     problems: [
@@ -241,7 +227,6 @@ export function getExpandedKeywordsForIndustry(industry: string): string[] {
 export function generateAdGroups(keywords: string[], maxKeywordsPerGroup: number = 20): Array<{ name: string; keywords: string[] }> {
   const adGroups: Array<{ name: string; keywords: string[] }> = [];
   
-  // Group keywords by common themes
   const themeGroups: Record<string, string[]> = {
     "High Intent - Near Me": [],
     "Emergency & Urgent": [],
@@ -274,14 +259,12 @@ export function generateAdGroups(keywords: string[], maxKeywordsPerGroup: number
     }
   });
   
-  // Convert to ad groups, splitting large groups
   Object.entries(themeGroups).forEach(([name, groupKeywords]) => {
     if (groupKeywords.length === 0) return;
     
     if (groupKeywords.length <= maxKeywordsPerGroup) {
       adGroups.push({ name, keywords: groupKeywords });
     } else {
-      // Split into multiple groups
       for (let i = 0; i < groupKeywords.length; i += maxKeywordsPerGroup) {
         const chunk = groupKeywords.slice(i, i + maxKeywordsPerGroup);
         const groupNum = Math.floor(i / maxKeywordsPerGroup) + 1;
