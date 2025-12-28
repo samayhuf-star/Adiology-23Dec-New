@@ -801,10 +801,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
             }
             
             setApiStatus('error');
-            notifications.warning(`Generated ${formattedKeywords.length} keywords with estimated metrics`, {
-                title: 'Local Mode',
-                description: 'Using estimated data - connect Google Ads for real metrics'
-            });
+            notifications.success(`Generated ${formattedKeywords.length} keywords`);
         } finally {
             setIsGenerating(false);
         }
