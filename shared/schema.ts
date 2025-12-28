@@ -333,6 +333,37 @@ export const kvStore = pgTable("kv_store_6757d0ca", {
   value: jsonb("value").notNull(),
 });
 
+export const userNotifications = pgTable("user_notifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message"),
+  data: jsonb("data"),
+  read: boolean("read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_user_notifications_user_id").on(table.userId),
+  readIdx: index("idx_user_notifications_read").on(table.read),
+  createdAtIdx: index("idx_user_notifications_created_at").on(table.createdAt),
+}));
+
+export const adSearchRequests = pgTable("ad_search_requests", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  searchQuery: text("search_query").notNull(),
+  advertiserDomain: text("advertiser_domain"),
+  status: text("status").notNull().default("pending"),
+  results: jsonb("results"),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  userIdIdx: index("idx_ad_search_requests_user_id").on(table.userId),
+  statusIdx: index("idx_ad_search_requests_status").on(table.status),
+  createdAtIdx: index("idx_ad_search_requests_created_at").on(table.createdAt),
+}));
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
