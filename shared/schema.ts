@@ -341,6 +341,8 @@ export const userNotifications = pgTable("user_notifications", {
   message: text("message"),
   data: jsonb("data"),
   read: boolean("read").default(false),
+  actionType: text("action_type"),
+  actionData: jsonb("action_data"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   userIdIdx: index("idx_user_notifications_user_id").on(table.userId),

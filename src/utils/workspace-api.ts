@@ -30,20 +30,23 @@ export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext | n
       return null;
     }
 
-    // Verify user has access to this workspace
-    const { data: membership, error } = await supabase
-      .from('workspace_members')
-      .select('workspace_id, workspaces!inner(is_admin_workspace)')
-      .eq('workspace_id', workspaceId)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single();
+    // Verify user has access to this workspace via backend API
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    
+    const response = await fetch(`/api/workspaces/${workspaceId}/validate`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
 
-    if (error || !membership) {
+    const result = await response.json();
+
+    if (!result.success || !result.hasAccess) {
       loggingService.addLog('error', 'WorkspaceAPI', 'User does not have access to workspace', { 
         workspaceId, 
-        userId: user.id,
-        error: error?.message 
+        userId: user.id
       });
       // Clear invalid workspace from localStorage
       localStorage.removeItem('current_workspace_id');
@@ -53,7 +56,7 @@ export async function getCurrentWorkspaceContext(): Promise<WorkspaceContext | n
     return {
       workspaceId,
       userId: user.id,
-      isAdminWorkspace: (membership as any).workspaces.is_admin_workspace
+      isAdminWorkspace: result.isAdminWorkspace || false
     };
   } catch (error) {
     loggingService.addLog('error', 'WorkspaceAPI', 'Error getting workspace context', { 

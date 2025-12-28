@@ -3639,6 +3639,128 @@ app.delete('/api/admin/blogs/:id', async (c) => {
 });
 
 // ============================================
+// Workspaces API
+// ============================================
+
+// Get user's workspaces
+app.get('/api/workspaces', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const result = await pool.query(
+      `SELECT w.*, wm.role as member_role, wm.status as member_status
+       FROM workspaces w
+       INNER JOIN workspace_members wm ON w.id = wm.workspace_id
+       WHERE wm.user_id = $1 AND wm.status = 'active'
+       ORDER BY w.created_at DESC`,
+      [user.id]
+    );
+
+    return c.json({ workspaces: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching workspaces:', error);
+    return c.json({ error: error.message, workspaces: [] }, 500);
+  }
+});
+
+// Get workspace by ID with membership validation
+app.get('/api/workspaces/:workspaceId', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const workspaceId = c.req.param('workspaceId');
+
+    const result = await pool.query(
+      `SELECT w.*, wm.role as member_role, wm.status as member_status
+       FROM workspaces w
+       INNER JOIN workspace_members wm ON w.id = wm.workspace_id
+       WHERE w.id = $1 AND wm.user_id = $2 AND wm.status = 'active'`,
+      [workspaceId, user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Workspace not found or access denied' }, 404);
+    }
+
+    return c.json({ workspace: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error fetching workspace:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Create a new workspace
+app.post('/api/workspaces', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+    const { name, slug } = await c.req.json();
+
+    if (!name) {
+      return c.json({ error: 'Workspace name is required' }, 400);
+    }
+
+    const workspaceSlug = slug || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    const workspaceResult = await pool.query(
+      `INSERT INTO workspaces (name, slug, owner_id) 
+       VALUES ($1, $2, $3) 
+       RETURNING *`,
+      [name, workspaceSlug, user.id]
+    );
+
+    const workspace = workspaceResult.rows[0];
+
+    // Add owner as a member with 'owner' role
+    await pool.query(
+      `INSERT INTO workspace_members (workspace_id, user_id, role, status) 
+       VALUES ($1, $2, 'owner', 'active')`,
+      [workspace.id, user.id]
+    );
+
+    return c.json({ workspace });
+  } catch (error: any) {
+    console.error('Error creating workspace:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Validate workspace membership
+app.get('/api/workspaces/:workspaceId/validate', async (c) => {
+  try {
+    const user = await getUserFromAuth(c);
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401);
+
+    const workspaceId = c.req.param('workspaceId');
+
+    const result = await pool.query(
+      `SELECT wm.*, w.is_admin_workspace
+       FROM workspace_members wm
+       INNER JOIN workspaces w ON wm.workspace_id = w.id
+       WHERE wm.workspace_id = $1 AND wm.user_id = $2 AND wm.status = 'active'`,
+      [workspaceId, user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return c.json({ success: false, hasAccess: false });
+    }
+
+    return c.json({ 
+      success: true, 
+      hasAccess: true, 
+      membership: result.rows[0],
+      isAdminWorkspace: result.rows[0].is_admin_workspace || false
+    });
+  } catch (error: any) {
+    console.error('Error validating workspace access:', error);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ============================================
 // User Notifications API
 // ============================================
 
@@ -3764,7 +3886,7 @@ app.get('/api/dashboard', async (c) => {
     
     // Get recent campaigns (last 10)
     const recentCampaignsResult = await pool.query(
-      `SELECT id, campaign_name, structure_type, step, created_at, updated_at
+      `SELECT id, name as campaign_name, type as structure_type, status as step, created_at, updated_at
        FROM campaign_history 
        WHERE user_id = $1 
        ORDER BY updated_at DESC 
@@ -3825,7 +3947,7 @@ app.get('/api/dashboard/:userId', async (c) => {
     
     // Get recent campaigns (last 10)
     const recentCampaignsResult = await pool.query(
-      `SELECT id, campaign_name, structure_type, step, created_at, updated_at
+      `SELECT id, name as campaign_name, type as structure_type, status as step, created_at, updated_at
        FROM campaign_history 
        WHERE user_id = $1 
        ORDER BY updated_at DESC 
