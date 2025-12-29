@@ -4642,6 +4642,182 @@ app.post('/api/campaigns/save', async (c) => {
 });
 
 // ============================================
+// CAMPAIGN HISTORY CRUD ENDPOINTS
+// ============================================
+
+// Helper to verify user from Supabase token
+async function verifyUserToken(c: any): Promise<{ authorized: boolean; userId?: string; error?: string }> {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return { authorized: false, error: 'Bearer token required' };
+    }
+    
+    const token = authHeader.substring(7);
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return { authorized: false, error: 'Authentication service not configured' };
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      return { authorized: false, error: 'Invalid or expired token' };
+    }
+    
+    return { authorized: true, userId: user.id };
+  } catch (error) {
+    console.error('[User Auth] Error:', error);
+    return { authorized: false, error: 'Authentication failed' };
+  }
+}
+
+// Get all campaign history for user
+app.get('/api/campaign-history', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const result = await pool.query(
+      `SELECT id, user_id, type, name, data, status, created_at, updated_at 
+       FROM campaign_history 
+       WHERE user_id = $1 
+       ORDER BY updated_at DESC`,
+      [auth.userId]
+    );
+    
+    return c.json({ 
+      success: true, 
+      data: result.rows 
+    });
+  } catch (error: any) {
+    console.error('Error fetching campaign history:', error);
+    return c.json({ error: error.message || 'Failed to fetch campaigns' }, 500);
+  }
+});
+
+// Create campaign history entry
+app.post('/api/campaign-history', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const body = await c.req.json();
+    const { type, name, data, status = 'draft' } = body;
+    
+    if (!type || !name) {
+      return c.json({ error: 'Type and name are required' }, 400);
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO campaign_history (user_id, type, name, data, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       RETURNING id, user_id, type, name, data, status, created_at, updated_at`,
+      [auth.userId, type, name, JSON.stringify(data || {}), status]
+    );
+    
+    return c.json({ 
+      success: true, 
+      data: result.rows[0] 
+    });
+  } catch (error: any) {
+    console.error('Error creating campaign history:', error);
+    return c.json({ error: error.message || 'Failed to create campaign' }, 500);
+  }
+});
+
+// Update campaign history entry
+app.put('/api/campaign-history/:id', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { name, data, status } = body;
+    
+    // Build dynamic update query
+    const updates: string[] = ['updated_at = NOW()'];
+    const values: any[] = [];
+    let paramIndex = 1;
+    
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (data !== undefined) {
+      updates.push(`data = $${paramIndex++}`);
+      values.push(JSON.stringify(data));
+    }
+    if (status !== undefined) {
+      updates.push(`status = $${paramIndex++}`);
+      values.push(status);
+    }
+    
+    values.push(id, auth.userId);
+    
+    const result = await pool.query(
+      `UPDATE campaign_history 
+       SET ${updates.join(', ')} 
+       WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
+       RETURNING id, user_id, type, name, data, status, created_at, updated_at`,
+      values
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Campaign not found or access denied' }, 404);
+    }
+    
+    return c.json({ 
+      success: true, 
+      data: result.rows[0] 
+    });
+  } catch (error: any) {
+    console.error('Error updating campaign history:', error);
+    return c.json({ error: error.message || 'Failed to update campaign' }, 500);
+  }
+});
+
+// Delete campaign history entry
+app.delete('/api/campaign-history/:id', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const id = c.req.param('id');
+    
+    const result = await pool.query(
+      `DELETE FROM campaign_history WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, auth.userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Campaign not found or access denied' }, 404);
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: 'Campaign deleted successfully' 
+    });
+  } catch (error: any) {
+    console.error('Error deleting campaign history:', error);
+    return c.json({ error: error.message || 'Failed to delete campaign' }, 500);
+  }
+});
+
+// ============================================
 // SUPER ADMIN API ENDPOINTS
 // ============================================
 

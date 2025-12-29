@@ -4,47 +4,50 @@ import { supabase } from './supabase/client';
 /**
  * History service
  * Provides a consistent API for saving and retrieving keyword plans, mixer results, etc.
- * Falls back to localStorage when database is unavailable
+ * Uses backend API for database storage, falls back to localStorage when unavailable
  */
+
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
 export const historyService = {
   /**
    * Save a history item
-   * Uses database storage when available, falls back to localStorage
+   * Uses backend API when available, falls back to localStorage
    */
   async save(type: string, name: string, data: any, status: 'draft' | 'completed' = 'completed'): Promise<string> {
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const token = await getAuthToken();
       
-      if (user) {
-        // Save to database
-        const { data: savedItem, error } = await supabase
-          .from('campaign_history')
-          .insert({
-            user_id: user.id,
-            campaign_name: name,
-            business_name: data.businessName || '',
-            website_url: data.websiteUrl || '',
-            status: status,
-            campaign_data: data,
-            source: type,
-            step: data.step || 'completed'
-          })
-          .select()
-          .single();
+      if (token) {
+        const response = await fetch('/api/campaign-history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ type, name, data, status })
+        });
 
-        if (error) {
-          console.warn('Failed to save to database, falling back to localStorage:', error);
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.warn('Failed to save to database:', errorData);
+          throw new Error(errorData.error || 'Failed to save');
         }
 
-        console.log('Saved to database:', savedItem.id);
-        return savedItem.id;
+        const result = await response.json();
+        console.log('Saved to database:', result.data?.id);
+        return result.data?.id || crypto.randomUUID();
       } else {
-        throw new Error('No user context available');
+        throw new Error('No auth token available');
       }
     } catch (error) {
-      // Fallback to localStorage for reliability
       console.log('Falling back to localStorage storage');
       await localStorageHistory.save(type, name, data, status);
       const items = localStorageHistory.getAll();
@@ -56,36 +59,38 @@ export const historyService = {
 
   /**
    * Update an existing item (for drafts)
-   * If item doesn't exist, creates a new one (upsert behavior)
    */
   async update(id: string, data: any, name?: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const token = await getAuthToken();
       
-      if (user) {
-        // Update in database
-        const { error } = await supabase
-          .from('campaign_history')
-          .update({
-            campaign_data: data,
-            campaign_name: name,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', id)
-          .eq('user_id', user.id);
+      if (token) {
+        const updatePayload: any = { data };
+        if (name) {
+          updatePayload.name = name;
+        }
+        
+        const response = await fetch(`/api/campaign-history/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(updatePayload)
+        });
 
-        if (error) {
-          console.warn('Failed to update in database, falling back to localStorage:', error);
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.warn('Failed to update in database:', errorData);
+          throw new Error(errorData.error || 'Failed to update');
         }
 
         console.log('Updated in database:', id);
         return;
       } else {
-        throw new Error('No user context available');
+        throw new Error('No auth token available');
       }
     } catch (error) {
-      // Fallback to localStorage
       console.log('Falling back to localStorage update');
       await localStorageHistory.update(id, data, name);
     }
@@ -96,31 +101,30 @@ export const historyService = {
    */
   async markAsCompleted(id: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const token = await getAuthToken();
       
-      if (user) {
-        // Update status in database
-        const { error } = await supabase
-          .from('campaign_history')
-          .update({
-            status: 'completed',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', id)
-          .eq('user_id', user.id);
+      if (token) {
+        const response = await fetch(`/api/campaign-history/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: 'completed' })
+        });
 
-        if (error) {
-          console.warn('Failed to mark as completed in database, falling back to localStorage:', error);
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.warn('Failed to mark as completed in database:', errorData);
+          throw new Error(errorData.error || 'Failed to update status');
         }
 
         console.log('Marked as completed in database:', id);
         return;
       } else {
-        throw new Error('No user context available');
+        throw new Error('No auth token available');
       }
     } catch (error) {
-      // Fallback to localStorage
       console.log('Falling back to localStorage completion');
       await localStorageHistory.markAsCompleted(id);
     }
@@ -128,47 +132,57 @@ export const historyService = {
 
   /**
    * Get all history items for current user
-   * Uses database query when available, falls back to localStorage
+   * Uses backend API when available, falls back to localStorage
    */
   async getAll(): Promise<HistoryItem[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const token = await getAuthToken();
       
-      if (user) {
-        // Get from database
-        const { data, error } = await supabase
-          .from('campaign_history')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('updated_at', { ascending: false });
+      if (token) {
+        const response = await fetch('/api/campaign-history', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-        if (error) {
-          console.warn('Failed to load from database, falling back to localStorage:', error);
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.warn('Failed to load from database:', errorData);
+          throw new Error(errorData.error || 'Failed to load');
         }
 
+        const result = await response.json();
+        
         // Transform database records to HistoryItem format
-        const items: HistoryItem[] = (data || []).map((record: any) => ({
+        const items: HistoryItem[] = (result.data || []).map((record: any) => ({
           id: record.id,
-          type: record.source || 'campaign',
-          name: record.campaign_name || 'Unnamed',
-          data: record.campaign_data || {},
+          type: record.type || 'campaign',
+          name: record.name || 'Unnamed',
+          data: typeof record.data === 'string' ? JSON.parse(record.data) : (record.data || {}),
           timestamp: record.created_at,
           status: record.status || 'completed',
           lastModified: record.updated_at,
         }));
 
         console.log(`Loaded ${items.length} items from database`);
+        
+        // If no items from database, try localStorage for legacy data
+        if (items.length === 0) {
+          const localItems = localStorageHistory.getAll();
+          if (localItems.length > 0) {
+            console.log(`Found ${localItems.length} legacy items in localStorage`);
+            return localItems;
+          }
+        }
+        
         return items;
       } else {
-        throw new Error('No user context available');
+        throw new Error('No auth token available');
       }
     } catch (error) {
-      // Fallback to localStorage for reliability
       console.log('Falling back to localStorage retrieval');
       try {
         const localItems = localStorageHistory.getAll();
-        // Validate and sanitize localStorage items
         return localItems.map((item: any) => ({
           id: item.id || crypto.randomUUID(),
           type: item.type || 'unknown',
@@ -198,28 +212,28 @@ export const historyService = {
    */
   async delete(id: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const token = await getAuthToken();
       
-      if (user) {
-        // Delete from database
-        const { error } = await supabase
-          .from('campaign_history')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', user.id);
+      if (token) {
+        const response = await fetch(`/api/campaign-history/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-        if (error) {
-          console.warn('Failed to delete from database, falling back to localStorage:', error);
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.warn('Failed to delete from database:', errorData);
+          throw new Error(errorData.error || 'Failed to delete');
         }
 
         console.log('Deleted from database:', id);
         return;
       } else {
-        throw new Error('No user context available');
+        throw new Error('No auth token available');
       }
     } catch (error) {
-      // Fallback to localStorage
       console.log('Falling back to localStorage deletion');
       await localStorageHistory.delete(id);
     }
