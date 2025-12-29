@@ -5562,6 +5562,91 @@ app.post('/api/admin/email/send', async (c) => {
   }
 });
 
+// Team invite email endpoint - requires user authentication
+app.post('/api/email/team-invite', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: 'Authentication required' }, 401);
+    }
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return c.json({ error: 'Invalid session' }, 401);
+    }
+    
+    const { to, inviterName, teamName, inviteLink } = await c.req.json();
+    
+    if (!to) {
+      return c.json({ error: 'Recipient email is required' }, 400);
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      return c.json({ error: 'Invalid email format' }, 400);
+    }
+    
+    const senduneTemplateKey = process.env.SENDUNE_TEAM_INVITE_KEY || process.env.SENDUNE_API_KEY;
+    
+    if (!senduneTemplateKey) {
+      console.log('Team invite email (Sendune not configured):', { to, inviterName, teamName, inviteLink });
+      return c.json({ 
+        success: true, 
+        message: 'Invitation recorded (email service not configured)',
+        simulated: true
+      });
+    }
+    
+    const subject = `You're invited to join ${teamName || 'a team'} on Adiology`;
+    
+    const requestBody: Record<string, string> = {
+      email: to,
+      subject: subject,
+      'inviter-name': inviterName || 'A team member',
+      'team-name': teamName || 'Adiology Team',
+      'invite-link': inviteLink || ''
+    };
+    
+    console.log('Sending team invite email via Sendune:', { to, inviterName });
+    
+    const response = await fetch('https://api.sendune.com/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'template-key': senduneTemplateKey
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    const responseData = await response.json().catch(() => ({ message: 'Unknown response' }));
+    
+    if (response.ok && responseData.success) {
+      await pool.query(
+        'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
+        [to, subject, 'sent']
+      ).catch(err => console.error('Failed to log email:', err));
+      
+      console.log('Team invite email sent successfully to:', to);
+      return c.json({ success: true, message: 'Invitation sent successfully' });
+    } else {
+      const errorMsg = responseData.error || responseData.message || 'Failed to send email';
+      console.error('Sendune error:', errorMsg);
+      
+      await pool.query(
+        'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
+        [to, subject, 'failed']
+      ).catch(err => console.error('Failed to log email:', err));
+      
+      return c.json({ error: errorMsg }, 500);
+    }
+  } catch (error: any) {
+    console.error('Error sending team invite email:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Get email logs
 // Get email logs - REQUIRES ADMIN AUTH
 app.get('/api/admin/email/logs', async (c) => {

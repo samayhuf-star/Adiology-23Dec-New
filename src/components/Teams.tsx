@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { getCurrentUserProfile } from '../utils/auth';
+import { supabase } from '../utils/supabase';
 
 interface TeamMember {
   id: string;
@@ -89,9 +90,17 @@ export const Teams: React.FC = () => {
     const baseUrl = window.location.origin;
     const inviteLink = `${baseUrl}/accept-invite?email=${encodeURIComponent(email)}`;
     
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('You must be logged in to send invitations');
+    }
+    
     const response = await fetch('/api/email/team-invite', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
       body: JSON.stringify({
         to: email,
         inviterName: inviterName || 'A team member',
