@@ -5747,7 +5747,18 @@ app.post('/api/email/team-invite', async (c) => {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    // Create Supabase client dynamically
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return c.json({ error: 'Authentication service not configured' }, 500);
+    }
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
     if (authError || !user) {
       return c.json({ error: 'Invalid session' }, 401);
