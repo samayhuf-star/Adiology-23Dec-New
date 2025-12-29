@@ -4646,7 +4646,7 @@ app.post('/api/campaigns/save', async (c) => {
 // ============================================
 
 // Helper to verify user from Supabase token
-async function verifyUserToken(c: any): Promise<{ authorized: boolean; userId?: string; error?: string }> {
+async function verifyUserToken(c: any): Promise<{ authorized: boolean; userId?: string; userEmail?: string; error?: string }> {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -4669,10 +4669,27 @@ async function verifyUserToken(c: any): Promise<{ authorized: boolean; userId?: 
       return { authorized: false, error: 'Invalid or expired token' };
     }
     
-    return { authorized: true, userId: user.id };
+    return { authorized: true, userId: user.id, userEmail: user.email };
   } catch (error) {
     console.error('[User Auth] Error:', error);
     return { authorized: false, error: 'Authentication failed' };
+  }
+}
+
+// Helper to ensure user exists in local database (syncs from Supabase auth)
+async function ensureUserExists(userId: string, email?: string): Promise<void> {
+  try {
+    const existing = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (existing.rows.length === 0 && email) {
+      await pool.query(
+        `INSERT INTO users (id, email, role, subscription_plan, subscription_status, created_at, updated_at)
+         VALUES ($1, $2, 'user', 'free', 'active', NOW(), NOW())
+         ON CONFLICT (id) DO NOTHING`,
+        [userId, email]
+      );
+    }
+  } catch (error) {
+    console.error('[ensureUserExists] Error:', error);
   }
 }
 
@@ -4709,6 +4726,9 @@ app.post('/api/campaign-history', async (c) => {
     if (!auth.authorized) {
       return c.json({ error: auth.error }, 401);
     }
+    
+    // Ensure user exists in local database before inserting campaign
+    await ensureUserExists(auth.userId!, auth.userEmail);
     
     const body = await c.req.json();
     const { type, name, data, status = 'draft' } = body;

@@ -2377,7 +2377,7 @@ export const campaignPresets: CampaignPreset[] = [
     ]
   },
   {
-    slug: "tree-service-skag",
+    slug: "tree-service-skag-home",
     title: "Tree Service",
     campaign_name: "Tree Service - SKAG",
     structure: "SKAG",
