@@ -328,7 +328,7 @@ export const PlanSelection: React.FC<PlanSelectionProps> = ({
           })}
         </div>
 
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
@@ -356,7 +356,7 @@ export const PlanSelection: React.FC<PlanSelectionProps> = ({
             </div>
             <span>Cancel anytime</span>
           </div>
-        </motion.div>
+        </MotionDiv>
       </div>
     </div>
   );
