@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
     MessageSquare, Send, LifeBuoy, AlertCircle, CheckCircle2, 
-    Clock, ChevronRight 
+    Clock, ChevronRight, Sparkles 
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -147,6 +147,24 @@ export const SupportPanel = () => {
         }
     };
 
+    const handleFillNow = () => {
+        setSubject('I need help with...');
+        setMessage(`Hi Support Team,
+
+I'm experiencing an issue with [describe the feature/page].
+
+Steps to reproduce:
+1. Go to [page/section]
+2. Click on [button/link]
+3. [What happens]
+
+Expected behavior: [What should happen]
+Actual behavior: [What actually happens]
+
+Thank you for your help!`);
+        setPriority('Medium');
+    };
+
     return (
         <div className="p-8 max-w-7xl mx-auto">
             <div className="mb-6">
@@ -218,9 +236,21 @@ export const SupportPanel = () => {
             <div className="lg:col-span-1 space-y-6">
                 <Card className="border-slate-200/60 bg-white/60 backdrop-blur-xl shadow-xl">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <LifeBuoy className="w-5 h-5 text-indigo-500"/> New Ticket
-                        </CardTitle>
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                                <LifeBuoy className="w-5 h-5 text-indigo-500"/> New Ticket
+                            </CardTitle>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleFillNow}
+                                className="text-xs bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 hover:from-indigo-100 hover:to-purple-100"
+                            >
+                                <Sparkles className="w-3 h-3 mr-1 text-indigo-500" />
+                                Fill now
+                            </Button>
+                        </div>
                         <CardDescription>Describe your issue in detail.</CardDescription>
                     </CardHeader>
                     <CardContent>
