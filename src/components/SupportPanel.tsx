@@ -148,21 +148,83 @@ export const SupportPanel = () => {
     };
 
     const handleFillNow = () => {
-        setSubject('I need help with...');
-        setMessage(`Hi Support Team,
+        const templates = [
+            {
+                subject: 'Campaign export not working properly',
+                message: `Hi Support Team,
 
-I'm experiencing an issue with [describe the feature/page].
+I'm having trouble exporting my campaign to CSV format.
 
-Steps to reproduce:
-1. Go to [page/section]
-2. Click on [button/link]
-3. [What happens]
+When I click the export button, the download doesn't start or the file is empty.
 
-Expected behavior: [What should happen]
-Actual behavior: [What actually happens]
+Campaign name: My Test Campaign
+Browser: Chrome
+Steps tried: Refreshed page, tried different browser
 
-Thank you for your help!`);
-        setPriority('Medium');
+Please help me resolve this issue.`,
+                priority: 'High'
+            },
+            {
+                subject: 'Keyword suggestions not loading',
+                message: `Hello,
+
+The AI keyword suggestions feature isn't working for me.
+
+When I enter my business URL and click generate, nothing happens after a few seconds.
+
+URL I'm trying: example.com
+Error message (if any): None visible
+
+Thanks for looking into this!`,
+                priority: 'Medium'
+            },
+            {
+                subject: 'Question about subscription features',
+                message: `Hi there,
+
+I'd like to know more about what's included in the Pro subscription.
+
+Specifically, I'm interested in:
+- How many campaigns can I create?
+- Are there any limits on keyword generation?
+- What's the difference between Pro and Basic?
+
+Looking forward to your response.`,
+                priority: 'Low'
+            },
+            {
+                subject: 'Unable to save campaign draft',
+                message: `Support Team,
+
+I've been working on a campaign for the past hour, but when I try to save it as a draft, I get an error.
+
+Details:
+- Campaign type: Google Ads
+- Number of keywords: ~200
+- Browser: Firefox
+
+I don't want to lose my work. Please advise on how to proceed.`,
+                priority: 'Critical'
+            },
+            {
+                subject: 'Feature request: Bulk keyword upload',
+                message: `Hello Support,
+
+I have a suggestion for a new feature.
+
+It would be really helpful if we could upload keywords in bulk via CSV file instead of entering them one by one.
+
+This would save a lot of time for users managing large campaigns.
+
+Thank you for considering this!`,
+                priority: 'Low'
+            }
+        ];
+
+        const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+        setSubject(randomTemplate.subject);
+        setMessage(randomTemplate.message);
+        setPriority(randomTemplate.priority);
     };
 
     return (
