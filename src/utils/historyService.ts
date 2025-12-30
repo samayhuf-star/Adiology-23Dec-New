@@ -1,5 +1,4 @@
 import { localStorageHistory, HistoryItem } from './localStorageHistory';
-import { supabase } from './supabase/client';
 
 /**
  * History service
@@ -7,10 +6,18 @@ import { supabase } from './supabase/client';
  * Uses backend API for database storage, falls back to localStorage when unavailable
  */
 
+let clerkGetToken: (() => Promise<string | null>) | null = null;
+
+export function setClerkGetToken(getToken: () => Promise<string | null>) {
+  clerkGetToken = getToken;
+}
+
 async function getAuthToken(): Promise<string | null> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || null;
+    if (clerkGetToken) {
+      return await clerkGetToken();
+    }
+    return null;
   } catch {
     return null;
   }

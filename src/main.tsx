@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { Suspense } from "react";
+import { ClerkProvider } from "@clerk/clerk-react";
 import App from "./App.tsx";
 import "./index.css";
 import "./styles/themes.css";
@@ -14,6 +15,8 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { validateEnvironment } from "./utils/envCheck";
 import { loggingService } from "./utils/loggingService";
+
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 // Initialize notification service
 notifications.setToastInstance(toast);
@@ -129,16 +132,27 @@ if (!validateEnvironment()) {
       </div>
     </div>
   `;
+} else if (!CLERK_PUBLISHABLE_KEY) {
+  rootElement.innerHTML = `
+    <div style="padding: 40px; text-align: center; font-family: system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e293b 0%, #4f46e5 50%, #7c3aed 100%); color: white;">
+      <div style="max-width: 600px; padding: 32px; background: rgba(255, 255, 255, 0.1); border-radius: 16px; backdrop-filter: blur(10px);">
+        <h1 style="font-size: 24px; margin-bottom: 16px; font-weight: 600;">Missing Clerk Configuration</h1>
+        <p style="margin-bottom: 24px; opacity: 0.9;">Please add your Clerk publishable key to the environment variables.</p>
+        <p style="font-size: 14px; opacity: 0.8;">Set VITE_CLERK_PUBLISHABLE_KEY in your environment.</p>
+      </div>
+    </div>
+  `;
 } else {
-  // Render app with error boundary and suspense
   createRoot(rootElement).render(
     <ErrorBoundary>
-      <ThemeProvider>
-        <Suspense fallback={<LoadingScreen />}>
-          <App />
-        </Suspense>
-        <Toaster position="top-right" richColors closeButton maxVisibleToasts={1} />
-      </ThemeProvider>
+      <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+        <ThemeProvider>
+          <Suspense fallback={<LoadingScreen />}>
+            <App />
+          </Suspense>
+          <Toaster position="top-right" richColors closeButton maxVisibleToasts={1} />
+        </ThemeProvider>
+      </ClerkProvider>
     </ErrorBoundary>
   );
 }

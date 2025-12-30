@@ -1,4 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
+import { useUser, useAuth, useClerk } from '@clerk/clerk-react';
 import { 
   LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, Code, Download, GitCompare, CreditCard, ArrowRight, Users, BookOpen, PhoneCall, Wand2, Eye
 } from 'lucide-react';
@@ -26,12 +27,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from './components/ui/sheet';
-import { supabase } from './utils/supabase/client';
-import { getCurrentUserProfile, isAuthenticated, signOut } from './utils/auth';
 import { getUserPreferences, applyUserPreferences } from './utils/userPreferences';
 import { notifications as notificationService } from './utils/notifications';
+import { setClerkGetToken } from './utils/historyService';
+import { setClerkUser, setClerkAuth } from './utils/auth';
 import { FeedbackButton } from './components/FeedbackButton';
-import { Auth } from './components/Auth';
+import { ClerkAuth } from './components/ClerkAuth';
 import { Dashboard } from './components/Dashboard';
 import { EmailVerification } from './components/EmailVerification';
 import { ResetPassword } from './components/ResetPassword';
@@ -81,18 +82,59 @@ type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' 
 
 const AppContent = () => {
   const { theme } = useTheme();
+  const { isLoaded: clerkLoaded, isSignedIn, user: clerkUser } = useUser();
+  const { signOut: clerkSignOut } = useClerk();
+  const { getToken } = useAuth();
+  
   const [appView, setAppView] = useState<AppView>('homepage');
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [historyData, setHistoryData] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [previousView, setPreviousView] = useState<AppView>('homepage');
   const [viewMode, setViewMode] = useState<'admin' | 'user'>('admin');
+  
+  const user = clerkUser ? {
+    id: clerkUser.id,
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    full_name: clerkUser.fullName || clerkUser.firstName || clerkUser.primaryEmailAddress?.emailAddress?.split('@')[0] || 'User',
+    role: 'user',
+    subscription_plan: 'free',
+    subscription_status: 'active',
+    avatar_url: clerkUser.imageUrl,
+  } : null;
+  
+  const loading = !clerkLoaded;
+  
+  // Initialize Clerk auth utilities for services
+  useEffect(() => {
+    setClerkGetToken(async () => {
+      try {
+        return await getToken();
+      } catch {
+        return null;
+      }
+    });
+    
+    setClerkAuth({
+      getToken: async () => {
+        try {
+          return await getToken();
+        } catch {
+          return null;
+        }
+      },
+      signOut: clerkSignOut,
+    });
+  }, [getToken, clerkSignOut]);
+  
+  // Update cached Clerk user when user changes
+  useEffect(() => {
+    setClerkUser(clerkUser);
+  }, [clerkUser]);
   
   // Load and apply user preferences on mount
   useEffect(() => {
@@ -346,32 +388,16 @@ const AppContent = () => {
   const handleLogout = async () => {
     if (confirm('Are you sure you want to logout?')) {
       try {
-        // Clear profile cache before logout
-        const { clearProfileCache } = await import('./utils/auth');
-        clearProfileCache();
-        
-        // Bug_62, Bug_76: Ensure proper logout
-        await signOut();
-        // Clear user state
-        setUser(null);
-        // Clear any cached data
-        localStorage.removeItem('supabase.auth.token');
+        await clerkSignOut();
         sessionStorage.clear();
-        // Redirect to auth
         window.history.pushState({}, '', '/');
-      setAppView('auth');
-      setAuthMode('login');
-      setActiveTab('dashboard');
-        // Force page reload to clear all state
+        setAppView('homepage');
+        setActiveTab('dashboard');
         window.location.href = '/';
       } catch (error) {
         console.error('Logout error:', error);
-        // Even if signOut fails, clear local state and redirect
-        setUser(null);
-        localStorage.removeItem('supabase.auth.token');
         sessionStorage.clear();
-        setAppView('auth');
-        setAuthMode('login');
+        setAppView('homepage');
       }
     }
   };
@@ -441,230 +467,21 @@ const AppContent = () => {
     };
   }, []);
 
-  // Initialize auth state and listen for changes
+  // Sync Clerk auth state with app view
   useEffect(() => {
-    let isMounted = true;
-    let profileFetchInProgress = false;
-    let lastProcessedUserId: string | null = null;
-    let authChangeTimeout: NodeJS.Timeout | null = null;
-    let profileFetchAbortController: AbortController | null = null;
+    if (!clerkLoaded) return;
     
-    // Check initial session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user && isMounted) {
-          lastProcessedUserId = session.user.id;
-          try {
-            const userProfile = await getCurrentUserProfile();
-            if (isMounted && lastProcessedUserId === session.user.id) {
-              setUser(userProfile);
-            }
-          } catch (error) {
-            console.error('Error fetching user profile during init:', error);
-            if (isMounted && lastProcessedUserId === session.user.id) {
-              // Set minimal user on error - subscription_status is 'active' by default
-              // to prevent unnecessary redirects to plan-selection
-              setUser({
-                id: session.user.id,
-                email: session.user.email || '',
-                full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-                role: 'user',
-                subscription_plan: 'free',
-                subscription_status: 'active',
-              });
-            }
-          }
-        } else if (isMounted) {
-          setUser(null);
-          lastProcessedUserId = null;
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (isMounted) {
-          setUser(null);
-          lastProcessedUserId = null;
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-
-    // Listen for auth state changes with debouncing and duplicate prevention
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-      // Clear any pending auth change processing
-      if (authChangeTimeout) {
-        clearTimeout(authChangeTimeout);
-        authChangeTimeout = null;
-      }
-
-      // Abort any ongoing profile fetch
-      if (profileFetchAbortController) {
-        profileFetchAbortController.abort();
-        profileFetchAbortController = null;
-      }
-
-      // Debounce auth state changes to prevent rapid-fire updates
-      authChangeTimeout = setTimeout(async () => {
-        if (!isMounted) return;
-
-        // Prevent multiple simultaneous profile fetches
-        if (profileFetchInProgress) {
-          return;
-        }
-
-        const currentUserId = session?.user?.id || null;
-
-        // Skip if we're already processing this same user
-        if (currentUserId === lastProcessedUserId && currentUserId !== null) {
-          return;
-        }
-
-        if (session?.user && isMounted) {
-          // Update last processed user ID immediately to prevent duplicate processing
-          lastProcessedUserId = session.user.id;
-          profileFetchInProgress = true;
-          
-          // Set minimal user immediately to avoid UI flicker
-          // Note: subscription_status is 'active' by default to prevent unnecessary redirects
-          // until we fetch the real profile data with actual subscription info
-          const minimalUser = {
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-            role: 'user',
-            subscription_plan: 'free',
-            subscription_status: 'active',
-          };
-          
-          // Only update if user actually changed and component is still mounted
-          if (isMounted) {
-            setUser((prevUser: any) => {
-              if (prevUser?.id === minimalUser.id) {
-                // Same user, don't update unless we have more complete data
-                return prevUser;
-              }
-              return minimalUser;
-            });
-          }
-          
-          // Create abort controller for profile fetch
-          profileFetchAbortController = new AbortController();
-          const currentAbortController = profileFetchAbortController;
-          
-          // Fetch full profile in background (non-blocking)
-          getCurrentUserProfile()
-            .then((userProfile) => {
-              // Check if this request was aborted or component unmounted
-              if (currentAbortController.signal.aborted || !isMounted) {
-                return;
-              }
-              
-              profileFetchInProgress = false;
-              if (userProfile && lastProcessedUserId === session.user.id) {
-                setUser((prevUser: any) => {
-                  // Only update if still the same user and we got new data
-                  if (prevUser?.id === userProfile.id) {
-                    // Only update if the new profile has more complete data
-                    return userProfile;
-                  }
-                  return prevUser;
-                });
-              }
-            })
-            .catch((error) => {
-              // Check if this request was aborted
-              if (currentAbortController.signal.aborted || !isMounted) {
-                return;
-              }
-              
-              profileFetchInProgress = false;
-              // Silently handle - minimal user already set
-              // Only log if it's not a permission error
-              if (error?.code !== 'PGRST205') {
-                console.warn('Profile fetch failed in auth listener (non-critical):', error?.code || error?.message);
-              }
-              // Keep using minimal user - already set above
-            });
-        } else if (isMounted) {
-          lastProcessedUserId = null;
-          setUser((prevUser: any) => {
-            // Only update if we actually had a user before
-            if (prevUser) {
-              return null;
-            }
-            return prevUser;
-          });
-          // If user signed out and we're on user view, go to auth
-          if (event === 'SIGNED_OUT') {
-            // Use setTimeout to avoid state update during render
-            setTimeout(() => {
-              if (isMounted) {
-                setAppView('auth');
-                setAuthMode('login');
-              }
-            }, 0);
-          }
-        }
-
-        // Handle password recovery
-        if (event === 'PASSWORD_RECOVERY' && isMounted) {
-          setTimeout(() => {
-            if (isMounted) {
-              setAppView('reset-password');
-            }
-          }, 0);
-        }
-
-        // Handle email verification - detect auth callback tokens in URL
-        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at && isMounted) {
-          // Check if this was an email verification callback (tokens in URL hash or query)
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const urlParams = new URLSearchParams(window.location.search);
-          const authType = hashParams.get('type') || urlParams.get('type');
-          
-          // Only handle email verification callbacks (type=signup or type=email)
-          // Do NOT match other auth types like 'recovery' to avoid breaking password reset flow
-          const isEmailVerification = authType === 'signup' || authType === 'email' || 
-                                       window.location.pathname.includes('/verify-email');
-          
-          if (isEmailVerification) {
-            // Clean up URL immediately to prevent token exposure
-            window.history.replaceState({}, '', '/');
-            
-            // Show success notification
-            notificationService.success('Email verified successfully!', {
-              title: 'Verification Complete',
-              description: 'Your email has been verified. Please log in to continue.',
-            });
-            
-            setTimeout(() => {
-              if (isMounted) {
-                setAppView('auth');
-                setAuthMode('login');
-              }
-            }, 500);
-          }
-        }
-      }, 100); // Debounce by 100ms to prevent rapid-fire updates
-    });
-
-    return () => {
-      isMounted = false;
-      if (authChangeTimeout) {
-        clearTimeout(authChangeTimeout);
-      }
-      if (profileFetchAbortController) {
-        profileFetchAbortController.abort();
-      }
-      subscription.unsubscribe();
-    };
-  }, []);
+    // If user just signed in, navigate to user view
+    if (isSignedIn && appView === 'auth') {
+      setAppView('user');
+      setActiveTab('dashboard');
+    }
+    
+    // If user just signed out, navigate to homepage
+    if (!isSignedIn && appView === 'user') {
+      setAppView('homepage');
+    }
+  }, [clerkLoaded, isSignedIn, appView]);
 
   // Validate activeTab and redirect to dashboard if invalid
   useEffect(() => {
@@ -679,42 +496,8 @@ const AppContent = () => {
   useEffect(() => {
     if (loading) return;
 
-    let isActive = true;
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
-    const bypassKey = urlParams.get('bypass');
-    
-    // Check for Supabase auth callback tokens in URL hash or query params
-    // Supabase sends verification links with tokens like: #access_token=xxx&type=signup
-    // or with PKCE flow: ?code=xxx&type=signup
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const hasAuthTokenInHash = hashParams.get('access_token') || hashParams.get('type');
-    const hasAuthCodeInQuery = urlParams.get('code') && urlParams.get('type');
-    const authType = hashParams.get('type') || urlParams.get('type');
-    
-    // If we have auth tokens in URL, let Supabase client handle them
-    // The detectSessionInUrl: true will process these automatically
-    // We just need to show a loading state and clean up the URL after
-    if (hasAuthTokenInHash || hasAuthCodeInQuery) {
-      // For email verification (type=signup), show the verify-email page briefly
-      // The auth state change listener will redirect after verification completes
-      if (authType === 'signup' || authType === 'email') {
-        // Clean up URL hash/params after a short delay to let Supabase process
-        setTimeout(() => {
-          if (isActive) {
-            window.history.replaceState({}, '', '/');
-          }
-        }, 1000);
-        // Don't set to verify-email view - let the auth state change handle it
-        // The user will see a brief loading state then be redirected
-        return;
-      }
-      
-      // For password recovery, the auth state change listener handles it
-      if (authType === 'recovery') {
-        return;
-      }
-    }
 
     const setView = (next: AppView) => {
       setAppView(prev => (prev === next ? prev : next));
@@ -735,55 +518,28 @@ const AppContent = () => {
     };
 
     const handleRoute = () => {
-      if (bypassKey === 'adiology2025dev' || bypassKey === 'samay2025') {
-        if (!user || user.id !== 'bypass-user-id') {
-          setUser({
-            id: 'bypass-user-id',
-            email: 'dev@adiology.com',
-            full_name: 'Developer Access',
-            role: 'user',
-            subscription_plan: 'free',
-            subscription_status: 'active',
-          });
-        }
-        setActiveTabSafe('dashboard');
-        setView('user');
-        window.history.replaceState({}, '', '/');
-      return;
-    }
-    
-      if (path.startsWith('/reset-password')) {
-        setView('reset-password');
-      return;
-    }
-    
-      if (path.startsWith('/verify-email')) {
-        setView('verify-email');
-            return;
-          }
-
       if (path.startsWith('/payment-success')) {
         applyPlanFromParams();
         setView('payment-success');
-      return;
-    }
+        return;
+      }
 
       if (path.startsWith('/payment')) {
         applyPlanFromParams();
-        if (user) {
+        if (isSignedIn) {
           setView('payment');
         } else {
-          setAuthMode('login');
+          setAuthMode('sign-in');
           setView('auth');
         }
         return;
       }
 
       if (path.startsWith('/plan-selection')) {
-        if (user) {
+        if (isSignedIn) {
           setView('plan-selection');
         } else {
-          setAuthMode('login');
+          setAuthMode('sign-in');
           setView('auth');
         }
         return;
@@ -806,7 +562,7 @@ const AppContent = () => {
         }
         // If not logged in or not admin, redirect to auth
         if (!user) {
-          setAuthMode('login');
+          setAuthMode('sign-in');
           setView('auth');
           return;
         }
@@ -871,10 +627,7 @@ const AppContent = () => {
       handleRoute();
     }
 
-    return () => {
-      isActive = false;
-    };
-  }, [loading, user?.id]);
+  }, [loading, user?.id, isSignedIn]);
 
   // Additional effect to ensure homepage shows when loading completes and no user
   useEffect(() => {
@@ -938,31 +691,22 @@ const AppContent = () => {
 
   // Ensure session exists when user view is requested
   useEffect(() => {
-    if (!user && appView === 'user' && !loading) {
-      const checkSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-        setTimeout(() => {
-            setAppView('homepage');
-            setAuthMode('login');
-          }, 1000);
-        }
-      };
-      const timeout = setTimeout(checkSession, 500);
-      return () => clearTimeout(timeout);
-          }
-    return undefined;
-  }, [user, appView, loading]);
+    if (!isSignedIn && appView === 'user' && !loading) {
+      setTimeout(() => {
+        setAppView('homepage');
+        setAuthMode('sign-in');
+      }, 1000);
+    }
+  }, [isSignedIn, appView, loading]);
 
 
   // Function to handle plan selection
   const handleSelectPlan = async (planName: string, priceId: string, amount: number, isSubscription: boolean) => {
     // Check if user is logged in
-    const authenticated = await isAuthenticated();
-    if (!authenticated || !user) {
+    if (!isSignedIn || !user) {
       // User not logged in, redirect to signup and store plan selection
       setSelectedPlan({ name: planName, priceId, amount, isSubscription });
-      setAuthMode('signup'); // Enable signups for new users
+      setAuthMode('sign-up'); // Enable signups for new users
       setAppView('auth');
       return;
     }
@@ -1186,26 +930,14 @@ const AppContent = () => {
         amount={`$${selectedPlan.amount.toFixed(2)}${selectedPlan.isSubscription ? '/month' : ''}`}
         onGoToDashboard={async () => {
           // Ensure user is logged in
-          const authenticated = await isAuthenticated();
-          if (authenticated && user) {
-            // Refresh user profile to get updated subscription status
-            try {
-              const userProfile = await getCurrentUserProfile();
-              if (userProfile) {
-                setUser(userProfile);
-                
-              }
-            } catch (error) {
-              console.warn('Error refreshing user profile:', error);
-            }
-            
+          if (isSignedIn && user) {
             window.history.pushState({}, '', '/');
             setAppView('user');
             setActiveTabSafe('dashboard');
           } else {
             window.history.pushState({}, '', '/');
             setAppView('auth');
-            setAuthMode('login');
+            setAuthMode('sign-in');
           }
         }}
       />
@@ -1218,12 +950,12 @@ const AppContent = () => {
         onVerificationSuccess={() => {
           // Bug_74: Redirect to login screen after email verification
           window.history.pushState({}, '', '/');
-          setAuthMode('login');
+          setAuthMode('sign-in');
           setAppView('auth');
         }}
           onBackToHome={() => {
           setAppView('auth');
-          setAuthMode('login');
+          setAuthMode('sign-in');
         }}
       />
     );
@@ -1235,12 +967,12 @@ const AppContent = () => {
         onSuccess={async () => {
           // Password reset successful, redirect to login
           window.history.pushState({}, '', '/');
-          setAuthMode('login');
+          setAuthMode('sign-in');
           setAppView('homepage');
         }}
           onBackToHome={() => {
           setAppView('homepage');
-          setAuthMode('login');
+          setAuthMode('sign-in');
         }}
       />
     );
@@ -1293,7 +1025,7 @@ const AppContent = () => {
         userName={user?.full_name}
         onSelectPlan={async (planName, priceId, amount, isSubscription) => {
           if (!user) {
-            setAuthMode('login');
+            setAuthMode('sign-in');
             setAppView('auth');
             return;
           }
@@ -1309,15 +1041,12 @@ const AppContent = () => {
           }
         }}
         onBack={() => {
-          signOut().then(() => {
-            setUser(null);
+          clerkSignOut().then(() => {
             window.history.pushState({}, '', '/');
-            setAppView('auth');
-            setAuthMode('login');
+            setAppView('homepage');
           }).catch((err) => {
             console.error('Signout error:', err);
-            setAppView('auth');
-            setAuthMode('login');
+            setAppView('homepage');
           });
         }}
       />
@@ -1350,8 +1079,7 @@ const AppContent = () => {
       <SuperAdminPanel
         user={user}
         onLogout={() => {
-          signOut().then(() => {
-            setUser(null);
+          clerkSignOut().then(() => {
             window.history.pushState({}, '', '/');
             setAppView('homepage');
           }).catch((err) => {
@@ -1367,11 +1095,11 @@ const AppContent = () => {
     return (
       <CreativeMinimalistHomepage
         onGetStarted={() => {
-          setAuthMode('signup');
+          setAuthMode('sign-up');
           setAppView('auth');
         }}
         onLogin={() => {
-          setAuthMode('login');
+          setAuthMode('sign-in');
           setAppView('auth');
         }}
         onSelectPlan={handleSelectPlan}
@@ -1387,7 +1115,7 @@ const AppContent = () => {
           // Store the intended destination tab in sessionStorage
           sessionStorage.setItem('pendingNavTab', tab);
           // Prompt user to login first
-          setAuthMode('login');
+          setAuthMode('sign-in');
           setAppView('auth');
         }}
       />
@@ -1403,157 +1131,41 @@ const AppContent = () => {
 
   if (appView === 'auth') {
     return (
-      <Auth
-        initialMode={authMode}
-        isAdminLogin={isAdminPath}
-        onLoginSuccess={async () => {
-          try {
-            // Check for test admin mode first (bypasses Supabase)
-            const isTestAdminMode = sessionStorage.getItem('test_admin_mode') === 'true';
-            const testAdminEmail = sessionStorage.getItem('test_admin_email');
-            
-            if (isTestAdminMode && testAdminEmail) {
-              // Create a mock super admin user for test mode
-              const testAdminUser = {
-                id: 'test-admin-id',
-                email: testAdminEmail,
-                full_name: 'Test Super Admin',
-                role: 'superadmin' as const,
-                subscription_plan: 'lifetime',
-                subscription_status: 'active' as const,
-              };
-              
-              setUser(testAdminUser);
-              
-              // Test admin goes directly to admin panel or dashboard
-              if (isAdminPath) {
-                setAppView('user');
-                setActiveTabSafe('admin');
-              } else {
-                setAppView('user');
-                setActiveTabSafe('dashboard');
-              }
-              return;
-            }
-            
-            // Get auth user immediately and set minimal user object FIRST
-            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-            
-            if (!authUser) {
-              console.error('No auth user found after login');
-              return;
-            }
-            
-            // Fetch full profile to check subscription status
-            let userProfile = null;
-            try {
-              userProfile = await Promise.race([
-                getCurrentUserProfile(),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
-                )
-              ]) as any;
-            } catch (profileError) {
-              console.warn('⚠️ Profile fetch failed (non-critical):', profileError);
-            }
-            
-            // Determine subscription status - use database role only, no hardcoded emails
-            const subscriptionPlan = userProfile?.subscription_plan || 'free';
-            const subscriptionStatus = userProfile?.subscription_status || 'inactive';
-            const isSuperAdmin = userProfile?.role === 'superadmin' || userProfile?.role === 'super_admin';
-            const hasPaidPlan = isSuperAdmin || (subscriptionPlan !== 'free' && subscriptionStatus === 'active');
-            
-            // Set user with subscription info
-            const fullUser = userProfile || { 
-              id: authUser.id, 
-              email: authUser.email || '',
-              full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
-              role: 'user' as const,
-              subscription_plan: 'free',
-              subscription_status: 'active' as const,
-            };
-            
-            setUser(fullUser);
-            
-            // Identify user with Helploom support widget
-            if (window.Helploom) {
-              window.Helploom('identify', {
-                uniqueId: fullUser.id,
-                name: fullUser.full_name || fullUser.email?.split('@')[0] || 'User',
-                email: fullUser.email
-              });
-            }
-            
-            // Check if user has paid plan - redirect to dashboard or plan selection
-            if (hasPaidPlan) {
-              // Check for pending navigation tab from footer links
-              const pendingTab = sessionStorage.getItem('pendingNavTab');
-              if (pendingTab) {
-                sessionStorage.removeItem('pendingNavTab');
-                setAppView('user');
-                setActiveTabSafe(pendingTab);
-              } else {
-                // User has active paid subscription - go to dashboard
-                setAppView('user');
-                setActiveTabSafe('dashboard');
-              }
-            } else {
-              // User doesn't have paid plan - redirect to plan selection
-              window.history.pushState({}, '', '/plan-selection');
-              setAppView('plan-selection');
-            }
-          } catch (error) {
-            console.error('Error in onLoginSuccess:', error);
-            // On error, redirect to plan selection to be safe
-            setAppView('plan-selection');
-          }
-        }}
-        onSignupSuccess={(userEmail, userName) => {
-          // After successful signup, user needs to verify email first
-          // The verification email flow will bring them back to login
-          // After login, they'll be redirected to plan selection
-          console.log('Signup successful for:', userEmail, userName);
-        }}
+      <ClerkAuth
+        mode={authMode}
         onBackToHome={() => {
-          setAppView('auth');
-          setAuthMode('login');
+          setAppView('homepage');
         }}
       />
     );
   }
 
-  // Protect user view - require authentication (unless bypass)
-  // Wait for user to load from auth listener - it should happen quickly after login
-  if (!user && appView === 'user' && !loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading user profile...</p>
+  // Protect user view - require authentication
+  // If Clerk hasn't loaded or user isn't signed in on user view, redirect to auth
+  if (appView === 'user') {
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800">
+          <div className="text-white text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p>Loading...</p>
+          </div>
         </div>
-      </div>
-    );
-  }
-  
-  // Show loading state while checking auth
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-800 via-indigo-800 to-purple-800">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Fallback: If no user and not loading, ensure user view is shown
-  if (!user && !loading && appView === 'user') {
-    // Only redirect to auth if we're on root path
-    if (window.location.pathname === '/' || window.location.pathname === '') {
-      setAppView('auth');
+      );
+    }
+    
+    if (!user) {
+      return (
+        <ClerkAuth
+          mode="sign-in"
+          onBackToHome={() => {
+            setAppView('homepage');
+          }}
+        />
+      );
     }
   }
+
 
   const renderContent = () => {
     // Reset history data if leaving the tab to prevent stale data injection

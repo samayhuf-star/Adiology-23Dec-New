@@ -4645,7 +4645,7 @@ app.post('/api/campaigns/save', async (c) => {
 // CAMPAIGN HISTORY CRUD ENDPOINTS
 // ============================================
 
-// Helper to verify user from Supabase token
+// Helper to verify user from Clerk JWT token
 async function verifyUserToken(c: any): Promise<{ authorized: boolean; userId?: string; userEmail?: string; error?: string }> {
   try {
     const authHeader = c.req.header('Authorization');
@@ -4654,29 +4654,38 @@ async function verifyUserToken(c: any): Promise<{ authorized: boolean; userId?: 
     }
     
     const token = authHeader.substring(7);
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
     
-    if (!supabaseUrl || !supabaseKey) {
+    if (!clerkSecretKey) {
       return { authorized: false, error: 'Authentication service not configured' };
     }
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { verifyToken } = await import('@clerk/backend');
     
-    if (error || !user) {
+    try {
+      const verifiedToken = await verifyToken(token, {
+        secretKey: clerkSecretKey,
+      });
+      
+      if (!verifiedToken || !verifiedToken.sub) {
+        return { authorized: false, error: 'Invalid or expired token' };
+      }
+      
+      const userId = verifiedToken.sub;
+      const userEmail = (verifiedToken as any).email || (verifiedToken as any).primaryEmail || undefined;
+      
+      return { authorized: true, userId, userEmail };
+    } catch (verifyError: any) {
+      console.error('[Clerk Token Verification] Error:', verifyError.message);
       return { authorized: false, error: 'Invalid or expired token' };
     }
-    
-    return { authorized: true, userId: user.id, userEmail: user.email };
   } catch (error) {
     console.error('[User Auth] Error:', error);
     return { authorized: false, error: 'Authentication failed' };
   }
 }
 
-// Helper to ensure user exists in local database (syncs from Supabase auth)
+// Helper to ensure user exists in local database (syncs from Clerk auth)
 async function ensureUserExists(userId: string, email?: string): Promise<void> {
   try {
     const existing = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
