@@ -8,6 +8,22 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## December 30, 2025 - Clerk Authentication Migration
+### Authentication Provider Migration
+- Migrated from Supabase Auth to Clerk authentication
+- Updated main.tsx to wrap app in ClerkProvider
+- Updated App.tsx to use Clerk hooks (useUser, useAuth, useClerk) for auth state management
+- Created ClerkAuth.tsx component with styled SignIn/SignUp screens
+- Updated server/index.ts verifyUserToken to validate Clerk JWT tokens using @clerk/backend
+- Updated historyService.ts to use injected Clerk getToken function
+- Updated src/utils/auth.ts to work with Clerk instead of Supabase
+- Environment variables: CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY
+
+### Token Flow
+- Frontend: useAuth().getToken() retrieves JWT tokens
+- Backend: @clerk/backend.verifyToken() validates tokens
+- historyService uses setClerkGetToken() for dependency injection
+
 ## December 28, 2025 - Module Cleanup and Simplification
 ### Workspace System Removal
 - Completely removed the workspace isolation system to simplify architecture
@@ -76,8 +92,10 @@ Preferred communication style: Simple, everyday language.
 - **Website Analysis Storage**: localStorage-based analysis service for quick reuse of URL analysis results, with backend sync.
 
 ## Authentication & Authorization
-- **Authentication Provider**: Supabase Auth with email/password, verification, and invite-only signup.
-- **Authorization**: Role-based access (users, paid users, super admins) with Row Level Security (RLS), API key authentication, CORS, and Content Security Policy.
+- **Authentication Provider**: Clerk with email/password, social login, and managed user sessions.
+- **Frontend Integration**: ClerkProvider wraps the app, useUser/useAuth/useClerk hooks for auth state.
+- **Backend Verification**: @clerk/backend.verifyToken() validates JWT tokens on API endpoints.
+- **Authorization**: Role-based access (users, paid users, super admins) with API key authentication, CORS, and Content Security Policy.
 
 ## Super Admin Panel
 - **Access**: Restricted to specific users via /admin path or admin.adiology.io subdomain.
@@ -102,7 +120,8 @@ Preferred communication style: Simple, everyday language.
 # External Dependencies
 
 ## Third-Party Services
-- **Supabase**: Authentication, PostgreSQL database, Edge Functions.
+- **Clerk**: Authentication provider with email/password and social login support.
+- **Supabase**: PostgreSQL database and Edge Functions (Note: Auth migrated to Clerk).
 - **Stripe**: Payment processing for subscriptions, integrated via `stripe-replit-sync`.
 - **Redis**: Message broker and result backend for Celery tasks.
 - **OpenAI**: Natural language processing for the web template editor chatbot and AI Blog Generator (gpt-4o-mini).
