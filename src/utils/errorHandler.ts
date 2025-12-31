@@ -459,6 +459,3 @@ class ErrorHandlerClass {
 
 // Export singleton instance
 export const ErrorHandler = new ErrorHandlerClass();
-
-// Export types for use in components
-export type { ErrorReport };

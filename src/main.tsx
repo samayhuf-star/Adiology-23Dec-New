@@ -42,11 +42,10 @@ if (typeof window !== 'undefined') {
     if (event.error) {
       try {
         const { ErrorHandler } = await import('./utils/errorHandler');
-        ErrorHandler.handle(event.error, {
-          module: 'Global',
+        ErrorHandler.captureError(event.error, {
+          component: 'Global',
           action: 'unhandled_error',
-          showNotification: true,
-        });
+        }, 'high');
       } catch (e) {
         console.error('Failed to load error handler:', e);
       }
@@ -77,11 +76,10 @@ if (typeof window !== 'undefined') {
     
     try {
       const { ErrorHandler } = await import('./utils/errorHandler');
-      ErrorHandler.handle(error, {
-        module: 'Global',
+      ErrorHandler.captureError(error, {
+        component: 'Global',
         action: 'unhandled_rejection',
-        showNotification: true,
-      });
+      }, 'high');
     } catch (e) {
       console.error('Failed to load error handler:', e);
     }
