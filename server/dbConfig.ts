@@ -1,10 +1,14 @@
-// Database configuration - uses Supabase PostgreSQL or Replit's built-in database
+// Database configuration - uses Replit's built-in PostgreSQL or Supabase as fallback
 export function getDatabaseUrl(): string {
-  // If SUPABASE_DB_PASSWORD is set, construct the Supabase pooler URL
-  // This ensures we use the correct pooler connection that works from Replit's network
+  // Prioritize Replit's built-in DATABASE_URL for production deployments
+  const databaseUrl = process.env.DATABASE_URL;
+  if (databaseUrl) {
+    return databaseUrl;
+  }
+  
+  // Fallback: If SUPABASE_DB_PASSWORD is set, construct the Supabase pooler URL
   const supabasePassword = process.env.SUPABASE_DB_PASSWORD;
   if (supabasePassword) {
-    // Use the session pooler (port 5432) for better compatibility
     return `postgresql://postgres.kkdnnrwhzofttzajnwlj:${supabasePassword}@aws-1-us-east-1.pooler.supabase.com:5432/postgres`;
   }
   
@@ -14,11 +18,5 @@ export function getDatabaseUrl(): string {
     return supabaseDbUrl;
   }
   
-  // Fall back to DATABASE_URL (Replit's built-in database)
-  const databaseUrl = process.env.DATABASE_URL;
-  if (databaseUrl) {
-    return databaseUrl;
-  }
-  
-  throw new Error('No database connection configured. Please set SUPABASE_DB_PASSWORD or DATABASE_URL');
+  throw new Error('No database connection configured. Please set DATABASE_URL or SUPABASE_DB_PASSWORD');
 }
