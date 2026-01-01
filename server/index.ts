@@ -4605,10 +4605,11 @@ Return ONLY JSON (no markdown):
 // Save campaign from one-click builder
 app.post('/api/campaigns/save', async (c) => {
   try {
-    const campaignData = await c.req.json();
+    // Try to authenticate the user
+    const authResult = await verifyUserToken(c);
+    const userId = authResult.authorized ? authResult.userId : null;
     
-    // Use provided user_id or default to null for non-authenticated saves
-    const userId = campaignData.user_id || null;
+    const campaignData = await c.req.json();
     
     // Insert using correct column names: name, data, status
     const result = await pool.query(
@@ -4619,12 +4620,14 @@ app.post('/api/campaigns/save', async (c) => {
       [
         userId,
         campaignData.campaign_name || campaignData.name || 'Untitled Campaign',
-        'campaign',
+        campaignData.source === 'one-click-builder' ? 'one-click-campaign' : 'campaign',
         JSON.stringify({
           ...campaignData.campaign_data,
           business_name: campaignData.business_name,
           website_url: campaignData.website_url,
-          source: campaignData.source || 'one-click-builder'
+          url: campaignData.website_url,
+          source: campaignData.source || 'one-click-builder',
+          builderType: campaignData.source === 'one-click-builder' ? '1-click' : 'builder-3'
         }),
         'draft'
       ]

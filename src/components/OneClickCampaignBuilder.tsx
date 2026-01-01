@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { Zap, Check, AlertCircle, Download, Save, Loader2, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -55,6 +56,7 @@ interface LogEntry {
 }
 
 export function OneClickCampaignBuilder() {
+  const { getToken } = useAuth();
   const [currentStep, setCurrentStep] = useState<'input' | 'generating' | 'results'>('input');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [error, setError] = useState('');
@@ -210,11 +212,16 @@ export function OneClickCampaignBuilder() {
       setResultsTimestamp(new Date().toLocaleTimeString('en-US', { hour12: false }));
       setCurrentStep('results');
       
-      // Auto-save campaign
+      // Auto-save campaign with authentication
       try {
+        const token = await getToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
         await fetch('/api/campaigns/save', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             ...generatedCampaign,
             source: 'one-click-builder'
@@ -307,9 +314,14 @@ export function OneClickCampaignBuilder() {
     if (!generatedCampaign) return;
 
     try {
+      const token = await getToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       const response = await fetch('/api/campaigns/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           ...generatedCampaign,
           source: 'one-click-builder'
@@ -320,7 +332,7 @@ export function OneClickCampaignBuilder() {
 
       notifications.success('Campaign saved!', {
         title: 'Saved',
-        description: 'View it in "Saved Campaigns"'
+        description: 'View it in "Draft Campaigns"'
       });
     } catch (err) {
       console.error('Save error:', err);
