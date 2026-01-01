@@ -4607,9 +4607,21 @@ app.post('/api/campaigns/save', async (c) => {
   try {
     // Try to authenticate the user
     const authResult = await verifyUserToken(c);
+    console.log('[/api/campaigns/save] Auth result:', { 
+      authorized: authResult.authorized, 
+      userId: authResult.userId,
+      error: authResult.error 
+    });
+    
     const userId = authResult.authorized ? authResult.userId : null;
     
+    // Ensure user exists in database if authenticated
+    if (authResult.authorized && authResult.userId) {
+      await ensureUserExists(authResult.userId, authResult.userEmail);
+    }
+    
     const campaignData = await c.req.json();
+    console.log('[/api/campaigns/save] Saving campaign for user:', userId, 'Name:', campaignData.campaign_name || campaignData.name);
     
     // Insert using correct column names: name, data, status
     const result = await pool.query(
@@ -4633,6 +4645,7 @@ app.post('/api/campaigns/save', async (c) => {
       ]
     );
 
+    console.log('[/api/campaigns/save] Campaign saved with ID:', result.rows[0]?.id);
     return c.json({ 
       success: true, 
       id: result.rows[0]?.id,
