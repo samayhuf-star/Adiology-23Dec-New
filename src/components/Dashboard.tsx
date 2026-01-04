@@ -320,39 +320,27 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
         </div>
       </div>
 
-      {/* Enhanced Terminal-Style System Stats */}
+      {/* Enhanced Terminal-Style System Stats - Shell View */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 slide-in-up">
-        <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50 card-hover">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg float-animation">
-              <Terminal className="w-5 h-5 text-white" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800">Campaign Statistics</h3>
-          </div>
-          <div className="space-y-3 font-mono text-sm">
+        <TerminalCard title="campaign_stats.sh" icon={<Terminal className="w-4 h-4" />}>
+          <div className="space-y-3">
             <TerminalLine prefix="$" label="total_campaigns:" value={`${myCampaigns}`} valueColor="green" />
             <TerminalLine prefix="$" label="keywords_generated:" value={`${keywordsGenerated.toLocaleString()}`} valueColor="cyan" />
             <TerminalLine prefix="$" label="ads_created:" value={`${adsCreated.toLocaleString()}`} valueColor="yellow" />
             <TerminalLine prefix="$" label="extensions_added:" value={`${extensionsAdded.toLocaleString()}`} valueColor="purple" />
             <TerminalLine prefix="$" label="csv_exports:" value={`${myCampaigns}`} valueColor="white" />
           </div>
-        </div>
+        </TerminalCard>
 
-        <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50 card-hover">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg float-delay-1">
-              <Activity className="w-5 h-5 text-white" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-800">System Status</h3>
-          </div>
-          <div className="space-y-3 font-mono text-sm">
+        <TerminalCard title="status_info.sh" icon={<Activity className="w-4 h-4" />}>
+          <div className="space-y-3">
             <TerminalLine prefix="$" label="api_status:" value="ONLINE" valueColor="green" />
             <TerminalLine prefix="$" label="google_ads_api:" value="CONNECTED" valueColor="green" />
             <TerminalLine prefix="$" label="keyword_planner:" value="READY" valueColor="green" />
             <TerminalLine prefix="$" label="subscription:" value={stats?.subscription?.plan?.toUpperCase() || 'FREE'} valueColor="cyan" />
             <TerminalLine prefix="$" label="last_activity:" value={formatRelativeTime(stats?.activity?.lastLogin || null)} valueColor="slate" />
           </div>
-        </div>
+        </TerminalCard>
       </div>
 
       {/* Enhanced My Resources Section */}

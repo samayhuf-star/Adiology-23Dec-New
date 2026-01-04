@@ -13,7 +13,37 @@ interface PresetCampaignsProps {
   onLoadPreset?: (presetData: any) => void;
 }
 
-type StructureFilter = 'all' | 'skag' | 'stag';
+type StructureFilter = 'all' | 'skag' | 'stag' | 'geo-segmented' | 'intent-based' | 'funnel-based';
+
+function getAdGroupCount(preset: PresetCampaign): number {
+  if (preset.adGroupCount) return preset.adGroupCount;
+  
+  switch (preset.structure) {
+    case 'skag':
+      return preset.keywords.length;
+    case 'stag':
+      return Math.min(Math.ceil(preset.keywords.length / 5), 20);
+    case 'geo-segmented':
+      return Math.ceil(preset.keywords.length / 4);
+    case 'intent-based':
+      return Math.ceil(preset.keywords.length / 8);
+    case 'funnel-based':
+      return 3;
+    default:
+      return Math.ceil(preset.keywords.length / 5);
+  }
+}
+
+function mapStructureType(presetStructure: string): string {
+  const structureMap: Record<string, string> = {
+    'skag': 'skag',
+    'stag': 'stag',
+    'geo-segmented': 'geo',
+    'intent-based': 'intent',
+    'funnel-based': 'funnel'
+  };
+  return structureMap[presetStructure] || 'stag';
+}
 
 function convertPresetToStructureSettings(preset: PresetCampaign): StructureSettings {
   const ads: Ad[] = [{
@@ -43,7 +73,7 @@ function convertPresetToStructureSettings(preset: PresetCampaign): StructureSett
   }];
 
   return {
-    structureType: preset.structure,
+    structureType: mapStructureType(preset.structure),
     campaignName: `${preset.name} Campaign`,
     keywords: preset.keywords,
     matchTypes: preset.matchTypes,
@@ -364,36 +394,66 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
           </div>
 
           {/* Structure Filter Buttons */}
-          <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-1">
+          <div className="flex flex-wrap items-center gap-2 bg-slate-100 rounded-xl p-1">
             <button
               onClick={() => setStructureFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                 structureFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              All ({presetCampaigns.length})
+              All
             </button>
             <button
               onClick={() => setStructureFilter('skag')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                 structureFilter === 'skag'
                   ? 'bg-[#0891B2] text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              SKAG ({presetCampaigns.filter(p => p.structure === 'skag').length})
+              SKAG
             </button>
             <button
               onClick={() => setStructureFilter('stag')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                 structureFilter === 'stag'
                   ? 'bg-[#7C3AED] text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              STAG ({presetCampaigns.filter(p => p.structure === 'stag').length})
+              STAG
+            </button>
+            <button
+              onClick={() => setStructureFilter('geo-segmented')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                structureFilter === 'geo-segmented'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              GEO-Segmented
+            </button>
+            <button
+              onClick={() => setStructureFilter('intent-based')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                structureFilter === 'intent-based'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Intent-Based
+            </button>
+            <button
+              onClick={() => setStructureFilter('funnel-based')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                structureFilter === 'funnel-based'
+                  ? 'bg-pink-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Funnel-Based
             </button>
           </div>
         </div>
@@ -459,12 +519,12 @@ export const PresetCampaigns: React.FC<PresetCampaignsProps> = ({ onLoadPreset }
               {/* Stats */}
               <div className="flex items-center gap-3 text-sm text-slate-600 mb-4">
                 <span className="flex items-center gap-1">
-                  <TrendingUp className="w-4 h-4 text-slate-400" />
-                  {preset.keywords.length} keywords
+                  <TrendingUp className="w-4 h-4 text-indigo-500" />
+                  <span className="font-semibold text-indigo-600">{preset.keywords.length}</span> keywords
                 </span>
                 <span className="text-slate-300">|</span>
-                <span className="font-medium text-indigo-600">
-                  {preset.estimatedCPC} CPC
+                <span className="flex items-center gap-1">
+                  <span className="font-semibold text-purple-600">{getAdGroupCount(preset)}</span> ad groups
                 </span>
               </div>
 
