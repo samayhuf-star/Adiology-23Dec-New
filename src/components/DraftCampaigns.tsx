@@ -95,19 +95,28 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
 
   const extractDomain = (campaign: CampaignItem): string => {
     try {
-      const url = campaign.data?.url || campaign.data?.websiteUrl || '';
+      // Check for URL in various locations (different builders use different property names)
+      const url = campaign.data?.url || 
+                  campaign.data?.websiteUrl || 
+                  campaign.data?.website_url ||
+                  campaign.data?.finalUrl ||
+                  '';
       if (!url) return 'N/A';
       const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
       return urlObj.hostname.replace('www.', '');
     } catch {
-      return campaign.data?.url || 'N/A';
+      return campaign.data?.url || campaign.data?.website_url || 'N/A';
     }
   };
 
   const getBuilderType = (campaign: CampaignItem): '1-click' | 'builder-3' => {
+    // Check type first
     if (campaign.type === 'one-click-campaign') return '1-click';
+    // Check builderType field
     if (campaign.data?.builderType === '1-click') return '1-click';
     if (campaign.data?.builderType === 'one-click') return '1-click';
+    // Check source field (one-click builder sets source)
+    if (campaign.data?.source === 'one-click-builder') return '1-click';
     return 'builder-3';
   };
 
