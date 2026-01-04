@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { Users, UserPlus, Mail, Trash2, XCircle, AlertCircle, Send, Plus, CheckCircle, Clock } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -18,7 +19,6 @@ import {
   SelectValue,
 } from './ui/select';
 import { getCurrentUserProfile } from '../utils/auth';
-import { supabase } from '../utils/supabase';
 
 interface TeamMember {
   id: string;
@@ -38,6 +38,8 @@ interface UserProfile {
 }
 
 export const Teams: React.FC = () => {
+  const { getToken, isSignedIn } = useAuth();
+  const { user } = useUser();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
@@ -90,16 +92,17 @@ export const Teams: React.FC = () => {
     const baseUrl = window.location.origin;
     const inviteLink = `${baseUrl}/accept-invite?email=${encodeURIComponent(email)}`;
     
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
+    if (!isSignedIn) {
       throw new Error('You must be logged in to send invitations');
     }
+    
+    const token = await getToken();
     
     const response = await fetch('/api/email/team-invite', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         to: email,
