@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { Sparkles, Download, Save, Trash2, Loader2, Plus, X, History, Search, RefreshCw, Copy, Check, ChevronUp, ChevronDown, Wand2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -8,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Checkbox } from './ui/checkbox';
 import { notifications } from '../utils/notifications';
-import { supabase } from '../utils/supabase/client';
 import { KeywordFilters, KeywordFiltersState, DEFAULT_FILTERS, getDifficultyBadge, formatSearchVolume, formatCPC } from './KeywordFilters';
 
 interface KeywordResult {
@@ -30,6 +30,8 @@ interface SavedList {
 }
 
 export function LongTailKeywords() {
+  const { getToken, isSignedIn } = useAuth();
+  const { user } = useUser();
   const [activeSubTab, setActiveSubTab] = useState('generate');
   const [seedKeywords, setSeedKeywords] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -74,15 +76,15 @@ export function LongTailKeywords() {
   const loadSavedLists = async () => {
     setIsLoadingLists(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
+      if (!isSignedIn || !user) {
         setSavedLists([]);
         return;
       }
 
-      const response = await fetch(`/api/long-tail-keywords/lists?userId=${session.user.id}`, {
+      const token = await getToken();
+      const response = await fetch(`/api/long-tail-keywords/lists?userId=${user.id}`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${token}`
         }
       });
       if (response.ok) {
@@ -222,20 +224,20 @@ export function LongTailKeywords() {
 
     setIsSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
+      if (!isSignedIn || !user) {
         notifications.error('Please log in to save lists');
         return;
       }
 
+      const token = await getToken();
       const response = await fetch('/api/long-tail-keywords/lists', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          userId: session.user.id,
+          userId: user.id,
           name: listName.trim(),
           keywords: keywordsToSave,
           seedKeywords: seedKeywords,
@@ -260,16 +262,16 @@ export function LongTailKeywords() {
 
   const deleteList = async (listId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!isSignedIn) {
         notifications.error('Please log in');
         return;
       }
 
+      const token = await getToken();
       const response = await fetch(`/api/long-tail-keywords/lists/${listId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
