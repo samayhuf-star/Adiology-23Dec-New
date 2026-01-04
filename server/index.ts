@@ -456,10 +456,66 @@ app.get('/api/stripe/products', async (c) => {
 app.post('/api/stripe/checkout', async (c) => {
   try {
     const body = await c.req.json();
-    const { priceId, userId, email, successUrl, cancelUrl } = body;
+    const { priceId, planName, userId, email, successUrl, cancelUrl } = body;
 
-    if (!priceId || !email) {
+    if (!email) {
       return c.json({ error: 'Missing required fields' }, 400);
+    }
+
+    // Get actual price ID from Stripe by product name if placeholder priceId is used
+    let actualPriceId = priceId;
+    
+    // Map placeholder price IDs to product names
+    const priceIdToProductName: Record<string, string> = {
+      'price_basic_monthly': 'Basic Monthly',
+      'price_basic_yearly': 'Basic Yearly',
+      'price_pro_monthly': 'Pro Monthly',
+      'price_pro_yearly': 'Pro Yearly',
+      'price_lifetime': 'Lifetime',
+    };
+    
+    // If using a placeholder price ID, look up the actual price from Stripe
+    if (priceId && priceIdToProductName[priceId]) {
+      const productName = priceIdToProductName[priceId];
+      const stripe = await getUncachableStripeClient();
+      
+      // List products and find the matching one
+      const products = await stripe.products.list({ limit: 100, active: true });
+      const product = products.data.find(p => p.name === productName);
+      
+      if (product) {
+        // Get the default price for this product
+        const prices = await stripe.prices.list({ product: product.id, active: true, limit: 1 });
+        if (prices.data.length > 0) {
+          actualPriceId = prices.data[0].id;
+        }
+      }
+    }
+    
+    // Also try to find by plan name if priceId not resolved
+    if (!actualPriceId && planName) {
+      const stripe = await getUncachableStripeClient();
+      const productNameMap: Record<string, string> = {
+        'Basic': 'Basic Monthly',
+        'Basic (Yearly)': 'Basic Yearly',
+        'Pro': 'Pro Monthly',
+        'Pro (Yearly)': 'Pro Yearly',
+        'Lifetime': 'Lifetime',
+      };
+      const productName = productNameMap[planName] || planName;
+      const products = await stripe.products.list({ limit: 100, active: true });
+      const product = products.data.find(p => p.name === productName);
+      
+      if (product) {
+        const prices = await stripe.prices.list({ product: product.id, active: true, limit: 1 });
+        if (prices.data.length > 0) {
+          actualPriceId = prices.data[0].id;
+        }
+      }
+    }
+
+    if (!actualPriceId) {
+      return c.json({ error: 'Could not find a valid price for this plan' }, 400);
     }
 
     let user = await stripeService.getUserByEmail(email);
@@ -477,11 +533,17 @@ app.post('/api/stripe/checkout', async (c) => {
     const protocol = domain.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${domain}`;
     
+    // Determine if this is a subscription or one-time payment
+    const stripe = await getUncachableStripeClient();
+    const priceDetails = await stripe.prices.retrieve(actualPriceId);
+    const mode = priceDetails.type === 'recurring' ? 'subscription' : 'payment';
+    
     const session = await stripeService.createCheckoutSession(
       customerId,
-      priceId,
+      actualPriceId,
       successUrl || `${baseUrl}/billing?success=true`,
-      cancelUrl || `${baseUrl}/billing?canceled=true`
+      cancelUrl || `${baseUrl}/billing?canceled=true`,
+      mode
     );
 
     return c.json({ url: session.url, sessionId: session.id });
