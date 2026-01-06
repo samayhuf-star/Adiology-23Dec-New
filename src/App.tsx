@@ -763,15 +763,6 @@ const AppContent = () => {
   const userEmailLower = user?.email?.toLowerCase() || '';
   const isWhitelistedEmail = userEmailLower && superAdminEmails.includes(userEmailLower);
   const isSuperAdmin = hasAdminRole || isWhitelistedEmail;
-  
-  // Debug log for super admin check
-  console.log('Super admin check:', { 
-    email: userEmailLower, 
-    hasAdminRole, 
-    isWhitelistedEmail, 
-    isSuperAdmin,
-    superAdminEmails 
-  });
 
   // Default: User view (protected) navigation structure
   const allMenuItems = [

@@ -4812,13 +4812,31 @@ app.get('/api/campaign-history', async (c) => {
       return c.json({ error: auth.error }, 401);
     }
     
-    const result = await pool.query(
-      `SELECT id, user_id, type, name, data, status, created_at, updated_at 
-       FROM campaign_history 
-       WHERE user_id = $1 
-       ORDER BY updated_at DESC`,
-      [auth.userId]
-    );
+    // Try with type column first, fallback if column doesn't exist
+    let result;
+    try {
+      result = await pool.query(
+        `SELECT id, user_id, COALESCE(type, 'campaign') as type, name, data, COALESCE(status, 'completed') as status, created_at, updated_at 
+         FROM campaign_history 
+         WHERE user_id = $1 
+         ORDER BY updated_at DESC`,
+        [auth.userId]
+      );
+    } catch (queryError: any) {
+      // If column doesn't exist, query without it
+      if (queryError.message?.includes('column') && queryError.message?.includes('does not exist')) {
+        console.log('Falling back to query without type column');
+        result = await pool.query(
+          `SELECT id, user_id, 'campaign' as type, name, data, COALESCE(status, 'completed') as status, created_at, updated_at 
+           FROM campaign_history 
+           WHERE user_id = $1 
+           ORDER BY updated_at DESC`,
+          [auth.userId]
+        );
+      } else {
+        throw queryError;
+      }
+    }
     
     return c.json({ 
       success: true, 
@@ -4842,18 +4860,39 @@ app.post('/api/campaign-history', async (c) => {
     await ensureUserExists(auth.userId!, auth.userEmail);
     
     const body = await c.req.json();
-    const { type, name, data, status = 'draft' } = body;
+    const { type = 'campaign', name, data, status = 'draft' } = body;
     
-    if (!type || !name) {
-      return c.json({ error: 'Type and name are required' }, 400);
+    if (!name) {
+      return c.json({ error: 'Name is required' }, 400);
     }
     
-    const result = await pool.query(
-      `INSERT INTO campaign_history (user_id, type, name, data, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-       RETURNING id, user_id, type, name, data, status, created_at, updated_at`,
-      [auth.userId, type, name, JSON.stringify(data || {}), status]
-    );
+    // Try with type column first, fallback if column doesn't exist
+    let result;
+    try {
+      result = await pool.query(
+        `INSERT INTO campaign_history (user_id, type, name, data, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+         RETURNING id, user_id, type, name, data, status, created_at, updated_at`,
+        [auth.userId, type, name, JSON.stringify(data || {}), status]
+      );
+    } catch (queryError: any) {
+      // If type column doesn't exist, insert without it
+      if (queryError.message?.includes('column') && queryError.message?.includes('does not exist')) {
+        console.log('Falling back to insert without type column');
+        result = await pool.query(
+          `INSERT INTO campaign_history (user_id, name, data, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, NOW(), NOW())
+           RETURNING id, user_id, name, data, status, created_at, updated_at`,
+          [auth.userId, name, JSON.stringify(data || {}), status]
+        );
+        // Add type to the returned data
+        if (result.rows[0]) {
+          result.rows[0].type = type;
+        }
+      } else {
+        throw queryError;
+      }
+    }
     
     return c.json({ 
       success: true, 
