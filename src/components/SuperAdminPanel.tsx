@@ -343,7 +343,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
             <span className="text-gray-400 text-xs sm:text-sm">Revenue</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">${stats.monthlyRevenue.toFixed(0)}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">${(stats?.monthlyRevenue ?? 0).toFixed(0)}</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
@@ -563,7 +563,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <span className="text-gray-400 text-sm">MRR</span>
             <ArrowUpRight className="w-4 h-4 text-green-400" />
           </div>
-          <div className="text-2xl font-bold text-white">${stats.monthlyRevenue.toFixed(2)}</div>
+          <div className="text-2xl font-bold text-white">${(stats?.monthlyRevenue ?? 0).toFixed(2)}</div>
           <p className="text-green-400 text-xs">+12% from last month</p>
         </div>
         
@@ -600,7 +600,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             { plan: 'Lifetime', count: 47, revenue: 4699.53, color: 'amber' },
             { plan: 'Pro Monthly', count: 23, revenue: 2989.77, color: 'purple' },
             { plan: 'Basic Monthly', count: 56, revenue: 3919.44, color: 'blue' },
-            { plan: 'Trial', count: stats.activeTrials, revenue: stats.activeTrials * 5, color: 'green' },
+            { plan: 'Trial', count: stats?.activeTrials ?? 0, revenue: (stats?.activeTrials ?? 0) * 5, color: 'green' },
           ].map((item, i) => (
             <div key={i} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
               <div className="flex items-center gap-3">
@@ -609,7 +609,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
               </div>
               <div className="flex items-center gap-6">
                 <span className="text-gray-400">{item.count} users</span>
-                <span className="text-white font-medium">${item.revenue.toFixed(2)}</span>
+                <span className="text-white font-medium">${(item.revenue ?? 0).toFixed(2)}</span>
               </div>
             </div>
           ))}
