@@ -6754,7 +6754,7 @@ async function checkAutoRecharge(userId: string, account: any) {
   
   try {
     const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-11-17.clover' });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-12-15.clover' });
     
     // Create and confirm payment intent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -6928,7 +6928,7 @@ app.post('/api/call-forwarding/billing/setup-payment-method', async (c) => {
     const account = await getOrCreateBillingAccount(user.id);
     
     const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-11-17.clover' });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-12-15.clover' });
     
     // Get or create Stripe customer
     let customerId = account.stripe_customer_id;
@@ -7003,7 +7003,7 @@ app.post('/api/call-forwarding/billing/top-up', async (c) => {
     }
     
     const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-11-17.clover' });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-12-15.clover' });
     
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount_cents,
@@ -8166,18 +8166,18 @@ app.get('/api/admin/billing', async (c) => {
       }
 
       // Calculate revenue metrics
-      const totalRevenue = payments?.reduce((sum, payment) => {
+      const totalRevenue = payments?.reduce((sum: number, payment: any) => {
         return payment.status === 'succeeded' ? sum + (payment.amount || 0) : sum;
       }, 0) || 0;
 
-      const monthlyRevenue = payments?.filter(payment => {
+      const monthlyRevenue = payments?.filter((payment: any) => {
         const paymentDate = new Date(payment.created_at);
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         return paymentDate >= monthStart && payment.status === 'succeeded';
-      }).reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+      }).reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0) || 0;
 
-      const activeSubscriptions = subscriptions?.filter(sub => sub.status === 'active').length || 0;
+      const activeSubscriptions = subscriptions?.filter((sub: any) => sub.status === 'active').length || 0;
 
       return c.json({
         success: true,
@@ -8377,10 +8377,10 @@ app.get('/api/admin/emails', async (c) => {
 
       // Calculate email metrics
       const totalSent = emailLogs?.length || 0;
-      const delivered = emailLogs?.filter(email => email.delivered_at).length || 0;
-      const opened = emailLogs?.filter(email => email.opened_at).length || 0;
-      const clicked = emailLogs?.filter(email => email.clicked_at).length || 0;
-      const bounced = emailLogs?.filter(email => email.bounced_at).length || 0;
+      const delivered = emailLogs?.filter((email: any) => email.delivered_at).length || 0;
+      const opened = emailLogs?.filter((email: any) => email.opened_at).length || 0;
+      const clicked = emailLogs?.filter((email: any) => email.clicked_at).length || 0;
+      const bounced = emailLogs?.filter((email: any) => email.bounced_at).length || 0;
 
       const deliveryRate = totalSent > 0 ? (delivered / totalSent * 100).toFixed(2) : '0';
       const openRate = delivered > 0 ? (opened / delivered * 100).toFixed(2) : '0';
@@ -8390,7 +8390,7 @@ app.get('/api/admin/emails', async (c) => {
       // Get today's email count
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayEmails = emailLogs?.filter(email => {
+      const todayEmails = emailLogs?.filter((email: any) => {
         const emailDate = new Date(email.created_at);
         return emailDate >= today;
       }).length || 0;
