@@ -69,6 +69,7 @@ const CookiePolicy = lazy(() => import('./components/CookiePolicy').then(m => ({
 const GDPRCompliance = lazy(() => import('./components/GDPRCompliance').then(m => ({ default: m.GDPRCompliance })));
 const RefundPolicy = lazy(() => import('./components/RefundPolicy').then(m => ({ default: m.RefundPolicy })));
 const PromoLandingPage = lazy(() => import('./components/PromoLandingPage').then(m => ({ default: m.PromoLandingPage })));
+const TaskManager = lazy(() => import('./components/TaskManager').then(m => ({ default: m.TaskManager })));
 
 // Loading component for lazy-loaded modules
 const ComponentLoader = () => (
@@ -227,6 +228,7 @@ const AppContent = () => {
   // Valid tab IDs - used for route validation
   const validTabIds = new Set([
     'dashboard',
+    'projects',
     'preset-campaigns',
     'builder-3',
     'one-click-builder',
@@ -804,6 +806,7 @@ const AppContent = () => {
 
   // Default: User view (protected) navigation structure
   const allMenuItems = [
+    { id: 'projects', label: 'Projects', icon: FolderOpen, module: null },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
     { 
       id: 'campaign-builder', 
@@ -1350,6 +1353,12 @@ const AppContent = () => {
         return (
           <Suspense fallback={<ComponentLoader />}>
             <SettingsPanel defaultTab="billing" />
+          </Suspense>
+        );
+      case 'projects':
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <TaskManager />
           </Suspense>
         );
       case 'dashboard':

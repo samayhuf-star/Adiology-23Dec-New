@@ -402,6 +402,51 @@ export const insertFeedbackSchema = createInsertSchema(feedback).omit({
   updatedAt: true,
 });
 
+export const taskProjects = pgTable("task_projects", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
+  color: text("color").default("#6366f1"),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_task_projects_user_id").on(table.userId),
+}));
+
+export const tasks = pgTable("tasks", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  projectId: uuid("project_id").references(() => taskProjects.id),
+  title: text("title").notNull(),
+  description: text("description").default(""),
+  isToday: boolean("is_today").default(false),
+  isCompleted: boolean("is_completed").default(false),
+  priority: text("priority").default("medium"),
+  dueDate: timestamp("due_date"),
+  order: integer("order").default(0),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_tasks_user_id").on(table.userId),
+  projectIdIdx: index("idx_tasks_project_id").on(table.projectId),
+  isCompletedIdx: index("idx_tasks_is_completed").on(table.isCompleted),
+  isTodayIdx: index("idx_tasks_is_today").on(table.isToday),
+}));
+
+export const insertTaskProjectSchema = createInsertSchema(taskProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
