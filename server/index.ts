@@ -5879,19 +5879,18 @@ app.post('/api/email/team-invite', async (c) => {
     
     const token = authHeader.replace('Bearer ', '');
     
-    // Create Supabase client dynamically
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    // Verify token with Clerk
+    const { verifyToken } = await import('@clerk/backend');
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
     
-    if (!supabaseUrl || !supabaseKey) {
+    if (!clerkSecretKey) {
       return c.json({ error: 'Authentication service not configured' }, 500);
     }
     
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError || !user) {
+    try {
+      await verifyToken(token, { secretKey: clerkSecretKey });
+    } catch (authError) {
+      console.error('Team invite auth error:', authError);
       return c.json({ error: 'Invalid session' }, 401);
     }
     
