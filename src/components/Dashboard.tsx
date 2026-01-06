@@ -285,7 +285,6 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
   const quickActions = [
     { id: 'one-click-builder', title: '1 Click Campaign', icon: Zap },
     { id: 'builder-3', title: 'Campaign Builder', icon: Sparkles },
-    { id: 'web-templates', title: 'Web Templates', icon: Globe },
     { id: 'preset-campaigns', title: 'Campaign Presets', icon: Package },
     { id: 'keyword-planner', title: 'Keywords Planner', icon: Target },
     { id: 'draft-campaigns', title: 'Saved Campaigns', icon: FolderOpen },

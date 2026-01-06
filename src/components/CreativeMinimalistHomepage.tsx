@@ -1087,7 +1087,6 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
           features: [
             '25 campaigns per month',
             '2 team members',
-            '20 web templates',
             '70+ campaign presets for all verticals',
             'Geo targeting: cities, states, 15,000+ zip codes',
             '10 custom domains',
@@ -1112,7 +1111,6 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
           features: [
             'Unlimited campaigns',
             '5 team members',
-            '50+ web templates',
             '70+ campaign presets for all verticals',
             'Geo targeting: cities, states, 15,000+ zip codes',
             '40 custom domains',
@@ -1136,7 +1134,6 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
           features: [
             '5 campaigns per month',
             '1 team member',
-            '10 web templates',
             '20+ campaign presets for all verticals',
             'Geo targeting: Countries',
             '5 custom domains',
@@ -1165,7 +1162,6 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
         features: [
           '25 campaigns per month',
           '2 team members',
-          '20 web templates',
           '70+ campaign presets for all verticals',
           'Geo targeting: cities, states, 15,000+ zip codes',
           '10 custom domains',
@@ -1189,7 +1185,6 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
         features: [
           'Unlimited campaigns',
           '5 team members',
-          '50+ web templates',
           '70+ campaign presets for all verticals',
           'Geo targeting: cities, states, 15,000+ zip codes',
           '40 custom domains',
@@ -1213,7 +1208,6 @@ function PricingSection({ onSelectPlan }: { onSelectPlan?: (planName: string, pr
         features: [
           '5 campaigns per month',
           '1 team member',
-          '10 web templates',
           '20+ campaign presets for all verticals',
           'Geo targeting: Countries',
           '5 custom domains',

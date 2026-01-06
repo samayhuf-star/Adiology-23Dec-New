@@ -1,6 +1,6 @@
 # Overview
 
-Adiology is a Google Ads campaign builder platform designed to automate and streamline the creation of comprehensive advertising campaigns. It generates keywords, ads, and targeting configurations, supporting campaign structure creation, keyword planning, ad generation, CSV validation, and export in Google Ads Editor format. The platform aims to simplify Google Ads campaign management, offering features like real-time expense tracking and a web template editor to enhance efficiency and unlock market potential for various business needs.
+Adiology is a Google Ads campaign builder platform designed to automate and streamline the creation of comprehensive advertising campaigns. It generates keywords, ads, and targeting configurations, supporting campaign structure creation, keyword planning, ad generation, CSV validation, and export in Google Ads Editor format. The platform aims to simplify Google Ads campaign management, offering features like real-time expense tracking to enhance efficiency and unlock market potential for various business needs.
 
 # User Preferences
 
@@ -65,13 +65,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend
 - **Framework**: React 18 with TypeScript and Vite, utilizing Radix UI and Tailwind CSS.
-- **UI/UX**: Component-based architecture, multi-step wizards for Campaign and Ads Builders, client-side routing, React hooks, and context-based notification system. Features include a SuperAdmin Console, an AI-powered Web Template Editor, Real-time Expense Tracking, and Call Forwarding. The design is mobile-responsive with collapsible sidebar navigation, responsive grids, compact navigation, and mobile-optimized data tables.
+- **UI/UX**: Component-based architecture, multi-step wizards for Campaign and Ads Builders, client-side routing, React hooks, and context-based notification system. Features include a SuperAdmin Console, Real-time Expense Tracking, and Call Forwarding. The design is mobile-responsive with collapsible sidebar navigation, responsive grids, compact navigation, and mobile-optimized data tables.
 - **Call Forwarding**: Project-based call management system with SkySwitch API integration for tracking numbers, forwarding targets with percentage-based distribution, and syncing to SkySwitch.
 - **Call Forwarding Billing**: Prepaid balance system with Stripe integration for auto-recharge, manual top-ups, payment method management, and transaction history.
 - **Ads Search (Google Ads Transparency)**: Allows users to research competitor ads from Google Ads Transparency Center using a Playwright-based scraper and an asynchronous job queue system.
 - **Campaign Builder**: A 7-step wizard that guides users through URL input with AI analysis, structure selection (SKAG, STAG, Intent-Based, Alpha-Beta), keyword generation (410-710 keywords), ad generation, geo-targeting, and CSV generation.
 - **Saved Campaigns**: Displays campaign history with search and filter options, including Google Ads OAuth integration for direct, paused campaign pushes to Google Ads.
-- **Web Template Editor**: A sections-based visual editor with 13 built-in section types for website customization, content editing, and HTML export.
 - **Data Export**: Generates a master 183-column Google Ads Editor CSV format, ensuring full compatibility for various campaign, ad group, keyword, and extension data.
 
 ## Backend

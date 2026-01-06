@@ -111,7 +111,6 @@ const pricingPlans = [
     features: [
       '5 campaigns per month',
       '1 team member',
-      '10 web templates',
       '20+ campaign presets for all verticals',
       'Geo targeting: Countries',
       '5 custom domains',

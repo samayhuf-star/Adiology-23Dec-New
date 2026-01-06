@@ -818,10 +818,6 @@ Generated on ${new Date().toLocaleDateString()}`;
                                         </li>
                                         <li className="flex items-start gap-2">
                                             <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                                            <span className="text-xs text-slate-700">10 Web Templates</span>
-                                        </li>
-                                        <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                                             <span className="text-xs text-slate-700">20+ Campaign Presets</span>
                                         </li>
                                         <li className="flex items-start gap-2">

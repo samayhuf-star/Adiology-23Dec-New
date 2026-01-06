@@ -21,7 +21,6 @@ const DEFAULT_CATEGORIES = [
   'Getting Started',
   'Campaign Builder',
   'Keywords & Tools',
-  'Web Templates',
   'Billing & Plans',
   'Troubleshooting',
   'API Docs',

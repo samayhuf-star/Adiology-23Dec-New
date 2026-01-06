@@ -47,7 +47,6 @@ const PLAN_FEATURES: Record<string, string[]> = {
     'Unlimited campaigns',
     'Unlimited keywords',
     'AI-powered keyword suggestions',
-    'Web templates (35+)',
     'Ad extensions generation',
     'Priority support',
   ],

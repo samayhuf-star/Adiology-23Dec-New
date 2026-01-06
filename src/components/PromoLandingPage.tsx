@@ -127,11 +127,6 @@ export function PromoLandingPage({ onStartTrial, onNavigate }: PromoLandingPageP
       description: 'Export campaigns directly to Google Ads Editor format - import and go live in minutes'
     },
     {
-      icon: MousePointer,
-      title: 'Web Template Builder',
-      description: 'Create stunning landing pages with 10+ mobile-responsive templates'
-    },
-    {
       icon: TrendingUp,
       title: 'Keyword Mixer & Planner',
       description: 'Combine keywords, filter by intent, and discover long-tail opportunities'
