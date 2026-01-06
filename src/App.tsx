@@ -803,7 +803,6 @@ const AppContent = () => {
     ...(isSuperAdmin ? [{ id: 'admin-panel', label: 'Admin Panel', icon: Shield, module: null }] : []),
   ];
 
-  // Simplified - no workspace view switching needed
   const canSwitchViews = false;
   
   // Simplified menu filtering - show all items except admin panel for non-super-admins
@@ -1859,7 +1858,6 @@ const AppContent = () => {
                         currentItem.submenu?.find(sub => sub.id === activeTab);
                       if (itemToCheck) {
                         // Check if item would be accessible in user view mode
-                        // TODO: Implement module availability check when workspace system is ready
                         if (itemToCheck.id === 'admin-panel') {
                           setActiveTabSafe('dashboard');
                         }

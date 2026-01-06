@@ -299,34 +299,6 @@ class ErrorHandlerClass {
     );
   }
 
-  /**
-   * Handle workspace errors
-   */
-  handleWorkspaceError(error: any, action: string): void {
-    this.captureError(
-      error,
-      {
-        component: 'Workspace',
-        action,
-      },
-      'medium'
-    );
-  }
-
-  /**
-   * Handle form errors
-   */
-  handleFormError(error: any, formId?: string, action?: string): void {
-    this.captureError(
-      error,
-      {
-        component: 'Forms',
-        action: action || 'Form Operation',
-        metadata: { formId },
-      },
-      'low'
-    );
-  }
 
   /**
    * Handle payment/billing errors
