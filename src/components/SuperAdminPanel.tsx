@@ -126,10 +126,30 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
   const [selectedTable, setSelectedTable] = useState<string>('');
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableColumns, setTableColumns] = useState<string[]>([]);
+  
+  // Recent activity
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  
+  // Billing stats
+  const [billingStats, setBillingStats] = useState<any>({
+    lifetimePlans: 0,
+    churnRate: 0,
+    planBreakdown: []
+  });
+  
+  // Email stats
+  const [emailStats, setEmailStats] = useState<any>({
+    sentToday: 0,
+    deliveryRate: 0,
+    openRate: 0,
+    bounceRate: 0,
+    templates: []
+  });
 
   // Fetch dashboard stats
   useEffect(() => {
     fetchDashboardStats();
+    fetchRecentActivity();
   }, []);
 
   const fetchDashboardStats = async () => {
@@ -154,6 +174,57 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const fetchRecentActivity = async () => {
+    try {
+      const response = await adminFetch('/api/admin/activity');
+      if (response.ok) {
+        const result = await response.json();
+        setRecentActivity(result.data?.activities || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch activity:', error);
+    }
+  };
+  
+  const fetchBillingStats = async () => {
+    try {
+      const response = await adminFetch('/api/admin/billing/stats');
+      if (response.ok) {
+        const result = await response.json();
+        setBillingStats(result.data || { lifetimePlans: 0, churnRate: 0, planBreakdown: [] });
+      }
+    } catch (error) {
+      console.error('Failed to fetch billing stats:', error);
+    }
+  };
+  
+  const fetchEmailStats = async () => {
+    try {
+      const response = await adminFetch('/api/admin/email/stats');
+      if (response.ok) {
+        const result = await response.json();
+        setEmailStats(result.data || { sentToday: 0, deliveryRate: 0, openRate: 0, bounceRate: 0, templates: [] });
+      }
+    } catch (error) {
+      console.error('Failed to fetch email stats:', error);
+    }
+  };
+  
+  const formatTimeAgo = (dateStr: string) => {
+    if (!dateStr) return 'Unknown';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins} min${mins > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${days} day${days > 1 ? 's' : ''} ago`;
   };
 
   const fetchUsers = async () => {
@@ -312,6 +383,8 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     else if (activeSection === 'logs') fetchLogs();
     else if (activeSection === 'security') fetchSecurityRules();
     else if (activeSection === 'database') fetchTables();
+    else if (activeSection === 'subscriptions') fetchBillingStats();
+    else if (activeSection === 'emails') fetchEmailStats();
   }, [activeSection]);
 
   useEffect(() => {
@@ -434,12 +507,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
       <div className="bg-slate-800 border border-white/10 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
         <div className="space-y-3">
-          {[
-            { action: 'New user registered', user: 'john@example.com', time: '2 mins ago', type: 'info' },
-            { action: 'Subscription upgraded', user: 'sarah@example.com', time: '15 mins ago', type: 'success' },
-            { action: 'Failed login attempt', user: 'unknown@spam.com', time: '1 hour ago', type: 'warning' },
-            { action: 'Payment received', user: 'mike@business.com', time: '2 hours ago', type: 'success' },
-          ].map((activity, i) => (
+          {recentActivity.length > 0 ? recentActivity.map((activity, i) => (
             <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
               <div className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${
@@ -451,9 +519,11 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
                   <p className="text-gray-500 text-xs">{activity.user}</p>
                 </div>
               </div>
-              <span className="text-gray-500 text-xs">{activity.time}</span>
+              <span className="text-gray-500 text-xs">{formatTimeAgo(activity.time)}</span>
             </div>
-          ))}
+          )) : (
+            <p className="text-gray-500 text-sm text-center py-4">No recent activity</p>
+          )}
         </div>
       </div>
     </div>
@@ -600,7 +670,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <span className="text-gray-400 text-sm">Lifetime Plans</span>
             <Zap className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-2xl font-bold text-white">47</div>
+          <div className="text-2xl font-bold text-white">{billingStats.lifetimePlans}</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
@@ -608,7 +678,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <span className="text-gray-400 text-sm">Churn Rate</span>
             <ArrowDownRight className="w-4 h-4 text-red-400" />
           </div>
-          <div className="text-2xl font-bold text-white">2.3%</div>
+          <div className="text-2xl font-bold text-white">{billingStats.churnRate}%</div>
         </div>
       </div>
 
@@ -616,15 +686,15 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
       <div className="bg-slate-800 border border-white/10 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Active Plans</h3>
         <div className="space-y-4">
-          {[
-            { plan: 'Lifetime', count: 47, revenue: 4699.53, color: 'amber' },
-            { plan: 'Pro Monthly', count: 23, revenue: 2989.77, color: 'purple' },
-            { plan: 'Basic Monthly', count: 56, revenue: 3919.44, color: 'blue' },
-            { plan: 'Trial', count: stats?.activeTrials ?? 0, revenue: (stats?.activeTrials ?? 0) * 5, color: 'green' },
-          ].map((item, i) => (
+          {billingStats.planBreakdown.length > 0 ? billingStats.planBreakdown.map((item: any, i: number) => (
             <div key={i} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full bg-${item.color}-400`} />
+                <div className={`w-3 h-3 rounded-full ${
+                  item.color === 'amber' ? 'bg-amber-400' :
+                  item.color === 'purple' ? 'bg-purple-400' :
+                  item.color === 'blue' ? 'bg-blue-400' :
+                  item.color === 'green' ? 'bg-green-400' : 'bg-gray-400'
+                }`} />
                 <span className="text-white font-medium">{item.plan}</span>
               </div>
               <div className="flex items-center gap-6">
@@ -632,7 +702,9 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
                 <span className="text-white font-medium">${(item.revenue ?? 0).toFixed(2)}</span>
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-gray-500 text-sm text-center py-4">No subscription data available</p>
+          )}
         </div>
       </div>
     </div>
@@ -798,7 +870,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <Send className="w-5 h-5 text-blue-400" />
             <span className="text-gray-400 text-sm">Sent Today</span>
           </div>
-          <div className="text-2xl font-bold text-white">124</div>
+          <div className="text-2xl font-bold text-white">{emailStats.sentToday}</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
@@ -806,7 +878,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <CheckCircle className="w-5 h-5 text-green-400" />
             <span className="text-gray-400 text-sm">Delivered</span>
           </div>
-          <div className="text-2xl font-bold text-white">98.2%</div>
+          <div className="text-2xl font-bold text-white">{emailStats.deliveryRate}%</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
@@ -814,7 +886,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <Inbox className="w-5 h-5 text-amber-400" />
             <span className="text-gray-400 text-sm">Open Rate</span>
           </div>
-          <div className="text-2xl font-bold text-white">42.5%</div>
+          <div className="text-2xl font-bold text-white">{emailStats.openRate}%</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
@@ -822,7 +894,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <XCircle className="w-5 h-5 text-red-400" />
             <span className="text-gray-400 text-sm">Bounced</span>
           </div>
-          <div className="text-2xl font-bold text-white">1.8%</div>
+          <div className="text-2xl font-bold text-white">{emailStats.bounceRate}%</div>
         </div>
       </div>
 
@@ -830,13 +902,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
       <div className="bg-slate-800 border border-white/10 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Email Templates (Sendune)</h3>
         <div className="space-y-3">
-          {[
-            { name: 'Welcome Email', lastSent: '2 hours ago', sends: 234 },
-            { name: 'Password Reset', lastSent: '5 hours ago', sends: 45 },
-            { name: 'Trial Started', lastSent: '1 hour ago', sends: 12 },
-            { name: 'Subscription Confirmed', lastSent: '3 hours ago', sends: 8 },
-            { name: 'Payment Failed', lastSent: '1 day ago', sends: 3 },
-          ].map((template, i) => (
+          {emailStats.templates.length > 0 ? emailStats.templates.map((template: any, i: number) => (
             <div key={i} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
               <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-purple-400" />
@@ -844,13 +910,15 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
               </div>
               <div className="flex items-center gap-6">
                 <span className="text-gray-400 text-sm">{template.sends} sent</span>
-                <span className="text-gray-500 text-xs">{template.lastSent}</span>
+                <span className="text-gray-500 text-xs">{formatTimeAgo(template.lastSent)}</span>
                 <Button variant="ghost" size="sm">
                   <Edit className="w-4 h-4" />
                 </Button>
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-gray-500 text-sm text-center py-4">No email templates yet</p>
+          )}
         </div>
       </div>
     </div>

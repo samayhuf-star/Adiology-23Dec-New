@@ -5420,41 +5420,183 @@ app.post('/api/admin/users/:userId/role', async (c) => {
   });
 });
 
-// Get system logs (from Supabase audit_logs)
+// Get system logs from Replit PostgreSQL
 app.get('/api/admin/logs', async (c) => {
   try {
     const level = c.req.query('level') || 'all';
-    const supabase = await getSupabaseAdmin();
     
-    if (supabase) {
-      let query = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200);
-      if (level !== 'all') {
-        query = query.eq('level', level);
-      }
-      const { data: logs } = await query;
-      return c.json({ logs: (logs || []).map((row: any) => ({
-        id: row.id,
-        timestamp: row.created_at,
-        level: row.level || row.action || 'info',
-        source: row.source || row.user_id || 'system',
-        message: row.message || row.action || '',
-        details: row.details || row.metadata
-      }))});
+    let query = 'SELECT * FROM audit_logs';
+    const params: any[] = [];
+    
+    if (level !== 'all') {
+      query += ' WHERE level = $1';
+      params.push(level);
     }
+    query += ' ORDER BY created_at DESC LIMIT 200';
     
-    // Fallback to local pool
-    const result = await pool.query('SELECT * FROM admin_logs ORDER BY created_at DESC LIMIT 200');
+    const result = await pool.query(query, params);
     return c.json({ logs: result.rows.map((row: any) => ({
       id: row.id,
       timestamp: row.created_at,
-      level: row.level,
-      source: row.source,
-      message: row.message,
-      details: row.details
+      level: row.level || row.action || 'info',
+      source: row.resource_type || row.user_id || 'system',
+      message: row.action || '',
+      details: row.details || row.new_values
     }))});
   } catch (error: any) {
     console.error('Error fetching logs:', error);
     return c.json({ logs: [] });
+  }
+});
+
+// Get recent activity from Replit PostgreSQL
+app.get('/api/admin/activity', async (c) => {
+  try {
+    const result = await pool.query(`
+      SELECT al.*, u.email as user_email 
+      FROM audit_logs al 
+      LEFT JOIN users u ON al.user_id = u.id
+      ORDER BY al.created_at DESC 
+      LIMIT 20
+    `);
+    
+    const activities = result.rows.map((row: any) => ({
+      id: row.id,
+      action: row.action || 'Unknown action',
+      user: row.user_email || row.user_id || 'Unknown',
+      time: row.created_at,
+      type: row.level === 'error' ? 'warning' : row.level === 'info' ? 'info' : 'success'
+    }));
+    
+    return c.json({ success: true, data: { activities } });
+  } catch (error: any) {
+    console.error('Error fetching activity:', error);
+    return c.json({ success: true, data: { activities: [] } });
+  }
+});
+
+// Get billing stats from Replit PostgreSQL  
+app.get('/api/admin/billing/stats', async (c) => {
+  try {
+    const billingStats: any = {
+      lifetimePlans: 0,
+      churnRate: 0,
+      planBreakdown: []
+    };
+    
+    // Get plan breakdown from users table
+    const plansResult = await pool.query(`
+      SELECT subscription_plan, COUNT(*) as count 
+      FROM users 
+      WHERE subscription_plan IS NOT NULL 
+      GROUP BY subscription_plan
+    `);
+    
+    // Get revenue by plan from payments
+    const revenueResult = await pool.query(`
+      SELECT 
+        u.subscription_plan,
+        COALESCE(SUM(p.amount_cents), 0) as total_cents
+      FROM users u
+      LEFT JOIN payments p ON p.user_id = u.id AND p.status = 'succeeded'
+      WHERE u.subscription_plan IS NOT NULL
+      GROUP BY u.subscription_plan
+    `);
+    
+    const revenueMap: Record<string, number> = {};
+    revenueResult.rows.forEach((r: any) => {
+      revenueMap[r.subscription_plan] = parseInt(r.total_cents || '0', 10) / 100;
+    });
+    
+    const planColors: Record<string, string> = {
+      'lifetime': 'amber',
+      'pro': 'purple',
+      'basic': 'blue',
+      'trial': 'green',
+      'free': 'gray'
+    };
+    
+    billingStats.planBreakdown = plansResult.rows.map((r: any) => ({
+      plan: r.subscription_plan,
+      count: parseInt(r.count, 10),
+      revenue: revenueMap[r.subscription_plan] || 0,
+      color: planColors[r.subscription_plan?.toLowerCase()] || 'gray'
+    }));
+    
+    // Count lifetime plans
+    const lifetimeResult = await pool.query("SELECT COUNT(*) as count FROM users WHERE subscription_plan = 'lifetime'");
+    billingStats.lifetimePlans = parseInt(lifetimeResult.rows[0]?.count || '0', 10);
+    
+    return c.json({ success: true, data: billingStats });
+  } catch (error: any) {
+    console.error('Error fetching billing stats:', error);
+    return c.json({ success: true, data: { lifetimePlans: 0, churnRate: 0, planBreakdown: [] } });
+  }
+});
+
+// Get email stats from Replit PostgreSQL
+app.get('/api/admin/email/stats', async (c) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get sent today
+    const sentTodayResult = await pool.query(
+      "SELECT COUNT(*) as count FROM emails WHERE created_at >= $1",
+      [today.toISOString()]
+    );
+    const sentToday = parseInt(sentTodayResult.rows[0]?.count || '0', 10);
+    
+    // Get total sent
+    const totalSentResult = await pool.query("SELECT COUNT(*) as count FROM emails WHERE status = 'sent'");
+    const totalSent = parseInt(totalSentResult.rows[0]?.count || '0', 10);
+    
+    // Get delivered count
+    const deliveredResult = await pool.query("SELECT COUNT(*) as count FROM emails WHERE status = 'delivered'");
+    const delivered = parseInt(deliveredResult.rows[0]?.count || '0', 10);
+    
+    // Get bounced count
+    const bouncedResult = await pool.query("SELECT COUNT(*) as count FROM emails WHERE status = 'bounced'");
+    const bounced = parseInt(bouncedResult.rows[0]?.count || '0', 10);
+    
+    // Calculate rates
+    const total = totalSent + delivered + bounced || 1;
+    const deliveryRate = ((delivered + totalSent) / total * 100).toFixed(1);
+    const bounceRate = (bounced / total * 100).toFixed(1);
+    
+    // Get email template stats
+    const templateStats = await pool.query(`
+      SELECT 
+        template_name,
+        COUNT(*) as sends,
+        MAX(created_at) as last_sent
+      FROM emails 
+      WHERE template_name IS NOT NULL
+      GROUP BY template_name
+      ORDER BY sends DESC
+      LIMIT 10
+    `);
+    
+    return c.json({ 
+      success: true, 
+      data: {
+        sentToday,
+        deliveryRate: parseFloat(deliveryRate),
+        openRate: 0,
+        bounceRate: parseFloat(bounceRate),
+        templates: templateStats.rows.map((r: any) => ({
+          name: r.template_name,
+          sends: parseInt(r.sends, 10),
+          lastSent: r.last_sent
+        }))
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching email stats:', error);
+    return c.json({ 
+      success: true, 
+      data: { sentToday: 0, deliveryRate: 0, openRate: 0, bounceRate: 0, templates: [] } 
+    });
   }
 });
 
