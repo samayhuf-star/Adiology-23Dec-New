@@ -366,6 +366,18 @@ export const adSearchRequests = pgTable("ad_search_requests", {
   createdAtIdx: index("idx_ad_search_requests_created_at").on(table.createdAt),
 }));
 
+export const documentationImages = pgTable("documentation_images", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  articleKey: text("article_key").notNull(),
+  imageData: text("image_data").notNull(),
+  imageOrder: integer("image_order").notNull().default(0),
+  uploadedBy: text("uploaded_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  articleKeyIdx: index("idx_doc_images_article_key").on(table.articleKey),
+}));
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,

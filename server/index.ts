@@ -5827,6 +5827,103 @@ app.post('/api/admin/database/table/:tableName/update', async (c) => {
   }
 });
 
+// Documentation images API - Get images for an article (public)
+app.get('/api/docs/images/:articleKey', async (c) => {
+  try {
+    const articleKey = c.req.param('articleKey');
+    const result = await pool.query(
+      'SELECT id, image_data, image_order, created_at FROM documentation_images WHERE article_key = $1 ORDER BY image_order ASC LIMIT 5',
+      [articleKey]
+    );
+    return c.json({ success: true, data: { images: result.rows } });
+  } catch (error: any) {
+    console.error('Error fetching doc images:', error);
+    return c.json({ success: true, data: { images: [] } });
+  }
+});
+
+// Documentation images API - Get all images (public)
+app.get('/api/docs/all-images', async (c) => {
+  try {
+    const result = await pool.query(
+      'SELECT article_key, id, image_data, image_order FROM documentation_images ORDER BY article_key, image_order ASC'
+    );
+    const imagesByArticle: Record<string, any[]> = {};
+    result.rows.forEach((row: any) => {
+      if (!imagesByArticle[row.article_key]) {
+        imagesByArticle[row.article_key] = [];
+      }
+      imagesByArticle[row.article_key].push({
+        id: row.id,
+        imageData: row.image_data,
+        imageOrder: row.image_order
+      });
+    });
+    return c.json({ success: true, data: { images: imagesByArticle } });
+  } catch (error: any) {
+    console.error('Error fetching all doc images:', error);
+    return c.json({ success: true, data: { images: {} } });
+  }
+});
+
+// Documentation images API - Upload image (super admin only)
+app.post('/api/docs/images', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  try {
+    const { articleKey, imageData, imageOrder } = await c.req.json();
+    
+    if (!articleKey || !imageData) {
+      return c.json({ error: 'articleKey and imageData are required' }, 400);
+    }
+    
+    // Check existing image count for this article
+    const countResult = await pool.query(
+      'SELECT COUNT(*) as count FROM documentation_images WHERE article_key = $1',
+      [articleKey]
+    );
+    const currentCount = parseInt(countResult.rows[0]?.count || '0', 10);
+    
+    if (currentCount >= 5) {
+      return c.json({ error: 'Maximum 5 images per article reached' }, 400);
+    }
+    
+    const order = imageOrder ?? currentCount;
+    
+    const result = await pool.query(
+      'INSERT INTO documentation_images (article_key, image_data, image_order, uploaded_by) VALUES ($1, $2, $3, $4) RETURNING id',
+      [articleKey, imageData, order, auth.userId]
+    );
+    
+    console.log(`[Docs] Image uploaded for ${articleKey} by ${auth.userId}`);
+    return c.json({ success: true, data: { id: result.rows[0].id } });
+  } catch (error: any) {
+    console.error('Error uploading doc image:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Documentation images API - Delete image (super admin only)
+app.delete('/api/docs/images/:imageId', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  try {
+    const imageId = c.req.param('imageId');
+    await pool.query('DELETE FROM documentation_images WHERE id = $1', [imageId]);
+    console.log(`[Docs] Image ${imageId} deleted by ${auth.userId}`);
+    return c.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting doc image:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Send email via Sendune - REQUIRES ADMIN AUTH
 // Note: Sendune uses template-based emails. Each template in Sendune has its own template-key.
 // The API sends the recipient, subject, and any replace tags to fill in the template.

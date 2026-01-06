@@ -445,55 +445,115 @@ export const HelpSupport = () => {
     const [showArticleDialog, setShowArticleDialog] = useState(false);
     const [viewMode, setViewMode] = useState<'list' | 'article'>('list');
     const [userEmail, setUserEmail] = useState<string | null>(null);
-    const [articleImages, setArticleImages] = useState<Record<string, string>>({});
+    const [articleImages, setArticleImages] = useState<Record<string, Array<{id: string, imageData: string, imageOrder: number}>>>({});
+    const [uploadingImage, setUploadingImage] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const ALLOWED_UPLOAD_EMAIL = 'd@d';
+    const SUPER_ADMIN_EMAIL = 'samayhuf@gmail.com';
+    const MAX_IMAGES_PER_ARTICLE = 5;
 
     useEffect(() => {
         const loadUserAndImages = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             setUserEmail(user?.email || null);
             
-            const savedImages = localStorage.getItem('helpDocImages');
-            if (savedImages) {
-                setArticleImages(JSON.parse(savedImages));
+            try {
+                const response = await fetch('/api/docs/all-images');
+                if (response.ok) {
+                    const result = await response.json();
+                    setArticleImages(result.data?.images || {});
+                }
+            } catch (error) {
+                console.error('Failed to load doc images:', error);
             }
         };
         loadUserAndImages();
     }, []);
 
-    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const getArticleKey = () => {
+        if (!selectedArticle) return '';
+        return `${selectedArticle.sectionTitle}-${selectedArticle.title}`.replace(/\s+/g, '-').toLowerCase();
+    };
+
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file || !selectedArticle) return;
 
+        const articleKey = getArticleKey();
+        const currentImages = articleImages[articleKey] || [];
+        
+        if (currentImages.length >= MAX_IMAGES_PER_ARTICLE) {
+            alert(`Maximum ${MAX_IMAGES_PER_ARTICLE} images per article reached`);
+            return;
+        }
+
+        setUploadingImage(true);
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const base64 = e.target?.result as string;
-            const articleKey = `${selectedArticle.sectionTitle}-${selectedArticle.title}`.replace(/\s+/g, '-').toLowerCase();
-            const newImages = { ...articleImages, [articleKey]: base64 };
-            setArticleImages(newImages);
-            localStorage.setItem('helpDocImages', JSON.stringify(newImages));
+            
+            try {
+                const response = await fetch('/api/docs/images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        articleKey,
+                        imageData: base64,
+                        imageOrder: currentImages.length
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const newImage = { id: result.data.id, imageData: base64, imageOrder: currentImages.length };
+                    setArticleImages(prev => ({
+                        ...prev,
+                        [articleKey]: [...(prev[articleKey] || []), newImage]
+                    }));
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Failed to upload image');
+                }
+            } catch (error) {
+                console.error('Upload failed:', error);
+                alert('Failed to upload image');
+            } finally {
+                setUploadingImage(false);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            }
         };
         reader.readAsDataURL(file);
     };
 
-    const handleRemoveImage = () => {
+    const handleRemoveImage = async (imageId: string) => {
         if (!selectedArticle) return;
-        const articleKey = `${selectedArticle.sectionTitle}-${selectedArticle.title}`.replace(/\s+/g, '-').toLowerCase();
-        const newImages = { ...articleImages };
-        delete newImages[articleKey];
-        setArticleImages(newImages);
-        localStorage.setItem('helpDocImages', JSON.stringify(newImages));
+        
+        try {
+            const response = await fetch(`/api/docs/images/${imageId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                const articleKey = getArticleKey();
+                setArticleImages(prev => ({
+                    ...prev,
+                    [articleKey]: (prev[articleKey] || []).filter(img => img.id !== imageId)
+                }));
+            }
+        } catch (error) {
+            console.error('Delete failed:', error);
+        }
     };
 
-    const getArticleImage = () => {
-        if (!selectedArticle) return null;
-        const articleKey = `${selectedArticle.sectionTitle}-${selectedArticle.title}`.replace(/\s+/g, '-').toLowerCase();
-        return articleImages[articleKey] || null;
+    const getArticleImages = (): Array<{id: string, imageData: string, imageOrder: number}> => {
+        if (!selectedArticle) return [];
+        const articleKey = getArticleKey();
+        return articleImages[articleKey] || [];
     };
 
-    const canUploadImages = userEmail === ALLOWED_UPLOAD_EMAIL;
+    const canUploadImages = userEmail === SUPER_ADMIN_EMAIL;
 
     const handleSearchFilter = (item: any) => {
         if (!searchQuery) return true;
@@ -591,7 +651,7 @@ export const HelpSupport = () => {
                                             </div>
                                             <h4 className="font-normal text-slate-700 text-base">Visual Example</h4>
                                         </div>
-                                        {canUploadImages && (
+                                        {canUploadImages && getArticleImages().length < MAX_IMAGES_PER_ARTICLE && (
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     ref={fileInputRef}
@@ -604,33 +664,45 @@ export const HelpSupport = () => {
                                                     size="sm"
                                                     variant="outline"
                                                     onClick={() => fileInputRef.current?.click()}
+                                                    disabled={uploadingImage}
                                                     className="gap-2 bg-white hover:bg-indigo-50 border-indigo-300"
                                                 >
                                                     <Camera className="w-4 h-4" />
-                                                    Upload Screenshot
+                                                    {uploadingImage ? 'Uploading...' : `Add Image (${getArticleImages().length}/${MAX_IMAGES_PER_ARTICLE})`}
                                                 </Button>
-                                                {getArticleImage() && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={handleRemoveImage}
-                                                        className="gap-2 bg-white hover:bg-red-50 border-red-300 text-red-600"
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                        Remove
-                                                    </Button>
-                                                )}
                                             </div>
                                         )}
                                     </div>
                                     <div className="bg-white rounded-lg border-2 border-slate-300 p-6 mb-4">
-                                        {getArticleImage() ? (
-                                            <div className="rounded-lg overflow-hidden">
-                                                <img 
-                                                    src={getArticleImage()!} 
-                                                    alt={`Visual guide for ${selectedArticle.title}`}
-                                                    className="w-full h-auto rounded-lg"
-                                                />
+                                        {getArticleImages().length > 0 ? (
+                                            <div className="space-y-4">
+                                                {getArticleImages().map((img, idx) => (
+                                                    <div key={img.id} className="relative rounded-lg overflow-hidden group">
+                                                        <img 
+                                                            src={img.imageData} 
+                                                            alt={`Visual guide ${idx + 1} for ${selectedArticle.title}`}
+                                                            className="w-full h-auto rounded-lg"
+                                                        />
+                                                        {canUploadImages && (
+                                                            <button
+                                                                onClick={() => handleRemoveImage(img.id)}
+                                                                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        {getArticleImages().length > 1 && (
+                                                            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                                                {idx + 1} / {getArticleImages().length}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                {canUploadImages && getArticleImages().length < MAX_IMAGES_PER_ARTICLE && (
+                                                    <p className="text-xs text-slate-500 text-center">
+                                                        {getArticleImages().length} of {MAX_IMAGES_PER_ARTICLE} images uploaded
+                                                    </p>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="aspect-video bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg flex items-center justify-center border border-slate-200">

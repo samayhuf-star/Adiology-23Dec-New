@@ -8,8 +8,16 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## January 6, 2026 - API Cleanup
-### Removed Unused API Endpoints
+## January 6, 2026 - Documentation Image System
+### Super Admin Documentation Images
+- Added documentation_images table to store images in PostgreSQL
+- Super admin (samayhuf@gmail.com) can upload up to 5 images per documentation article
+- Images stored as base64 in database for cross-user visibility
+- API endpoints: GET /api/docs/images/:articleKey, GET /api/docs/all-images, POST /api/docs/images, DELETE /api/docs/images/:imageId
+- Gallery view in HelpSupport component with per-image delete buttons
+- Images visible to all users, upload/delete restricted to super admin only
+
+### API Cleanup
 - Removed workspace management APIs (/api/workspaces/*) from server/index.ts
 - Removed form template APIs (/api/templates/*) from server/index.ts  
 - Removed VM management APIs (/api/vm-management/*) from server/index.ts
