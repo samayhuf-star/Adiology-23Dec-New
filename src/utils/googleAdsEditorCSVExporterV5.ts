@@ -583,15 +583,77 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
         return;
       }
       
-      // Pad headlines to minimum 3 if we have less (for RSA compliance)
-      while (validHeadlines.length < 3) {
-        validHeadlines.push(validHeadlines[0] || 'Learn More');
+      // Deduplicate headlines (case-insensitive comparison)
+      const seenHeadlines = new Set<string>();
+      const uniqueHeadlines: string[] = [];
+      for (const h of validHeadlines) {
+        const normalized = h.toLowerCase().trim();
+        if (!seenHeadlines.has(normalized)) {
+          seenHeadlines.add(normalized);
+          uniqueHeadlines.push(h);
+        }
       }
       
-      // Pad descriptions to minimum 2 if we have less (for RSA compliance)
-      while (validDescriptions.length < 2) {
-        validDescriptions.push(validDescriptions[0] || 'Contact us today.');
+      // Fallback headlines for padding (all unique and Google Ads compliant)
+      const fallbackHeadlines = [
+        'Get Started Today',
+        'Learn More Now',
+        'Contact Us Today',
+        'Free Consultation',
+        'Expert Service',
+        'Top Rated Provider',
+        'Call For Quote',
+        'Fast Response Time',
+        'Trusted Professionals',
+        'Quality Guaranteed'
+      ];
+      
+      // Pad headlines to minimum 3 if we have less (for RSA compliance) - use unique fallbacks
+      let fallbackIndex = 0;
+      while (uniqueHeadlines.length < 3 && fallbackIndex < fallbackHeadlines.length) {
+        const fallback = fallbackHeadlines[fallbackIndex];
+        const normalized = fallback.toLowerCase().trim();
+        if (!seenHeadlines.has(normalized)) {
+          seenHeadlines.add(normalized);
+          uniqueHeadlines.push(fallback);
+        }
+        fallbackIndex++;
       }
+      
+      // Deduplicate descriptions (case-insensitive comparison)
+      const seenDescriptions = new Set<string>();
+      const uniqueDescriptions: string[] = [];
+      for (const d of validDescriptions) {
+        const normalized = d.toLowerCase().trim();
+        if (!seenDescriptions.has(normalized)) {
+          seenDescriptions.add(normalized);
+          uniqueDescriptions.push(d);
+        }
+      }
+      
+      // Fallback descriptions for padding
+      const fallbackDescriptions = [
+        'Contact us today for professional service. Fast, reliable, and affordable.',
+        'Get expert help from our experienced team. Call now for a free quote.',
+        'Quality service you can trust. Satisfaction guaranteed on every job.',
+        'Available 24/7 for your needs. Licensed and insured professionals.'
+      ];
+      
+      // Pad descriptions to minimum 2 if we have less (for RSA compliance) - use unique fallbacks
+      let descFallbackIndex = 0;
+      while (uniqueDescriptions.length < 2 && descFallbackIndex < fallbackDescriptions.length) {
+        const fallback = fallbackDescriptions[descFallbackIndex];
+        const normalized = fallback.toLowerCase().trim();
+        if (!seenDescriptions.has(normalized)) {
+          seenDescriptions.add(normalized);
+          uniqueDescriptions.push(fallback);
+        }
+        descFallbackIndex++;
+      }
+      
+      // Use the deduplicated arrays
+      const finalHeadlines = uniqueHeadlines;
+      const finalDescriptions = uniqueDescriptions;
       
       const adRow = createEmptyRow();
       adRow[COLUMN_INDEX['Campaign']] = campaign.campaignName;
@@ -604,19 +666,19 @@ export function generateMasterCSV(campaign: CampaignDataV5): string {
       adRow[COLUMN_INDEX['Final URL']] = ad.finalUrl;
       adRow[COLUMN_INDEX['Mobile Final URL']] = ad.mobileUrl || '';
       
-      // Headlines (up to 15) - use validated headlines
-      for (let i = 0; i < Math.min(15, validHeadlines.length); i++) {
+      // Headlines (up to 15) - use deduplicated unique headlines
+      for (let i = 0; i < Math.min(15, finalHeadlines.length); i++) {
         const headlineCol = `Headline ${i + 1}`;
         if (COLUMN_INDEX[headlineCol] !== undefined) {
-          adRow[COLUMN_INDEX[headlineCol]] = validHeadlines[i].substring(0, 30);
+          adRow[COLUMN_INDEX[headlineCol]] = finalHeadlines[i].substring(0, 30);
         }
       }
       
-      // Descriptions (up to 4) - use validated descriptions
-      for (let i = 0; i < Math.min(4, validDescriptions.length); i++) {
+      // Descriptions (up to 4) - use deduplicated unique descriptions
+      for (let i = 0; i < Math.min(4, finalDescriptions.length); i++) {
         const descCol = `Description ${i + 1}`;
         if (COLUMN_INDEX[descCol] !== undefined) {
-          adRow[COLUMN_INDEX[descCol]] = validDescriptions[i].substring(0, 90);
+          adRow[COLUMN_INDEX[descCol]] = finalDescriptions[i].substring(0, 90);
         }
       }
       
