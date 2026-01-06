@@ -11,7 +11,7 @@ import {
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
-import { supabase } from '../utils/supabase/client';
+import { useAuth } from '@clerk/clerk-react';
 import BlogGenerator from './BlogGenerator';
 
 interface SuperAdminPanelProps {
@@ -65,6 +65,9 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Get Clerk auth context for token retrieval
+  const { getToken } = useAuth();
+  
   // Helper to get admin headers for API calls
   const getAdminHeaders = async (): Promise<HeadersInit> => {
     const headers: HeadersInit = {
@@ -72,14 +75,14 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
       'X-Admin-Email': user?.email || ''
     };
     
-    // Try to get Supabase session token
+    // Get Clerk JWT token for authentication
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
+      const token = await getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error('Failed to get session:', error);
+      console.error('Failed to get Clerk token:', error);
     }
     
     return headers;
