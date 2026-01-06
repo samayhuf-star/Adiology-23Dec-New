@@ -8,6 +8,20 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## January 6, 2026 - API Cleanup
+### Removed Unused API Endpoints
+- Removed workspace management APIs (/api/workspaces/*) from server/index.ts
+- Removed form template APIs (/api/templates/*) from server/index.ts  
+- Removed VM management APIs (/api/vm-management/*) from server/index.ts
+- Cleaned up workspace-related comments from App.tsx
+- Removed unused handleWorkspaceError and handleFormError from errorHandler.ts
+
+### Database Schema Fix
+- Created DATABASE_FIX_COMPLETE.sql for Supabase schema synchronization
+- Adds missing columns to campaign_history table (type, name, data, status)
+- Adds missing columns to users table (stripe_customer_id, subscription_plan, etc.)
+- Creates missing tables: subscriptions, payments, invoices, emails, audit_logs, etc.
+
 ## December 30, 2025 - Clerk Authentication Migration
 ### Authentication Provider Migration
 - Migrated from Supabase Auth to Clerk authentication
