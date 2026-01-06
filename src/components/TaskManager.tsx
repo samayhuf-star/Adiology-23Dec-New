@@ -217,11 +217,18 @@ export function TaskManager() {
     }
   };
 
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const saveProject = async () => {
     try {
+      setSaving(true);
+      setError(null);
+      
       const token = await getToken();
       if (!token) {
-        console.error('No auth token available');
+        setError('Authentication required. Please sign in again.');
+        setSaving(false);
         return;
       }
 
@@ -243,11 +250,15 @@ export function TaskManager() {
         setEditingProject(null);
         setNewProject({ name: '', color: PROJECT_COLORS[0] });
       } else {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        setError(errorData.error || `Failed to save project (${response.status})`);
         console.error('Failed to save project:', response.status, errorData);
       }
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message || 'Network error. Please try again.');
       console.error('Failed to save project:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -682,12 +693,20 @@ export function TaskManager() {
       </Dialog>
       
       {/* Project Dialog */}
-      <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
+      <Dialog open={isProjectDialogOpen} onOpenChange={(open: boolean) => {
+        setIsProjectDialogOpen(open);
+        if (!open) setError(null);
+      }}>
         <DialogContent className="bg-gray-800 border-gray-700 text-white">
           <DialogHeader>
             <DialogTitle>{editingProject ? 'Edit Project' : 'New Project'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {error && (
+              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+                {error}
+              </div>
+            )}
             <div>
               <label className="text-sm text-gray-400">Name</label>
               <Input
@@ -715,11 +734,11 @@ export function TaskManager() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsProjectDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsProjectDialogOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={saveProject} disabled={!newProject.name.trim()}>
-              {editingProject ? 'Save' : 'Create'}
+            <Button onClick={saveProject} disabled={!newProject.name.trim() || saving}>
+              {saving ? 'Saving...' : (editingProject ? 'Save' : 'Create')}
             </Button>
           </DialogFooter>
         </DialogContent>
