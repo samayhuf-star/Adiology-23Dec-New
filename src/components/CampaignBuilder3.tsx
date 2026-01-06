@@ -636,7 +636,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       const formattedUrl = formatUrl(campaignData.url.trim());
       
       addAnalysisLog(`Starting comprehensive analysis for: ${formattedUrl}`, 'step');
-      addAnalysisLog('Initializing Playwright browser...', 'info');
+      addAnalysisLog('Initializing browser...', 'info');
       
       // Try comprehensive server-side analysis first
       let comprehensiveData: any = null;
