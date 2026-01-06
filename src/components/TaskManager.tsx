@@ -84,11 +84,20 @@ export function TaskManager() {
 
       if (tasksRes.ok) {
         const tasksData = await tasksRes.json();
-        setTasks(tasksData.data || []);
+        const normalizedTasks = (tasksData.data || []).map((t: any) => ({
+          ...t,
+          id: String(t.id),
+          projectId: t.projectId ? String(t.projectId) : null
+        }));
+        setTasks(normalizedTasks);
       }
       if (projectsRes.ok) {
         const projectsData = await projectsRes.json();
-        setProjects(projectsData.data || []);
+        const normalizedProjects = (projectsData.data || []).map((p: any) => ({
+          ...p,
+          id: String(p.id)
+        }));
+        setProjects(normalizedProjects);
       }
     } catch (error) {
       console.error('Failed to fetch tasks/projects:', error);
@@ -104,10 +113,21 @@ export function TaskManager() {
   const saveTask = async () => {
     try {
       const token = await getToken();
-      if (!token) return;
+      if (!token) {
+        console.error('No auth token available');
+        return;
+      }
 
       const url = editingTask ? `/api/tasks/${editingTask.id}` : '/api/tasks';
       const method = editingTask ? 'PUT' : 'POST';
+
+      const taskData = {
+        title: newTask.title,
+        description: newTask.description,
+        projectId: newTask.projectId ? parseInt(newTask.projectId, 10) : null,
+        priority: newTask.priority,
+        dueDate: newTask.dueDate || null,
+      };
 
       const response = await fetch(url, {
         method,
@@ -115,13 +135,7 @@ export function TaskManager() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          title: newTask.title,
-          description: newTask.description,
-          projectId: newTask.projectId,
-          priority: newTask.priority,
-          dueDate: newTask.dueDate || null,
-        })
+        body: JSON.stringify(taskData)
       });
 
       if (response.ok) {
@@ -129,6 +143,9 @@ export function TaskManager() {
         setIsTaskDialogOpen(false);
         setEditingTask(null);
         setNewTask({ title: '', description: '', projectId: null, priority: 'medium', dueDate: '' });
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to save task:', response.status, errorData);
       }
     } catch (error) {
       console.error('Failed to save task:', error);
@@ -203,7 +220,10 @@ export function TaskManager() {
   const saveProject = async () => {
     try {
       const token = await getToken();
-      if (!token) return;
+      if (!token) {
+        console.error('No auth token available');
+        return;
+      }
 
       const url = editingProject ? `/api/projects/${editingProject.id}` : '/api/projects';
       const method = editingProject ? 'PUT' : 'POST';
@@ -222,6 +242,9 @@ export function TaskManager() {
         setIsProjectDialogOpen(false);
         setEditingProject(null);
         setNewProject({ name: '', color: PROJECT_COLORS[0] });
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to save project:', response.status, errorData);
       }
     } catch (error) {
       console.error('Failed to save project:', error);
