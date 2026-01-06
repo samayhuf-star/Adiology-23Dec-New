@@ -2,6 +2,44 @@
 
 const STORAGE_KEY = 'adiology-campaign-history';
 
+// Get user-specific storage key
+function getUserStorageKey(): string {
+  // Try to get current user ID from localStorage (set by auth system)
+  const currentUserId = localStorage.getItem('adiology-current-user-id');
+  if (currentUserId) {
+    return `${STORAGE_KEY}-${currentUserId}`;
+  }
+  return STORAGE_KEY;
+}
+
+// Set the current user ID for user-specific storage
+export function setCurrentUserId(userId: string | null): void {
+  const previousUserId = localStorage.getItem('adiology-current-user-id');
+  
+  if (userId) {
+    localStorage.setItem('adiology-current-user-id', userId);
+  } else {
+    localStorage.removeItem('adiology-current-user-id');
+  }
+  
+  // If user changed, clear the old shared storage to prevent data leakage
+  if (previousUserId !== userId && previousUserId) {
+    // Don't clear user-specific storage, just the old shared key if it exists
+    const sharedData = localStorage.getItem(STORAGE_KEY);
+    if (sharedData) {
+      // Move shared data to the previous user's storage
+      localStorage.setItem(`${STORAGE_KEY}-${previousUserId}`, sharedData);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+}
+
+// Clear all history for current user (useful for testing/cleanup)
+export function clearUserHistory(): void {
+  const key = getUserStorageKey();
+  localStorage.removeItem(key);
+}
+
 export interface HistoryItem {
   id: string;
   type: string;
@@ -52,7 +90,8 @@ export const localStorageHistory = {
     try {
       const history = this.getAll();
       history.push(newItem);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      const storageKey = getUserStorageKey();
+      localStorage.setItem(storageKey, JSON.stringify(history));
       console.log(`✅ Saved to local storage as ${status}:`, newItem.id);
     } catch (error: any) {
       // Check if it's a quota exceeded error
@@ -79,7 +118,8 @@ export const localStorageHistory = {
           };
           history.push(reference);
           try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            const storageKey = getUserStorageKey();
+            localStorage.setItem(storageKey, JSON.stringify(history));
           } catch {
             // If still fails, just continue - data is saved on server
           }
@@ -109,7 +149,8 @@ export const localStorageHistory = {
         if (name) {
           history[itemIndex].name = name;
         }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        const storageKey = getUserStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(history));
         console.log('✅ Updated in local storage:', id);
       } else {
         // Item not found - create new item instead (upsert behavior)
@@ -125,7 +166,8 @@ export const localStorageHistory = {
         };
         
         history.push(newItem);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        const storageKey = getUserStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(history));
         console.log('✅ Created new item in local storage (item not found for update):', id);
       }
     } catch (error) {
@@ -146,7 +188,8 @@ export const localStorageHistory = {
       if (itemIndex >= 0) {
         history[itemIndex].status = 'completed';
         history[itemIndex].lastModified = new Date().toISOString();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        const storageKey = getUserStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(history));
         console.log('✅ Marked as completed in local storage:', id);
       }
     } catch (error) {
@@ -158,7 +201,8 @@ export const localStorageHistory = {
   // Get all history items
   getAll(): HistoryItem[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
+      const storageKey = getUserStorageKey();
+      const data = localStorage.getItem(storageKey);
       return data ? JSON.parse(data) : [];
     } catch (error) {
       console.error('Failed to read from localStorage:', error);
@@ -171,7 +215,8 @@ export const localStorageHistory = {
     try {
       const history = this.getAll();
       const filtered = history.filter(item => item.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      const storageKey = getUserStorageKey();
+      localStorage.setItem(storageKey, JSON.stringify(filtered));
       console.log('✅ Deleted from local storage:', id);
     } catch (error) {
       console.error('Failed to delete from localStorage:', error);
@@ -186,6 +231,7 @@ export const localStorageHistory = {
 
   // Clear all history
   clear(): void {
-    localStorage.removeItem(STORAGE_KEY);
+    const storageKey = getUserStorageKey();
+    localStorage.removeItem(storageKey);
   }
 };

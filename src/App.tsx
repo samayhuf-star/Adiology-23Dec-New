@@ -30,6 +30,7 @@ import {
 import { getUserPreferences, applyUserPreferences } from './utils/userPreferences';
 import { notifications as notificationService } from './utils/notifications';
 import { setClerkGetToken } from './utils/historyService';
+import { setCurrentUserId } from './utils/localStorageHistory';
 import { setClerkUser, setClerkAuth } from './utils/auth';
 import { FeedbackButton } from './components/FeedbackButton';
 import { ClerkAuth } from './components/ClerkAuth';
@@ -134,6 +135,8 @@ const AppContent = () => {
   // Update cached Clerk user when user changes
   useEffect(() => {
     setClerkUser(clerkUser);
+    // Set current user ID for user-specific localStorage
+    setCurrentUserId(clerkUser?.id || null);
   }, [clerkUser]);
   
   // Load and apply user preferences on mount
