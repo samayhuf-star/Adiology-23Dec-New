@@ -278,29 +278,7 @@ async function verifySuperAdmin(c: any): Promise<{ authorized: boolean; error?: 
       return { authorized: false, error: 'Invalid or expired token' };
     }
     
-    // Fallback: X-Admin-Email header for Clerk (when token verification isn't available)
-    if (adminEmail) {
-      // Check if email is a super admin
-      const roleResult = await pool.query(
-        'SELECT id, role FROM users WHERE email = $1',
-        [adminEmail]
-      );
-      
-      const userRole = roleResult.rows[0]?.role;
-      const userId = roleResult.rows[0]?.id;
-      
-      if (userRole === 'superadmin' || userRole === 'super_admin') {
-        console.log(`[Admin Auth] Email-based auth successful for ${adminEmail}`);
-        return { authorized: true, userId };
-      }
-      
-      // Hardcoded super admin emails
-      if (adminEmail === 'samayhuf@gmail.com' || adminEmail === 'oadiology@gmail.com') {
-        console.log(`[Admin Auth] Hardcoded super admin email: ${adminEmail}`);
-        return { authorized: true, userId: userId || 'admin-' + Date.now() };
-      }
-    }
-    
+    // No bearer token provided - require authentication
     return { authorized: false, error: 'Unauthorized: Bearer token required' };
   } catch (error) {
     console.error('[Admin Auth] Authentication error:', error);
