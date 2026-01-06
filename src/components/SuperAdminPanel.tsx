@@ -137,8 +137,17 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     try {
       const response = await adminFetch('/api/admin/stats');
       if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+        const result = await response.json();
+        // Handle nested data structure from API
+        const statsData = result.data || result;
+        setStats({
+          totalUsers: statsData.totalUsers || 0,
+          activeSubscriptions: statsData.activeSubscriptions || 0,
+          monthlyRevenue: statsData.monthlyRevenue || 0,
+          errorCount: statsData.errorCount || 0,
+          activeTrials: statsData.activeTrials || 0,
+          emailsSent: statsData.emailsSent || 0
+        });
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -152,8 +161,10 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     try {
       const response = await adminFetch('/api/admin/users');
       if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
+        const result = await response.json();
+        // Handle nested data structure from API
+        const usersData = result.data?.users || result.users || [];
+        setUsers(usersData);
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
@@ -167,8 +178,10 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     try {
       const response = await adminFetch(`/api/admin/logs?level=${logFilter}`);
       if (response.ok) {
-        const data = await response.json();
-        setLogs(data.logs || []);
+        const result = await response.json();
+        // Handle nested data structure from API
+        const logsData = result.data?.logs || result.logs || [];
+        setLogs(logsData);
       }
     } catch (error) {
       console.error('Failed to fetch logs:', error);
@@ -182,8 +195,10 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     try {
       const response = await adminFetch('/api/admin/security/rules');
       if (response.ok) {
-        const data = await response.json();
-        setSecurityRules(data.rules || []);
+        const result = await response.json();
+        // Handle nested data structure from API
+        const rulesData = result.data?.rules || result.rules || [];
+        setSecurityRules(rulesData);
       }
     } catch (error) {
       console.error('Failed to fetch security rules:', error);
@@ -197,8 +212,10 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     try {
       const response = await adminFetch('/api/admin/database/tables');
       if (response.ok) {
-        const data = await response.json();
-        setTables(data.tables || []);
+        const result = await response.json();
+        // Handle nested data structure from API
+        const tablesData = result.data?.tables || result.tables || [];
+        setTables(tablesData);
       }
     } catch (error) {
       console.error('Failed to fetch tables:', error);
@@ -212,9 +229,12 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     try {
       const response = await adminFetch(`/api/admin/database/table/${tableName}`);
       if (response.ok) {
-        const data = await response.json();
-        setTableData(data.rows || []);
-        setTableColumns(data.columns || []);
+        const result = await response.json();
+        // Handle nested data structure from API
+        const rowsData = result.data?.rows || result.rows || [];
+        const columnsData = result.data?.columns || result.columns || [];
+        setTableData(rowsData);
+        setTableColumns(columnsData);
         setSelectedTable(tableName);
       }
     } catch (error) {
