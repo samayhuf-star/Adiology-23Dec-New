@@ -139,6 +139,37 @@ const AppContent = () => {
     setCurrentUserId(clerkUser?.id || null);
   }, [clerkUser]);
   
+  // Sync Clerk user to database when user signs in
+  useEffect(() => {
+    const syncUserToDatabase = async () => {
+      if (!isSignedIn || !clerkUser) return;
+      
+      try {
+        const token = await getToken();
+        if (!token) return;
+        
+        const response = await fetch('/api/user/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            fullName: clerkUser.fullName || clerkUser.firstName || ''
+          })
+        });
+        
+        if (response.ok) {
+          console.log('[User Sync] User synced to database');
+        }
+      } catch (error) {
+        console.error('[User Sync] Failed to sync user:', error);
+      }
+    };
+    
+    syncUserToDatabase();
+  }, [isSignedIn, clerkUser, getToken]);
+  
   // Load and apply user preferences on mount
   useEffect(() => {
     const prefs = getUserPreferences();

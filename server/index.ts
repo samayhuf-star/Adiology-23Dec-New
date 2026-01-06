@@ -4667,21 +4667,50 @@ async function verifyUserToken(c: any): Promise<{ authorized: boolean; userId?: 
 }
 
 // Helper to ensure user exists in local database (syncs from Clerk auth)
-async function ensureUserExists(userId: string, email?: string): Promise<void> {
+async function ensureUserExists(userId: string, email?: string, fullName?: string): Promise<void> {
   try {
     const existing = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
     if (existing.rows.length === 0 && email) {
       await pool.query(
-        `INSERT INTO users (id, email, role, subscription_plan, subscription_status, created_at, updated_at)
-         VALUES ($1, $2, 'user', 'free', 'active', NOW(), NOW())
-         ON CONFLICT (id) DO NOTHING`,
-        [userId, email]
+        `INSERT INTO users (id, email, full_name, role, subscription_plan, subscription_status, created_at, updated_at)
+         VALUES ($1, $2, $3, 'user', 'free', 'active', NOW(), NOW())
+         ON CONFLICT (id) DO UPDATE SET email = $2, full_name = COALESCE($3, users.full_name), updated_at = NOW()`,
+        [userId, email, fullName || null]
       );
+      console.log('[ensureUserExists] User created/updated:', userId, email);
+    } else if (existing.rows.length > 0) {
+      // Update last activity timestamp
+      await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
     }
   } catch (error) {
     console.error('[ensureUserExists] Error:', error);
   }
 }
+
+// Endpoint to sync Clerk user to local database (called after sign in)
+app.post('/api/user/sync', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    // Get full name from request body if provided
+    const body = await c.req.json().catch(() => ({}));
+    const fullName = body.fullName || body.full_name;
+    
+    await ensureUserExists(auth.userId!, auth.userEmail, fullName);
+    
+    return c.json({ 
+      success: true, 
+      userId: auth.userId,
+      message: 'User synced successfully'
+    });
+  } catch (error: any) {
+    console.error('[/api/user/sync] Error:', error);
+    return c.json({ error: 'Failed to sync user' }, 500);
+  }
+});
 
 // Get all campaign history for user
 app.get('/api/campaign-history', async (c) => {
@@ -4934,50 +4963,30 @@ app.get('/api/admin/stats', async (c) => {
 
       const errors: string[] = [];
 
-      // Get total users from Supabase
+      // Get total users from Replit PostgreSQL (where Clerk users are synced)
       try {
-        const { count: totalUsers, error } = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true });
-        
-        if (error) {
-          errors.push(`Users table error: ${error.message}`);
-        } else {
-          stats.totalUsers = totalUsers || 0;
-        }
+        const userResult = await pool.query('SELECT COUNT(*) as count FROM users');
+        stats.totalUsers = parseInt(userResult.rows[0]?.count || '0', 10);
       } catch (error: any) {
         errors.push(`Users table query failed: ${error.message}`);
       }
       
-      // Get active subscriptions from Supabase subscriptions table
+      // Get active subscriptions from local database
       try {
-        const { count: activeSubscriptions, error } = await supabase
-          .from('subscriptions')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'active');
-        
-        if (error) {
-          errors.push(`Subscriptions table error: ${error.message}`);
-        } else {
-          stats.activeSubscriptions = activeSubscriptions || 0;
-        }
+        const subsResult = await pool.query("SELECT COUNT(*) as count FROM subscriptions WHERE status = 'active'");
+        stats.activeSubscriptions = parseInt(subsResult.rows[0]?.count || '0', 10);
       } catch (error: any) {
         errors.push(`Subscriptions table query failed: ${error.message}`);
       }
       
       // Get monthly revenue from payments table
       try {
-        const { data: payments, error } = await supabase
-          .from('payments')
-          .select('amount_cents, status')
-          .eq('status', 'succeeded')
-          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
-        
-        if (error) {
-          errors.push(`Payments table error: ${error.message}`);
-        } else {
-          stats.monthlyRevenue = (payments || []).reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0) / 100;
-        }
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const paymentsResult = await pool.query(
+          "SELECT COALESCE(SUM(amount_cents), 0) as total FROM payments WHERE status = 'succeeded' AND created_at >= $1",
+          [thirtyDaysAgo]
+        );
+        stats.monthlyRevenue = parseInt(paymentsResult.rows[0]?.total || '0', 10) / 100;
       } catch (error: any) {
         errors.push(`Payments table query failed: ${error.message}`);
       }
@@ -4985,49 +4994,27 @@ app.get('/api/admin/stats', async (c) => {
       // Get error count from audit logs (last 24 hours)
       try {
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const { count: errorCount, error } = await supabase
-          .from('audit_logs')
-          .select('*', { count: 'exact', head: true })
-          .eq('level', 'error')
-          .gte('created_at', yesterday);
-        
-        if (error) {
-          errors.push(`Audit logs table error: ${error.message}`);
-        } else {
-          stats.errorCount = errorCount || 0;
-        }
+        const errorResult = await pool.query(
+          "SELECT COUNT(*) as count FROM audit_logs WHERE level = 'error' AND created_at >= $1",
+          [yesterday]
+        );
+        stats.errorCount = parseInt(errorResult.rows[0]?.count || '0', 10);
       } catch (error: any) {
         errors.push(`Audit logs table query failed: ${error.message}`);
       }
       
-      // Get trial count from feedback table (as proxy for trials)
+      // Get trial count (users with trial subscription)
       try {
-        const { count: feedbackCount, error } = await supabase
-          .from('feedback')
-          .select('*', { count: 'exact', head: true })
-          .eq('type', 'feature_request');
-        
-        if (error) {
-          errors.push(`Feedback table error: ${error.message}`);
-        } else {
-          stats.activeTrials = feedbackCount || 0;
-        }
+        const trialResult = await pool.query("SELECT COUNT(*) as count FROM users WHERE subscription_status = 'trialing'");
+        stats.activeTrials = parseInt(trialResult.rows[0]?.count || '0', 10);
       } catch (error: any) {
-        errors.push(`Feedback table query failed: ${error.message}`);
+        errors.push(`Trials query failed: ${error.message}`);
       }
       
       // Get emails sent count
       try {
-        const { count: emailsSent, error } = await supabase
-          .from('emails')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'sent');
-        
-        if (error) {
-          errors.push(`Emails table error: ${error.message}`);
-        } else {
-          stats.emailsSent = emailsSent || 0;
-        }
+        const emailsResult = await pool.query("SELECT COUNT(*) as count FROM emails WHERE status = 'sent'");
+        stats.emailsSent = parseInt(emailsResult.rows[0]?.count || '0', 10);
       } catch (error: any) {
         errors.push(`Emails table query failed: ${error.message}`);
       }
@@ -5091,21 +5078,10 @@ app.get('/api/admin/stats', async (c) => {
   });
 });
 
-// Get all users for admin
+// Get all users for admin (from Replit PostgreSQL where Clerk users are synced)
 app.get('/api/admin/users', async (c) => {
   return withAdminAuth(c, async (adminContext) => {
     try {
-      const supabase = adminContext.adminClient;
-      if (!supabase) {
-        return c.json({
-          success: false,
-          error: 'Admin client not available',
-          code: 'CONFIG_ERROR',
-          details: { message: 'Supabase admin client not initialized' },
-          timestamp: new Date().toISOString()
-        }, 500);
-      }
-      
       // Get search/filter parameters
       const search = c.req.query('search') || '';
       const role = c.req.query('role') || '';
@@ -5114,50 +5090,55 @@ app.get('/api/admin/users', async (c) => {
       const limit = parseInt(c.req.query('limit') || '100');
       const offset = parseInt(c.req.query('offset') || '0');
       
-      // Build query
-      let query = supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      // Build query with filters for Replit PostgreSQL
+      let whereConditions: string[] = [];
+      let params: any[] = [];
+      let paramIndex = 1;
       
-      // Apply filters
       if (search) {
-        query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%`);
+        whereConditions.push(`(email ILIKE $${paramIndex} OR COALESCE(full_name, '') ILIKE $${paramIndex})`);
+        params.push(`%${search}%`);
+        paramIndex++;
       }
       if (role) {
-        query = query.eq('role', role);
+        whereConditions.push(`role = $${paramIndex}`);
+        params.push(role);
+        paramIndex++;
       }
       if (plan) {
-        query = query.eq('subscription_plan', plan);
+        whereConditions.push(`subscription_plan = $${paramIndex}`);
+        params.push(plan);
+        paramIndex++;
       }
       if (status) {
-        query = query.eq('subscription_status', status);
+        whereConditions.push(`subscription_status = $${paramIndex}`);
+        params.push(status);
+        paramIndex++;
       }
       
-      const { data: users, error, count } = await query;
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
       
-      if (error) {
-        await logAdminAction(
-          adminContext.user.id,
-          'view_users_error',
-          'users',
-          'list',
-          { error: error.message, filters: { search, role, plan, status } },
-          'error'
-        );
-        
-        return c.json({
-          success: false,
-          error: 'Failed to retrieve users',
-          code: 'DATABASE_ERROR',
-          details: {
-            message: error.message,
-            filters: { search, role, plan, status }
-          },
-          timestamp: new Date().toISOString()
-        }, 500);
-      }
+      // Get users from Replit PostgreSQL
+      const usersResult = await pool.query(
+        `SELECT id, email, full_name, role, subscription_plan, subscription_status, 
+                created_at, updated_at, is_blocked
+         FROM users 
+         ${whereClause}
+         ORDER BY created_at DESC
+         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+        [...params, limit, offset]
+      );
+      
+      // Get total count
+      const countResult = await pool.query(
+        `SELECT COUNT(*) as total FROM users ${whereClause}`,
+        params
+      );
+      
+      const users = usersResult.rows.map((u: any) => ({
+        ...u,
+        last_sign_in: u.updated_at // Use updated_at as proxy for last sign in
+      }));
       
       // Log the admin action
       await logAdminAction(
@@ -5166,7 +5147,7 @@ app.get('/api/admin/users', async (c) => {
         'users',
         'list',
         { 
-          userCount: users?.length || 0,
+          userCount: users.length,
           filters: { search, role, plan, status },
           limit,
           offset
@@ -5177,11 +5158,11 @@ app.get('/api/admin/users', async (c) => {
       return c.json({
         success: true,
         data: {
-          users: users || [],
+          users,
           pagination: {
             limit,
             offset,
-            total: count || users?.length || 0
+            total: parseInt(countResult.rows[0]?.total || '0', 10)
           },
           filters: { search, role, plan, status }
         },
