@@ -313,7 +313,10 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
             </div>
             <p className="text-lg text-slate-600">Here's what's happening with your campaigns today.</p>
           </div>
-          <button className="modern-button px-6 py-3 rounded-xl text-white font-medium shadow-lg flex items-center gap-2">
+          <button 
+            onClick={() => onNavigate('builder-3')}
+            className="modern-button px-6 py-3 rounded-xl text-white font-medium shadow-lg flex items-center gap-2"
+          >
             <Sparkles className="w-5 h-5" />
             New Campaign
           </button>
