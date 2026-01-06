@@ -558,17 +558,29 @@ const AppContent = () => {
       const hostname = window.location.hostname;
       const isAdminSubdomain = hostname.startsWith('admin.') || hostname === 'admin.adiology.io';
       if (isAdminSubdomain || path.startsWith('/admin')) {
-        // Check if user is super admin - use database role only
-        if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
-          setView('admin-panel');
-          return;
-        }
-        // If not logged in or not admin, redirect to auth
+        // If not logged in, redirect to auth first
         if (!user) {
           setAuthMode('sign-in');
           setView('auth');
           return;
         }
+        
+        // Whitelisted super admin emails (fallback if database role not set)
+        const superAdminEmails = [
+          'oadiology@gmail.com',
+          'obed@adiology.io',
+          'admin@adiology.io'
+        ];
+        
+        // Check if user is super admin - use database role OR email whitelist
+        const hasAdminRole = user.role === 'superadmin' || user.role === 'super_admin';
+        const isWhitelistedEmail = user.email && superAdminEmails.includes(user.email.toLowerCase());
+        
+        if (hasAdminRole || isWhitelistedEmail) {
+          setView('admin-panel');
+          return;
+        }
+        
         // If logged in but not admin, show homepage
         setView('homepage');
         return;
@@ -728,8 +740,17 @@ const AppContent = () => {
     }
   };
 
-  // Check if current user is super admin - ONLY use database role, no hardcoded emails
-  const isSuperAdmin = user && (user.role === 'superadmin' || user.role === 'super_admin');
+  // Whitelisted super admin emails (fallback if database role not set)
+  const superAdminEmails = [
+    'oadiology@gmail.com',
+    'obed@adiology.io',
+    'admin@adiology.io'
+  ];
+  
+  // Check if current user is super admin - use database role OR email whitelist
+  const hasAdminRole = user && (user.role === 'superadmin' || user.role === 'super_admin');
+  const isWhitelistedEmail = user && user.email && superAdminEmails.includes(user.email.toLowerCase());
+  const isSuperAdmin = hasAdminRole || isWhitelistedEmail;
 
   // Default: User view (protected) navigation structure
   const allMenuItems = [
