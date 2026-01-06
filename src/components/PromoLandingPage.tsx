@@ -289,10 +289,8 @@ export function PromoLandingPage({ onStartTrial, onNavigate }: PromoLandingPageP
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                       {[
                         '10 Campaigns per month',
-                        '10 Domains',
                         '50 Campaign Presets',
                         '50 Templates',
-                        'Workspaces',
                         'Access for 2 Users',
                         '1-Click Campaign Builder',
                         'Campaign Builder Wizard',
@@ -555,7 +553,7 @@ export function PromoLandingPage({ onStartTrial, onNavigate }: PromoLandingPageP
               },
               {
                 q: 'What\'s included in the Lifetime Plan?',
-                a: 'Everything! 10 campaigns/month, 10 domains, 50 presets, 50 templates, workspaces, 2 users, all campaign builders, keywords tools, AI ad creation, CSV export, website builder, and ALL future updates. Own it forever with one payment.'
+                a: 'Everything! 10 campaigns/month, 50 presets, 50 templates, 2 users, all campaign builders, keywords tools, AI ad creation, CSV export, website builder, and ALL future updates. Own it forever with one payment.'
               },
               {
                 q: 'Why is this offer limited to 50 slots?',
