@@ -32,6 +32,7 @@ import { notifications as notificationService } from './utils/notifications';
 import { setClerkGetToken } from './utils/historyService';
 import { setCurrentUserId } from './utils/localStorageHistory';
 import { setClerkUser, setClerkAuth } from './utils/auth';
+import { initStorageManager, clearStorageNow } from './utils/storageManager';
 import { FeedbackButton } from './components/FeedbackButton';
 import { ClerkAuth } from './components/ClerkAuth';
 import { Dashboard } from './components/Dashboard';
@@ -169,6 +170,12 @@ const AppContent = () => {
     
     syncUserToDatabase();
   }, [isSignedIn, clerkUser, getToken]);
+  
+  // Initialize storage manager on mount (auto-cleanup old data)
+  useEffect(() => {
+    initStorageManager();
+    clearStorageNow();
+  }, []);
   
   // Load and apply user preferences on mount
   useEffect(() => {
