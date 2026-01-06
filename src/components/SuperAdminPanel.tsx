@@ -327,7 +327,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
             <span className="text-gray-400 text-xs sm:text-sm">Total Users</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">{stats.totalUsers}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats?.totalUsers ?? 0}</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
@@ -335,7 +335,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
             <span className="text-gray-400 text-xs sm:text-sm">Active Subs</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">{stats.activeSubscriptions}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats?.activeSubscriptions ?? 0}</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
@@ -351,7 +351,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
             <span className="text-gray-400 text-xs sm:text-sm">Errors</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">{stats.errorCount}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats?.errorCount ?? 0}</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
@@ -359,7 +359,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
             <span className="text-gray-400 text-xs sm:text-sm">Trials</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">{stats.activeTrials}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats?.activeTrials ?? 0}</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-lg sm:rounded-xl p-2.5 sm:p-4">
@@ -367,7 +367,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
             <span className="text-gray-400 text-xs sm:text-sm">Emails</span>
           </div>
-          <div className="text-lg sm:text-2xl font-bold text-white">{stats.emailsSent}</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats?.emailsSent ?? 0}</div>
         </div>
       </div>
 
@@ -572,7 +572,7 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
             <span className="text-gray-400 text-sm">Active Subs</span>
             <Users className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="text-2xl font-bold text-white">{stats.activeSubscriptions}</div>
+          <div className="text-2xl font-bold text-white">{stats?.activeSubscriptions ?? 0}</div>
         </div>
         
         <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
