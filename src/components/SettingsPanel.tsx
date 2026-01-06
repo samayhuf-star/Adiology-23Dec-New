@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import { getCurrentUserProfile } from '../utils/auth';
 import { supabase } from '../utils/supabase/client';
 import { 
@@ -31,6 +32,7 @@ interface SettingsPanelProps {
 }
 
 export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) => {
+  const { user: clerkUser } = useUser();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -214,7 +216,6 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
   };
 
   const handleChangePassword = async () => {
-    // Bug_10: Validate that all password fields are not blank
     const trimmedCurrentPassword = currentPassword.trim();
     const trimmedNewPassword = newPassword.trim();
     const trimmedConfirmPassword = confirmPassword.trim();
@@ -234,8 +235,8 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
       return;
     }
     
-    if (trimmedNewPassword.length < 6) {
-      setSaveMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
+    if (trimmedNewPassword.length < 8) {
+      setSaveMessage({ type: 'error', text: 'Password must be at least 8 characters.' });
       return;
     }
     
@@ -244,23 +245,19 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
       return;
     }
     
+    if (!clerkUser) {
+      setSaveMessage({ type: 'error', text: 'You must be signed in to change your password.' });
+      return;
+    }
+    
     setIsSaving(true);
     setSaveMessage(null);
     
     try {
-      // Verify current password and update using Supabase
-      const { updatePassword } = await import('../utils/auth');
-      const { error } = await supabase.auth.updateUser({ password: trimmedNewPassword });
-      
-      if (error) {
-        if (error.message.includes('password')) {
-          setSaveMessage({ type: 'error', text: 'Failed to change password. Please verify your current password is correct.' });
-        } else {
-          setSaveMessage({ type: 'error', text: error.message || 'Failed to change password. Please try again.' });
-        }
-        setIsSaving(false);
-        return;
-      }
+      await clerkUser.updatePassword({
+        currentPassword: trimmedCurrentPassword,
+        newPassword: trimmedNewPassword,
+      });
       
       setCurrentPassword('');
       setNewPassword('');
@@ -268,9 +265,10 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
       
       setSaveMessage({ type: 'success', text: 'Password changed successfully!' });
       setTimeout(() => setSaveMessage(null), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error changing password:', error);
-      setSaveMessage({ type: 'error', text: 'Failed to change password. Please try again.' });
+      const errorMessage = error.errors?.[0]?.longMessage || error.errors?.[0]?.message || 'Failed to change password. Please try again.';
+      setSaveMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsSaving(false);
     }
@@ -304,7 +302,7 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
           <div className="space-y-1.5">
             <TerminalLine prefix="$" label="user:" value={name || 'NOT_SET'} valueColor={name ? 'green' : 'yellow'} />
             <TerminalLine prefix="$" label="email:" value={email ? email.substring(0, 20) + (email.length > 20 ? '...' : '') : 'NOT_SET'} valueColor={email ? 'cyan' : 'yellow'} />
-            <TerminalLine prefix="$" label="auth_provider:" value="SUPABASE" valueColor="purple" />
+            <TerminalLine prefix="$" label="auth_provider:" value="CLERK" valueColor="purple" />
             <TerminalLine prefix="$" label="status:" value={user ? 'AUTHENTICATED' : 'NOT_LOGGED_IN'} valueColor={user ? 'green' : 'yellow'} />
           </div>
         </TerminalCard>
