@@ -110,11 +110,18 @@ export function TaskManager() {
     fetchData();
   }, [fetchData]);
 
+  const [taskError, setTaskError] = useState<string | null>(null);
+  const [savingTask, setSavingTask] = useState(false);
+
   const saveTask = async () => {
     try {
+      setSavingTask(true);
+      setTaskError(null);
+      
       const token = await getToken();
       if (!token) {
-        console.error('No auth token available');
+        setTaskError('Authentication required. Please sign in again.');
+        setSavingTask(false);
         return;
       }
 
@@ -144,11 +151,15 @@ export function TaskManager() {
         setEditingTask(null);
         setNewTask({ title: '', description: '', projectId: null, priority: 'medium', dueDate: '' });
       } else {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        setTaskError(errorData.error || `Failed to save task (${response.status})`);
         console.error('Failed to save task:', response.status, errorData);
       }
-    } catch (error) {
+    } catch (error: any) {
+      setTaskError(error.message || 'Network error. Please try again.');
       console.error('Failed to save task:', error);
+    } finally {
+      setSavingTask(false);
     }
   };
 
@@ -619,12 +630,20 @@ export function TaskManager() {
       </div>
       
       {/* Task Dialog */}
-      <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+      <Dialog open={isTaskDialogOpen} onOpenChange={(open: boolean) => {
+        setIsTaskDialogOpen(open);
+        if (!open) setTaskError(null);
+      }}>
         <DialogContent className="bg-gray-800 border-gray-700 text-white">
           <DialogHeader>
             <DialogTitle>{editingTask ? 'Edit Task' : 'New Task'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {taskError && (
+              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+                {taskError}
+              </div>
+            )}
             <div>
               <label className="text-sm text-gray-400">Title</label>
               <Input
@@ -685,8 +704,8 @@ export function TaskManager() {
             <Button variant="outline" onClick={() => setIsTaskDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveTask} disabled={!newTask.title.trim()}>
-              {editingTask ? 'Save' : 'Create'}
+            <Button onClick={saveTask} disabled={!newTask.title.trim() || savingTask}>
+              {savingTask ? 'Saving...' : (editingTask ? 'Save' : 'Create')}
             </Button>
           </DialogFooter>
         </DialogContent>
