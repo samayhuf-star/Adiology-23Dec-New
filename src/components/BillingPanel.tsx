@@ -21,6 +21,7 @@ export const BillingPanel = () => {
     const [info, setInfo] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [processingPlan, setProcessingPlan] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isPaid, setIsPaid] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -189,10 +190,10 @@ export const BillingPanel = () => {
     }, []);
 
     const handleSubscribe = async (planName?: string, priceId?: string) => {
+        const selectedPlan = planName || 'Lifetime Unlimited';
+        setProcessingPlan(selectedPlan);
         setProcessing(true);
         try {
-            // Determine plan and price ID
-            const selectedPlan = planName || 'Lifetime Unlimited';
             const selectedPriceId = priceId || "price_1ScnHdRfXPeepCva95wPdyod";
             
             // Get current user for checkout
@@ -215,6 +216,7 @@ export const BillingPanel = () => {
                 description: error instanceof Error ? error.message : 'Unknown error occurred',
             });
             setProcessing(false);
+            setProcessingPlan(null);
         }
     };
 
@@ -731,7 +733,7 @@ Generated on ${new Date().toLocaleDateString()}`;
                                         onClick={() => handleSubscribe("Basic", "price_basic_monthly")}
                                         disabled={processing || billingInfo.plan === "Basic"}
                                     >
-                                        {billingInfo.plan === "Basic" ? "Current Plan" : processing ? "Processing..." : "Get Started"}
+                                        {billingInfo.plan === "Basic" ? "Current Plan" : processingPlan === "Basic" ? "Processing..." : "Get Started"}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -791,7 +793,7 @@ Generated on ${new Date().toLocaleDateString()}`;
                                         onClick={() => handleSubscribe("Pro", "price_pro_monthly")}
                                         disabled={processing || billingInfo.plan === "Pro"}
                                     >
-                                        {billingInfo.plan === "Pro" ? "Current Plan" : processing ? "Processing..." : "Get Started"}
+                                        {billingInfo.plan === "Pro" ? "Current Plan" : processingPlan === "Pro" ? "Processing..." : "Get Started"}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -840,7 +842,7 @@ Generated on ${new Date().toLocaleDateString()}`;
                                         onClick={() => handleSubscribe("Lifetime", "price_lifetime")}
                                         disabled={processing || billingInfo.plan === "Lifetime"}
                                     >
-                                        {billingInfo.plan === "Lifetime" ? "Current Plan" : processing ? "Processing..." : "Get Started"}
+                                        {billingInfo.plan === "Lifetime" ? "Current Plan" : processingPlan === "Lifetime" ? "Processing..." : "Get Started"}
                                     </Button>
                                 </CardFooter>
                             </Card>

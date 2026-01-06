@@ -420,7 +420,7 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
                 <TabsList>
                     <TabsTrigger value="mixer">Keyword Mixer</TabsTrigger>
-                    <TabsTrigger value="history">History</TabsTrigger>
+                    <TabsTrigger value="history">Saved List</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="mixer">

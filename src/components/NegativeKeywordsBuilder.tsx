@@ -601,7 +601,7 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
                             Negative Keywords Builder
                         </TabsTrigger>
                         <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white">
-                            History
+                            Saved List
                         </TabsTrigger>
                     </TabsList>
 
