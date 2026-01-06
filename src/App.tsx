@@ -760,8 +760,18 @@ const AppContent = () => {
   
   // Check if current user is super admin - use database role OR email whitelist
   const hasAdminRole = user && (user.role === 'superadmin' || user.role === 'super_admin');
-  const isWhitelistedEmail = user && user.email && superAdminEmails.includes(user.email.toLowerCase());
+  const userEmailLower = user?.email?.toLowerCase() || '';
+  const isWhitelistedEmail = userEmailLower && superAdminEmails.includes(userEmailLower);
   const isSuperAdmin = hasAdminRole || isWhitelistedEmail;
+  
+  // Debug log for super admin check
+  console.log('Super admin check:', { 
+    email: userEmailLower, 
+    hasAdminRole, 
+    isWhitelistedEmail, 
+    isSuperAdmin,
+    superAdminEmails 
+  });
 
   // Default: User view (protected) navigation structure
   const allMenuItems = [
@@ -1470,6 +1480,10 @@ const AppContent = () => {
                       });
                     } else if ((item as any).externalUrl) {
                       window.open((item as any).externalUrl, '_blank', 'noopener,noreferrer');
+                    } else if (item.id === 'admin-panel') {
+                      // Navigate to super admin panel view
+                      window.history.pushState({}, '', '/admin');
+                      setAppView('admin-panel');
                     } else {
                   setActiveTabSafe(item.id);
                     }
@@ -1628,6 +1642,11 @@ const AppContent = () => {
                           }
                           return newSet;
                         });
+                      } else if (item.id === 'admin-panel') {
+                        // Navigate to super admin panel view
+                        setMobileMenuOpen(false);
+                        window.history.pushState({}, '', '/admin');
+                        setAppView('admin-panel');
                       } else {
                         setActiveTabSafe(item.id);
                       }
