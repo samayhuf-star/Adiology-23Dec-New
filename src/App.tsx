@@ -567,7 +567,7 @@ const AppContent = () => {
         
         // Whitelisted super admin emails (fallback if database role not set)
         const superAdminEmails = [
-          'samay@samay.com'
+          'samayhuf@gmail.com'
         ];
         
         // Check if user is super admin - use database role OR email whitelist
@@ -740,7 +740,7 @@ const AppContent = () => {
 
   // Whitelisted super admin emails (fallback if database role not set)
   const superAdminEmails = [
-    'samay@samay.com'
+    'samayhuf@gmail.com'
   ];
   
   // Check if current user is super admin - use database role OR email whitelist
