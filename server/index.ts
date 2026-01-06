@@ -3944,9 +3944,9 @@ app.get('/api/dashboard', async (c) => {
       [userId]
     );
     
-    // Get recent campaigns (last 10)
+    // Get recent campaigns (last 10) - use COALESCE to handle both name column and data->>'campaignName' fallback
     const recentCampaignsResult = await pool.query(
-      `SELECT id, name as campaign_name, type as structure_type, status as step, created_at, updated_at
+      `SELECT id, COALESCE(data->>'campaignName', data->>'name', type) as campaign_name, type as structure_type, status as step, created_at, updated_at
        FROM campaign_history 
        WHERE user_id = $1 
        ORDER BY updated_at DESC 
@@ -3954,21 +3954,33 @@ app.get('/api/dashboard', async (c) => {
       [userId]
     );
     
-    // Get unread notifications count
-    const unreadResult = await pool.query(
-      `SELECT COUNT(*) as count FROM user_notifications WHERE user_id = $1 AND read = FALSE`,
-      [userId]
-    );
+    // Get unread notifications count - handle table not existing
+    let unreadCount = 0;
+    try {
+      const unreadResult = await pool.query(
+        `SELECT COUNT(*) as count FROM user_notifications WHERE user_id = $1 AND read = FALSE`,
+        [userId]
+      );
+      unreadCount = parseInt(unreadResult.rows[0]?.count || '0');
+    } catch (e) {
+      // Table might not exist
+    }
     
-    // Get user's workspaces
-    const workspacesResult = await pool.query(
-      `SELECT w.*, wm.role, wm.status
-       FROM workspaces w
-       INNER JOIN workspace_members wm ON w.id = wm.workspace_id
-       WHERE wm.user_id = $1 AND wm.status = 'active'
-       ORDER BY w.created_at DESC`,
-      [userId]
-    );
+    // Get user's workspaces - handle table not existing
+    let workspaces: any[] = [];
+    try {
+      const workspacesResult = await pool.query(
+        `SELECT w.*, wm.role, wm.status
+         FROM workspaces w
+         INNER JOIN workspace_members wm ON w.id = wm.workspace_id
+         WHERE wm.user_id = $1 AND wm.status = 'active'
+         ORDER BY w.created_at DESC`,
+        [userId]
+      );
+      workspaces = workspacesResult.rows;
+    } catch (e) {
+      // Tables might not exist
+    }
     
     return c.json({
       success: true,
@@ -3976,10 +3988,10 @@ app.get('/api/dashboard', async (c) => {
         stats: {
           totalCampaigns: parseInt(campaignsResult.rows[0]?.count || '0'),
           totalSearches: parseInt(searchesResult.rows[0]?.count || '0'),
-          unreadNotifications: parseInt(unreadResult.rows[0]?.count || '0'),
+          unreadNotifications: unreadCount,
         },
         recentCampaigns: recentCampaignsResult.rows,
-        workspaces: workspacesResult.rows,
+        workspaces: workspaces,
       },
     });
   } catch (error: any) {
@@ -3999,15 +4011,21 @@ app.get('/api/dashboard/:userId', async (c) => {
       [userId]
     );
     
-    // Get ad search requests count
-    const searchesResult = await pool.query(
-      `SELECT COUNT(*) as count FROM ad_search_requests WHERE user_id = $1`,
-      [userId]
-    );
+    // Get ad search requests count - handle table not existing
+    let searchCount = 0;
+    try {
+      const searchesResult = await pool.query(
+        `SELECT COUNT(*) as count FROM ad_search_requests WHERE user_id = $1`,
+        [userId]
+      );
+      searchCount = parseInt(searchesResult.rows[0]?.count || '0');
+    } catch (e) {
+      // Table might not exist
+    }
     
-    // Get recent campaigns (last 10)
+    // Get recent campaigns (last 10) - use data JSON field for name
     const recentCampaignsResult = await pool.query(
-      `SELECT id, name as campaign_name, type as structure_type, status as step, created_at, updated_at
+      `SELECT id, COALESCE(data->>'campaignName', data->>'name', type) as campaign_name, type as structure_type, status as step, created_at, updated_at
        FROM campaign_history 
        WHERE user_id = $1 
        ORDER BY updated_at DESC 
@@ -4015,19 +4033,25 @@ app.get('/api/dashboard/:userId', async (c) => {
       [userId]
     );
     
-    // Get unread notifications count
-    const unreadResult = await pool.query(
-      `SELECT COUNT(*) as count FROM user_notifications WHERE user_id = $1 AND read = FALSE`,
-      [userId]
-    );
+    // Get unread notifications count - handle table not existing
+    let unreadCount = 0;
+    try {
+      const unreadResult = await pool.query(
+        `SELECT COUNT(*) as count FROM user_notifications WHERE user_id = $1 AND read = FALSE`,
+        [userId]
+      );
+      unreadCount = parseInt(unreadResult.rows[0]?.count || '0');
+    } catch (e) {
+      // Table might not exist
+    }
     
     return c.json({
       success: true,
       data: {
         stats: {
           totalCampaigns: parseInt(campaignsResult.rows[0]?.count || '0'),
-          totalSearches: parseInt(searchesResult.rows[0]?.count || '0'),
-          unreadNotifications: parseInt(unreadResult.rows[0]?.count || '0'),
+          totalSearches: searchCount,
+          unreadNotifications: unreadCount,
         },
         recentCampaigns: recentCampaignsResult.rows,
       },
