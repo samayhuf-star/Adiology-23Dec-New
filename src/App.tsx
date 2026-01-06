@@ -474,17 +474,32 @@ const AppContent = () => {
   useEffect(() => {
     if (!clerkLoaded) return;
     
-    // If user just signed in, navigate to user view
+    // If user just signed in, check where to navigate
     if (isSignedIn && appView === 'auth') {
-      setAppView('user');
-      setActiveTab('dashboard');
+      const path = window.location.pathname;
+      const hostname = window.location.hostname;
+      const isAdminPath = path.startsWith('/admin') || hostname.startsWith('admin.') || hostname === 'admin.adiology.io';
+      
+      // Whitelisted super admin emails
+      const superAdminEmails = ['samayhuf@gmail.com'];
+      const userEmail = clerkUser?.primaryEmailAddress?.emailAddress?.toLowerCase();
+      const isWhitelistedEmail = userEmail && superAdminEmails.includes(userEmail);
+      
+      if (isAdminPath && isWhitelistedEmail) {
+        // Navigate to admin panel for super admins on admin path
+        setAppView('admin-panel');
+      } else {
+        // Navigate to user dashboard for regular users
+        setAppView('user');
+        setActiveTab('dashboard');
+      }
     }
     
     // If user just signed out, navigate to homepage
     if (!isSignedIn && appView === 'user') {
       setAppView('homepage');
     }
-  }, [clerkLoaded, isSignedIn, appView]);
+  }, [clerkLoaded, isSignedIn, appView, clerkUser]);
 
   // Validate activeTab and redirect to dashboard if invalid
   useEffect(() => {
