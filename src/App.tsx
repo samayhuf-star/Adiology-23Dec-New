@@ -89,6 +89,26 @@ const AppContent = () => {
   const { signOut: clerkSignOut } = useClerk();
   const { getToken } = useAuth();
   
+  // Track auth transition to prevent rendering during unstable states
+  const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
+  const [prevSignedInState, setPrevSignedInState] = useState<boolean | null>(null);
+  
+  // Detect auth state transitions and add brief delay for stability
+  useEffect(() => {
+    if (!clerkLoaded) return;
+    
+    // If signed-in state changed, mark as transitioning briefly
+    if (prevSignedInState !== null && prevSignedInState !== isSignedIn) {
+      setIsAuthTransitioning(true);
+      const timer = setTimeout(() => {
+        setIsAuthTransitioning(false);
+      }, 500); // Brief delay to let Clerk stabilize
+      return () => clearTimeout(timer);
+    }
+    
+    setPrevSignedInState(isSignedIn ?? null);
+  }, [clerkLoaded, isSignedIn, prevSignedInState]);
+  
   const [appView, setAppView] = useState<AppView>('homepage');
   const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -110,7 +130,7 @@ const AppContent = () => {
     avatar_url: clerkUser.imageUrl,
   } : null;
   
-  const loading = !clerkLoaded;
+  const loading = !clerkLoaded || isAuthTransitioning;
   
   // Initialize Clerk auth utilities for services
   useEffect(() => {
