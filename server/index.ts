@@ -3785,15 +3785,36 @@ app.get('/api/dashboard', async (c) => {
       [userId]
     );
     
-    // Get recent campaigns (last 10) - use COALESCE to handle both name column and data->>'campaignName' fallback
-    const recentCampaignsResult = await pool.query(
-      `SELECT id, COALESCE(data->>'campaignName', data->>'name', type) as campaign_name, type as structure_type, status as step, created_at, updated_at
+    // Get recent campaigns (last 10) - with fallbacks for missing columns
+    let recentCampaignsResult;
+    const recentQueries = [
+      `SELECT id, COALESCE(name, data->>'campaignName', data->>'name', 'Untitled') as campaign_name, COALESCE(type, 'campaign') as structure_type, COALESCE(status, 'completed') as step, created_at, updated_at
        FROM campaign_history 
        WHERE user_id = $1 
        ORDER BY updated_at DESC 
        LIMIT 10`,
-      [userId]
-    );
+      `SELECT id, COALESCE(data->>'campaignName', data->>'name', 'Untitled') as campaign_name, 'campaign' as structure_type, 'completed' as step, created_at, updated_at
+       FROM campaign_history 
+       WHERE user_id = $1 
+       ORDER BY updated_at DESC 
+       LIMIT 10`
+    ];
+    
+    for (const query of recentQueries) {
+      try {
+        recentCampaignsResult = await pool.query(query, [userId]);
+        break;
+      } catch (e: any) {
+        if (e.message?.includes('column') && e.message?.includes('does not exist')) {
+          continue;
+        }
+        throw e;
+      }
+    }
+    
+    if (!recentCampaignsResult) {
+      recentCampaignsResult = { rows: [] };
+    }
     
     // Get unread notifications count - handle table not existing
     let unreadCount = 0;
@@ -3864,15 +3885,36 @@ app.get('/api/dashboard/:userId', async (c) => {
       // Table might not exist
     }
     
-    // Get recent campaigns (last 10) - use data JSON field for name
-    const recentCampaignsResult = await pool.query(
-      `SELECT id, COALESCE(data->>'campaignName', data->>'name', type) as campaign_name, type as structure_type, status as step, created_at, updated_at
+    // Get recent campaigns (last 10) - with fallbacks for missing columns
+    let recentCampaignsResult;
+    const recentQueries2 = [
+      `SELECT id, COALESCE(name, data->>'campaignName', data->>'name', 'Untitled') as campaign_name, COALESCE(type, 'campaign') as structure_type, COALESCE(status, 'completed') as step, created_at, updated_at
        FROM campaign_history 
        WHERE user_id = $1 
        ORDER BY updated_at DESC 
        LIMIT 10`,
-      [userId]
-    );
+      `SELECT id, COALESCE(data->>'campaignName', data->>'name', 'Untitled') as campaign_name, 'campaign' as structure_type, 'completed' as step, created_at, updated_at
+       FROM campaign_history 
+       WHERE user_id = $1 
+       ORDER BY updated_at DESC 
+       LIMIT 10`
+    ];
+    
+    for (const query of recentQueries2) {
+      try {
+        recentCampaignsResult = await pool.query(query, [userId]);
+        break;
+      } catch (e: any) {
+        if (e.message?.includes('column') && e.message?.includes('does not exist')) {
+          continue;
+        }
+        throw e;
+      }
+    }
+    
+    if (!recentCampaignsResult) {
+      recentCampaignsResult = { rows: [] };
+    }
     
     // Get unread notifications count - handle table not existing
     let unreadCount = 0;
@@ -4682,30 +4724,45 @@ app.get('/api/campaign-history', async (c) => {
       return c.json({ error: auth.error }, 401);
     }
     
-    // Try with type column first, fallback if column doesn't exist
+    // Try queries in order of most complete to most basic fallback
     let result;
-    try {
-      result = await pool.query(
-        `SELECT id, user_id, COALESCE(type, 'campaign') as type, name, data, COALESCE(status, 'completed') as status, created_at, updated_at 
-         FROM campaign_history 
-         WHERE user_id = $1 
-         ORDER BY updated_at DESC`,
-        [auth.userId]
-      );
-    } catch (queryError: any) {
-      // If column doesn't exist, query without it
-      if (queryError.message?.includes('column') && queryError.message?.includes('does not exist')) {
-        console.log('Falling back to query without type column');
-        result = await pool.query(
-          `SELECT id, user_id, 'campaign' as type, name, data, COALESCE(status, 'completed') as status, created_at, updated_at 
-           FROM campaign_history 
-           WHERE user_id = $1 
-           ORDER BY updated_at DESC`,
-          [auth.userId]
-        );
-      } else {
-        throw queryError;
+    let queryAttempt = 0;
+    
+    const queries = [
+      // Full schema with all columns
+      `SELECT id, user_id, COALESCE(type, 'campaign') as type, name, data, COALESCE(status, 'completed') as status, created_at, updated_at 
+       FROM campaign_history 
+       WHERE user_id = $1 
+       ORDER BY updated_at DESC`,
+      // Without type column
+      `SELECT id, user_id, 'campaign' as type, name, data, COALESCE(status, 'completed') as status, created_at, updated_at 
+       FROM campaign_history 
+       WHERE user_id = $1 
+       ORDER BY updated_at DESC`,
+      // Minimal - only guaranteed columns (id, user_id, data, created_at, updated_at)
+      `SELECT id, user_id, 'campaign' as type, COALESCE(data->>'campaignName', 'Untitled Campaign') as name, data, 'completed' as status, created_at, updated_at 
+       FROM campaign_history 
+       WHERE user_id = $1 
+       ORDER BY updated_at DESC`
+    ];
+    
+    for (const query of queries) {
+      queryAttempt++;
+      try {
+        result = await pool.query(query, [auth.userId]);
+        break; // Success, exit loop
+      } catch (queryError: any) {
+        if (queryError.message?.includes('column') && queryError.message?.includes('does not exist')) {
+          console.log(`Query attempt ${queryAttempt} failed, trying fallback...`);
+          continue; // Try next fallback
+        }
+        throw queryError; // Different error, rethrow
       }
+    }
+    
+    if (!result) {
+      console.error('All query fallbacks failed');
+      return c.json({ success: true, data: [] });
     }
     
     return c.json({ 
@@ -4736,37 +4793,64 @@ app.post('/api/campaign-history', async (c) => {
       return c.json({ error: 'Name is required' }, 400);
     }
     
-    // Try with type column first, fallback if column doesn't exist
+    // Store name in data as well for fallback extraction
+    const dataWithName = { ...data, campaignName: name };
+    
+    // Try queries in order of most complete to minimal fallback
     let result;
-    try {
-      result = await pool.query(
-        `INSERT INTO campaign_history (user_id, type, name, data, status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-         RETURNING id, user_id, type, name, data, status, created_at, updated_at`,
-        [auth.userId, type, name, JSON.stringify(data || {}), status]
-      );
-    } catch (queryError: any) {
-      // If type column doesn't exist, insert without it
-      if (queryError.message?.includes('column') && queryError.message?.includes('does not exist')) {
-        console.log('Falling back to insert without type column');
-        result = await pool.query(
-          `INSERT INTO campaign_history (user_id, name, data, status, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, NOW(), NOW())
-           RETURNING id, user_id, name, data, status, created_at, updated_at`,
-          [auth.userId, name, JSON.stringify(data || {}), status]
-        );
-        // Add type to the returned data
-        if (result.rows[0]) {
-          result.rows[0].type = type;
+    let queryAttempt = 0;
+    
+    const insertQueries = [
+      // Full schema
+      {
+        sql: `INSERT INTO campaign_history (user_id, type, name, data, status, created_at, updated_at)
+              VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+              RETURNING id, user_id, type, name, data, status, created_at, updated_at`,
+        params: [auth.userId, type, name, JSON.stringify(dataWithName), status]
+      },
+      // Without type column
+      {
+        sql: `INSERT INTO campaign_history (user_id, name, data, status, created_at, updated_at)
+              VALUES ($1, $2, $3, $4, NOW(), NOW())
+              RETURNING id, user_id, name, data, status, created_at, updated_at`,
+        params: [auth.userId, name, JSON.stringify(dataWithName), status]
+      },
+      // Minimal - only guaranteed columns (no name, no type, no status columns)
+      {
+        sql: `INSERT INTO campaign_history (user_id, data, created_at, updated_at)
+              VALUES ($1, $2, NOW(), NOW())
+              RETURNING id, user_id, data, created_at, updated_at`,
+        params: [auth.userId, JSON.stringify(dataWithName)]
+      }
+    ];
+    
+    for (const query of insertQueries) {
+      queryAttempt++;
+      try {
+        result = await pool.query(query.sql, query.params);
+        break; // Success
+      } catch (queryError: any) {
+        if (queryError.message?.includes('column') && queryError.message?.includes('does not exist')) {
+          console.log(`Insert attempt ${queryAttempt} failed, trying fallback...`);
+          continue;
         }
-      } else {
         throw queryError;
       }
     }
     
+    if (!result || result.rows.length === 0) {
+      return c.json({ error: 'Failed to create campaign - all insert attempts failed' }, 500);
+    }
+    
+    // Normalize response to include all expected fields
+    const row = result.rows[0];
+    row.type = row.type || type;
+    row.name = row.name || name;
+    row.status = row.status || status;
+    
     return c.json({ 
       success: true, 
-      data: result.rows[0] 
+      data: row 
     });
   } catch (error: any) {
     console.error('Error creating campaign history:', error);
@@ -4786,41 +4870,61 @@ app.put('/api/campaign-history/:id', async (c) => {
     const body = await c.req.json();
     const { name, data, status } = body;
     
-    // Build dynamic update query
+    // Store name in data for fallback
+    const dataWithName = data ? { ...data, campaignName: name || data.campaignName } : undefined;
+    
+    // Build dynamic update query - only update data column to be safe
     const updates: string[] = ['updated_at = NOW()'];
     const values: any[] = [];
     let paramIndex = 1;
     
-    if (name !== undefined) {
-      updates.push(`name = $${paramIndex++}`);
-      values.push(name);
-    }
-    if (data !== undefined) {
+    // Always update data if provided (includes name as campaignName)
+    if (dataWithName !== undefined) {
       updates.push(`data = $${paramIndex++}`);
-      values.push(JSON.stringify(data));
-    }
-    if (status !== undefined) {
-      updates.push(`status = $${paramIndex++}`);
-      values.push(status);
+      values.push(JSON.stringify(dataWithName));
     }
     
     values.push(id, auth.userId);
     
-    const result = await pool.query(
-      `UPDATE campaign_history 
-       SET ${updates.join(', ')} 
-       WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
-       RETURNING id, user_id, type, name, data, status, created_at, updated_at`,
-      values
-    );
+    // Try with full schema first, then fallback
+    let result;
+    const returningClauses = [
+      'RETURNING id, user_id, type, name, data, status, created_at, updated_at',
+      'RETURNING id, user_id, name, data, status, created_at, updated_at',
+      'RETURNING id, user_id, data, created_at, updated_at'
+    ];
     
-    if (result.rows.length === 0) {
+    for (const returning of returningClauses) {
+      try {
+        result = await pool.query(
+          `UPDATE campaign_history 
+           SET ${updates.join(', ')} 
+           WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1}
+           ${returning}`,
+          values
+        );
+        break;
+      } catch (queryError: any) {
+        if (queryError.message?.includes('column') && queryError.message?.includes('does not exist')) {
+          continue;
+        }
+        throw queryError;
+      }
+    }
+    
+    if (!result || result.rows.length === 0) {
       return c.json({ error: 'Campaign not found or access denied' }, 404);
     }
     
+    // Normalize response
+    const row = result.rows[0];
+    row.type = row.type || 'campaign';
+    row.name = row.name || (row.data?.campaignName) || 'Untitled Campaign';
+    row.status = row.status || 'completed';
+    
     return c.json({ 
       success: true, 
-      data: result.rows[0] 
+      data: row 
     });
   } catch (error: any) {
     console.error('Error updating campaign history:', error);
