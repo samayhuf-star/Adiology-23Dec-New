@@ -410,7 +410,7 @@ function generateSKAG(keywords: string[], settings: StructureSettings): Campaign
   const negativeKeywords = settings.negativeKeywords || [];
   const locationTarget = buildLocationTarget(settings);
 
-  const adgroups = keywords.slice(0, 20).map((keyword) => ({
+  const adgroups = keywords.slice(0, 30).map((keyword) => ({
     adgroup_name: keyword,
     keywords: matchTypes.map(mt => formatKeyword(keyword, mt)),
     match_types: matchTypes,
@@ -465,7 +465,7 @@ function generateSTAG(keywords: string[], settings: StructureSettings): Campaign
     groups[firstWord].push(kw);
   });
 
-  const adgroups = Object.entries(groups).slice(0, 10).map(([theme, groupKeywords], idx) => ({
+  const adgroups = Object.entries(groups).slice(0, 15).map(([theme, groupKeywords], idx) => ({
     adgroup_name: `Ad Group ${idx + 1} - ${theme}`,
     keywords: groupKeywords.flatMap(kw => matchTypes.map(mt => formatKeyword(kw, mt))),
     match_types: matchTypes,
@@ -511,8 +511,8 @@ function generateMIX(keywords: string[], settings: StructureSettings): CampaignS
   
   const adgroups: AdGroup[] = [];
   
-  // First 5 keywords as SKAG
-  keywords.slice(0, 5).forEach((keyword) => {
+  // First 8 keywords as SKAG
+  keywords.slice(0, 8).forEach((keyword) => {
     const adGroup: AdGroup = {
       adgroup_name: keyword,
       keywords: matchTypes.map(mt => formatKeyword(keyword, mt)),
@@ -526,7 +526,7 @@ function generateMIX(keywords: string[], settings: StructureSettings): CampaignS
   });
 
   // Rest grouped thematically
-  const remaining = keywords.slice(5);
+  const remaining = keywords.slice(8);
   const groups: { [key: string]: string[] } = {};
   remaining.forEach(kw => {
     const firstWord = kw.split(' ')[0].toLowerCase();
@@ -536,7 +536,7 @@ function generateMIX(keywords: string[], settings: StructureSettings): CampaignS
     groups[firstWord].push(kw);
   });
 
-  Object.entries(groups).slice(0, 5).forEach(([theme, groupKeywords], idx) => {
+  Object.entries(groups).slice(0, 7).forEach(([theme, groupKeywords], idx) => {
     const adGroup: AdGroup = {
       adgroup_name: `Mixed Group ${idx + 1} - ${theme}`,
       keywords: groupKeywords.flatMap(kw => matchTypes.map(mt => formatKeyword(kw, mt))),
