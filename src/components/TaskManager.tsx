@@ -3,7 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import {
   Plus, Check, Trash2, Edit2, FolderOpen, Calendar, Star, GripVertical,
   ChevronDown, ChevronRight, MoreHorizontal, Search, Filter, X, Inbox,
-  CheckCircle2, Circle, Clock, AlertCircle
+  CheckCircle2, Circle, Clock, AlertCircle, Menu, ChevronLeft
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -71,6 +71,7 @@ export function TaskManager() {
   const [newProject, setNewProject] = useState({ name: '', color: PROJECT_COLORS[0] });
   
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -368,57 +369,83 @@ export function TaskManager() {
     );
   }
 
+  const handleSidebarItemClick = (callback: () => void) => {
+    callback();
+    setIsMobileSidebarOpen(false);
+  };
+
   return (
-    <div className="h-full flex bg-gray-900">
-      {/* Sidebar */}
-      <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
-        <div className="p-4 border-b border-gray-700">
+    <div className="h-full flex bg-gray-900 relative">
+      {/* Mobile Overlay */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar - Hidden on mobile, shown as overlay when toggled */}
+      <div className={`
+        fixed md:relative inset-y-0 left-0 z-50
+        w-72 md:w-64 bg-gray-800 border-r border-gray-700 flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Projects</h2>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="md:hidden h-8 w-8 p-0 text-gray-400 hover:text-white"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-2">
           {/* Quick Filters */}
           <div className="space-y-1 mb-4">
             <button
-              onClick={() => { setActiveFilter('all'); setSelectedProject(null); }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              onClick={() => handleSidebarItemClick(() => { setActiveFilter('all'); setSelectedProject(null); })}
+              className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                 activeFilter === 'all' && !selectedProject
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-700'
+                  : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
               }`}
             >
-              <Inbox className="w-4 h-4" />
-              <span>Inbox</span>
+              <Inbox className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-base md:text-sm">Inbox</span>
               {inboxTasks.length > 0 && (
                 <Badge variant="secondary" className="ml-auto">{inboxTasks.length}</Badge>
               )}
             </button>
             
             <button
-              onClick={() => { setActiveFilter('today'); setSelectedProject(null); }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              onClick={() => handleSidebarItemClick(() => { setActiveFilter('today'); setSelectedProject(null); })}
+              className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                 activeFilter === 'today'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-700'
+                  : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
               }`}
             >
-              <Star className="w-4 h-4" />
-              <span>Today</span>
+              <Star className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-base md:text-sm">Today</span>
               {todayTasks.length > 0 && (
                 <Badge variant="secondary" className="ml-auto">{todayTasks.length}</Badge>
               )}
             </button>
             
             <button
-              onClick={() => { setActiveFilter('done'); setSelectedProject(null); }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              onClick={() => handleSidebarItemClick(() => { setActiveFilter('done'); setSelectedProject(null); })}
+              className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                 activeFilter === 'done'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-700'
+                  : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
               }`}
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Done</span>
+              <CheckCircle2 className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-base md:text-sm">Done</span>
               {doneTasks.length > 0 && (
                 <Badge variant="secondary" className="ml-auto">{doneTasks.length}</Badge>
               )}
@@ -432,10 +459,10 @@ export function TaskManager() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setIsProjectDialogOpen(true)}
-                className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                onClick={() => { setIsProjectDialogOpen(true); setIsMobileSidebarOpen(false); }}
+                className="h-8 w-8 md:h-6 md:w-6 p-0 text-gray-400 hover:text-white"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5 md:w-4 md:h-4" />
               </Button>
             </div>
             
@@ -445,21 +472,21 @@ export function TaskManager() {
                 return (
                   <div key={project.id} className="group">
                     <button
-                      onClick={() => {
+                      onClick={() => handleSidebarItemClick(() => {
                         setSelectedProject(project.id);
                         setActiveFilter('all');
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      })}
+                      className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                         selectedProject === project.id
                           ? 'bg-indigo-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-700'
+                          : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
                       }`}
                     >
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-4 h-4 md:w-3 md:h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: project.color }}
                       />
-                      <span className="flex-1 text-left truncate">{project.name}</span>
+                      <span className="flex-1 text-left truncate text-base md:text-sm">{project.name}</span>
                       {projectTasks.length > 0 && (
                         <Badge variant="secondary" className="text-xs">{projectTasks.length}</Badge>
                       )}
@@ -468,13 +495,13 @@ export function TaskManager() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                            className="h-8 w-8 md:h-6 md:w-6 p-0 opacity-100 md:opacity-0 group-hover:opacity-100"
                           >
-                            <MoreHorizontal className="w-4 h-4" />
+                            <MoreHorizontal className="w-5 h-5 md:w-4 md:h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditProject(project)}>
+                          <DropdownMenuItem onClick={() => { openEditProject(project); setIsMobileSidebarOpen(false); }}>
                             <Edit2 className="w-4 h-4 mr-2" /> Edit
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -496,11 +523,21 @@ export function TaskManager() {
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Header */}
-        <div className="p-4 border-b border-gray-700 bg-gray-800">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-white">
+        <div className="p-3 md:p-4 border-b border-gray-700 bg-gray-800">
+          <div className="flex items-center justify-between mb-3 md:mb-4 gap-2">
+            {/* Mobile Menu Button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden h-10 w-10 p-0 text-gray-400 hover:text-white flex-shrink-0"
+            >
+              <Menu className="w-6 h-6" />
+            </Button>
+            
+            <h1 className="text-lg md:text-2xl font-bold text-white flex-1 truncate">
               {activeFilter === 'today' ? 'Today' : 
                activeFilter === 'done' ? 'Completed' :
                selectedProject ? projects.find(p => p.id === selectedProject)?.name : 'Inbox'}
@@ -511,9 +548,11 @@ export function TaskManager() {
                 setEditingTask(null);
                 setIsTaskDialogOpen(true);
               }}
-              className="bg-indigo-600 hover:bg-indigo-700"
+              className="bg-indigo-600 hover:bg-indigo-700 h-10 px-3 md:px-4 flex-shrink-0"
+              size="sm"
             >
-              <Plus className="w-4 h-4 mr-2" /> Add Task
+              <Plus className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline ml-2">Add Task</span>
             </Button>
           </div>
           
@@ -524,18 +563,18 @@ export function TaskManager() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search tasks..."
-              className="pl-9 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              className="pl-9 bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-10"
             />
           </div>
         </div>
         
         {/* Task List */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 md:p-4">
           {filteredTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400">
-              <CheckCircle2 className="w-16 h-16 mb-4 opacity-50" />
-              <p className="text-lg">No tasks here</p>
-              <p className="text-sm">Add a task to get started</p>
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 px-4">
+              <CheckCircle2 className="w-12 h-12 md:w-16 md:h-16 mb-4 opacity-50" />
+              <p className="text-base md:text-lg">No tasks here</p>
+              <p className="text-sm text-center">Add a task to get started</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -546,80 +585,84 @@ export function TaskManager() {
                   onDragStart={e => handleDragStart(e, task.id)}
                   onDragOver={handleDragOver}
                   onDrop={e => handleDrop(e, task.id)}
-                  className={`group flex items-start gap-3 p-4 rounded-lg bg-gray-800 border border-gray-700 hover:border-gray-600 transition-all cursor-grab active:cursor-grabbing ${
+                  className={`group flex flex-col md:flex-row md:items-start gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-gray-800 border border-gray-700 hover:border-gray-600 active:bg-gray-750 transition-all ${
                     draggedTaskId === task.id ? 'opacity-50' : ''
                   }`}
                 >
-                  <GripVertical className="w-4 h-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
-                  
-                  <button
-                    onClick={() => toggleTaskComplete(task)}
-                    className="mt-1 flex-shrink-0"
-                  >
-                    {task.isCompleted ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <Circle className={`w-5 h-5 ${getPriorityColor(task.priority)}`} />
-                    )}
-                  </button>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`font-medium ${task.isCompleted ? 'text-gray-500 line-through' : 'text-white'}`}>
-                        {task.title}
-                      </span>
-                      {task.isToday && !task.isCompleted && (
-                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                  {/* Task Main Content Row */}
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <GripVertical className="hidden md:block w-4 h-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex-shrink-0" />
+                    
+                    <button
+                      onClick={() => toggleTaskComplete(task)}
+                      className="mt-0.5 flex-shrink-0 touch-manipulation"
+                    >
+                      {task.isCompleted ? (
+                        <CheckCircle2 className="w-6 h-6 md:w-5 md:h-5 text-green-500" />
+                      ) : (
+                        <Circle className={`w-6 h-6 md:w-5 md:h-5 ${getPriorityColor(task.priority)}`} />
                       )}
-                    </div>
-                    {task.description && (
-                      <p className="text-sm text-gray-400 mt-1 line-clamp-2">{task.description}</p>
-                    )}
-                    <div className="flex items-center gap-3 mt-2">
-                      {task.projectId && (
-                        <div className="flex items-center gap-1">
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: projects.find(p => p.id === task.projectId)?.color }}
-                          />
-                          <span className="text-xs text-gray-400">
-                            {projects.find(p => p.id === task.projectId)?.name}
-                          </span>
-                        </div>
+                    </button>
+                    
+                    <div className="flex-1 min-w-0" onClick={() => openEditTask(task)}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-medium text-sm md:text-base ${task.isCompleted ? 'text-gray-500 line-through' : 'text-white'}`}>
+                          {task.title}
+                        </span>
+                        {task.isToday && !task.isCompleted && (
+                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      {task.description && (
+                        <p className="text-xs md:text-sm text-gray-400 mt-1 line-clamp-2">{task.description}</p>
                       )}
-                      {task.dueDate && (
-                        <div className="flex items-center gap-1 text-xs text-gray-400">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(task.dueDate).toLocaleDateString()}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 md:gap-3 mt-2 flex-wrap">
+                        {task.projectId && (
+                          <div className="flex items-center gap-1">
+                            <div
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: projects.find(p => p.id === task.projectId)?.color }}
+                            />
+                            <span className="text-xs text-gray-400 truncate max-w-[100px]">
+                              {projects.find(p => p.id === task.projectId)?.name}
+                            </span>
+                          </div>
+                        )}
+                        {task.dueDate && (
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                            <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Action Buttons - Always visible on mobile, hover on desktop */}
+                  <div className="flex items-center gap-1 justify-end md:opacity-0 md:group-hover:opacity-100 transition-opacity pl-9 md:pl-0">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => toggleTaskToday(task)}
-                      className={`h-8 w-8 p-0 ${task.isToday ? 'text-yellow-500' : 'text-gray-400'}`}
+                      className={`h-9 w-9 md:h-8 md:w-8 p-0 ${task.isToday ? 'text-yellow-500' : 'text-gray-400'} touch-manipulation`}
                     >
-                      <Star className={`w-4 h-4 ${task.isToday ? 'fill-yellow-500' : ''}`} />
+                      <Star className={`w-5 h-5 md:w-4 md:h-4 ${task.isToday ? 'fill-yellow-500' : ''}`} />
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => openEditTask(task)}
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-white"
+                      className="h-9 w-9 md:h-8 md:w-8 p-0 text-gray-400 hover:text-white touch-manipulation"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-5 h-5 md:w-4 md:h-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => deleteTask(task.id)}
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
+                      className="h-9 w-9 md:h-8 md:w-8 p-0 text-gray-400 hover:text-red-500 touch-manipulation"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5 md:w-4 md:h-4" />
                     </Button>
                   </div>
                 </div>
@@ -634,9 +677,9 @@ export function TaskManager() {
         setIsTaskDialogOpen(open);
         if (!open) setTaskError(null);
       }}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="bg-gray-800 border-gray-700 text-white w-[95vw] max-w-md mx-auto rounded-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingTask ? 'Edit Task' : 'New Task'}</DialogTitle>
+            <DialogTitle className="text-lg">{editingTask ? 'Edit Task' : 'New Task'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {taskError && (
@@ -645,31 +688,31 @@ export function TaskManager() {
               </div>
             )}
             <div>
-              <label className="text-sm text-gray-400">Title</label>
+              <label className="text-sm text-gray-400 block mb-1">Title</label>
               <Input
                 value={newTask.title}
                 onChange={e => setNewTask({ ...newTask, title: e.target.value })}
                 placeholder="Task title"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white h-11"
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400">Description</label>
+              <label className="text-sm text-gray-400 block mb-1">Description</label>
               <Textarea
                 value={newTask.description}
                 onChange={e => setNewTask({ ...newTask, description: e.target.value })}
                 placeholder="Add details..."
-                className="bg-gray-700 border-gray-600 text-white resize-none"
+                className="bg-gray-700 border-gray-600 text-white resize-none min-h-[80px]"
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="text-sm text-gray-400">Project</label>
+                <label className="text-sm text-gray-400 block mb-1">Project</label>
                 <select
                   value={newTask.projectId || ''}
                   onChange={e => setNewTask({ ...newTask, projectId: e.target.value || null })}
-                  className="w-full h-10 px-3 rounded-md bg-gray-700 border border-gray-600 text-white"
+                  className="w-full h-11 px-3 rounded-md bg-gray-700 border border-gray-600 text-white text-base"
                 >
                   <option value="">Inbox</option>
                   {projects.map(p => (
@@ -678,11 +721,11 @@ export function TaskManager() {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-gray-400">Priority</label>
+                <label className="text-sm text-gray-400 block mb-1">Priority</label>
                 <select
                   value={newTask.priority}
                   onChange={e => setNewTask({ ...newTask, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                  className="w-full h-10 px-3 rounded-md bg-gray-700 border border-gray-600 text-white"
+                  className="w-full h-11 px-3 rounded-md bg-gray-700 border border-gray-600 text-white text-base"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -691,20 +734,28 @@ export function TaskManager() {
               </div>
             </div>
             <div>
-              <label className="text-sm text-gray-400">Due Date</label>
+              <label className="text-sm text-gray-400 block mb-1">Due Date</label>
               <Input
                 type="date"
                 value={newTask.dueDate}
                 onChange={e => setNewTask({ ...newTask, dueDate: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white h-11"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTaskDialogOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsTaskDialogOpen(false)}
+              className="w-full sm:w-auto order-2 sm:order-1 h-11"
+            >
               Cancel
             </Button>
-            <Button onClick={saveTask} disabled={!newTask.title.trim() || savingTask}>
+            <Button 
+              onClick={saveTask} 
+              disabled={!newTask.title.trim() || savingTask}
+              className="w-full sm:w-auto order-1 sm:order-2 h-11 bg-indigo-600 hover:bg-indigo-700"
+            >
               {savingTask ? 'Saving...' : (editingTask ? 'Save' : 'Create')}
             </Button>
           </DialogFooter>
@@ -716,9 +767,9 @@ export function TaskManager() {
         setIsProjectDialogOpen(open);
         if (!open) setError(null);
       }}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="bg-gray-800 border-gray-700 text-white w-[95vw] max-w-md mx-auto rounded-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingProject ? 'Edit Project' : 'New Project'}</DialogTitle>
+            <DialogTitle className="text-lg">{editingProject ? 'Edit Project' : 'New Project'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {error && (
@@ -727,22 +778,22 @@ export function TaskManager() {
               </div>
             )}
             <div>
-              <label className="text-sm text-gray-400">Name</label>
+              <label className="text-sm text-gray-400 block mb-1">Name</label>
               <Input
                 value={newProject.name}
                 onChange={e => setNewProject({ ...newProject, name: e.target.value })}
                 placeholder="Project name"
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-gray-700 border-gray-600 text-white h-11"
               />
             </div>
             <div>
               <label className="text-sm text-gray-400 block mb-2">Color</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
                 {PROJECT_COLORS.map(color => (
                   <button
                     key={color}
                     onClick={() => setNewProject({ ...newProject, color })}
-                    className={`w-8 h-8 rounded-full transition-transform ${
+                    className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full transition-transform touch-manipulation ${
                       newProject.color === color ? 'scale-110 ring-2 ring-white ring-offset-2 ring-offset-gray-800' : ''
                     }`}
                     style={{ backgroundColor: color }}
@@ -752,11 +803,20 @@ export function TaskManager() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsProjectDialogOpen(false)} disabled={saving}>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsProjectDialogOpen(false)} 
+              disabled={saving}
+              className="w-full sm:w-auto order-2 sm:order-1 h-11"
+            >
               Cancel
             </Button>
-            <Button onClick={saveProject} disabled={!newProject.name.trim() || saving}>
+            <Button 
+              onClick={saveProject} 
+              disabled={!newProject.name.trim() || saving}
+              className="w-full sm:w-auto order-1 sm:order-2 h-11 bg-indigo-600 hover:bg-indigo-700"
+            >
               {saving ? 'Saving...' : (editingProject ? 'Save' : 'Create')}
             </Button>
           </DialogFooter>
