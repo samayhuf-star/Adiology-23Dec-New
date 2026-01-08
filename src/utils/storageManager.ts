@@ -255,29 +255,98 @@ export function trimHistoryStorage(keepCount: number = 15): number {
 }
 
 export function initStorageManager(): void {
-  const usage = getStorageUsage();
-  console.log(`[StorageManager] Storage: ${(usage.used / 1024).toFixed(1)} KB / ${(usage.total / 1024).toFixed(0)} KB (${(usage.percentage * 100).toFixed(1)}%)`);
-  
-  if (usage.percentage > STORAGE_CONFIG.warningThreshold) {
-    console.warn('[StorageManager] Storage above threshold, auto-cleaning...');
+  try {
+    const usage = getStorageUsage();
+    console.log(`[StorageManager] Storage: ${(usage.used / 1024).toFixed(1)} KB / ${(usage.total / 1024).toFixed(0)} KB (${(usage.percentage * 100).toFixed(1)}%)`);
     
-    // First, trim history to keep only recent items (smarter than deleting all)
-    trimHistoryStorage(15);
-    
-    let newUsage = getStorageUsage();
-    if (newUsage.percentage > STORAGE_CONFIG.warningThreshold) {
+    // Always run cleanup first - prevent quota errors before they happen
+    // Proactively clean if usage is above 60%
+    if (usage.percentage > 0.6) {
+      console.warn('[StorageManager] Storage above 60%, proactive cleanup...');
+      trimHistoryStorage(10);
+      clearCacheData();
       clearOldData();
     }
     
-    newUsage = getStorageUsage();
-    if (newUsage.percentage > STORAGE_CONFIG.warningThreshold) {
-      // More aggressive trim
+    if (usage.percentage > STORAGE_CONFIG.warningThreshold) {
+      console.warn('[StorageManager] Storage above threshold, aggressive cleanup...');
+      
+      // Very aggressive cleanup
       trimHistoryStorage(5);
       clearCacheData();
+      clearOldData();
+      
+      // If still over, clear more aggressively
+      const newUsage = getStorageUsage();
+      if (newUsage.percentage > 0.9) {
+        console.warn('[StorageManager] Critical storage level, emergency cleanup...');
+        emergencyCleanup();
+      }
     }
+  } catch (error) {
+    console.error('[StorageManager] Init error, attempting emergency cleanup:', error);
+    emergencyCleanup();
   }
-  
-  clearOldData();
+}
+
+// Emergency cleanup when storage is critically full
+export function emergencyCleanup(): void {
+  try {
+    // Remove all campaign history except last 3 items per user
+    const historyKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('adiology-campaign-history')) {
+        historyKeys.push(key);
+      }
+    }
+    
+    for (const key of historyKeys) {
+      try {
+        const value = localStorage.getItem(key);
+        if (!value) continue;
+        
+        const history = JSON.parse(value);
+        if (!Array.isArray(history)) {
+          localStorage.removeItem(key);
+          continue;
+        }
+        
+        if (history.length > 3) {
+          // Keep only 3 most recent
+          history.sort((a: any, b: any) => 
+            new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+          );
+          const trimmed = history.slice(0, 3);
+          localStorage.setItem(key, JSON.stringify(trimmed));
+        }
+      } catch {
+        // If parsing fails, remove the key entirely
+        localStorage.removeItem(key);
+      }
+    }
+    
+    // Remove large cache items
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const value = localStorage.getItem(key);
+        // Remove items larger than 100KB
+        if (value && value.length > 100000) {
+          const isEssential = STORAGE_CONFIG.essentialKeys.some(k => key === k);
+          if (!isEssential) {
+            keysToRemove.push(key);
+          }
+        }
+      }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log(`[StorageManager] Emergency cleanup completed, removed ${keysToRemove.length} large items`);
+  } catch (error) {
+    console.error('[StorageManager] Emergency cleanup failed:', error);
+  }
 }
 
 export function clearStorageNow(): void {

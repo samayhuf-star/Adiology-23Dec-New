@@ -1,6 +1,8 @@
 // Local storage fallback for history when server is unavailable
+import { emergencyCleanup, getStorageUsage } from './storageManager';
 
 const STORAGE_KEY = 'adiology-campaign-history';
+const MAX_HISTORY_ITEMS = 15;
 
 // Get user-specific storage key
 function getUserStorageKey(): string {
@@ -108,10 +110,22 @@ export const localStorageHistory = {
       lastModified: new Date().toISOString()
     };
     
+    // Check storage usage before saving
+    try {
+      const usage = getStorageUsage();
+      if (usage.percentage > 0.7) {
+        console.warn('[LocalStorageHistory] Storage usage high, cleaning up before save...');
+        this.cleanupOldItems(10);
+        emergencyCleanup();
+      }
+    } catch (e) {
+      console.warn('[LocalStorageHistory] Could not check storage usage:', e);
+    }
+    
     // Proactively cleanup if we have many items
     const currentHistory = this.getAll();
-    if (currentHistory.length > 30) {
-      this.cleanupOldItems(20);
+    if (currentHistory.length > MAX_HISTORY_ITEMS) {
+      this.cleanupOldItems(MAX_HISTORY_ITEMS - 5);
     }
     
     try {
@@ -125,10 +139,13 @@ export const localStorageHistory = {
       if (error?.name === 'QuotaExceededError' || 
           error?.code === 22 || 
           (error?.message && error.message.includes('quota'))) {
-        console.warn('localStorage quota exceeded, attempting cleanup...');
+        console.warn('localStorage quota exceeded, attempting emergency cleanup...');
         
-        // Aggressive cleanup - keep only 10 most recent items
-        this.cleanupOldItems(10);
+        // Emergency cleanup first
+        emergencyCleanup();
+        
+        // Aggressive cleanup - keep only 5 most recent items
+        this.cleanupOldItems(5);
         
         // Retry localStorage save after cleanup
         try {
