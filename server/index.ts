@@ -6857,66 +6857,6 @@ app.delete('/api/long-tail-keywords/lists/:listId', async (c) => {
 const isProduction = process.env.NODE_ENV === 'production';
 const apiPort = parseInt(process.env.PORT || (isProduction ? '5000' : '3001'), 10);
 
-// In production, serve static files from dist/
-if (isProduction) {
-  const fs = await import('fs');
-  const path = await import('path');
-  
-  app.get('*', async (c) => {
-    const reqPath = c.req.path;
-    
-    // Never serve HTML for API routes - always return JSON error
-    if (reqPath.startsWith('/api/')) {
-      return c.json({ success: false, error: 'API endpoint not found' }, 404);
-    }
-    
-    const distPath = path.join(process.cwd(), 'build');
-    
-    // Try to serve the exact file
-    let filePath = path.join(distPath, reqPath);
-    
-    // Check if it's a file that exists
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      const content = fs.readFileSync(filePath);
-      const ext = path.extname(filePath).toLowerCase();
-      const mimeTypes: Record<string, string> = {
-        '.html': 'text/html',
-        '.js': 'application/javascript',
-        '.css': 'text/css',
-        '.json': 'application/json',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.gif': 'image/gif',
-        '.svg': 'image/svg+xml',
-        '.ico': 'image/x-icon',
-        '.woff': 'font/woff',
-        '.woff2': 'font/woff2',
-      };
-      return new Response(content, {
-        headers: { 
-          'Content-Type': mimeTypes[ext] || 'application/octet-stream',
-          'Cache-Control': 'public, max-age=31536000'
-        }
-      });
-    }
-    
-    // For SPA routing, serve index.html for non-file requests
-    const indexPath = path.join(process.cwd(), 'build', 'index.html');
-    if (fs.existsSync(indexPath)) {
-      const content = fs.readFileSync(indexPath, 'utf-8');
-      return new Response(content, {
-        headers: { 
-          'Content-Type': 'text/html',
-          'Cache-Control': 'no-cache'
-        }
-      });
-    }
-    
-    return c.text('Not Found', 404);
-  });
-}
-
 // ============================================
 // FORMS API ROUTES
 // ============================================
@@ -7889,6 +7829,66 @@ app.use('/api/admin/*', async (c, next) => {
     }, 500);
   }
 });
+
+// In production, serve static files from build/ - MUST be registered LAST after all API routes
+if (isProduction) {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  app.get('*', async (c) => {
+    const reqPath = c.req.path;
+    
+    // Never serve HTML for API routes - always return JSON error
+    if (reqPath.startsWith('/api/')) {
+      return c.json({ success: false, error: 'API endpoint not found' }, 404);
+    }
+    
+    const distPath = path.join(process.cwd(), 'build');
+    
+    // Try to serve the exact file
+    let filePath = path.join(distPath, reqPath);
+    
+    // Check if it's a file that exists
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const content = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+      };
+      return new Response(content, {
+        headers: { 
+          'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=31536000'
+        }
+      });
+    }
+    
+    // For SPA routing, serve index.html for non-file requests
+    const indexPath = path.join(process.cwd(), 'build', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      const content = fs.readFileSync(indexPath, 'utf-8');
+      return new Response(content, {
+        headers: { 
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache'
+        }
+      });
+    }
+    
+    return c.text('Not Found', 404);
+  });
+}
 
 console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
 
