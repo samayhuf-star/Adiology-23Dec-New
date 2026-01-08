@@ -375,11 +375,11 @@ export function TaskManager() {
   };
 
   return (
-    <div className="h-full flex bg-gray-900 relative">
+    <div className="h-full flex bg-gray-50 relative">
       {/* Mobile Overlay */}
       {isMobileSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          className="fixed inset-0 bg-black/30 z-40 md:hidden"
           onClick={() => setIsMobileSidebarOpen(false)}
         />
       )}
@@ -387,17 +387,17 @@ export function TaskManager() {
       {/* Sidebar - Hidden on mobile, shown as overlay when toggled */}
       <div className={`
         fixed md:relative inset-y-0 left-0 z-50
-        w-72 md:w-64 bg-gray-800 border-r border-gray-700 flex flex-col
+        w-72 md:w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm
         transform transition-transform duration-300 ease-in-out
         ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Projects</h2>
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Projects</h2>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => setIsMobileSidebarOpen(false)}
-            className="md:hidden h-8 w-8 p-0 text-gray-400 hover:text-white"
+            className="md:hidden h-8 w-8 p-0 text-gray-500 hover:text-gray-900"
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
@@ -411,13 +411,13 @@ export function TaskManager() {
               className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                 activeFilter === 'all' && !selectedProject
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
+                  : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
               }`}
             >
               <Inbox className="w-5 h-5 md:w-4 md:h-4" />
               <span className="text-base md:text-sm">Inbox</span>
               {inboxTasks.length > 0 && (
-                <Badge variant="secondary" className="ml-auto">{inboxTasks.length}</Badge>
+                <Badge variant="secondary" className="ml-auto bg-gray-200 text-gray-700">{inboxTasks.length}</Badge>
               )}
             </button>
             
@@ -426,13 +426,13 @@ export function TaskManager() {
               className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                 activeFilter === 'today'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
+                  : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
               }`}
             >
               <Star className="w-5 h-5 md:w-4 md:h-4" />
               <span className="text-base md:text-sm">Today</span>
               {todayTasks.length > 0 && (
-                <Badge variant="secondary" className="ml-auto">{todayTasks.length}</Badge>
+                <Badge variant="secondary" className="ml-auto bg-gray-200 text-gray-700">{todayTasks.length}</Badge>
               )}
             </button>
             
@@ -441,26 +441,26 @@ export function TaskManager() {
               className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                 activeFilter === 'done'
                   ? 'bg-indigo-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
+                  : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
               }`}
             >
               <CheckCircle2 className="w-5 h-5 md:w-4 md:h-4" />
               <span className="text-base md:text-sm">Done</span>
               {doneTasks.length > 0 && (
-                <Badge variant="secondary" className="ml-auto">{doneTasks.length}</Badge>
+                <Badge variant="secondary" className="ml-auto bg-gray-200 text-gray-700">{doneTasks.length}</Badge>
               )}
             </button>
           </div>
           
           {/* Projects List */}
-          <div className="border-t border-gray-700 pt-4">
+          <div className="border-t border-gray-200 pt-4">
             <div className="flex items-center justify-between px-3 mb-2">
-              <span className="text-sm font-medium text-gray-400">Projects</span>
+              <span className="text-sm font-medium text-gray-500">Projects</span>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => { setIsProjectDialogOpen(true); setIsMobileSidebarOpen(false); }}
-                className="h-8 w-8 md:h-6 md:w-6 p-0 text-gray-400 hover:text-white"
+                className="h-8 w-8 md:h-6 md:w-6 p-0 text-gray-500 hover:text-gray-900"
               >
                 <Plus className="w-5 h-5 md:w-4 md:h-4" />
               </Button>
@@ -479,7 +479,7 @@ export function TaskManager() {
                       className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                         selectedProject === project.id
                           ? 'bg-indigo-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-700 active:bg-gray-600'
+                          : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
                       }`}
                     >
                       <div
@@ -525,19 +525,19 @@ export function TaskManager() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Header */}
-        <div className="p-3 md:p-4 border-b border-gray-700 bg-gray-800">
+        <div className="p-3 md:p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between mb-3 md:mb-4 gap-2">
             {/* Mobile Menu Button */}
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden h-10 w-10 p-0 text-gray-400 hover:text-white flex-shrink-0"
+              className="md:hidden h-10 w-10 p-0 text-gray-500 hover:text-gray-900 flex-shrink-0"
             >
               <Menu className="w-6 h-6" />
             </Button>
             
-            <h1 className="text-lg md:text-2xl font-bold text-white flex-1 truncate">
+            <h1 className="text-lg md:text-2xl font-bold text-gray-900 flex-1 truncate">
               {activeFilter === 'today' ? 'Today' : 
                activeFilter === 'done' ? 'Completed' :
                selectedProject ? projects.find(p => p.id === selectedProject)?.name : 'Inbox'}
@@ -563,15 +563,15 @@ export function TaskManager() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search tasks..."
-              className="pl-9 bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-10"
+              className="pl-9 bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400 h-10"
             />
           </div>
         </div>
         
         {/* Task List */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-4">
+        <div className="flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50">
           {filteredTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 px-4">
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 px-4">
               <CheckCircle2 className="w-12 h-12 md:w-16 md:h-16 mb-4 opacity-50" />
               <p className="text-base md:text-lg">No tasks here</p>
               <p className="text-sm text-center">Add a task to get started</p>
@@ -585,7 +585,7 @@ export function TaskManager() {
                   onDragStart={e => handleDragStart(e, task.id)}
                   onDragOver={handleDragOver}
                   onDrop={e => handleDrop(e, task.id)}
-                  className={`group flex flex-col md:flex-row md:items-start gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-gray-800 border border-gray-700 hover:border-gray-600 active:bg-gray-750 transition-all ${
+                  className={`group flex flex-col md:flex-row md:items-start gap-2 md:gap-3 p-3 md:p-4 rounded-lg bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm active:bg-gray-50 transition-all ${
                     draggedTaskId === task.id ? 'opacity-50' : ''
                   }`}
                 >
@@ -606,7 +606,7 @@ export function TaskManager() {
                     
                     <div className="flex-1 min-w-0" onClick={() => openEditTask(task)}>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`font-medium text-sm md:text-base ${task.isCompleted ? 'text-gray-500 line-through' : 'text-white'}`}>
+                        <span className={`font-medium text-sm md:text-base ${task.isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                           {task.title}
                         </span>
                         {task.isToday && !task.isCompleted && (
@@ -614,7 +614,7 @@ export function TaskManager() {
                         )}
                       </div>
                       {task.description && (
-                        <p className="text-xs md:text-sm text-gray-400 mt-1 line-clamp-2">{task.description}</p>
+                        <p className="text-xs md:text-sm text-gray-500 mt-1 line-clamp-2">{task.description}</p>
                       )}
                       <div className="flex items-center gap-2 md:gap-3 mt-2 flex-wrap">
                         {task.projectId && (
@@ -623,13 +623,13 @@ export function TaskManager() {
                               className="w-2 h-2 rounded-full flex-shrink-0"
                               style={{ backgroundColor: projects.find(p => p.id === task.projectId)?.color }}
                             />
-                            <span className="text-xs text-gray-400 truncate max-w-[100px]">
+                            <span className="text-xs text-gray-500 truncate max-w-[100px]">
                               {projects.find(p => p.id === task.projectId)?.name}
                             </span>
                           </div>
                         )}
                         {task.dueDate && (
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
                             <Calendar className="w-3 h-3 flex-shrink-0" />
                             <span>{new Date(task.dueDate).toLocaleDateString()}</span>
                           </div>
@@ -652,7 +652,7 @@ export function TaskManager() {
                       size="sm"
                       variant="ghost"
                       onClick={() => openEditTask(task)}
-                      className="h-9 w-9 md:h-8 md:w-8 p-0 text-gray-400 hover:text-white touch-manipulation"
+                      className="h-9 w-9 md:h-8 md:w-8 p-0 text-gray-400 hover:text-gray-900 touch-manipulation"
                     >
                       <Edit2 className="w-5 h-5 md:w-4 md:h-4" />
                     </Button>
@@ -677,42 +677,42 @@ export function TaskManager() {
         setIsTaskDialogOpen(open);
         if (!open) setTaskError(null);
       }}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white w-[95vw] max-w-md mx-auto rounded-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-white border-gray-200 text-gray-900 w-[95vw] max-w-md mx-auto rounded-xl max-h-[90vh] overflow-y-auto shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-lg">{editingTask ? 'Edit Task' : 'New Task'}</DialogTitle>
+            <DialogTitle className="text-lg text-gray-900">{editingTask ? 'Edit Task' : 'New Task'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {taskError && (
-              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {taskError}
               </div>
             )}
             <div>
-              <label className="text-sm text-gray-400 block mb-1">Title</label>
+              <label className="text-sm text-gray-600 block mb-1">Title</label>
               <Input
                 value={newTask.title}
                 onChange={e => setNewTask({ ...newTask, title: e.target.value })}
                 placeholder="Task title"
-                className="bg-gray-700 border-gray-600 text-white h-11"
+                className="bg-white border-gray-300 text-gray-900 h-11"
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400 block mb-1">Description</label>
+              <label className="text-sm text-gray-600 block mb-1">Description</label>
               <Textarea
                 value={newTask.description}
                 onChange={e => setNewTask({ ...newTask, description: e.target.value })}
                 placeholder="Add details..."
-                className="bg-gray-700 border-gray-600 text-white resize-none min-h-[80px]"
+                className="bg-white border-gray-300 text-gray-900 resize-none min-h-[80px]"
                 rows={3}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="text-sm text-gray-400 block mb-1">Project</label>
+                <label className="text-sm text-gray-600 block mb-1">Project</label>
                 <select
                   value={newTask.projectId || ''}
                   onChange={e => setNewTask({ ...newTask, projectId: e.target.value || null })}
-                  className="w-full h-11 px-3 rounded-md bg-gray-700 border border-gray-600 text-white text-base"
+                  className="w-full h-11 px-3 rounded-md bg-white border border-gray-300 text-gray-900 text-base"
                 >
                   <option value="">Inbox</option>
                   {projects.map(p => (
@@ -721,11 +721,11 @@ export function TaskManager() {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-gray-400 block mb-1">Priority</label>
+                <label className="text-sm text-gray-600 block mb-1">Priority</label>
                 <select
                   value={newTask.priority}
                   onChange={e => setNewTask({ ...newTask, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                  className="w-full h-11 px-3 rounded-md bg-gray-700 border border-gray-600 text-white text-base"
+                  className="w-full h-11 px-3 rounded-md bg-white border border-gray-300 text-gray-900 text-base"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -734,12 +734,12 @@ export function TaskManager() {
               </div>
             </div>
             <div>
-              <label className="text-sm text-gray-400 block mb-1">Due Date</label>
+              <label className="text-sm text-gray-600 block mb-1">Due Date</label>
               <Input
                 type="date"
                 value={newTask.dueDate}
                 onChange={e => setNewTask({ ...newTask, dueDate: e.target.value })}
-                className="bg-gray-700 border-gray-600 text-white h-11"
+                className="bg-white border-gray-300 text-gray-900 h-11"
               />
             </div>
           </div>
@@ -747,14 +747,14 @@ export function TaskManager() {
             <Button 
               variant="outline" 
               onClick={() => setIsTaskDialogOpen(false)}
-              className="w-full sm:w-auto order-2 sm:order-1 h-11"
+              className="w-full sm:w-auto order-2 sm:order-1 h-11 border-gray-300 text-gray-700 hover:bg-gray-100"
             >
               Cancel
             </Button>
             <Button 
               onClick={saveTask} 
               disabled={!newTask.title.trim() || savingTask}
-              className="w-full sm:w-auto order-1 sm:order-2 h-11 bg-indigo-600 hover:bg-indigo-700"
+              className="w-full sm:w-auto order-1 sm:order-2 h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {savingTask ? 'Saving...' : (editingTask ? 'Save' : 'Create')}
             </Button>
@@ -767,34 +767,34 @@ export function TaskManager() {
         setIsProjectDialogOpen(open);
         if (!open) setError(null);
       }}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white w-[95vw] max-w-md mx-auto rounded-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-white border-gray-200 text-gray-900 w-[95vw] max-w-md mx-auto rounded-xl max-h-[90vh] overflow-y-auto shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-lg">{editingProject ? 'Edit Project' : 'New Project'}</DialogTitle>
+            <DialogTitle className="text-lg text-gray-900">{editingProject ? 'Edit Project' : 'New Project'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {error && (
-              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {error}
               </div>
             )}
             <div>
-              <label className="text-sm text-gray-400 block mb-1">Name</label>
+              <label className="text-sm text-gray-600 block mb-1">Name</label>
               <Input
                 value={newProject.name}
                 onChange={e => setNewProject({ ...newProject, name: e.target.value })}
                 placeholder="Project name"
-                className="bg-gray-700 border-gray-600 text-white h-11"
+                className="bg-white border-gray-300 text-gray-900 h-11"
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400 block mb-2">Color</label>
+              <label className="text-sm text-gray-600 block mb-2">Color</label>
               <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
                 {PROJECT_COLORS.map(color => (
                   <button
                     key={color}
                     onClick={() => setNewProject({ ...newProject, color })}
                     className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full transition-transform touch-manipulation ${
-                      newProject.color === color ? 'scale-110 ring-2 ring-white ring-offset-2 ring-offset-gray-800' : ''
+                      newProject.color === color ? 'scale-110 ring-2 ring-indigo-500 ring-offset-2 ring-offset-white' : ''
                     }`}
                     style={{ backgroundColor: color }}
                     type="button"
@@ -808,14 +808,14 @@ export function TaskManager() {
               variant="outline" 
               onClick={() => setIsProjectDialogOpen(false)} 
               disabled={saving}
-              className="w-full sm:w-auto order-2 sm:order-1 h-11"
+              className="w-full sm:w-auto order-2 sm:order-1 h-11 border-gray-300 text-gray-700 hover:bg-gray-100"
             >
               Cancel
             </Button>
             <Button 
               onClick={saveProject} 
               disabled={!newProject.name.trim() || saving}
-              className="w-full sm:w-auto order-1 sm:order-2 h-11 bg-indigo-600 hover:bg-indigo-700"
+              className="w-full sm:w-auto order-1 sm:order-2 h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {saving ? 'Saving...' : (editingProject ? 'Save' : 'Create')}
             </Button>
