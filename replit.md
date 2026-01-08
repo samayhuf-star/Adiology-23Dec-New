@@ -8,6 +8,15 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## January 8, 2026 - Call Forwarding Module Removal
+### Complete Removal of Call Forwarding Feature
+- Removed all call forwarding API endpoints from server/index.ts
+- Deleted CallForwarding.tsx and CallForwardingBilling.tsx components
+- Deleted twilioService.ts utility file
+- Removed call forwarding menu items and routes from App.tsx
+- Dropped all call forwarding database tables (projects, tracking_numbers, targets, billing_accounts, balance_transactions, call_usage, monthly_charges)
+- Removed SkySwitch integration code
+
 ## January 6, 2026 - Documentation Image System
 ### Super Admin Documentation Images
 - Added documentation_images table to store images in PostgreSQL
@@ -87,9 +96,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend
 - **Framework**: React 18 with TypeScript and Vite, utilizing Radix UI and Tailwind CSS.
-- **UI/UX**: Component-based architecture, multi-step wizards for Campaign and Ads Builders, client-side routing, React hooks, and context-based notification system. Features include a SuperAdmin Console, Real-time Expense Tracking, and Call Forwarding. The design is mobile-responsive with collapsible sidebar navigation, responsive grids, compact navigation, and mobile-optimized data tables.
-- **Call Forwarding**: Project-based call management system with SkySwitch API integration for tracking numbers, forwarding targets with percentage-based distribution, and syncing to SkySwitch.
-- **Call Forwarding Billing**: Prepaid balance system with Stripe integration for auto-recharge, manual top-ups, payment method management, and transaction history.
+- **UI/UX**: Component-based architecture, multi-step wizards for Campaign and Ads Builders, client-side routing, React hooks, and context-based notification system. Features include a SuperAdmin Console and Real-time Expense Tracking. The design is mobile-responsive with collapsible sidebar navigation, responsive grids, compact navigation, and mobile-optimized data tables.
 - **Ads Search (Google Ads Transparency)**: Allows users to research competitor ads from Google Ads Transparency Center using a Playwright-based scraper and an asynchronous job queue system.
 - **Campaign Builder**: A 7-step wizard that guides users through URL input with AI analysis, structure selection (SKAG, STAG, Intent-Based, Alpha-Beta), keyword generation (410-710 keywords), ad generation, geo-targeting, and CSV generation.
 - **Saved Campaigns**: Displays campaign history with search and filter options, including Google Ads OAuth integration for direct, paused campaign pushes to Google Ads.
@@ -146,7 +153,6 @@ Preferred communication style: Simple, everyday language.
 - **Stripe**: Payment processing for subscriptions, integrated via `stripe-replit-sync`.
 - **Redis**: Message broker and result backend for Celery tasks.
 - **OpenAI**: Natural language processing for the web template editor chatbot and AI Blog Generator (gpt-4o-mini).
-- **SkySwitch**: Call forwarding and phone number management API (DID/TFNs, percentage-based distribution).
 - **ResellerClub**: Email/webmail management API.
 - **GitHub**: Version control and CI/CD.
 - **Vercel**: Deployment platform.

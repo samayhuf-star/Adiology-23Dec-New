@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { useUser, useAuth, useClerk } from '@clerk/clerk-react';
 import { 
-  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, Code, Download, GitCompare, CreditCard, ArrowRight, Users, BookOpen, PhoneCall, Wand2, Eye
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, Code, Download, GitCompare, CreditCard, ArrowRight, Users, BookOpen, Wand2, Eye
 } from 'lucide-react';
 
 declare global {
@@ -59,7 +59,6 @@ const SettingsPanel = lazy(() => import('./components/SettingsPanel').then(m => 
 const SupportPanel = lazy(() => import('./components/SupportPanel').then(m => ({ default: m.SupportPanel })));
 const SupportHelpCombined = lazy(() => import('./components/SupportHelpCombined').then(m => ({ default: m.SupportHelpCombined })));
 const Teams = lazy(() => import('./components/Teams').then(m => ({ default: m.Teams })));
-const CallForwarding = lazy(() => import('./components/CallForwarding').then(m => ({ default: m.CallForwarding })));
 const Blog = lazy(() => import('./components/Blog').then(m => ({ default: m.default })));
 const BlogGenerator = lazy(() => import('./components/BlogGenerator').then(m => ({ default: m.default })));
 const SuperAdminPanel = lazy(() => import('./components/SuperAdminPanel').then(m => ({ default: m.SuperAdminPanel })));
@@ -854,8 +853,6 @@ const AppContent = () => {
     },
 
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
-    // Call Forwarding module hidden - disabled for all users
-    // { id: 'call-forwarding', label: 'Call Forwarding', icon: PhoneCall },
     // Blog hidden - disabled
     // { id: 'blog', label: 'Blog', icon: BookOpen, module: null },
     { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' },
@@ -1349,12 +1346,6 @@ const AppContent = () => {
         return (
           <Suspense fallback={<ComponentLoader />}>
             <Teams />
-          </Suspense>
-        );
-      case 'call-forwarding':
-        return (
-          <Suspense fallback={<ComponentLoader />}>
-            <CallForwarding />
           </Suspense>
         );
       case 'blog':

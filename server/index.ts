@@ -4691,6 +4691,16 @@ async function ensureUserExists(userId: string, email?: string, fullName?: strin
   }
 }
 
+// Helper function to get user from auth context
+async function getUserFromAuth(c: any): Promise<{ id: string; email: string } | null> {
+  const auth = await verifyUserToken(c);
+  if (!auth.authorized || !auth.userId) {
+    return null;
+  }
+  await ensureUserExists(auth.userId, auth.userEmail);
+  return { id: auth.userId, email: auth.userEmail || '' };
+}
+
 // Endpoint to sync Clerk user to local database (called after sign in)
 app.post('/api/user/sync', async (c) => {
   try {
