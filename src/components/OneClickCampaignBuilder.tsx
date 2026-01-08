@@ -8,6 +8,7 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { notifications } from '../utils/notifications';
 import { generateMasterCSV, CampaignDataV5, AdGroupV5, KeywordV5, AdV5 } from '../utils/googleAdsEditorCSVExporterV5';
+import { historyService } from '../utils/historyService';
 
 interface GeneratedCampaign {
   id: string;
@@ -213,13 +214,14 @@ export function OneClickCampaignBuilder() {
       setCurrentStep('results');
       
       // Auto-save campaign with authentication
+      let apiSaved = false;
       try {
         const token = await getToken();
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
-        await fetch('/api/campaigns/save', {
+        const response = await fetch('/api/campaigns/save', {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -227,8 +229,25 @@ export function OneClickCampaignBuilder() {
             source: 'one-click-builder'
           })
         });
+        apiSaved = response.ok;
       } catch (err) {
-        console.error('Auto-save error:', err);
+        console.error('API save error:', err);
+      }
+      
+      // Fallback to historyService if API save failed
+      if (!apiSaved) {
+        try {
+          await historyService.save('one-click-campaign', generatedCampaign.campaign_name || 'One-Click Campaign', {
+            ...generatedCampaign.campaign_data,
+            business_name: generatedCampaign.business_name,
+            website_url: generatedCampaign.website_url,
+            url: generatedCampaign.website_url,
+            source: 'one-click-builder',
+            builderType: '1-click'
+          });
+        } catch (err) {
+          console.error('Local save error:', err);
+        }
       }
       
       notifications.success('Campaign generated and saved!', {
@@ -313,6 +332,7 @@ export function OneClickCampaignBuilder() {
   const saveCampaign = async () => {
     if (!generatedCampaign) return;
 
+    let saved = false;
     try {
       const token = await getToken();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -328,17 +348,37 @@ export function OneClickCampaignBuilder() {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to save campaign');
-
+      saved = response.ok;
+    } catch (err) {
+      console.error('API save error:', err);
+    }
+    
+    // Fallback to historyService
+    if (!saved) {
+      try {
+        await historyService.save('one-click-campaign', generatedCampaign.campaign_name || 'One-Click Campaign', {
+          ...generatedCampaign.campaign_data,
+          business_name: generatedCampaign.business_name,
+          website_url: generatedCampaign.website_url,
+          url: generatedCampaign.website_url,
+          source: 'one-click-builder',
+          builderType: '1-click'
+        });
+        saved = true;
+      } catch (err) {
+        console.error('Local save error:', err);
+      }
+    }
+    
+    if (saved) {
       notifications.success('Campaign saved!', {
         title: 'Saved',
         description: 'View it in "Draft Campaigns"'
       });
-    } catch (err) {
-      console.error('Save error:', err);
+    } else {
       notifications.error('Failed to save campaign', {
         title: 'Error',
-        description: err instanceof Error ? err.message : 'Unknown error'
+        description: 'Please try again'
       });
     }
   };

@@ -584,7 +584,7 @@ Generated on ${new Date().toLocaleDateString()}`;
                                 {processing ? "Processing..." : "Manage Subscription"}
                             </Button>
                             <Button 
-                                onClick={handleSubscribe} 
+                                onClick={() => handleSubscribe()} 
                                 disabled={processing} 
                                 variant="outline" 
                                 className="flex-1 min-w-0"

@@ -93,31 +93,40 @@ export const Teams: React.FC = () => {
     const inviteLink = `${baseUrl}/accept-invite?email=${encodeURIComponent(email)}`;
     
     if (!isSignedIn) {
-      throw new Error('You must be logged in to send invitations');
+      // Still allow invites when not signed in, just save locally
+      return { success: true, simulated: true };
     }
     
-    const token = await getToken();
-    
-    const response = await fetch('/api/email/team-invite', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        to: email,
-        inviterName: inviterName || 'A team member',
-        teamName: 'Adiology Team',
-        inviteLink
-      })
-    });
-    
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to send email');
+    try {
+      const token = await getToken();
+      
+      const response = await fetch('/api/email/team-invite', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          to: email,
+          inviterName: inviterName || 'A team member',
+          teamName: 'Adiology Team',
+          inviteLink
+        })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        console.warn('Email API error:', data.error);
+        // Still return success - invitation is saved locally
+        return { success: true, simulated: true, error: data.error };
+      }
+      
+      return response.json();
+    } catch (error) {
+      console.warn('Email sending failed, invitation saved locally:', error);
+      // Return success even if email fails - invitation is tracked locally
+      return { success: true, simulated: true };
     }
-    
-    return response.json();
   };
 
   const handleInvite = async () => {
@@ -143,7 +152,7 @@ export const Teams: React.FC = () => {
       const profile = cachedProfileRef.current;
       const inviterName = profile?.full_name || profile?.email || 'A team member';
       
-      await sendInviteEmail(inviteEmail.trim(), inviterName);
+      const emailResult = await sendInviteEmail(inviteEmail.trim(), inviterName);
 
       const newMember: TeamMember = {
         id: `invite_${Date.now()}`,
@@ -165,7 +174,11 @@ export const Teams: React.FC = () => {
       
       // Show success message after dialog closes (use setTimeout to ensure dialog animation completes)
       setTimeout(() => {
-        setSuccess(`Invitation successfully sent to ${sentEmail}`);
+        if (emailResult?.simulated) {
+          setSuccess(`Invitation added for ${sentEmail}. Please share the invite link directly with them.`);
+        } else {
+          setSuccess(`Invitation email sent to ${sentEmail}`);
+        }
       }, 100);
       
       // Clear success message after 8 seconds (longer display time)
