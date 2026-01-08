@@ -60,6 +60,8 @@ export const ClerkAuth: React.FC<ClerkAuthProps> = ({ onBackToHome, mode = 'sign
               }}
               routing="hash"
               signUpUrl="#/sign-up"
+              forceRedirectUrl={undefined}
+              fallbackRedirectUrl={undefined}
             />
           ) : (
             <SignUp 
@@ -87,6 +89,8 @@ export const ClerkAuth: React.FC<ClerkAuthProps> = ({ onBackToHome, mode = 'sign
               }}
               routing="hash"
               signInUrl="#/sign-in"
+              forceRedirectUrl={undefined}
+              fallbackRedirectUrl={undefined}
             />
           )}
         </div>

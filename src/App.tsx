@@ -572,6 +572,9 @@ const AppContent = () => {
   // Handle route/view state when auth or URL changes
   useEffect(() => {
     if (loading) return;
+    
+    // Don't interfere with auth flow - let Clerk handle the multi-step process
+    if (appView === 'auth') return;
 
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
