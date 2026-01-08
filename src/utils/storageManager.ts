@@ -17,7 +17,8 @@ const STORAGE_CONFIG = {
     'negative_keywords_',
     'form_data_',
     'autofill_',
-    'adiology-campaign-history',
+    // NOTE: adiology-campaign-history is NOT included here - it's handled by trimHistoryStorage() 
+    // to preserve recent user saves instead of deleting all history
   ],
 };
 

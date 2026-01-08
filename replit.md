@@ -8,6 +8,19 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## January 8, 2026 - Authentication and Storage Fixes
+### Clerk Authentication Flow Fix
+- Fixed redirect issue during multi-step authentication (email → password → verification code)
+- Added guard clause in App.tsx routing effect to prevent interference with auth view
+- Users can now complete full signup/login flow without being redirected to homepage
+
+### localStorage Storage Management Improvements
+- Added smart history trimming (trimHistoryStorage) that keeps recent saves instead of deleting all history
+- Proactive cleanup in localStorageHistory.save() when items exceed 30
+- Retry logic after cleanup for quota exceeded errors
+- Fixed storage cleanup that was at 247.8% capacity - now properly managed
+- History items explicitly excluded from cacheKeys to prevent accidental deletion
+
 ## January 8, 2026 - Call Forwarding Module Removal
 ### Complete Removal of Call Forwarding Feature
 - Removed all call forwarding API endpoints from server/index.ts
