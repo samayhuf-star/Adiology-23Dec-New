@@ -10,6 +10,7 @@ import { Badge } from './ui/badge';
 import { Checkbox } from './ui/checkbox';
 import { notifications } from '../utils/notifications';
 import { KeywordFilters, KeywordFiltersState, DEFAULT_FILTERS, getDifficultyBadge, formatSearchVolume, formatCPC } from './KeywordFilters';
+import { historyService } from '../utils/historyService';
 
 interface KeywordResult {
   keyword: string;
@@ -76,21 +77,51 @@ export function LongTailKeywords() {
   const loadSavedLists = async () => {
     setIsLoadingLists(true);
     try {
-      if (!isSignedIn || !user) {
-        setSavedLists([]);
-        return;
-      }
-
-      const token = await getToken();
-      const response = await fetch(`/api/long-tail-keywords/lists?userId=${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      let lists: SavedList[] = [];
+      
+      // Try API first if signed in
+      if (isSignedIn && user) {
+        try {
+          const token = await getToken();
+          const response = await fetch(`/api/long-tail-keywords/lists?userId=${user.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            lists = data.lists || [];
+          }
+        } catch (apiError) {
+          console.warn('API load failed, trying localStorage:', apiError);
         }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setSavedLists(data.lists || []);
       }
+      
+      // Also load from historyService (localStorage fallback)
+      try {
+        const localItems = await historyService.getByType('long-tail-keywords');
+        const localLists = localItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          keywords: item.data?.keywords || [],
+          seedKeywords: item.data?.seedKeywords || '',
+          url: item.data?.url || '',
+          createdAt: item.timestamp,
+          userId: 'local'
+        }));
+        
+        // Merge without duplicates (by name)
+        const existingNames = new Set(lists.map(l => l.name));
+        for (const localList of localLists) {
+          if (!existingNames.has(localList.name)) {
+            lists.push(localList);
+          }
+        }
+      } catch (localError) {
+        console.warn('localStorage load failed:', localError);
+      }
+      
+      setSavedLists(lists);
     } catch (error) {
       console.error('Error loading saved lists:', error);
     } finally {
@@ -224,31 +255,38 @@ export function LongTailKeywords() {
 
     setIsSaving(true);
     try {
-      if (!isSignedIn || !user) {
-        notifications.error('Please log in to save lists');
-        return;
+      // Try API first if signed in
+      if (isSignedIn && user) {
+        const token = await getToken();
+        const response = await fetch('/api/long-tail-keywords/lists', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            name: listName.trim(),
+            keywords: keywordsToSave,
+            seedKeywords: seedKeywords,
+            url: ''
+          })
+        });
+
+        if (response.ok) {
+          notifications.success('Keyword list saved successfully');
+          setListName('');
+          loadSavedLists();
+          return;
+        }
       }
-
-      const token = await getToken();
-      const response = await fetch('/api/long-tail-keywords/lists', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          name: listName.trim(),
-          keywords: keywordsToSave,
-          seedKeywords: seedKeywords,
-          url: ''
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save list');
-      }
-
+      
+      // Fallback to historyService (works with localStorage)
+      await historyService.save(
+        'long-tail-keywords',
+        listName.trim(),
+        { keywords: keywordsToSave, seedKeywords, url: '' }
+      );
       notifications.success('Keyword list saved successfully');
       setListName('');
       loadSavedLists();
@@ -262,6 +300,17 @@ export function LongTailKeywords() {
 
   const deleteList = async (listId: string) => {
     try {
+      // Check if it's a local item (UUID format) or API item (numeric)
+      const isLocalItem = listId.includes('-');
+      
+      if (isLocalItem) {
+        // Delete from historyService
+        await historyService.deleteHistory(listId);
+        notifications.success('List deleted');
+        setSavedLists(prev => prev.filter(l => l.id !== listId));
+        return;
+      }
+      
       if (!isSignedIn) {
         notifications.error('Please log in');
         return;
