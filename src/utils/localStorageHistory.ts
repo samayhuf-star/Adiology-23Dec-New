@@ -75,6 +75,27 @@ async function saveToBackend(item: HistoryItem): Promise<string> {
 }
 
 export const localStorageHistory = {
+  // Cleanup old items to make room for new saves
+  cleanupOldItems(keepCount: number = 20): number {
+    try {
+      const history = this.getAll();
+      if (history.length <= keepCount) return 0;
+      
+      // Sort by timestamp (oldest first) and remove oldest items
+      history.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      const itemsToRemove = history.length - keepCount;
+      const newHistory = history.slice(itemsToRemove);
+      
+      const storageKey = getUserStorageKey();
+      localStorage.setItem(storageKey, JSON.stringify(newHistory));
+      console.log(`[LocalStorageHistory] Cleaned up ${itemsToRemove} old items`);
+      return itemsToRemove;
+    } catch (error) {
+      console.error('[LocalStorageHistory] Cleanup failed:', error);
+      return 0;
+    }
+  },
+
   // Save an item to local storage with backend fallback
   async save(type: string, name: string, data: any, status: 'draft' | 'completed' = 'completed'): Promise<void> {
     const newItem: HistoryItem = {
@@ -87,6 +108,12 @@ export const localStorageHistory = {
       lastModified: new Date().toISOString()
     };
     
+    // Proactively cleanup if we have many items
+    const currentHistory = this.getAll();
+    if (currentHistory.length > 30) {
+      this.cleanupOldItems(20);
+    }
+    
     try {
       const history = this.getAll();
       history.push(newItem);
@@ -98,9 +125,24 @@ export const localStorageHistory = {
       if (error?.name === 'QuotaExceededError' || 
           error?.code === 22 || 
           (error?.message && error.message.includes('quota'))) {
-        console.warn('localStorage quota exceeded, saving to backend instead...');
+        console.warn('localStorage quota exceeded, attempting cleanup...');
         
-        // Try to save to backend
+        // Aggressive cleanup - keep only 10 most recent items
+        this.cleanupOldItems(10);
+        
+        // Retry localStorage save after cleanup
+        try {
+          const history = this.getAll();
+          history.push(newItem);
+          const storageKey = getUserStorageKey();
+          localStorage.setItem(storageKey, JSON.stringify(history));
+          console.log(`✅ Saved to local storage after cleanup as ${status}:`, newItem.id);
+          return;
+        } catch (retryError) {
+          console.warn('localStorage save still failing after cleanup, trying backend...');
+        }
+        
+        // Try to save to backend as last resort
         try {
           await saveToBackend(newItem);
           

@@ -17,6 +17,7 @@ const STORAGE_CONFIG = {
     'negative_keywords_',
     'form_data_',
     'autofill_',
+    'adiology-campaign-history',
   ],
 };
 
@@ -207,16 +208,70 @@ export function safeGetItem(key: string): string | null {
   }
 }
 
+// Trim history items to keep only most recent ones
+export function trimHistoryStorage(keepCount: number = 15): number {
+  let clearedBytes = 0;
+  
+  try {
+    // Find all history keys
+    const historyKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('adiology-campaign-history')) {
+        historyKeys.push(key);
+      }
+    }
+    
+    for (const key of historyKeys) {
+      const value = localStorage.getItem(key);
+      if (!value) continue;
+      
+      try {
+        const history = JSON.parse(value);
+        if (!Array.isArray(history) || history.length <= keepCount) continue;
+        
+        const originalSize = value.length;
+        
+        // Sort by timestamp and keep most recent
+        history.sort((a: any, b: any) => 
+          new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+        );
+        const trimmed = history.slice(0, keepCount);
+        
+        localStorage.setItem(key, JSON.stringify(trimmed));
+        const newSize = JSON.stringify(trimmed).length;
+        clearedBytes += (originalSize - newSize) * 2;
+        console.log(`[StorageManager] Trimmed history ${key} from ${history.length} to ${trimmed.length} items`);
+      } catch (parseError) {
+        // If can't parse, just skip
+      }
+    }
+  } catch (error) {
+    console.error('[StorageManager] Error trimming history:', error);
+  }
+  
+  return clearedBytes;
+}
+
 export function initStorageManager(): void {
   const usage = getStorageUsage();
   console.log(`[StorageManager] Storage: ${(usage.used / 1024).toFixed(1)} KB / ${(usage.total / 1024).toFixed(0)} KB (${(usage.percentage * 100).toFixed(1)}%)`);
   
   if (usage.percentage > STORAGE_CONFIG.warningThreshold) {
     console.warn('[StorageManager] Storage above threshold, auto-cleaning...');
-    clearOldData();
     
-    const newUsage = getStorageUsage();
+    // First, trim history to keep only recent items (smarter than deleting all)
+    trimHistoryStorage(15);
+    
+    let newUsage = getStorageUsage();
     if (newUsage.percentage > STORAGE_CONFIG.warningThreshold) {
+      clearOldData();
+    }
+    
+    newUsage = getStorageUsage();
+    if (newUsage.percentage > STORAGE_CONFIG.warningThreshold) {
+      // More aggressive trim
+      trimHistoryStorage(5);
       clearCacheData();
     }
   }
@@ -226,6 +281,11 @@ export function initStorageManager(): void {
 
 export function clearStorageNow(): void {
   console.log('[StorageManager] Performing immediate storage cleanup...');
+  
+  // First trim history (keep recent items)
+  trimHistoryStorage(10);
+  
+  // Then clear other cache items
   clearCacheData();
   clearOldData(24 * 60 * 60 * 1000);
   
