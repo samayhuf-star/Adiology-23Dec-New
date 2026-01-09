@@ -41,6 +41,7 @@ export async function getCurrentUserProfile() {
     subscription_plan: 'free',
     subscription_status: 'active',
     avatar_url: cachedClerkUser.imageUrl,
+    google_ads_default_account: null as string | null,
   };
 }
 

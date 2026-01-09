@@ -220,6 +220,21 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
     const trimmedNewPassword = newPassword.trim();
     const trimmedConfirmPassword = confirmPassword.trim();
     
+    if (!clerkUser) {
+      setSaveMessage({ type: 'error', text: 'You must be signed in to change your password.' });
+      return;
+    }
+    
+    // Check if user signed up with OAuth (no password)
+    const hasPassword = clerkUser.passwordEnabled;
+    if (!hasPassword) {
+      setSaveMessage({ 
+        type: 'error', 
+        text: 'Password change is not available for accounts signed in with Google or other social providers. Your account is secured by your social login provider.' 
+      });
+      return;
+    }
+    
     if (!trimmedCurrentPassword) {
       setSaveMessage({ type: 'error', text: 'Current password is required. Please enter your current password.' });
       return;
@@ -245,11 +260,6 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
       return;
     }
     
-    if (!clerkUser) {
-      setSaveMessage({ type: 'error', text: 'You must be signed in to change your password.' });
-      return;
-    }
-    
     setIsSaving(true);
     setSaveMessage(null);
     
@@ -267,7 +277,20 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error: any) {
       console.error('Error changing password:', error);
-      const errorMessage = error.errors?.[0]?.longMessage || error.errors?.[0]?.message || 'Failed to change password. Please try again.';
+      // Handle specific Clerk error codes
+      const errorCode = error.errors?.[0]?.code;
+      let errorMessage = 'Failed to change password. Please try again.';
+      
+      if (errorCode === 'form_password_incorrect') {
+        errorMessage = 'Current password is incorrect. Please try again.';
+      } else if (errorCode === 'form_password_pwned') {
+        errorMessage = 'This password has been compromised in a data breach. Please choose a different password.';
+      } else if (errorCode === 'form_password_not_strong_enough') {
+        errorMessage = 'Password is not strong enough. Please use a mix of letters, numbers, and symbols.';
+      } else if (error.errors?.[0]?.longMessage || error.errors?.[0]?.message) {
+        errorMessage = error.errors[0].longMessage || error.errors[0].message;
+      }
+      
       setSaveMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsSaving(false);

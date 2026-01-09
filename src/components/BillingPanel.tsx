@@ -194,7 +194,20 @@ export const BillingPanel = () => {
         setProcessingPlan(selectedPlan);
         setProcessing(true);
         try {
-            const selectedPriceId = priceId || "price_1ScnHdRfXPeepCva95wPdyod";
+            // Try to get the real price ID from Stripe
+            let selectedPriceId = priceId;
+            
+            // If using placeholder price IDs, try to fetch the real ones
+            if (!selectedPriceId || selectedPriceId.startsWith('price_basic') || selectedPriceId.startsWith('price_pro') || selectedPriceId === 'price_lifetime') {
+                const { getPriceIdForPlan } = await import('../utils/stripe');
+                const fetchedPriceId = await getPriceIdForPlan(selectedPlan, 'month');
+                if (fetchedPriceId) {
+                    selectedPriceId = fetchedPriceId;
+                } else {
+                    // Don't fallback to a different plan - show error instead
+                    throw new Error(`The ${selectedPlan} plan is not yet configured. Please contact support or try a different plan.`);
+                }
+            }
             
             // Get current user for checkout
             const { getCurrentAuthUser } = await import('../utils/auth');
@@ -211,10 +224,19 @@ export const BillingPanel = () => {
             // The redirect happens in createCheckoutSession
         } catch (error) {
             console.error("Subscription error", error);
-            notifications.error('Failed to initiate checkout. Please try again.', {
-                title: 'Payment Error',
-                description: error instanceof Error ? error.message : 'Unknown error occurred',
-            });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            
+            // Provide more helpful error messages
+            if (errorMessage.includes('not yet configured') || errorMessage.includes('price') || errorMessage.includes('Price')) {
+                notifications.error(errorMessage, {
+                    title: 'Plan Unavailable',
+                });
+            } else {
+                notifications.error('Failed to initiate checkout. Please try again.', {
+                    title: 'Payment Error',
+                    description: errorMessage,
+                });
+            }
             setProcessing(false);
             setProcessingPlan(null);
         }

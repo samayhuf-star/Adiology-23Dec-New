@@ -5207,7 +5207,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
           <div className="flex flex-wrap gap-3 justify-center">
           <Button
             variant="outline"
-            onClick={() => setCurrentStep(6)}
+            onClick={() => setCurrentStep(5)}
               className="border-slate-300 hover:bg-slate-50"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
