@@ -6,6 +6,45 @@ import { localStorageHistory, HistoryItem } from './localStorageHistory';
  * Uses backend API for database storage, falls back to localStorage when unavailable
  */
 
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 1000; // 1 second
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  retries = MAX_RETRIES
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // Retry on 5xx server errors
+      if (response.status >= 500 && attempt < retries) {
+        await sleep(RETRY_DELAY * (attempt + 1));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Retry on network errors
+      if (attempt < retries) {
+        await sleep(RETRY_DELAY * (attempt + 1));
+        continue;
+      }
+    }
+  }
+  
+  throw lastError || new Error('Request failed after retries');
+}
+
 let clerkGetToken: (() => Promise<string | null>) | null = null;
 
 export function setClerkGetToken(getToken: () => Promise<string | null>) {
@@ -33,7 +72,7 @@ export const historyService = {
       const token = await getAuthToken();
       
       if (token) {
-        const response = await fetch('/api/campaign-history', {
+        const response = await fetchWithRetry('/api/campaign-history', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -43,7 +82,7 @@ export const historyService = {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
           console.warn('Failed to save to database:', errorData);
           throw new Error(errorData.error || 'Failed to save');
         }
@@ -77,7 +116,7 @@ export const historyService = {
           updatePayload.name = name;
         }
         
-        const response = await fetch(`/api/campaign-history/${id}`, {
+        const response = await fetchWithRetry(`/api/campaign-history/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -87,7 +126,7 @@ export const historyService = {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
           console.warn('Failed to update in database:', errorData);
           throw new Error(errorData.error || 'Failed to update');
         }
@@ -111,7 +150,7 @@ export const historyService = {
       const token = await getAuthToken();
       
       if (token) {
-        const response = await fetch(`/api/campaign-history/${id}`, {
+        const response = await fetchWithRetry(`/api/campaign-history/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -121,7 +160,7 @@ export const historyService = {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
           console.warn('Failed to mark as completed in database:', errorData);
           throw new Error(errorData.error || 'Failed to update status');
         }
@@ -146,14 +185,14 @@ export const historyService = {
       const token = await getAuthToken();
       
       if (token) {
-        const response = await fetch('/api/campaign-history', {
+        const response = await fetchWithRetry('/api/campaign-history', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
           console.warn('Failed to load from database:', errorData);
           throw new Error(errorData.error || 'Failed to load');
         }
@@ -222,7 +261,7 @@ export const historyService = {
       const token = await getAuthToken();
       
       if (token) {
-        const response = await fetch(`/api/campaign-history/${id}`, {
+        const response = await fetchWithRetry(`/api/campaign-history/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -230,7 +269,7 @@ export const historyService = {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
           console.warn('Failed to delete from database:', errorData);
           throw new Error(errorData.error || 'Failed to delete');
         }

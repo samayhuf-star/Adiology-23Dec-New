@@ -298,16 +298,18 @@ export function LongTailKeywords() {
     }
   };
 
-  const deleteList = async (listId: string) => {
+  const deleteList = async (listId: string | number) => {
     try {
+      // Ensure listId is a string for comparison
+      const listIdStr = String(listId);
       // Check if it's a local item (UUID format) or API item (numeric)
-      const isLocalItem = listId.includes('-');
+      const isLocalItem = listIdStr.includes('-');
       
       if (isLocalItem) {
         // Delete from historyService
-        await historyService.deleteHistory(listId);
+        await historyService.deleteHistory(listIdStr);
         notifications.success('List deleted');
-        setSavedLists(prev => prev.filter(l => l.id !== listId));
+        setSavedLists(prev => prev.filter(l => String(l.id) !== listIdStr));
         return;
       }
       
@@ -329,7 +331,7 @@ export function LongTailKeywords() {
       }
 
       notifications.success('List deleted');
-      setSavedLists(prev => prev.filter(l => l.id !== listId));
+      setSavedLists(prev => prev.filter(l => String(l.id) !== listIdStr));
     } catch (error: any) {
       console.error('Error deleting list:', error);
       notifications.error(error.message || 'Failed to delete list');

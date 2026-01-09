@@ -8,7 +8,6 @@ import { Card } from './ui/card';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
 import { supabase } from '../utils/supabase/client';
 import { historyService } from '../utils/historyService';
-import { getUserPublishedWebsites } from '../utils/publishedWebsites';
 import { getUserPreferences, saveUserPreferences, initializeUserPreferences } from '../utils/userPreferences';
 import { 
   useScreenSize, 
