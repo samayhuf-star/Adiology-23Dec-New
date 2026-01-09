@@ -65,7 +65,33 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   }
 
+  isLazyLoadError = (error: Error): boolean => {
+    const message = error.message || '';
+    return (
+      message.includes('Failed to fetch dynamically imported module') ||
+      message.includes('Loading chunk') ||
+      message.includes('ChunkLoadError') ||
+      message.includes('Loading CSS chunk') ||
+      error.name === 'ChunkLoadError'
+    );
+  };
+
   handleRetry = () => {
+    const { error } = this.state;
+    
+    // For lazy loading errors (stale cache), force a full page reload
+    if (error && this.isLazyLoadError(error)) {
+      // Clear any service worker caches before reloading
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+      // Force reload from server, bypassing cache
+      window.location.reload();
+      return;
+    }
+    
     this.setState({
       hasError: false,
       error: null,
@@ -109,6 +135,9 @@ Please describe what you were doing when this error occurred:
         return this.props.fallback;
       }
 
+      // Check if this is a lazy loading error
+      const isLazyError = this.state.error && this.isLazyLoadError(this.state.error);
+
       // Default error UI
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -116,10 +145,12 @@ Please describe what you were doing when this error occurred:
             <div className="mb-4">
               <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Oops! Something went wrong
+                {isLazyError ? 'Page Update Required' : 'Oops! Something went wrong'}
               </h1>
               <p className="text-gray-600 mb-4">
-                We're sorry, but something unexpected happened. Our team has been notified.
+                {isLazyError 
+                  ? 'The app has been updated. Please click the button below to refresh and get the latest version.'
+                  : "We're sorry, but something unexpected happened. Our team has been notified."}
               </p>
             </div>
 
@@ -148,24 +179,28 @@ Please describe what you were doing when this error occurred:
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                Try Again
+                {isLazyError ? 'Refresh Page' : 'Try Again'}
               </button>
               
-              <button
-                onClick={this.handleGoHome}
-                className="w-full flex items-center justify-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                <Home className="w-4 h-4" />
-                Go to Homepage
-              </button>
-              
-              <button
-                onClick={this.handleReportBug}
-                className="w-full flex items-center justify-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
-              >
-                <Bug className="w-4 h-4" />
-                Report Bug
-              </button>
+              {!isLazyError && (
+                <>
+                  <button
+                    onClick={this.handleGoHome}
+                    className="w-full flex items-center justify-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <Home className="w-4 h-4" />
+                    Go to Homepage
+                  </button>
+                  
+                  <button
+                    onClick={this.handleReportBug}
+                    className="w-full flex items-center justify-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+                  >
+                    <Bug className="w-4 h-4" />
+                    Report Bug
+                  </button>
+                </>
+              )}
             </div>
 
             {this.state.errorId && (
