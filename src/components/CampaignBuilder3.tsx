@@ -318,6 +318,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   const [callAdBusinessName, setCallAdBusinessName] = useState('');
   const [showFlowDiagram, setShowFlowDiagram] = useState(false);
   const [selectedStructureForDiagram, setSelectedStructureForDiagram] = useState<{ id: string; name: string } | null>(null);
+  const [userManuallySelectedStructure, setUserManuallySelectedStructure] = useState(false);
   const [campaignData, setCampaignData] = useState<CampaignData>({
     url: '',
     campaignName: generateDefaultCampaignName(),
@@ -822,16 +823,18 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       
       setSeedKeywordsText(seedKeywords.join('\n'));
 
-      // Auto-select best campaign structures
+      // Auto-select best campaign structures (only if user hasn't manually selected one during this session)
       addAnalysisLog('Ranking campaign structures...', 'step');
+      // Note: userManuallySelectedStructure is reset when starting a new campaign/analysis
       const rankings = rankCampaignStructures(intentResult, vertical ?? 'general');
       setCampaignData(prev => ({
         ...prev,
         structureRankings: rankings,
-        selectedStructure: rankings[0]?.id || 'skag',
+        // Only auto-select if user hasn't manually chosen a structure
+        selectedStructure: userManuallySelectedStructure ? prev.selectedStructure : (rankings[0]?.id || 'skag'),
       }));
       const topStructure = CAMPAIGN_STRUCTURES.find(s => s.id === rankings[0]?.id);
-      addAnalysisLog(`Recommended structure: ${topStructure?.name || 'SKAG'}`, 'success');
+      addAnalysisLog(`Recommended structure: ${topStructure?.name || 'SKAG'}${userManuallySelectedStructure ? ' (keeping your selection)' : ''}`, 'success');
 
       // Save analysis to database (non-blocking)
       addAnalysisLog('Saving analysis to cache...', 'step');
@@ -876,6 +879,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
 
   // Step 2: Campaign Structure Selection
   const handleStructureSelect = (structureId: string) => {
+    setUserManuallySelectedStructure(true);
     setCampaignData(prev => ({ ...prev, selectedStructure: structureId }));
   };
 
@@ -1514,8 +1518,8 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     const groups: AdGroup[] = [];
     
     if (structureType === 'skag') {
-      // SKAG: One ad group per keyword (limit to 20)
-      keywords.slice(0, 20).forEach((kw, idx) => {
+      // SKAG: One ad group per keyword - no limit, each keyword gets its own ad group
+      keywords.forEach((kw, idx) => {
         const baseText = (kw.text || kw.keyword || '').replace(/^["\[\]]|["\[\]]$/g, '').trim();
         groups.push({
           id: `ag-${idx + 1}`,
@@ -5292,6 +5296,7 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     }
     
     setEditingCampaignName(false);
+    setUserManuallySelectedStructure(false);
     setCampaignData({
       url: '',
       campaignName: generateDefaultCampaignName(),

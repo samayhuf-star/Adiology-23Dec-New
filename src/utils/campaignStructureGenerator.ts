@@ -410,7 +410,7 @@ function generateSKAG(keywords: string[], settings: StructureSettings): Campaign
   const negativeKeywords = settings.negativeKeywords || [];
   const locationTarget = buildLocationTarget(settings);
 
-  const adgroups = keywords.slice(0, 30).map((keyword) => ({
+  const adgroups = keywords.map((keyword) => ({
     adgroup_name: keyword,
     keywords: matchTypes.map(mt => formatKeyword(keyword, mt)),
     match_types: matchTypes,
