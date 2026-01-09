@@ -524,6 +524,7 @@ export function TaskManager() {
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden w-full">
+        <div className="flex-1 flex flex-col overflow-hidden w-full max-w-3xl mx-auto">
         {/* Header */}
         <div className="p-3 md:p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between mb-3 md:mb-4 gap-2">
@@ -669,6 +670,7 @@ export function TaskManager() {
               ))}
             </div>
           )}
+        </div>
         </div>
       </div>
       
