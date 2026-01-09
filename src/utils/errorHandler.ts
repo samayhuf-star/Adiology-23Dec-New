@@ -21,10 +21,21 @@ export interface ErrorReport {
 
 class ErrorHandlerClass {
   private errorQueue: ErrorReport[] = [];
-  private isOnline = navigator.onLine;
+  private isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
   private maxQueueSize = 50;
+  private initialized = false;
 
   constructor() {
+    // Guard against SSR/non-DOM environments
+    if (typeof window === 'undefined') return;
+    
+    this.initializeListeners();
+  }
+
+  private initializeListeners() {
+    if (this.initialized || typeof window === 'undefined') return;
+    this.initialized = true;
+    
     // Listen for online/offline events
     window.addEventListener('online', this.handleOnline.bind(this));
     window.addEventListener('offline', this.handleOffline.bind(this));

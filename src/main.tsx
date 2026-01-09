@@ -15,6 +15,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { validateEnvironment } from "./utils/envCheck";
 import { loggingService } from "./utils/loggingService";
+import { initVersionCheck, handleChunkLoadError } from "./utils/versionCheck";
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -74,6 +75,12 @@ if (typeof window !== 'undefined') {
       ? event.reason 
       : new Error(String(event.reason));
     
+    // Check if it's a chunk load error (stale cache after deployment)
+    if (handleChunkLoadError(error)) {
+      event.preventDefault();
+      return;
+    }
+    
     try {
       const { ErrorHandler } = await import('./utils/errorHandler');
       ErrorHandler.captureError(error, {
@@ -107,6 +114,9 @@ if (typeof window !== 'undefined') {
 
 // Initialize user preferences on app load
 initializeUserPreferences();
+
+// Initialize version checking for cache busting
+initVersionCheck();
 
 // Initialize logging service to start capturing logs
 loggingService.logSystemEvent('Application starting', { timestamp: new Date().toISOString() });
