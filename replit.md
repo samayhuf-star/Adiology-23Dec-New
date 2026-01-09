@@ -8,6 +8,24 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## January 9, 2026 - Task Manager Kanban View & Project Improvements
+### Kanban Board View
+- Added view mode toggle (List/Kanban) in the Projects page header
+- Kanban view shows projects as horizontal columns with scrollable task lists
+- Inbox column appears first, followed by project columns, and an "Add Project" column at the end
+- Task cards show title, due date, and priority indicator
+- Quick-add buttons on each column for adding tasks directly to that project
+
+### Project Deletion Double Confirmation
+- Two-step confirmation dialog for project deletion
+- Users must type the exact project name to enable the delete button
+- Prevents accidental deletion of projects with many tasks
+
+### UI Improvements
+- Centered content layout (max-width 768px) for better readability in list view
+- Full-width layout in Kanban mode for horizontal scrolling
+- Badge component added for task counts on columns
+
 ## January 8, 2026 - Authentication and Storage Fixes
 ### Clerk Authentication Flow Fix
 - Fixed redirect issue during multi-step authentication (email → password → verification code)
