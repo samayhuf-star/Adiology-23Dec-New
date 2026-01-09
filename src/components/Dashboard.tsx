@@ -140,19 +140,9 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
           }));
         }
 
-        // Get published websites (gracefully handle missing table)
-        try {
-          const websites = await getUserPublishedWebsites(user.id);
-          myWebsites = websites.length;
-        } catch (websiteError: any) {
-          const errorMessage = websiteError?.message?.toLowerCase() || '';
-          if (!errorMessage.includes('schema cache') && 
-              !errorMessage.includes('could not find the table') &&
-              !errorMessage.includes('does not exist')) {
-            console.warn('Could not fetch published websites:', websiteError);
-          }
-          myWebsites = 0;
-        }
+        // Published websites feature disabled - table doesn't exist in Supabase
+        // Set to 0 to avoid 404 errors in console
+        myWebsites = 0;
       } catch (error: any) {
         // Check if error is about missing published_websites table
         const errorMessage = error?.message?.toLowerCase() || '';
