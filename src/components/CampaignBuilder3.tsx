@@ -74,7 +74,7 @@ const CAMPAIGN_STRUCTURES = [
   { id: 'brand_split', name: 'Brand Split', description: 'Brand vs Non-Brand', icon: Building },
   { id: 'competitor', name: 'Competitor', description: 'Competitor Campaigns', icon: Target },
   { id: 'ngram', name: 'N-Gram Clusters', description: 'Smart Clustering', icon: Brain },
-  { id: 'long_tail', name: 'Long-Tail Master', description: '3+ Word Low-Competition Keywords', icon: Search },
+  { id: 'long_tail', name: 'Long-Tail Master', description: '4+ Word Low-Competition Keywords', icon: Search },
   { id: 'seasonal', name: 'Seasonal Sprint', description: 'Time-Based Campaigns', icon: Calendar },
 ];
 
@@ -877,10 +877,31 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     }
   };
 
+  // Helper to filter keywords based on structure type
+  const filterKeywordsByStructure = (keywords: any[], structureId: string) => {
+    if (structureId === 'long_tail') {
+      // Long-Tail: Only 4+ word keywords
+      return keywords.filter(kw => {
+        const text = (kw.text || kw.keyword || '').replace(/^\[|\]$|^"|"$/g, '').trim();
+        return text.split(/\s+/).filter(Boolean).length >= 4;
+      });
+    }
+    // Other structures don't filter keywords in the UI
+    return keywords;
+  };
+
   // Step 2: Campaign Structure Selection
   const handleStructureSelect = (structureId: string) => {
     setUserManuallySelectedStructure(true);
-    setCampaignData(prev => ({ ...prev, selectedStructure: structureId }));
+    setCampaignData(prev => {
+      // Filter selectedKeywords based on new structure
+      const filteredSelected = filterKeywordsByStructure(prev.selectedKeywords, structureId);
+      return { 
+        ...prev, 
+        selectedStructure: structureId,
+        selectedKeywords: filteredSelected
+      };
+    });
   };
 
   const handleNextFromStructure = () => {
@@ -1225,13 +1246,18 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       
       setKeywordDataSource(dataSource);
 
-      // Generate ad groups based on campaign structure
-      const adGroups = generateAdGroupsFromKeywords(enrichedKeywords, campaignData.selectedStructure || 'skag');
+      // Apply structure-specific filtering for keyword selection
+      // All generated keywords are stored, but only structure-appropriate ones are selected
+      const currentStructure = campaignData.selectedStructure || 'skag';
+      const structureFilteredKeywords = filterKeywordsByStructure(enrichedKeywords, currentStructure);
+      
+      // Generate ad groups based on campaign structure with filtered keywords
+      const adGroups = generateAdGroupsFromKeywords(structureFilteredKeywords, currentStructure);
 
       setCampaignData(prev => ({
         ...prev,
-        generatedKeywords: enrichedKeywords,
-        selectedKeywords: enrichedKeywords, // Auto-select all by default
+        generatedKeywords: enrichedKeywords, // Store all generated keywords
+        selectedKeywords: structureFilteredKeywords, // Only auto-select structure-appropriate keywords
         adGroups: adGroups,
       }));
       
@@ -1258,11 +1284,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
       // Fallback: Use seed keywords as manual keywords
       if (campaignData.seedKeywords.length > 0) {
         const seedKeywordsAsKeywords = createKeywordsFromSeeds(campaignData.seedKeywords);
+        const fallbackStructure = campaignData.selectedStructure || 'skag';
+        const filteredSeedKeywords = filterKeywordsByStructure(seedKeywordsAsKeywords, fallbackStructure);
         
         setCampaignData(prev => ({
           ...prev,
           generatedKeywords: seedKeywordsAsKeywords,
-          selectedKeywords: seedKeywordsAsKeywords,
+          selectedKeywords: filteredSeedKeywords.length > 0 ? filteredSeedKeywords : seedKeywordsAsKeywords,
         }));
 
         notifications.warning('Using seed keywords as manual keywords', {
@@ -1340,8 +1368,12 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     }));
   };
 
-  // Filter keywords based on selected types and negative keywords
+  // Filter keywords based on selected types, negative keywords, and structure type
   const negativeList = campaignData.negativeKeywords.map(n => n.trim().toLowerCase()).filter(Boolean);
+  
+  // Structure-specific keyword filter helper
+  const getWordCount = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
+  
   const filteredKeywords = campaignData.generatedKeywords.filter(kw => {
     // Filter by match type
     if (kw.matchType === 'broad' && !campaignData.keywordTypes.broad) return false;
@@ -1351,7 +1383,15 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
     
     // Filter out keywords containing negative keywords
     const keywordText = (kw.text || kw.keyword || '').toLowerCase();
-    if (negativeList.some(neg => keywordText.includes(neg))) return false;
+    const rawKeywordText = keywordText.replace(/^\[|\]$|^"|"$/g, '').trim();
+    if (negativeList.some(neg => rawKeywordText.includes(neg))) return false;
+    
+    // Structure-specific filtering
+    const structure = campaignData.selectedStructure;
+    if (structure === 'long_tail') {
+      // Long-Tail: Only show keywords with 4+ words
+      if (getWordCount(rawKeywordText) < 4) return false;
+    }
     
     return true;
   });

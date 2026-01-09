@@ -536,7 +536,7 @@ function generateMIX(keywords: string[], settings: StructureSettings): CampaignS
     groups[firstWord].push(kw);
   });
 
-  Object.entries(groups).slice(0, 7).forEach(([theme, groupKeywords], idx) => {
+  Object.entries(groups).forEach(([theme, groupKeywords], idx) => {
     const adGroup: AdGroup = {
       adgroup_name: `Mixed Group ${idx + 1} - ${theme}`,
       keywords: groupKeywords.flatMap(kw => matchTypes.map(mt => formatKeyword(kw, mt))),
