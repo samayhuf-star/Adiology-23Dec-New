@@ -57,7 +57,7 @@ export function TaskManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'today' | 'done'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'today' | 'done' | 'allProjects'>('all');
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set(['inbox']));
@@ -434,6 +434,21 @@ export function TaskManager() {
           {/* Quick Filters */}
           <div className="space-y-1 mb-4">
             <button
+              onClick={() => handleSidebarItemClick(() => { setActiveFilter('allProjects'); setSelectedProject(null); })}
+              className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
+                activeFilter === 'allProjects'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+              }`}
+            >
+              <FolderOpen className="w-5 h-5 md:w-4 md:h-4" />
+              <span className="text-base md:text-sm">All Projects</span>
+              {projects.length > 0 && (
+                <Badge variant="secondary" className="ml-auto bg-gray-200 text-gray-700">{projects.length}</Badge>
+              )}
+            </button>
+            
+            <button
               onClick={() => handleSidebarItemClick(() => { setActiveFilter('all'); setSelectedProject(null); })}
               className={`w-full flex items-center gap-3 px-3 py-3 md:py-2 rounded-lg transition-colors ${
                 activeFilter === 'all' && !selectedProject
@@ -566,7 +581,8 @@ export function TaskManager() {
             </Button>
             
             <h1 className="text-lg md:text-2xl font-bold text-gray-900 flex-1 truncate">
-              {activeFilter === 'today' ? 'Today' : 
+              {activeFilter === 'allProjects' ? 'All Projects' :
+               activeFilter === 'today' ? 'Today' : 
                activeFilter === 'done' ? 'Completed' :
                selectedProject ? projects.find(p => p.id === selectedProject)?.name : 'Inbox'}
             </h1>
@@ -593,18 +609,33 @@ export function TaskManager() {
               </div>
             )}
             
-            <Button
-              onClick={() => {
-                setNewTask({ ...newTask, projectId: selectedProject });
-                setEditingTask(null);
-                setIsTaskDialogOpen(true);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 h-10 px-3 md:px-4 flex-shrink-0"
-              size="sm"
-            >
-              <Plus className="w-5 h-5 md:w-4 md:h-4" />
-              <span className="hidden sm:inline ml-2">Add Task</span>
-            </Button>
+            {activeFilter === 'allProjects' ? (
+              <Button
+                onClick={() => {
+                  setEditingProject(null);
+                  setNewProject({ name: '', color: PROJECT_COLORS[0] });
+                  setIsProjectDialogOpen(true);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 h-10 px-3 md:px-4 flex-shrink-0"
+                size="sm"
+              >
+                <Plus className="w-5 h-5 md:w-4 md:h-4" />
+                <span className="hidden sm:inline ml-2">Add Project</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={() => {
+                  setNewTask({ ...newTask, projectId: selectedProject });
+                  setEditingTask(null);
+                  setIsTaskDialogOpen(true);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 h-10 px-3 md:px-4 flex-shrink-0"
+                size="sm"
+              >
+                <Plus className="w-5 h-5 md:w-4 md:h-4" />
+                <span className="hidden sm:inline ml-2">Add Task</span>
+              </Button>
+            )}
           </div>
           
           {/* Search */}
@@ -613,13 +644,113 @@ export function TaskManager() {
             <Input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search tasks..."
+              placeholder={activeFilter === 'allProjects' ? "Search projects..." : "Search tasks..."}
               className="pl-9 bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400 h-10"
             />
           </div>
         </div>
         
-        {/* Task List or Kanban View */}
+        {/* All Projects View */}
+        {activeFilter === 'allProjects' ? (
+          <div className="flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50">
+            {projects.filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                <FolderOpen className="w-12 h-12 mb-4 text-gray-300" />
+                <p className="text-lg font-medium">{projects.length === 0 ? 'No projects yet' : 'No matching projects'}</p>
+                <p className="text-sm mt-1">{projects.length === 0 ? 'Create your first project to get started' : 'Try a different search term'}</p>
+                {projects.length === 0 && (
+                  <Button
+                    onClick={() => {
+                      setEditingProject(null);
+                      setNewProject({ name: '', color: PROJECT_COLORS[0] });
+                      setIsProjectDialogOpen(true);
+                    }}
+                    className="mt-4 bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Project
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {projects
+                  .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(project => {
+                    const projectTasks = tasks.filter(t => t.projectId === project.id);
+                    const completedTasks = projectTasks.filter(t => t.isCompleted);
+                    const pendingTasks = projectTasks.filter(t => !t.isCompleted);
+                    return (
+                      <div 
+                        key={project.id}
+                        className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group"
+                        onClick={() => {
+                          setSelectedProject(project.id);
+                          setActiveFilter('all');
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: project.color }}
+                            />
+                            <h3 className="font-semibold text-gray-900 truncate">{project.name}</h3>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); openEditProject(project); }}>
+                                <Edit2 className="w-4 h-4 mr-2" /> Edit Project
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-red-500"
+                                onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteProject(project.id); }}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete Project
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Circle className="w-3 h-3" />
+                            <span>{pendingTasks.length} pending</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-green-500" />
+                            <span>{completedTasks.length} done</span>
+                          </div>
+                        </div>
+                        {projectTasks.length > 0 && (
+                          <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-green-500 rounded-full transition-all"
+                              style={{ width: `${(completedTasks.length / projectTasks.length) * 100}%` }}
+                            />
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-400 mt-3">
+                          Created {new Date(project.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+        ) : (
+        
+        /* Task List or Kanban View */
         <div className={`flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50 ${viewMode === 'kanban' && !selectedProject && activeFilter === 'all' ? 'overflow-x-auto' : ''}`}>
           {/* Kanban View */}
           {viewMode === 'kanban' && !selectedProject && activeFilter === 'all' ? (
@@ -867,6 +998,7 @@ export function TaskManager() {
             </div>
           )}
         </div>
+        )}
         </div>
       </div>
       
