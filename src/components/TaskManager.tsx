@@ -673,7 +673,7 @@ export function TaskManager() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-start">
                 {projects
                   .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(project => {
