@@ -8,6 +8,14 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## January 9, 2026 - SKAG Campaign Structure Fix
+### SKAG (Single Keyword Ad Group) Structure
+- Removed arbitrary 30 ad group limit in campaign structure generator - now creates one ad group per keyword
+- Removed 20 keyword limit in UI ad group generator - now processes all keywords for SKAG
+- Added tracking for user's manual structure selection to prevent AI recommendations from overriding user's choice
+- When user manually selects SKAG, the structure is preserved even if AI recommends a different structure
+- Reset manual selection flag when starting a new campaign to allow recommendations for fresh campaigns
+
 ## January 9, 2026 - Task Manager Kanban View & Project Improvements
 ### Kanban Board View
 - Added view mode toggle (List/Kanban) in the Projects page header
