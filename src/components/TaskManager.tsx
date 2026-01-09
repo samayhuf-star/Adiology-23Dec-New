@@ -3,7 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import {
   Plus, Check, Trash2, Edit2, FolderOpen, Calendar, Star, GripVertical,
   ChevronDown, ChevronRight, MoreHorizontal, Search, Filter, X, Inbox,
-  CheckCircle2, Circle, Clock, AlertCircle, Menu, ChevronLeft
+  CheckCircle2, Circle, Clock, AlertCircle, Menu, ChevronLeft, LayoutGrid, List, AlertTriangle
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -72,6 +72,12 @@ export function TaskManager() {
   
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState<1 | 2>(1);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
@@ -274,21 +280,42 @@ export function TaskManager() {
     }
   };
 
-  const deleteProject = async (projectId: string) => {
+  const openDeleteConfirmation = (project: Project) => {
+    setProjectToDelete(project);
+    setDeleteConfirmStep(1);
+    setDeleteConfirmName('');
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteProject = async () => {
+    if (!projectToDelete) return;
+    
     try {
       const token = await getToken();
       if (!token) return;
 
-      await fetch(`/api/projects/${projectId}`, {
+      await fetch(`/api/projects/${projectToDelete.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setProjects(projects.filter(p => p.id !== projectId));
-      setTasks(tasks.map(t => t.projectId === projectId ? { ...t, projectId: null } : t));
-      if (selectedProject === projectId) setSelectedProject(null);
+      setProjects(projects.filter(p => p.id !== projectToDelete.id));
+      setTasks(tasks.map(t => t.projectId === projectToDelete.id ? { ...t, projectId: null } : t));
+      if (selectedProject === projectToDelete.id) setSelectedProject(null);
+      
+      setIsDeleteConfirmOpen(false);
+      setProjectToDelete(null);
+      setDeleteConfirmStep(1);
+      setDeleteConfirmName('');
     } catch (error) {
       console.error('Failed to delete project:', error);
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      openDeleteConfirmation(project);
     }
   };
 
@@ -524,7 +551,7 @@ export function TaskManager() {
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden w-full">
-        <div className="flex-1 flex flex-col overflow-hidden w-full max-w-3xl mx-auto">
+        <div className={`flex-1 flex flex-col overflow-hidden w-full mx-auto ${viewMode === 'kanban' && !selectedProject && activeFilter === 'all' ? 'max-w-full px-4' : 'max-w-3xl'}`}>
         {/* Header */}
         <div className="p-3 md:p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between mb-3 md:mb-4 gap-2">
@@ -543,6 +570,29 @@ export function TaskManager() {
                activeFilter === 'done' ? 'Completed' :
                selectedProject ? projects.find(p => p.id === selectedProject)?.name : 'Inbox'}
             </h1>
+            
+            {/* View Mode Toggle - only show on Inbox */}
+            {!selectedProject && activeFilter === 'all' && (
+              <div className="hidden sm:flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setViewMode('list')}
+                  className={`h-9 px-3 rounded-none ${viewMode === 'list' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-500'}`}
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setViewMode('kanban')}
+                  className={`h-9 px-3 rounded-none ${viewMode === 'kanban' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-500'}`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+            
             <Button
               onClick={() => {
                 setNewTask({ ...newTask, projectId: selectedProject });
@@ -569,9 +619,155 @@ export function TaskManager() {
           </div>
         </div>
         
-        {/* Task List */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50">
-          {filteredTasks.length === 0 ? (
+        {/* Task List or Kanban View */}
+        <div className={`flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50 ${viewMode === 'kanban' && !selectedProject && activeFilter === 'all' ? 'overflow-x-auto' : ''}`}>
+          {/* Kanban View */}
+          {viewMode === 'kanban' && !selectedProject && activeFilter === 'all' ? (
+            <div className="flex gap-4 h-full min-w-max pb-4">
+              {/* Inbox Column */}
+              <div className="w-72 flex-shrink-0 bg-white rounded-lg border border-gray-200 flex flex-col max-h-full">
+                <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Inbox className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium text-gray-900">Inbox</span>
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-600">{inboxTasks.length}</Badge>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setNewTask({ ...newTask, projectId: null });
+                      setEditingTask(null);
+                      setIsTaskDialogOpen(true);
+                    }}
+                    className="h-7 w-7 p-0 text-gray-500 hover:text-gray-900"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  {inboxTasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase())).map(task => (
+                    <div
+                      key={task.id}
+                      onClick={() => openEditTask(task)}
+                      className="p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-300 hover:shadow-sm cursor-pointer transition-all"
+                    >
+                      <div className="flex items-start gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleTaskComplete(task); }}
+                          className="mt-0.5 flex-shrink-0"
+                        >
+                          <Circle className={`w-4 h-4 ${getPriorityColor(task.priority)}`} />
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium text-gray-900 line-clamp-2">{task.title}</span>
+                          {task.dueDate && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(task.dueDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                        {task.isToday && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
+                      </div>
+                    </div>
+                  ))}
+                  {inboxTasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                    <div className="text-center text-gray-400 text-sm py-8">No tasks</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Project Columns */}
+              {projects.map(project => {
+                const projectTasks = tasks.filter(t => t.projectId === project.id && !t.isCompleted);
+                const filteredProjectTasks = projectTasks.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+                return (
+                  <div key={project.id} className="w-72 flex-shrink-0 bg-white rounded-lg border border-gray-200 flex flex-col max-h-full">
+                    <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} />
+                        <span className="font-medium text-gray-900 truncate max-w-[120px]">{project.name}</span>
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-600">{projectTasks.length}</Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setNewTask({ ...newTask, projectId: project.id });
+                            setEditingTask(null);
+                            setIsTaskDialogOpen(true);
+                          }}
+                          className="h-7 w-7 p-0 text-gray-500 hover:text-gray-900"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-gray-500 hover:text-gray-900">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditProject(project)}>
+                              <Edit2 className="w-4 h-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-500" onClick={() => deleteProject(project.id)}>
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                      {filteredProjectTasks.map(task => (
+                        <div
+                          key={task.id}
+                          onClick={() => openEditTask(task)}
+                          className="p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-300 hover:shadow-sm cursor-pointer transition-all"
+                        >
+                          <div className="flex items-start gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleTaskComplete(task); }}
+                              className="mt-0.5 flex-shrink-0"
+                            >
+                              <Circle className={`w-4 h-4 ${getPriorityColor(task.priority)}`} />
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-gray-900 line-clamp-2">{task.title}</span>
+                              {task.dueDate && (
+                                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(task.dueDate).toLocaleDateString()}
+                                </div>
+                              )}
+                            </div>
+                            {task.isToday && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
+                          </div>
+                        </div>
+                      ))}
+                      {filteredProjectTasks.length === 0 && (
+                        <div className="text-center text-gray-400 text-sm py-8">No tasks</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {/* Add Project Column */}
+              <div 
+                className="w-72 flex-shrink-0 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+                onClick={() => setIsProjectDialogOpen(true)}
+              >
+                <div className="text-center text-gray-500">
+                  <Plus className="w-8 h-8 mx-auto mb-2" />
+                  <span className="text-sm font-medium">Add Project</span>
+                </div>
+              </div>
+            </div>
+          ) : filteredTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-500 px-4">
               <CheckCircle2 className="w-12 h-12 md:w-16 md:h-16 mb-4 opacity-50" />
               <p className="text-base md:text-lg">No tasks here</p>
@@ -822,6 +1018,82 @@ export function TaskManager() {
               {saving ? 'Saving...' : (editingProject ? 'Save' : 'Create')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={(open: boolean) => {
+        if (!open) {
+          setIsDeleteConfirmOpen(false);
+          setProjectToDelete(null);
+          setDeleteConfirmStep(1);
+          setDeleteConfirmName('');
+        }
+      }}>
+        <DialogContent className="bg-white border-gray-200 text-gray-900 w-[95vw] max-w-md mx-auto rounded-xl shadow-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Delete Project
+            </DialogTitle>
+          </DialogHeader>
+          
+          {deleteConfirmStep === 1 ? (
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Are you sure you want to delete <span className="font-semibold text-gray-900">"{projectToDelete?.name}"</span>?
+              </p>
+              <p className="text-sm text-gray-500">
+                All tasks in this project will be moved to Inbox. This action cannot be undone.
+              </p>
+              <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsDeleteConfirmOpen(false)}
+                  className="w-full sm:w-auto order-2 sm:order-1 h-11 border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => setDeleteConfirmStep(2)}
+                  className="w-full sm:w-auto order-1 sm:order-2 h-11 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Continue
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                To confirm deletion, type the project name below:
+              </p>
+              <div className="p-3 bg-gray-100 rounded-lg">
+                <code className="text-sm font-mono text-gray-800">{projectToDelete?.name}</code>
+              </div>
+              <Input
+                value={deleteConfirmName}
+                onChange={e => setDeleteConfirmName(e.target.value)}
+                placeholder="Type project name to confirm"
+                className="bg-white border-gray-300 text-gray-900 h-11"
+              />
+              <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDeleteConfirmStep(1)}
+                  className="w-full sm:w-auto order-2 sm:order-1 h-11 border-gray-300 text-gray-700 hover:bg-gray-100"
+                >
+                  Back
+                </Button>
+                <Button 
+                  onClick={confirmDeleteProject}
+                  disabled={deleteConfirmName !== projectToDelete?.name}
+                  className="w-full sm:w-auto order-1 sm:order-2 h-11 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                >
+                  Delete Project
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
