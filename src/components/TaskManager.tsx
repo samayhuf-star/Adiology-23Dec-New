@@ -702,7 +702,7 @@ export function TaskManager() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
                               >
                                 <MoreHorizontal className="w-4 h-4" />
                               </Button>
