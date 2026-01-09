@@ -5392,6 +5392,15 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         return;
       }
       
+      // Validation: Check if keywords are selected
+      if (campaignData.selectedKeywords.length === 0) {
+        notifications.error('Please select at least one keyword before proceeding', { 
+          title: 'No Keywords Selected',
+          description: 'You must have at least one keyword selected. Use "Select All" to quickly select all generated keywords.'
+        });
+        return;
+      }
+      
       // Ensure SKAG structure is set when coming from keywords to ads wizard
       setCampaignData(prev => ({
         ...prev,
