@@ -455,6 +455,126 @@ app.post('/api/stripe/webhook/:uuid', async (c) => {
   }
 });
 
+// ============================================
+// CLERK WEBHOOK - New User Signup Email
+// ============================================
+app.post('/api/webhooks/clerk', async (c) => {
+  const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+  
+  if (!CLERK_WEBHOOK_SECRET) {
+    console.error('[Clerk Webhook] CLERK_WEBHOOK_SECRET not configured');
+    return c.json({ error: 'Webhook not configured' }, 500);
+  }
+  
+  const svixId = c.req.header('svix-id');
+  const svixTimestamp = c.req.header('svix-timestamp');
+  const svixSignature = c.req.header('svix-signature');
+  
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    console.error('[Clerk Webhook] Missing Svix headers');
+    return c.json({ error: 'Missing webhook signature headers' }, 400);
+  }
+  
+  try {
+    const body = await c.req.text();
+    
+    // Verify webhook signature using Svix
+    const { Webhook } = await import('svix');
+    const wh = new Webhook(CLERK_WEBHOOK_SECRET);
+    
+    let event: any;
+    try {
+      event = wh.verify(body, {
+        'svix-id': svixId,
+        'svix-timestamp': svixTimestamp,
+        'svix-signature': svixSignature,
+      });
+    } catch (verifyError: any) {
+      console.error('[Clerk Webhook] Signature verification failed:', verifyError.message);
+      return c.json({ error: 'Invalid webhook signature' }, 400);
+    }
+    
+    const eventType = event.type;
+    console.log(`[Clerk Webhook] Received event: ${eventType}`);
+    
+    // Handle user.created event - send welcome email
+    if (eventType === 'user.created') {
+      const { id, email_addresses, first_name, last_name } = event.data;
+      
+      const primaryEmail = email_addresses?.find((e: any) => e.id === event.data.primary_email_address_id)?.email_address
+        || email_addresses?.[0]?.email_address;
+      
+      if (primaryEmail) {
+        const fullName = [first_name, last_name].filter(Boolean).join(' ') || primaryEmail.split('@')[0];
+        
+        console.log(`[Clerk Webhook] New user created: ${primaryEmail} (${id})`);
+        
+        // Insert/update user in database
+        try {
+          await pool.query(
+            `INSERT INTO users (id, email, full_name, role, subscription_plan, subscription_status, created_at, updated_at)
+             VALUES ($1, $2, $3, 'user', 'free', 'active', NOW(), NOW())
+             ON CONFLICT (id) DO UPDATE SET email = $2, full_name = COALESCE($3, users.full_name), updated_at = NOW()`,
+            [id, primaryEmail, fullName]
+          );
+          console.log(`[Clerk Webhook] User synced to database: ${id}`);
+        } catch (dbError: any) {
+          console.error('[Clerk Webhook] Database sync error:', dbError.message);
+        }
+        
+        // Send welcome email
+        try {
+          const result = await EmailService.sendWelcomeEmail(primaryEmail, fullName);
+          if (result.success) {
+            console.log(`[Clerk Webhook] Welcome email sent to: ${primaryEmail}`);
+          } else {
+            console.error(`[Clerk Webhook] Failed to send welcome email:`, result.error);
+          }
+        } catch (emailError: any) {
+          console.error('[Clerk Webhook] Email send error:', emailError.message);
+        }
+      } else {
+        console.warn('[Clerk Webhook] user.created event has no email address');
+      }
+    }
+    
+    // Handle user.updated event - sync user data
+    if (eventType === 'user.updated') {
+      const { id, email_addresses, first_name, last_name } = event.data;
+      
+      const primaryEmail = email_addresses?.find((e: any) => e.id === event.data.primary_email_address_id)?.email_address
+        || email_addresses?.[0]?.email_address;
+      
+      if (primaryEmail) {
+        const fullName = [first_name, last_name].filter(Boolean).join(' ');
+        
+        try {
+          await pool.query(
+            `UPDATE users SET email = $2, full_name = COALESCE($3, full_name), updated_at = NOW() WHERE id = $1`,
+            [id, primaryEmail, fullName || null]
+          );
+          console.log(`[Clerk Webhook] User updated: ${id}`);
+        } catch (dbError: any) {
+          console.error('[Clerk Webhook] Database update error:', dbError.message);
+        }
+      }
+    }
+    
+    // Handle user.deleted event
+    if (eventType === 'user.deleted') {
+      const { id } = event.data;
+      console.log(`[Clerk Webhook] User deleted: ${id}`);
+      // Optionally: soft delete or archive user data
+      // For now, just log it - you may want to handle this differently
+    }
+    
+    return c.json({ received: true, event: eventType });
+  } catch (error: any) {
+    console.error('[Clerk Webhook] Processing error:', error.message);
+    return c.json({ error: 'Webhook processing failed' }, 500);
+  }
+});
+
 // Verify checkout session and send confirmation email
 app.post('/api/stripe/verify-checkout', async (c) => {
   try {
