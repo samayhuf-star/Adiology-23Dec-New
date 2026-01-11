@@ -4824,9 +4824,13 @@ app.get('/api/campaign-history', async (c) => {
       return c.json({ error: auth.error }, 401);
     }
     
+    console.log(`[campaign-history] Fetching for user: ${auth.userId}`);
+    
     // Try queries in order of most complete to most basic fallback
     let result;
     let queryAttempt = 0;
+    let lastError: any = null;
+    let isSchemaError = false;
     
     const queries = [
       // Full schema with all columns
@@ -4850,19 +4854,65 @@ app.get('/api/campaign-history', async (c) => {
       queryAttempt++;
       try {
         result = await pool.query(query, [auth.userId]);
+        console.log(`[campaign-history] Query ${queryAttempt} succeeded, found ${result.rows.length} campaigns`);
         break; // Success, exit loop
       } catch (queryError: any) {
-        if (queryError.message?.includes('column') && queryError.message?.includes('does not exist')) {
-          console.log(`Query attempt ${queryAttempt} failed, trying fallback...`);
-          continue; // Try next fallback
+        lastError = queryError;
+        const errorCode = queryError.code || 'UNKNOWN';
+        const errorMessage = queryError.message || 'No message';
+        
+        // Classify the error
+        const isColumnError = errorMessage.includes('column') && errorMessage.includes('does not exist');
+        const isConnectionError = ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', '57P01', '57P02', '57P03', '08000', '08003', '08006'].includes(errorCode);
+        const isPoolError = errorMessage.includes('pool') || errorMessage.includes('connection');
+        
+        if (isColumnError) {
+          isSchemaError = true;
+          console.log(`[campaign-history] Query ${queryAttempt} failed (schema): ${errorMessage}`);
+          continue; // Try next fallback for schema errors
         }
-        throw queryError; // Different error, rethrow
+        
+        if (isConnectionError || isPoolError) {
+          console.error(`[campaign-history] CONNECTION ERROR on query ${queryAttempt}:`, {
+            code: errorCode,
+            message: errorMessage,
+            userId: auth.userId
+          });
+          // Don't retry on connection errors - they'll all fail
+          break;
+        }
+        
+        // Log unexpected errors with full details
+        console.error(`[campaign-history] UNEXPECTED ERROR on query ${queryAttempt}:`, {
+          code: errorCode,
+          message: errorMessage,
+          stack: queryError.stack?.slice(0, 500),
+          userId: auth.userId
+        });
+        
+        // Continue to next query for other errors (might be fixable with simpler query)
+        continue;
       }
     }
     
     if (!result) {
-      console.error('All query fallbacks failed');
-      return c.json({ success: true, data: [] });
+      const errorType = isSchemaError ? 'SCHEMA_ERROR' : (lastError ? 'QUERY_ERROR' : 'UNKNOWN');
+      console.error(`[campaign-history] All ${queryAttempt} query attempts failed for user ${auth.userId}`, {
+        errorType,
+        lastErrorCode: lastError?.code,
+        lastErrorMessage: lastError?.message
+      });
+      
+      // Return empty array but include debug info in development
+      return c.json({ 
+        success: true, 
+        data: [],
+        debug: process.env.NODE_ENV !== 'production' ? {
+          errorType,
+          attempts: queryAttempt,
+          lastError: lastError?.message
+        } : undefined
+      });
     }
     
     return c.json({ 
@@ -4870,8 +4920,17 @@ app.get('/api/campaign-history', async (c) => {
       data: result.rows 
     });
   } catch (error: any) {
-    console.error('Error fetching campaign history:', error);
-    return c.json({ error: error.message || 'Failed to fetch campaigns' }, 500);
+    const errorCode = error.code || 'UNKNOWN';
+    console.error('[campaign-history] FATAL ERROR:', {
+      code: errorCode,
+      message: error.message,
+      stack: error.stack?.slice(0, 500)
+    });
+    return c.json({ 
+      error: error.message || 'Failed to fetch campaigns',
+      errorCode,
+      errorType: 'FATAL'
+    }, 500);
   }
 });
 
