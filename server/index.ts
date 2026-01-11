@@ -14,6 +14,7 @@ import { generateDetailedBlog, type BlogConfig } from './blogGenerator.js';
 import { getDatabaseUrl } from './dbConfig';
 import { adminAuthMiddleware, getAdminClient, getAdminServiceStatus, logAdminAction } from './adminAuthService';
 import { emailTemplates } from './email-templates';
+import { EmailService } from './emailService';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
@@ -451,6 +452,83 @@ app.post('/api/stripe/webhook/:uuid', async (c) => {
   } catch (error: any) {
     console.error('Webhook error:', error.message);
     return c.json({ error: 'Webhook processing error' }, 400);
+  }
+});
+
+// Verify checkout session and send confirmation email
+app.post('/api/stripe/verify-checkout', async (c) => {
+  try {
+    const { sessionId } = await c.req.json();
+    
+    if (!sessionId) {
+      return c.json({ error: 'Session ID required' }, 400);
+    }
+    
+    const stripe = await getUncachableStripeClient();
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['subscription', 'customer', 'line_items']
+    });
+    
+    if (session.payment_status !== 'paid') {
+      return c.json({ error: 'Payment not completed', status: session.payment_status }, 400);
+    }
+    
+    const customerEmail = session.customer_details?.email || (session.customer as any)?.email;
+    const customerName = session.customer_details?.name || '';
+    
+    if (customerEmail) {
+      const lineItem = session.line_items?.data?.[0];
+      const planName = lineItem?.description || session.metadata?.plan_name || 'Premium';
+      const amount = lineItem?.amount_total ? `$${(lineItem.amount_total / 100).toFixed(2)}` : '$0';
+      
+      let billingPeriod = 'one-time';
+      let nextBillingDate = 'N/A';
+      
+      if (session.subscription) {
+        const subscription = session.subscription as any;
+        billingPeriod = subscription.items?.data?.[0]?.price?.recurring?.interval || 'month';
+        if (subscription.current_period_end) {
+          nextBillingDate = new Date(subscription.current_period_end * 1000).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          });
+        }
+      }
+      
+      // Send subscription confirmation email (non-blocking)
+      EmailService.sendSubscriptionConfirmation(
+        customerEmail,
+        planName,
+        amount,
+        billingPeriod,
+        nextBillingDate
+      ).then(result => {
+        if (result.success) {
+          console.log('[Stripe Checkout] Subscription confirmation email sent to:', customerEmail);
+        }
+      }).catch(err => console.error('[Stripe Checkout] Failed to send confirmation email:', err));
+      
+      // If it's an upgrade, also send upgrade email
+      if (session.metadata?.is_upgrade === 'true') {
+        const features = [
+          'Unlimited campaigns',
+          'AI-powered keyword suggestions',
+          'Competitor ad research',
+          'Priority support'
+        ];
+        EmailService.sendAccountUpgraded(customerEmail, planName, features)
+          .catch(err => console.error('[Stripe Checkout] Failed to send upgrade email:', err));
+      }
+    }
+    
+    return c.json({ 
+      success: true, 
+      status: session.payment_status,
+      customerEmail,
+      planName: session.line_items?.data?.[0]?.description || 'Premium'
+    });
+  } catch (error: any) {
+    console.error('[Stripe Verify Checkout] Error:', error);
+    return c.json({ error: error.message }, 500);
   }
 });
 
@@ -4675,7 +4753,9 @@ async function verifyUserToken(c: any): Promise<{ authorized: boolean; userId?: 
 async function ensureUserExists(userId: string, email?: string, fullName?: string): Promise<void> {
   try {
     const existing = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
-    if (existing.rows.length === 0 && email) {
+    const isNewUser = existing.rows.length === 0;
+    
+    if (isNewUser && email) {
       await pool.query(
         `INSERT INTO users (id, email, full_name, role, subscription_plan, subscription_status, created_at, updated_at)
          VALUES ($1, $2, $3, 'user', 'free', 'active', NOW(), NOW())
@@ -4683,6 +4763,15 @@ async function ensureUserExists(userId: string, email?: string, fullName?: strin
         [userId, email, fullName || null]
       );
       console.log('[ensureUserExists] User created/updated:', userId, email);
+      
+      // Send welcome email to new users (non-blocking)
+      EmailService.sendWelcomeEmail(email, fullName || email.split('@')[0])
+        .then(result => {
+          if (result.success) {
+            console.log('[ensureUserExists] Welcome email sent to:', email);
+          }
+        })
+        .catch(err => console.error('[ensureUserExists] Failed to send welcome email:', err));
     } else if (existing.rows.length > 0) {
       // Update last activity timestamp
       await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
@@ -6774,6 +6863,211 @@ app.post('/api/email/send', async (c) => {
     }
   } catch (error: any) {
     console.error('Error sending email:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Admin: Send feature announcement to all users
+app.post('/api/admin/email/broadcast/feature', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  try {
+    const { featureName, featureDescription, featureBenefits, featureUrl, testMode = true } = await c.req.json();
+    
+    if (!featureName || !featureDescription) {
+      return c.json({ error: 'Feature name and description are required' }, 400);
+    }
+    
+    let recipients: string[] = [];
+    
+    if (testMode) {
+      // In test mode, only send to the admin - get email from header or database
+      const adminEmail = c.req.header('X-Admin-Email') || 'admin@adiology.io';
+      recipients = [adminEmail];
+    } else {
+      // Get all active users
+      const result = await pool.query(
+        "SELECT email FROM users WHERE email IS NOT NULL AND subscription_status != 'cancelled'"
+      );
+      recipients = result.rows.map(r => r.email).filter(Boolean);
+    }
+    
+    if (recipients.length === 0) {
+      return c.json({ error: 'No recipients found' }, 400);
+    }
+    
+    // Send in batches of 50 to avoid rate limits
+    const batchSize = 50;
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (let i = 0; i < recipients.length; i += batchSize) {
+      const batch = recipients.slice(i, i + batchSize);
+      const result = await EmailService.sendFeatureAnnouncement(
+        batch,
+        featureName,
+        featureDescription,
+        featureBenefits || featureDescription,
+        featureUrl || 'https://adiology.io/dashboard'
+      );
+      
+      if (result.success) {
+        successCount += batch.length;
+      } else {
+        failCount += batch.length;
+      }
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: `Feature announcement sent`,
+      stats: { sent: successCount, failed: failCount, total: recipients.length },
+      testMode
+    });
+  } catch (error: any) {
+    console.error('Error sending feature announcement:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Admin: Send weekly report to a specific user (or all active users)
+app.post('/api/admin/email/send-weekly-report', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  try {
+    const { userId, testMode = true } = await c.req.json();
+    
+    // Get user(s) to send reports to
+    let users: { id: string; email: string; full_name?: string }[] = [];
+    
+    if (userId) {
+      const result = await pool.query('SELECT id, email, full_name FROM users WHERE id = $1', [userId]);
+      users = result.rows;
+    } else if (testMode) {
+      // Just send to admin in test mode - get email from header
+      const adminEmail = c.req.header('X-Admin-Email') || 'admin@adiology.io';
+      users = [{ id: 'admin', email: adminEmail }];
+    } else {
+      // Get all active users
+      const result = await pool.query(
+        "SELECT id, email, full_name FROM users WHERE email IS NOT NULL AND subscription_status != 'cancelled'"
+      );
+      users = result.rows;
+    }
+    
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+    const weekEnd = new Date();
+    const weekDate = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    
+    let successCount = 0;
+    
+    for (const user of users) {
+      // Get user's stats for the week
+      const statsResult = await pool.query(`
+        SELECT 
+          COUNT(DISTINCT ch.id) as campaigns,
+          COALESCE(SUM((ch.data->>'keywordCount')::int), 0) as keywords,
+          COALESCE(SUM((ch.data->>'adCount')::int), 0) as ads
+        FROM campaign_history ch
+        WHERE ch.user_id = $1 AND ch.created_at >= $2
+      `, [user.id, weekStart]);
+      
+      const stats = statsResult.rows[0] || { campaigns: 0, keywords: 0, ads: 0 };
+      
+      const summary = stats.campaigns > 0 
+        ? `You created ${stats.campaigns} campaign${stats.campaigns > 1 ? 's' : ''} this week and generated ${stats.keywords.toLocaleString()} keywords!`
+        : 'No new campaigns this week. Ready to create your next one?';
+      
+      const result = await EmailService.sendWeeklyReport(
+        user.email,
+        weekDate,
+        { campaigns: parseInt(stats.campaigns) || 0, keywords: parseInt(stats.keywords) || 0, ads: parseInt(stats.ads) || 0 },
+        summary
+      );
+      
+      if (result.success) successCount++;
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: `Weekly reports sent`,
+      stats: { sent: successCount, total: users.length },
+      testMode
+    });
+  } catch (error: any) {
+    console.error('Error sending weekly reports:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Admin: Send trial ending reminder to users with expiring trials
+app.post('/api/admin/email/send-trial-reminders', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  try {
+    const { daysRemaining = 3, testMode = true } = await c.req.json();
+    
+    let users: { id: string; email: string; full_name?: string }[] = [];
+    
+    if (testMode) {
+      const adminEmail = c.req.header('X-Admin-Email') || 'admin@adiology.io';
+      users = [{ id: 'admin', email: adminEmail, full_name: 'Admin' }];
+    } else {
+      // Get users with trials ending in X days (would need trial_end_date column)
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + daysRemaining);
+      
+      const result = await pool.query(`
+        SELECT id, email, full_name FROM users 
+        WHERE subscription_status = 'trialing' 
+        AND email IS NOT NULL
+      `);
+      users = result.rows;
+    }
+    
+    let successCount = 0;
+    
+    for (const user of users) {
+      // Get user's usage stats
+      const statsResult = await pool.query(`
+        SELECT 
+          COUNT(DISTINCT ch.id) as campaigns,
+          COALESCE(SUM((ch.data->>'keywordCount')::int), 0) as keywords,
+          COALESCE(SUM((ch.data->>'adCount')::int), 0) as ads
+        FROM campaign_history ch
+        WHERE ch.user_id = $1
+      `, [user.id]);
+      
+      const stats = statsResult.rows[0] || { campaigns: 0, keywords: 0, ads: 0 };
+      
+      const result = await EmailService.sendTrialEndingReminder(
+        user.email,
+        user.full_name || user.email.split('@')[0],
+        daysRemaining,
+        { campaigns: parseInt(stats.campaigns) || 0, keywords: parseInt(stats.keywords) || 0, ads: parseInt(stats.ads) || 0 }
+      );
+      
+      if (result.success) successCount++;
+    }
+    
+    return c.json({ 
+      success: true, 
+      message: `Trial reminders sent`,
+      stats: { sent: successCount, total: users.length },
+      testMode
+    });
+  } catch (error: any) {
+    console.error('Error sending trial reminders:', error);
     return c.json({ error: error.message }, 500);
   }
 });
