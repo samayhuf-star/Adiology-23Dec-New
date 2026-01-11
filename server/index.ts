@@ -6414,10 +6414,10 @@ app.post('/api/email/team-invite', async (c) => {
       return c.json({ error: 'Invalid email format' }, 400);
     }
     
-    const senduneTemplateKey = process.env.SENDUNE_TEAM_INVITE_KEY || process.env.SENDUNE_API_KEY;
+    const resendApiKey = process.env.RESEND_API_KEY;
     
-    if (!senduneTemplateKey) {
-      console.log('Team invite email (Sendune not configured):', { to, inviterName, teamName, inviteLink });
+    if (!resendApiKey) {
+      console.log('Team invite email (Resend not configured):', { to, inviterName, teamName, inviteLink });
       return c.json({ 
         success: true, 
         message: 'Invitation recorded (email service not configured)',
@@ -6426,39 +6426,79 @@ app.post('/api/email/team-invite', async (c) => {
     }
     
     const subject = `You're invited to join ${teamName || 'a team'} on Adiology`;
+    const displayInviterName = inviterName || 'A team member';
+    const displayTeamName = teamName || 'Adiology Team';
     
-    const requestBody: Record<string, string> = {
-      email: to,
-      subject: subject,
-      'inviter-name': inviterName || 'A team member',
-      'team-name': teamName || 'Adiology Team',
-      'invite-link': inviteLink || ''
-    };
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Team Invitation</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+          <div style="background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="font-size: 28px; font-weight: bold; color: #6366f1; margin: 0;">ADIOLOGY</h1>
+              <p style="color: #6b7280; margin: 5px 0 0 0;">Google Ads Made Easy</p>
+            </div>
+            
+            <h2 style="color: #1f2937; margin-bottom: 20px;">You're Invited!</h2>
+            <p style="color: #4b5563; margin-bottom: 20px;">
+              <strong>${displayInviterName}</strong> has invited you to join <strong>${displayTeamName}</strong> on Adiology.
+            </p>
+            <p style="color: #4b5563; margin-bottom: 30px;">
+              Adiology helps teams create powerful Google Ads campaigns with AI-powered tools. Accept this invitation to start collaborating!
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${inviteLink}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #6366f1, #9333ea); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Accept Invitation</a>
+            </div>
+            
+            <p style="color: #9ca3af; font-size: 14px; margin-top: 30px;">
+              If you didn't expect this invitation, you can safely ignore this email.
+            </p>
+          </div>
+          
+          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+            <p>&copy; ${new Date().getFullYear()} Adiology. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
     
-    console.log('Sending team invite email via Sendune:', { to, inviterName });
+    console.log('Sending team invite email via Resend:', { to, inviterName });
     
-    const response = await fetch('https://api.sendune.com/send-email', {
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'template-key': senduneTemplateKey
+        'Authorization': `Bearer ${resendApiKey}`
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        from: 'Adiology <noreply@adiology.io>',
+        to: [to],
+        subject: subject,
+        html: htmlContent
+      })
     });
     
     const responseData = await response.json().catch(() => ({ message: 'Unknown response' }));
     
-    if (response.ok && responseData.success) {
+    if (response.ok && responseData.id) {
       await pool.query(
         'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
         [to, subject, 'sent']
       ).catch(err => console.error('Failed to log email:', err));
       
-      console.log('Team invite email sent successfully to:', to);
-      return c.json({ success: true, message: 'Invitation sent successfully' });
+      console.log('Team invite email sent successfully to:', to, 'Message ID:', responseData.id);
+      return c.json({ success: true, message: 'Invitation sent successfully', messageId: responseData.id });
     } else {
-      const errorMsg = responseData.error || responseData.message || 'Failed to send email';
-      console.error('Sendune error:', errorMsg);
+      const errorMsg = responseData.message || responseData.error || 'Failed to send email';
+      console.error('Resend error:', errorMsg, responseData);
       
       await pool.query(
         'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
