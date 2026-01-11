@@ -13,6 +13,7 @@ import { expandKeywords } from '../shared/keywordExpansion.js';
 import { generateDetailedBlog, type BlogConfig } from './blogGenerator.js';
 import { getDatabaseUrl } from './dbConfig';
 import { adminAuthMiddleware, getAdminClient, getAdminServiceStatus, logAdminAction } from './adminAuthService';
+import { emailTemplates } from './email-templates';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
@@ -6513,7 +6514,6 @@ app.post('/api/email/team-invite', async (c) => {
   }
 });
 
-// Get email logs
 // Get email logs - REQUIRES ADMIN AUTH
 app.get('/api/admin/email/logs', async (c) => {
   const auth = await verifySuperAdmin(c);
@@ -6529,6 +6529,252 @@ app.get('/api/admin/email/logs', async (c) => {
   } catch (error: any) {
     console.error('Error fetching email logs:', error);
     return c.json({ logs: [] });
+  }
+});
+
+// =============================================================================
+// EMAIL TEMPLATES API
+// =============================================================================
+
+// Get all email templates
+app.get('/api/admin/email/templates', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  const templates = Object.entries(emailTemplates).map(([key, template]) => ({
+    id: key,
+    name: template.name,
+    subject: template.subject
+  }));
+  
+  return c.json({ templates });
+});
+
+// Get single template with HTML preview
+app.get('/api/admin/email/templates/:id', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  const templateId = c.req.param('id');
+  const template = emailTemplates[templateId as keyof typeof emailTemplates];
+  
+  if (!template) {
+    return c.json({ error: 'Template not found' }, 404);
+  }
+  
+  return c.json({ 
+    id: templateId,
+    name: template.name,
+    subject: template.subject,
+    html: template.html
+  });
+});
+
+// Send a test email using a template
+app.post('/api/admin/email/templates/:id/send-test', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  try {
+    const templateId = c.req.param('id');
+    const template = emailTemplates[templateId as keyof typeof emailTemplates];
+    
+    if (!template) {
+      return c.json({ error: 'Template not found' }, 404);
+    }
+    
+    const { to, variables } = await c.req.json();
+    
+    if (!to) {
+      return c.json({ error: 'Recipient email is required' }, 400);
+    }
+    
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      return c.json({ error: 'Email service not configured' }, 500);
+    }
+    
+    let htmlContent = template.html;
+    let subjectLine = template.subject;
+    
+    const defaultVariables: Record<string, string> = {
+      year: new Date().getFullYear().toString(),
+      name: 'Test User',
+      dashboard_url: 'https://adiology.io/dashboard',
+      help_url: 'https://adiology.io/help',
+      support_url: 'https://adiology.io/support',
+      unsubscribe_url: 'https://adiology.io/unsubscribe',
+      verification_url: 'https://adiology.io/verify?token=test123',
+      reset_url: 'https://adiology.io/reset?token=test123',
+      invite_link: 'https://adiology.io/invite?token=test123',
+      upgrade_url: 'https://adiology.io/upgrade',
+      invoice_url: 'https://adiology.io/invoice/test',
+      feature_url: 'https://adiology.io/features',
+      plan_name: 'Pro',
+      team_name: 'Test Team',
+      inviter_name: 'John Doe',
+      amount: '$29',
+      billing_period: 'month',
+      next_billing_date: 'Feb 15, 2026',
+      days_remaining: '3',
+      campaigns_created: '5',
+      keywords_generated: '2,450',
+      ads_created: '25',
+      invoice_number: 'INV-2026-001',
+      invoice_date: 'Jan 11, 2026',
+      feature_name: 'AI Ad Generator',
+      feature_description: 'Create high-converting ads in seconds with our new AI-powered ad generator.',
+      feature_benefits: 'Generate headlines, descriptions, and callouts automatically based on your landing page.',
+      week_date: 'Jan 5-11, 2026',
+      campaigns_count: '12',
+      keywords_count: '5,230',
+      ads_count: '48',
+      weekly_summary: 'You created 3 new campaigns this week and generated 1,200 new keywords!',
+      feature_1: 'Unlimited campaigns',
+      feature_2: 'AI-powered keyword suggestions',
+      feature_3: 'Competitor ad research',
+      feature_4: 'Priority support',
+      ...variables
+    };
+    
+    for (const [key, value] of Object.entries(defaultVariables)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      htmlContent = htmlContent.replace(regex, value);
+      subjectLine = subjectLine.replace(regex, value);
+    }
+    
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`
+      },
+      body: JSON.stringify({
+        from: 'Adiology <noreply@adiology.io>',
+        to: [to],
+        subject: `[TEST] ${subjectLine}`,
+        html: htmlContent
+      })
+    });
+    
+    const responseData = await response.json();
+    
+    if (response.ok && responseData.id) {
+      await pool.query(
+        'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
+        [to, `[TEST] ${subjectLine}`, 'sent']
+      ).catch(err => console.error('Failed to log email:', err));
+      
+      return c.json({ 
+        success: true, 
+        message: `Test email sent to ${to}`,
+        messageId: responseData.id 
+      });
+    } else {
+      return c.json({ 
+        error: responseData.message || 'Failed to send test email' 
+      }, 500);
+    }
+  } catch (error: any) {
+    console.error('Error sending test email:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Send email using any template (for production use)
+app.post('/api/email/send', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return c.json({ error: 'Authorization required' }, 401);
+    }
+    
+    const token = authHeader.substring(7);
+    const { verifyToken } = await import('@clerk/backend');
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+    
+    if (!clerkSecretKey) {
+      return c.json({ error: 'Authentication not configured' }, 500);
+    }
+    
+    await verifyToken(token, { secretKey: clerkSecretKey });
+    
+    const { templateId, to, variables } = await c.req.json();
+    
+    if (!templateId || !to) {
+      return c.json({ error: 'Template ID and recipient are required' }, 400);
+    }
+    
+    const template = emailTemplates[templateId as keyof typeof emailTemplates];
+    
+    if (!template) {
+      return c.json({ error: 'Template not found' }, 404);
+    }
+    
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      return c.json({ error: 'Email service not configured' }, 500);
+    }
+    
+    let htmlContent = template.html;
+    let subjectLine = template.subject;
+    
+    const defaultVariables: Record<string, string> = {
+      year: new Date().getFullYear().toString(),
+      ...variables
+    };
+    
+    for (const [key, value] of Object.entries(defaultVariables)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      htmlContent = htmlContent.replace(regex, value);
+      subjectLine = subjectLine.replace(regex, value);
+    }
+    
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`
+      },
+      body: JSON.stringify({
+        from: 'Adiology <noreply@adiology.io>',
+        to: Array.isArray(to) ? to : [to],
+        subject: subjectLine,
+        html: htmlContent
+      })
+    });
+    
+    const responseData = await response.json();
+    
+    if (response.ok && responseData.id) {
+      await pool.query(
+        'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
+        [Array.isArray(to) ? to.join(', ') : to, subjectLine, 'sent']
+      ).catch(err => console.error('Failed to log email:', err));
+      
+      return c.json({ 
+        success: true, 
+        messageId: responseData.id 
+      });
+    } else {
+      await pool.query(
+        'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
+        [Array.isArray(to) ? to.join(', ') : to, subjectLine, 'failed']
+      ).catch(err => console.error('Failed to log email:', err));
+      
+      return c.json({ 
+        error: responseData.message || 'Failed to send email' 
+      }, 500);
+    }
+  } catch (error: any) {
+    console.error('Error sending email:', error);
+    return c.json({ error: error.message }, 500);
   }
 });
 
