@@ -1714,6 +1714,10 @@ const AppContent = () => {
                         setMobileMenuOpen(false);
                         window.history.pushState({}, '', '/admin');
                         setAppView('admin-panel');
+                      } else if (item.id === 'community') {
+                        // Open Discourse community in new tab
+                        window.open('https://community.adiology.io', '_blank');
+                        setMobileMenuOpen(false);
                       } else {
                         setActiveTabSafe(item.id);
                       }
