@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { Zap, Check, AlertCircle, Download, Save, Loader2, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
+import { Zap, Check, AlertCircle, Download, Save, Loader2, ArrowLeft, ArrowRight, Sparkles, FolderOpen } from 'lucide-react';
+import { ProjectSelect } from './ProjectSelect';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
@@ -69,6 +70,8 @@ export function OneClickCampaignBuilder() {
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [resultsTimestamp, setResultsTimestamp] = useState<string>('');
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
 
   const addLogEntry = (message: string, type: LogEntry['type'] = 'info') => {
     const now = new Date();
@@ -371,9 +374,32 @@ export function OneClickCampaignBuilder() {
     }
     
     if (saved) {
+      if (selectedProjectId && generatedCampaign.id) {
+        try {
+          const token = await getToken();
+          await fetch(`/api/workspace-projects/${selectedProjectId}/items`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              itemType: 'campaign',
+              itemId: generatedCampaign.id,
+              itemName: generatedCampaign.campaign_name,
+              itemMetadata: {
+                source: 'one-click-builder',
+                websiteUrl: generatedCampaign.website_url
+              }
+            })
+          });
+        } catch (err) {
+          console.error('Project linking error:', err);
+        }
+      }
       notifications.success('Campaign saved!', {
         title: 'Saved',
-        description: 'View it in "Draft Campaigns"'
+        description: selectedProjectId ? `Added to ${selectedProjectName}` : 'View it in "Draft Campaigns"'
       });
     } else {
       notifications.error('Failed to save campaign', {
@@ -436,6 +462,21 @@ export function OneClickCampaignBuilder() {
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="https://example.com"
                 className="h-12 text-base border-slate-200 focus:border-slate-400 focus:ring-slate-400"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700 flex items-center gap-2">
+                <FolderOpen className="w-4 h-4" />
+                Assign to Project (Optional)
+              </label>
+              <ProjectSelect
+                value={selectedProjectId}
+                onChange={(projectId, projectName) => {
+                  setSelectedProjectId(projectId);
+                  setSelectedProjectName(projectName || null);
+                }}
+                placeholder="Select a project to organize this campaign..."
               />
             </div>
 
