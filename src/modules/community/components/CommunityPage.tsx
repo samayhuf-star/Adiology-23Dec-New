@@ -11,7 +11,7 @@ export function CommunityPage() {
   
   const { topics, loading, error, refetch } = useDiscourseTopics(20);
   const { categories } = useDiscourseCategories();
-  const { loginToDiscourse, loading: ssoLoading } = useDiscourseSSO();
+  const { openForum, loading: ssoLoading } = useDiscourseSSO();
 
   const filteredTopics = topics.filter((topic) => {
     const matchesSearch = !searchQuery || 
@@ -21,13 +21,8 @@ export function CommunityPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleOpenInForum = async () => {
-    const ssoUrl = await loginToDiscourse();
-    if (ssoUrl) {
-      window.open(ssoUrl, '_blank');
-    } else {
-      window.open('https://community.adiology.io', '_blank');
-    }
+  const handleOpenInForum = () => {
+    openForum();
   };
 
   const stats = [

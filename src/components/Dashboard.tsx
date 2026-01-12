@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { 
   Activity, Zap, Sparkles, Package, Target, Globe, FolderOpen, Terminal,
-  CheckCircle2, FileText, Layers, TrendingUp, ArrowUp
+  CheckCircle2, FileText, Layers, TrendingUp, ArrowUp, MessageSquare
 } from 'lucide-react';
+import { CommunityDashboardWidget } from '../modules/community';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
@@ -449,6 +450,33 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
               <Package className="w-8 h-8 text-white" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Community Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 slide-in-up">
+        <div className="lg:col-span-2">
+          <CommunityDashboardWidget onViewAll={() => onNavigate('community')} />
+        </div>
+        <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Need Help?</h3>
+              <p className="text-sm text-gray-500">Connect with the community</p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Join our community to share strategies, get tips, and connect with other Google Ads professionals.
+          </p>
+          <button
+            onClick={() => onNavigate('community')}
+            className="w-full py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:from-indigo-700 hover:to-purple-700 transition-all"
+          >
+            Visit Community
+          </button>
         </div>
       </div>
 

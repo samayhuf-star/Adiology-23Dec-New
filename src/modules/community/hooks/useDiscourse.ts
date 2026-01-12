@@ -45,7 +45,7 @@ export function useDiscourseTopics(limit: number = 10) {
       const token = await getToken();
       const response = await fetch(`/api/community/topics?limit=${limit}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -81,7 +81,7 @@ export function useDiscourseCategories() {
         const token = await getToken();
         const response = await fetch('/api/community/categories', {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
@@ -114,11 +114,11 @@ export function useDiscourseSSO() {
     try {
       setLoading(true);
       const token = await getToken();
-      
-      const response = await fetch('/api/community/sso', {
+
+      const response = await fetch('/api/community/sso/initiate', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -129,24 +129,45 @@ export function useDiscourseSSO() {
             username: user.username,
             avatarUrl: user.imageUrl,
           },
+          returnPath: '/',
         }),
       });
 
       if (!response.ok) {
-        throw new Error('SSO failed');
+        throw new Error('SSO initiation failed');
       }
 
       const data = await response.json();
+
+      const userData = encodeURIComponent(
+        JSON.stringify({
+          id: user.id,
+          email: user.primaryEmailAddress?.emailAddress,
+          name: user.fullName || user.firstName || 'User',
+          username: user.username,
+          avatarUrl: user.imageUrl,
+        })
+      );
+
+      const ssoCallbackUrl = `/api/community/sso?user_data=${userData}`;
+
+      window.location.href = `${data.ssoUrl}&callback_url=${encodeURIComponent(window.location.origin + ssoCallbackUrl)}`;
+
       return data.ssoUrl;
     } catch (err) {
       console.error('SSO error:', err);
+      window.open('https://community.adiology.io', '_blank');
       return null;
     } finally {
       setLoading(false);
     }
   }, [user, getToken]);
 
-  return { loginToDiscourse, loading };
+  const openForum = useCallback(() => {
+    window.open('https://community.adiology.io', '_blank');
+  }, []);
+
+  return { loginToDiscourse, openForum, loading };
 }
 
 export function useCreatePost() {
@@ -155,41 +176,44 @@ export function useCreatePost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createPost = useCallback(async (title: string, content: string, categoryId?: number) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const createPost = useCallback(
+    async (title: string, content: string, categoryId?: number) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const token = await getToken();
-      const response = await fetch('/api/community/posts', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          content,
-          categoryId,
-          userId: user?.id,
-          userEmail: user?.primaryEmailAddress?.emailAddress,
-        }),
-      });
+        const token = await getToken();
+        const response = await fetch('/api/community/posts', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title,
+            content,
+            categoryId,
+            userId: user?.id,
+            userEmail: user?.primaryEmailAddress?.emailAddress,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to create post');
+        if (!response.ok) {
+          throw new Error('Failed to create post');
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken, user]);
+    },
+    [getToken, user]
+  );
 
   return { createPost, loading, error };
 }

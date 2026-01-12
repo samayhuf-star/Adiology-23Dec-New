@@ -16,31 +16,95 @@ interface DiscourseUser {
   avatarUrl?: string;
 }
 
-function generateSSOPayload(user: DiscourseUser, nonce: string): string {
-  const payload = {
+function verifySignature(payload: string, sig: string): boolean {
+  const hmac = crypto.createHmac('sha256', DISCOURSE_SSO_SECRET);
+  hmac.update(payload);
+  const expectedSig = hmac.digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig));
+}
+
+function decodePayload(sso: string): URLSearchParams {
+  const decoded = Buffer.from(sso, 'base64').toString('utf-8');
+  return new URLSearchParams(decoded);
+}
+
+function createSignedPayload(user: DiscourseUser, nonce: string): string {
+  const payload = new URLSearchParams({
     nonce,
     email: user.email,
     external_id: user.id,
     name: user.name,
     username: user.username || user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_'),
-    avatar_url: user.avatarUrl,
-    suppress_welcome_message: true,
-  };
+    ...(user.avatarUrl && { avatar_url: user.avatarUrl }),
+    suppress_welcome_message: 'true',
+  });
 
-  const payloadString = new URLSearchParams(payload as any).toString();
+  const payloadString = payload.toString();
   const base64Payload = Buffer.from(payloadString).toString('base64');
   const signature = crypto
     .createHmac('sha256', DISCOURSE_SSO_SECRET)
     .update(base64Payload)
     .digest('hex');
 
-  return `${DISCOURSE_URL}/session/sso_login?sso=${encodeURIComponent(base64Payload)}&sig=${signature}`;
+  return `sso=${encodeURIComponent(base64Payload)}&sig=${signature}`;
 }
 
-community.post('/sso', async (c) => {
+community.get('/sso', async (c) => {
   try {
-    const { user, returnUrl } = await c.req.json();
-    
+    const sso = c.req.query('sso');
+    const sig = c.req.query('sig');
+
+    if (!sso || !sig) {
+      return c.json({ error: 'Missing SSO parameters' }, 400);
+    }
+
+    if (!DISCOURSE_SSO_SECRET) {
+      return c.json({ error: 'SSO not configured' }, 500);
+    }
+
+    if (!verifySignature(sso, sig)) {
+      return c.json({ error: 'Invalid signature' }, 403);
+    }
+
+    const params = decodePayload(sso);
+    const nonce = params.get('nonce');
+    const returnUrl = params.get('return_sso_url');
+
+    if (!nonce) {
+      return c.json({ error: 'Missing nonce in SSO payload' }, 400);
+    }
+
+    const sessionUser = c.req.query('user_data');
+    let user: DiscourseUser;
+
+    if (sessionUser) {
+      try {
+        user = JSON.parse(decodeURIComponent(sessionUser));
+      } catch {
+        return c.json({ error: 'Invalid user data' }, 400);
+      }
+    } else {
+      return c.json({ 
+        error: 'User not authenticated',
+        authRequired: true,
+        returnUrl: c.req.url
+      }, 401);
+    }
+
+    const signedPayload = createSignedPayload(user, nonce);
+    const redirectUrl = `${DISCOURSE_URL}/session/sso_login?${signedPayload}`;
+
+    return c.redirect(redirectUrl);
+  } catch (error) {
+    console.error('SSO error:', error);
+    return c.json({ error: 'SSO processing failed' }, 500);
+  }
+});
+
+community.post('/sso/initiate', async (c) => {
+  try {
+    const { user, returnPath } = await c.req.json();
+
     if (!user?.id || !user?.email) {
       return c.json({ error: 'User data required' }, 400);
     }
@@ -49,20 +113,23 @@ community.post('/sso', async (c) => {
       return c.json({ error: 'SSO not configured' }, 500);
     }
 
-    const nonce = crypto.randomBytes(16).toString('hex');
-    
-    const ssoUrl = generateSSOPayload({
+    const userData = encodeURIComponent(JSON.stringify({
       id: user.id,
       email: user.email,
       name: user.name || user.email.split('@')[0],
       username: user.username,
       avatarUrl: user.avatarUrl,
-    }, nonce);
+    }));
 
-    return c.json({ ssoUrl });
+    const ssoInitiateUrl = `${DISCOURSE_URL}/session/sso?return_path=${encodeURIComponent(returnPath || '/')}`;
+
+    return c.json({ 
+      ssoUrl: ssoInitiateUrl,
+      callbackUrl: `/api/community/sso?user_data=${userData}`
+    });
   } catch (error) {
-    console.error('SSO error:', error);
-    return c.json({ error: 'Failed to generate SSO URL' }, 500);
+    console.error('SSO initiate error:', error);
+    return c.json({ error: 'Failed to initiate SSO' }, 500);
   }
 });
 
@@ -70,7 +137,7 @@ community.get('/topics', async (c) => {
   try {
     const limit = parseInt(c.req.query('limit') || '10');
     const category = c.req.query('category');
-    
+
     let url = `${DISCOURSE_URL}/latest.json?per_page=${limit}`;
     if (category) {
       url = `${DISCOURSE_URL}/c/${category}.json?per_page=${limit}`;
@@ -86,41 +153,44 @@ community.get('/topics', async (c) => {
 
     if (!response.ok) {
       if (!DISCOURSE_API_KEY) {
-        return c.json({ 
+        return c.json({
           topics: getMockTopics(),
           users: [],
-          mock: true 
+          mock: true,
         });
       }
       throw new Error(`Discourse API error: ${response.status}`);
     }
 
     const data = await response.json();
-    
-    const topics = data.topic_list?.topics?.slice(0, limit).map((topic: any) => ({
-      id: topic.id,
-      title: topic.title,
-      slug: topic.slug,
-      excerpt: topic.excerpt || '',
-      postsCount: topic.posts_count,
-      replyCount: topic.reply_count,
-      views: topic.views,
-      likeCount: topic.like_count,
-      createdAt: topic.created_at,
-      lastPostedAt: topic.last_posted_at,
-      categoryId: topic.category_id,
-      pinned: topic.pinned,
-      closed: topic.closed,
-      author: data.users?.find((u: any) => u.id === topic.posters?.[0]?.user_id),
-    })) || [];
+
+    const topics =
+      data.topic_list?.topics?.slice(0, limit).map((topic: any) => ({
+        id: topic.id,
+        title: topic.title,
+        slug: topic.slug,
+        excerpt: topic.excerpt || '',
+        postsCount: topic.posts_count,
+        replyCount: topic.reply_count,
+        views: topic.views,
+        likeCount: topic.like_count,
+        createdAt: topic.created_at,
+        lastPostedAt: topic.last_posted_at,
+        categoryId: topic.category_id,
+        pinned: topic.pinned,
+        closed: topic.closed,
+        author: data.users?.find(
+          (u: any) => u.id === topic.posters?.[0]?.user_id
+        ),
+      })) || [];
 
     return c.json({ topics, users: data.users || [] });
   } catch (error) {
     console.error('Topics fetch error:', error);
-    return c.json({ 
+    return c.json({
       topics: getMockTopics(),
       users: [],
-      mock: true 
+      mock: true,
     });
   }
 });
@@ -128,7 +198,7 @@ community.get('/topics', async (c) => {
 community.get('/topics/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    
+
     const response = await fetch(`${DISCOURSE_URL}/t/${id}.json`, {
       headers: {
         'Api-Key': DISCOURSE_API_KEY,
@@ -142,25 +212,27 @@ community.get('/topics/:id', async (c) => {
     }
 
     const topic = await response.json();
-    
+
     return c.json({
       id: topic.id,
       title: topic.title,
-      posts: topic.post_stream?.posts?.map((post: any) => ({
-        id: post.id,
-        content: post.cooked,
-        rawContent: post.raw,
-        createdAt: post.created_at,
-        author: {
-          id: post.user_id,
-          username: post.username,
-          name: post.name,
-          avatarUrl: post.avatar_template ? 
-            `${DISCOURSE_URL}${post.avatar_template.replace('{size}', '45')}` : null,
-        },
-        likeCount: post.like_count,
-        replyCount: post.reply_count,
-      })) || [],
+      posts:
+        topic.post_stream?.posts?.map((post: any) => ({
+          id: post.id,
+          content: post.cooked,
+          rawContent: post.raw,
+          createdAt: post.created_at,
+          author: {
+            id: post.user_id,
+            username: post.username,
+            name: post.name,
+            avatarUrl: post.avatar_template
+              ? `${DISCOURSE_URL}${post.avatar_template.replace('{size}', '45')}`
+              : null,
+          },
+          likeCount: post.like_count,
+          replyCount: post.reply_count,
+        })) || [],
     });
   } catch (error) {
     console.error('Topic fetch error:', error);
@@ -171,16 +243,16 @@ community.get('/topics/:id', async (c) => {
 community.post('/posts', async (c) => {
   try {
     const { title, content, categoryId, userId, userEmail } = await c.req.json();
-    
+
     if (!title || !content) {
       return c.json({ error: 'Title and content required' }, 400);
     }
 
     if (!DISCOURSE_API_KEY) {
-      return c.json({ 
-        success: true, 
+      return c.json({
+        success: true,
         mock: true,
-        message: 'Post would be created (Discourse not configured)'
+        message: 'Post would be created (Discourse not configured)',
       });
     }
 
@@ -204,7 +276,7 @@ community.post('/posts', async (c) => {
     }
 
     const post = await response.json();
-    
+
     return c.json({
       success: true,
       topicId: post.topic_id,
@@ -232,15 +304,16 @@ community.get('/categories', async (c) => {
     }
 
     const data = await response.json();
-    
-    const categories = data.category_list?.categories?.map((cat: any) => ({
-      id: cat.id,
-      name: cat.name,
-      slug: cat.slug,
-      color: cat.color,
-      description: cat.description_text,
-      topicCount: cat.topic_count,
-    })) || [];
+
+    const categories =
+      data.category_list?.categories?.map((cat: any) => ({
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        color: cat.color,
+        description: cat.description_text,
+        topicCount: cat.topic_count,
+      })) || [];
 
     return c.json({ categories });
   } catch (error) {
@@ -271,7 +344,7 @@ function getMockTopics() {
       id: 2,
       title: 'Best practices for SKAG campaigns in 2024',
       slug: 'skag-best-practices-2024',
-      excerpt: 'Let\'s discuss the most effective SKAG strategies...',
+      excerpt: "Let's discuss the most effective SKAG strategies...",
       postsCount: 8,
       replyCount: 7,
       views: 189,
@@ -287,7 +360,7 @@ function getMockTopics() {
       id: 3,
       title: 'How to reduce CPA with negative keywords',
       slug: 'reduce-cpa-negative-keywords',
-      excerpt: 'I\'ve been experimenting with negative keyword strategies...',
+      excerpt: "I've been experimenting with negative keyword strategies...",
       postsCount: 15,
       replyCount: 14,
       views: 312,
@@ -304,10 +377,38 @@ function getMockTopics() {
 
 function getMockCategories() {
   return [
-    { id: 5, name: 'General', slug: 'general', color: '8B5CF6', description: 'General discussions', topicCount: 45 },
-    { id: 6, name: 'Campaign Strategies', slug: 'strategies', color: '10B981', description: 'Share your strategies', topicCount: 32 },
-    { id: 7, name: 'Tips & Tricks', slug: 'tips', color: 'F59E0B', description: 'Quick tips for better ads', topicCount: 28 },
-    { id: 8, name: 'Feature Requests', slug: 'features', color: '3B82F6', description: 'Suggest new features', topicCount: 15 },
+    {
+      id: 5,
+      name: 'General',
+      slug: 'general',
+      color: '8B5CF6',
+      description: 'General discussions',
+      topicCount: 45,
+    },
+    {
+      id: 6,
+      name: 'Campaign Strategies',
+      slug: 'strategies',
+      color: '10B981',
+      description: 'Share your strategies',
+      topicCount: 32,
+    },
+    {
+      id: 7,
+      name: 'Tips & Tricks',
+      slug: 'tips',
+      color: 'F59E0B',
+      description: 'Quick tips for better ads',
+      topicCount: 28,
+    },
+    {
+      id: 8,
+      name: 'Feature Requests',
+      slug: 'features',
+      color: '3B82F6',
+      description: 'Suggest new features',
+      topicCount: 15,
+    },
   ];
 }
 
