@@ -10,7 +10,6 @@ import {
   Star, RefreshCw, Smartphone, Megaphone, FolderOpen,
   Type, ChevronUp, ChevronDown, ChevronRight, MousePointerClick, Briefcase, Info
 } from 'lucide-react';
-import { ProjectSelect } from './ProjectSelect';
 import JSZip from 'jszip';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -301,8 +300,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
   };
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [campaignSaved, setCampaignSaved] = useState(false);
   const [showAnalysisResults, setShowAnalysisResults] = useState(false);
@@ -2985,38 +2982,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
         createdAt: new Date().toISOString(),
       }, 'completed');
 
-      if (selectedProjectId) {
-        try {
-          const token = await getToken();
-          await fetch(`/api/workspace-projects/${selectedProjectId}/items`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              itemType: 'campaign',
-              itemId: campaignData.campaignName,
-              itemName: campaignData.campaignName,
-              itemMetadata: {
-                source: 'builder-3.0',
-                url: campaignData.url,
-                structure: campaignData.selectedStructure
-              }
-            })
-          });
-        } catch (err) {
-          console.error('Project linking error:', err);
-        }
-      }
-
       setCampaignSaved(true);
       setCurrentStep(7); // Show success screen
       
-      notifications.success(
-        selectedProjectId ? `Campaign saved and added to ${selectedProjectName}!` : 'Campaign saved!',
-        { title: 'Success' }
-      );
+      notifications.success('Campaign saved!', { title: 'Success' });
     } catch (error) {
       console.error('Save error:', error);
       notifications.error('Failed to save campaign', {
@@ -3137,20 +3106,6 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
             Analyze
           </Button>
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-            <FolderOpen className="w-4 h-4" />
-            Assign to Project (Optional)
-          </label>
-          <ProjectSelect
-            value={selectedProjectId}
-            onChange={(projectId, projectName) => {
-              setSelectedProjectId(projectId);
-              setSelectedProjectName(projectName || null);
-            }}
-            placeholder="Select a project to organize this campaign..."
-          />
         </div>
       </div>
 

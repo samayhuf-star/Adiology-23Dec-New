@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { Sparkles, Copy, Save, AlertCircle, Download, FolderOpen, Trash2, FileDown, ArrowRight, Lightbulb, Plus, Link, TrendingUp, DollarSign, BarChart3, RefreshCw, Globe, Target, Zap, Building, Phone, Mail, MapPin, FileText, CheckCircle2 } from 'lucide-react';
-import { ProjectSelect } from './ProjectSelect';
+import { Sparkles, Copy, Save, AlertCircle, Download, Trash2, FileDown, ArrowRight, Lightbulb, Plus, Link, TrendingUp, DollarSign, BarChart3, RefreshCw, Globe, Target, Zap, Building, Phone, Mail, MapPin, FileText, CheckCircle2, FolderOpen } from 'lucide-react';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
@@ -228,8 +227,6 @@ interface EnrichedKeyword {
 
 export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
     const { getToken } = useAuth();
-    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-    const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
     const [seedKeywords, setSeedKeywords] = useState('');
     const [urlInput, setUrlInput] = useState('');
     const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([]);
@@ -837,31 +834,7 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                 { seedKeywords, negativeKeywords, generatedKeywords, matchTypes }
             );
             
-            if (selectedProjectId) {
-                try {
-                    const token = await getToken();
-                    await fetch(`/api/workspace-projects/${selectedProjectId}/items`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            itemType: 'keyword-planner',
-                            itemId: itemName,
-                            itemName: itemName,
-                            itemMetadata: { source: 'keyword-planner', keywordCount: generatedKeywords.length }
-                        })
-                    });
-                } catch (err) {
-                    console.error('Project linking error:', err);
-                }
-            }
-            
-            notifications.success(
-                selectedProjectId ? `Keywords saved and added to ${selectedProjectName}!` : 'Keyword plan saved!',
-                { title: 'Saved Successfully' }
-            );
+            notifications.success('Keyword plan saved!', { title: 'Saved Successfully' });
             // Refresh the saved lists to show the newly saved item
             await handleLoadSavedLists();
         } catch (error) {
@@ -1232,21 +1205,6 @@ export const KeywordPlanner = ({ initialData }: { initialData?: any }) => {
                                             </p>
                                         </div>
 
-                                        {/* Assign to Project */}
-                                        <div className="space-y-3">
-                                            <Label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                                <FolderOpen className="w-3.5 h-3.5 text-gray-500" />
-                                                Assign to Project (Optional)
-                                            </Label>
-                                            <ProjectSelect
-                                                value={selectedProjectId}
-                                                onChange={(projectId, projectName) => {
-                                                    setSelectedProjectId(projectId);
-                                                    setSelectedProjectName(projectName || null);
-                                                }}
-                                                placeholder="Select a project..."
-                                            />
-                                        </div>
                                     </div>
 
                                     {/* Filters + Generate Button */}
