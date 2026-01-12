@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { 
   FolderOpen, Plus, Edit2, Trash2, Zap, Key, MinusCircle, 
-  Shuffle, BarChart3, Settings, ChevronRight, X, Loader2,
-  Palette, Check
+  Shuffle, BarChart3, Settings, X, Loader2,
+  Palette, Check, TrendingUp, ArrowUpRight, Sparkles
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -57,37 +57,49 @@ const MODULE_CONFIG = {
   campaign: { 
     label: 'Campaigns', 
     icon: Zap, 
-    color: 'from-orange-400 to-orange-600',
+    gradient: 'from-orange-500 to-rose-500',
+    bgColor: 'bg-orange-50',
+    iconColor: 'text-orange-500',
     badge: 'Active'
   },
   keyword_list: { 
     label: 'Keyword Lists', 
     icon: Key, 
-    color: 'from-amber-400 to-amber-600',
+    gradient: 'from-violet-500 to-purple-600',
+    bgColor: 'bg-violet-50',
+    iconColor: 'text-violet-500',
     badge: 'Active'
   },
   negative_keywords: { 
     label: 'Negative Keywords', 
     icon: MinusCircle, 
-    color: 'from-rose-400 to-rose-600',
+    gradient: 'from-rose-500 to-pink-600',
+    bgColor: 'bg-rose-50',
+    iconColor: 'text-rose-500',
     badge: 'Active'
   },
   keyword_mixer: { 
     label: 'Keyword Mixer', 
     icon: Shuffle, 
-    color: 'from-violet-400 to-violet-600',
+    gradient: 'from-cyan-500 to-blue-600',
+    bgColor: 'bg-cyan-50',
+    iconColor: 'text-cyan-500',
     badge: 'New'
   },
   analytics: { 
     label: 'Analytics', 
     icon: BarChart3, 
-    color: 'from-emerald-400 to-emerald-600',
+    gradient: 'from-emerald-500 to-teal-600',
+    bgColor: 'bg-emerald-50',
+    iconColor: 'text-emerald-500',
     badge: 'Soon'
   },
   settings: { 
     label: 'Settings', 
     icon: Settings, 
-    color: 'from-slate-400 to-slate-600',
+    gradient: 'from-slate-500 to-slate-700',
+    bgColor: 'bg-slate-50',
+    iconColor: 'text-slate-500',
     badge: 'Active'
   }
 };
@@ -268,236 +280,337 @@ export function WorkspaceProjects() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 p-6 flex items-center justify-center">
-        <div className="bg-white rounded-xl p-6 text-center max-w-md">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <X className="w-6 h-6 text-red-600" />
+      <div className="p-6 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 text-center max-w-md shadow-lg border border-slate-100">
+          <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <X className="w-7 h-7 text-red-600" />
           </div>
           <h3 className="text-lg font-semibold text-slate-800 mb-2">Failed to load projects</h3>
           <p className="text-slate-600 mb-4">{error}</p>
-          <Button onClick={fetchProjects}>Try Again</Button>
+          <Button onClick={fetchProjects} className="bg-indigo-600 hover:bg-indigo-700">Try Again</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-3">
-            <FolderOpen className="w-8 h-8" />
-            Adiology Projects Organization
-          </h1>
-          <p className="text-indigo-200 mt-2">
-            Organize campaigns, keywords, and settings by project. Filter everything in one click.
-          </p>
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header Section */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">My Projects</h1>
+            <p className="text-slate-500 text-sm">Organize campaigns, keywords, and settings by project</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Overview Cards - matching dashboard style */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+          <div className="absolute top-3 right-3">
+            <Badge className="bg-orange-100 text-orange-700 border-0">Total</Badge>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
+              <FolderOpen className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-slate-800">{projects.length}</div>
+              <div className="text-sm text-slate-500">Active Projects</div>
+            </div>
+          </div>
+          <div className="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-orange-400 to-rose-500 rounded-full" style={{ width: `${Math.min(projects.length * 20, 100)}%` }} />
+          </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          {/* Projects Sidebar */}
-          <div className="col-span-12 md:col-span-3">
-            <div className="bg-white rounded-2xl shadow-xl p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <FolderOpen className="w-5 h-5 text-slate-600" />
-                <h2 className="font-semibold text-slate-800">My Projects</h2>
-              </div>
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+          <div className="absolute top-3 right-3">
+            <Badge className="bg-violet-100 text-violet-700 border-0">Linked</Badge>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+              <Zap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-slate-800">{projects.reduce((sum, p) => sum + p.campaignCount, 0)}</div>
+              <div className="text-sm text-slate-500">Total Campaigns</div>
+            </div>
+          </div>
+          <div className="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full" style={{ width: '60%' }} />
+          </div>
+        </div>
 
-              <div className="space-y-2">
-                {projects.map((project) => (
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+          <div className="absolute top-3 right-3">
+            <Badge className="bg-teal-100 text-teal-700 border-0">Keywords</Badge>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-600 flex items-center justify-center">
+              <Key className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-slate-800">{projects.reduce((sum, p) => sum + p.keywordCount, 0)}</div>
+              <div className="text-sm text-slate-500">Keyword Lists</div>
+            </div>
+          </div>
+          <div className="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-teal-400 to-cyan-600 rounded-full" style={{ width: '45%' }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-6">
+        {/* Projects Sidebar */}
+        <div className="col-span-12 md:col-span-4 lg:col-span-3">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-slate-800">Projects</h2>
+              <Button 
+                size="sm"
+                onClick={() => setShowCreateDialog(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 h-8"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {projects.length === 0 ? (
+                <div className="text-center py-8">
+                  <FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <p className="text-sm text-slate-500">No projects yet</p>
+                </div>
+              ) : (
+                projects.map((project) => (
                   <div
                     key={project.id}
                     className={`p-3 rounded-xl cursor-pointer transition-all group ${
                       selectedProject?.id === project.id 
-                        ? 'bg-indigo-100 border-2 border-indigo-400' 
+                        ? 'bg-indigo-50 border-2 border-indigo-300' 
                         : 'bg-slate-50 hover:bg-slate-100 border-2 border-transparent'
                     }`}
                     onClick={() => fetchProjectDetail(project.id)}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: project.color }}
-                        />
-                        <span className="font-medium text-slate-800">{project.name}</span>
+                          className="w-8 h-8 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: `${project.color}20` }}
+                        >
+                          <FolderOpen className="w-4 h-4" style={{ color: project.color }} />
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-800 text-sm">{project.name}</span>
+                          <p className="text-xs text-slate-500">
+                            {project.totalCount} items
+                          </p>
+                        </div>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => { e.stopPropagation(); openEditDialog(project); }}
-                          className="p-1 hover:bg-slate-200 rounded"
+                          className="p-1.5 hover:bg-white rounded-lg"
                         >
                           <Edit2 className="w-3.5 h-3.5 text-slate-500" />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); openDeleteDialog(project); }}
-                          className="p-1 hover:bg-red-100 rounded"
+                          className="p-1.5 hover:bg-red-50 rounded-lg"
                         >
                           <Trash2 className="w-3.5 h-3.5 text-red-500" />
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {project.campaignCount} campaigns • {project.keywordCount} keyword lists
-                    </p>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
+            </div>
 
+            {projects.length > 0 && (
               <Button 
+                variant="outline"
                 onClick={() => setShowCreateDialog(true)}
-                className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700"
+                className="w-full mt-4 border-dashed border-slate-300 text-slate-600 hover:bg-slate-50"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add New Project
+                New Project
               </Button>
-            </div>
-          </div>
-
-          {/* Project Detail */}
-          <div className="col-span-12 md:col-span-9">
-            {loadingDetail ? (
-              <div className="flex items-center justify-center h-96">
-                <Loader2 className="w-8 h-8 animate-spin text-white" />
-              </div>
-            ) : selectedProject ? (
-              <div className="space-y-6">
-                {/* Project Header */}
-                <div>
-                  <h2 className="text-2xl font-bold text-white">{selectedProject.name}</h2>
-                  <p className="text-indigo-200">
-                    {selectedProject.description || 'Organize all your Google Ads in one place'}
-                  </p>
-                </div>
-
-                {/* Project Overview Stats */}
-                <div className="bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-white font-semibold mb-4">Project Overview</h3>
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-white">{selectedProject.counts.campaigns}</div>
-                      <div className="text-pink-200 text-sm">Campaigns</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-white">{selectedProject.counts.keywordLists}</div>
-                      <div className="text-pink-200 text-sm">Keyword Lists</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-white">{selectedProject.counts.negativeKeywords}</div>
-                      <div className="text-pink-200 text-sm">Negative Lists</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-white">{selectedProject.counts.total}</div>
-                      <div className="text-pink-200 text-sm">Total Items</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Connected Modules */}
-                <div>
-                  <h3 className="text-white font-semibold mb-4">Connected Modules</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {Object.entries(MODULE_CONFIG).map(([key, config]) => {
-                      const Icon = config.icon;
-                      const count = selectedProject.items[key]?.length || 0;
-                      return (
-                        <div
-                          key={key}
-                          className="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow"
-                        >
-                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center mb-3`}>
-                            <Icon className="w-6 h-6 text-white" />
-                          </div>
-                          <h4 className="font-semibold text-slate-800">{config.label}</h4>
-                          <p className="text-sm text-slate-500">
-                            {count > 0 ? `${count} linked` : config.badge === 'Soon' ? 'Coming Q1' : 'No items yet'}
-                          </p>
-                          <Badge 
-                            className={`mt-2 ${
-                              config.badge === 'Active' ? 'bg-emerald-100 text-emerald-700' :
-                              config.badge === 'New' ? 'bg-violet-100 text-violet-700' :
-                              'bg-amber-100 text-amber-700'
-                            }`}
-                          >
-                            {config.badge}
-                          </Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Items List */}
-                {selectedProject.items.campaign && selectedProject.items.campaign.length > 0 && (
-                  <div className="bg-white rounded-2xl p-6 shadow-xl">
-                    <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-orange-500" />
-                      Campaigns in This Project
-                    </h3>
-                    <div className="space-y-3">
-                      {selectedProject.items.campaign.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border-l-4 border-orange-400"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Zap className="w-5 h-5 text-orange-500" />
-                            <div>
-                              <h4 className="font-medium text-slate-800">
-                                {item.itemName || 'Unnamed Campaign'}
-                              </h4>
-                              <p className="text-xs text-slate-500">
-                                Created {new Date(item.createdAt).toLocaleDateString()}
-                                {item.itemMetadata?.adGroupCount && ` • ${item.itemMetadata.adGroupCount} ad groups`}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">Edit</Button>
-                            <Button variant="outline" size="sm">View</Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedProject.counts.total === 0 && (
-                  <div className="bg-white/10 backdrop-blur rounded-2xl p-8 text-center">
-                    <FolderOpen className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No items yet</h3>
-                    <p className="text-indigo-200 mb-4">
-                      Start by creating a campaign or keyword list and assign it to this project.
-                    </p>
-                    <Button className="bg-white text-indigo-600 hover:bg-indigo-50">
-                      Create Your First Campaign
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-white/10 backdrop-blur rounded-2xl p-8 text-center">
-                <FolderOpen className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">No projects yet</h3>
-                <p className="text-indigo-200 mb-4">
-                  Create your first project to start organizing your campaigns and keywords.
-                </p>
-                <Button 
-                  onClick={() => setShowCreateDialog(true)}
-                  className="bg-white text-indigo-600 hover:bg-indigo-50"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Project
-                </Button>
-              </div>
             )}
           </div>
+        </div>
+
+        {/* Project Detail */}
+        <div className="col-span-12 md:col-span-8 lg:col-span-9">
+          {loadingDetail ? (
+            <div className="flex items-center justify-center h-96">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            </div>
+          ) : selectedProject ? (
+            <div className="space-y-6">
+              {/* Project Header Card */}
+              <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-6 text-white">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">{selectedProject.name}</h2>
+                    <p className="text-white/80 mt-1">
+                      {selectedProject.description || 'Organize all your Google Ads campaigns in one place'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => openEditDialog(selectedProject as any)}
+                      className="bg-white/20 hover:bg-white/30 text-white border-0"
+                    >
+                      <Edit2 className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Stats Row */}
+                <div className="grid grid-cols-4 gap-4 mt-6">
+                  <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                    <div className="text-3xl font-bold">{selectedProject.counts.campaigns}</div>
+                    <div className="text-white/70 text-sm">Campaigns</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                    <div className="text-3xl font-bold">{selectedProject.counts.keywordLists}</div>
+                    <div className="text-white/70 text-sm">Keyword Lists</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                    <div className="text-3xl font-bold">{selectedProject.counts.negativeKeywords}</div>
+                    <div className="text-white/70 text-sm">Negative Lists</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                    <div className="text-3xl font-bold">{selectedProject.counts.total}</div>
+                    <div className="text-white/70 text-sm">Total Items</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Connected Modules Grid */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">Connected Modules</h3>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(MODULE_CONFIG).map(([key, config]) => {
+                    const Icon = config.icon;
+                    const count = selectedProject.items[key]?.length || 0;
+                    return (
+                      <div
+                        key={key}
+                        className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer group"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
+                            <Icon className="w-6 h-6 text-white" />
+                          </div>
+                          <ArrowUpRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <h4 className="font-semibold text-slate-800">{config.label}</h4>
+                        <p className="text-sm text-slate-500 mt-1">
+                          {count > 0 ? `${count} linked` : config.badge === 'Soon' ? 'Coming soon' : 'No items yet'}
+                        </p>
+                        <Badge 
+                          className={`mt-3 ${
+                            config.badge === 'Active' ? 'bg-emerald-100 text-emerald-700 border-0' :
+                            config.badge === 'New' ? 'bg-violet-100 text-violet-700 border-0' :
+                            'bg-amber-100 text-amber-700 border-0'
+                          }`}
+                        >
+                          {config.badge}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Campaigns List */}
+              {selectedProject.items.campaign && selectedProject.items.campaign.length > 0 && (
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                  <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-orange-500" />
+                    </div>
+                    Campaigns in This Project
+                  </h3>
+                  <div className="space-y-3">
+                    {selectedProject.items.campaign.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
+                            <Zap className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-slate-800">
+                              {item.itemName || 'Unnamed Campaign'}
+                            </h4>
+                            <p className="text-xs text-slate-500">
+                              Created {new Date(item.createdAt).toLocaleDateString()}
+                              {item.itemMetadata?.adGroupCount && ` • ${item.itemMetadata.adGroupCount} ad groups`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" className="border-slate-200">View</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedProject.counts.total === 0 && (
+                <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-slate-100">
+                  <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <FolderOpen className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-800 mb-2">No items in this project</h3>
+                  <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                    Start by creating a campaign or keyword list and assign it to this project for better organization.
+                  </p>
+                  <Button className="bg-indigo-600 hover:bg-indigo-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Campaign
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl p-10 text-center shadow-sm border border-slate-100">
+              <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <FolderOpen className="w-10 h-10 text-indigo-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-800 mb-2">Create Your First Project</h3>
+              <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                Projects help you organize campaigns, keywords, and settings. Start by creating your first project.
+              </p>
+              <Button 
+                onClick={() => setShowCreateDialog(true)}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Project
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create New Project</DialogTitle>
           </DialogHeader>
@@ -525,13 +638,13 @@ export function WorkspaceProjects() {
                 <Palette className="w-4 h-4" />
                 Color
               </label>
-              <div className="flex gap-2 mt-2">
+              <div className="flex gap-2 mt-2 flex-wrap">
                 {PROJECT_COLORS.map((color) => (
                   <button
                     key={color}
                     onClick={() => setFormColor(color)}
                     className={`w-8 h-8 rounded-full transition-all ${
-                      formColor === color ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : ''
+                      formColor === color ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'
                     }`}
                     style={{ backgroundColor: color }}
                   >
@@ -545,7 +658,7 @@ export function WorkspaceProjects() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={saving || !formName.trim()}>
+            <Button onClick={handleCreate} disabled={saving || !formName.trim()} className="bg-indigo-600 hover:bg-indigo-700">
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Create Project
             </Button>
@@ -555,7 +668,7 @@ export function WorkspaceProjects() {
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
           </DialogHeader>
@@ -583,13 +696,13 @@ export function WorkspaceProjects() {
                 <Palette className="w-4 h-4" />
                 Color
               </label>
-              <div className="flex gap-2 mt-2">
+              <div className="flex gap-2 mt-2 flex-wrap">
                 {PROJECT_COLORS.map((color) => (
                   <button
                     key={color}
                     onClick={() => setFormColor(color)}
                     className={`w-8 h-8 rounded-full transition-all ${
-                      formColor === color ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : ''
+                      formColor === color ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'
                     }`}
                     style={{ backgroundColor: color }}
                   >
@@ -603,7 +716,7 @@ export function WorkspaceProjects() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
-            <Button onClick={handleUpdate} disabled={saving || !formName.trim()}>
+            <Button onClick={handleUpdate} disabled={saving || !formName.trim()} className="bg-indigo-600 hover:bg-indigo-700">
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Save Changes
             </Button>
@@ -611,22 +724,26 @@ export function WorkspaceProjects() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
+      {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Project</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-slate-600">
               Are you sure you want to delete <strong>{editingProject?.name}</strong>? 
-              This will unlink all items from this project but won't delete the items themselves.
+              This will unlink all campaigns and keywords from this project. This action cannot be undone.
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            <Button 
+              onClick={handleDelete} 
+              disabled={saving}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
               Delete Project
             </Button>
           </DialogFooter>
