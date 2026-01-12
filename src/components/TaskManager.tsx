@@ -532,29 +532,26 @@ export function TaskManager() {
                       {projectTasks.length > 0 && (
                         <Badge variant="secondary" className="text-xs">{projectTasks.length}</Badge>
                       )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 md:h-6 md:w-6 p-0 opacity-100 md:opacity-0 group-hover:opacity-100"
-                          >
-                            <MoreHorizontal className="w-5 h-5 md:w-4 md:h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { openEditProject(project); setIsMobileSidebarOpen(false); }}>
-                            <Edit2 className="w-4 h-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-500"
-                            onClick={() => deleteProject(project.id)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); openEditProject(project); setIsMobileSidebarOpen(false); }}
+                          className="h-7 w-7 md:h-6 md:w-6 p-0 text-gray-400 hover:text-indigo-600"
+                          title="Edit Project"
+                        >
+                          <Edit2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteProject(project.id); }}
+                          className="h-7 w-7 md:h-6 md:w-6 p-0 text-gray-400 hover:text-red-600"
+                          title="Delete Project"
+                        >
+                          <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
+                        </Button>
+                      </div>
                     </button>
                   </div>
                 );
@@ -697,29 +694,26 @@ export function TaskManager() {
                             />
                             <h3 className="font-semibold text-gray-900 truncate">{project.name}</h3>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
-                              >
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={(e: React.MouseEvent) => { e.stopPropagation(); openEditProject(project); }}>
-                                <Edit2 className="w-4 h-4 mr-2" /> Edit Project
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-red-500"
-                                onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteProject(project.id); }}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete Project
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); openEditProject(project); }}
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-indigo-600"
+                              title="Edit Project"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteProject(project.id); }}
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                              title="Delete Project"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
