@@ -76,7 +76,11 @@ Preferred communication style: Simple, everyday language.
 ## Third-Party Services
 - **Clerk**: Authentication provider with email/password and social login support.
 - **Supabase**: PostgreSQL database and Edge Functions (Note: Auth migrated to Clerk).
-- **Stripe**: Payment processing for subscriptions, integrated via `stripe-replit-sync`.
+- **Stripe**: Payment processing for subscriptions, integrated via `stripe-replit-sync`. Three pricing tiers:
+  - Starter: $29/month (5 campaigns, 1 team member, 25% early adopter discount)
+  - Professional: $59/month (50 campaigns, 3 team members, 45% early adopter discount, Most Popular)
+  - Agency: $129/month (unlimited campaigns/members, 65% early adopter discount)
+  - Features: 7-day free trial, 14-day money-back guarantee, 20% annual discount
 - **Redis**: Message broker and result backend for Celery tasks.
 - **OpenAI**: Natural language processing for the web template editor chatbot and AI Blog Generator (gpt-4o-mini).
 - **ResellerClub**: Email/webmail management API.
