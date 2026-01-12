@@ -156,7 +156,7 @@ export function useDiscourseSSO() {
       return data.ssoUrl;
     } catch (err) {
       console.error('SSO error:', err);
-      window.open('https://adiology.discourse.app', '_blank');
+      window.open('https://adiology.discourse.group/', '_blank');
       return null;
     } finally {
       setLoading(false);
@@ -164,7 +164,7 @@ export function useDiscourseSSO() {
   }, [user, getToken]);
 
   const openForum = useCallback(() => {
-    window.open('https://adiology.discourse.app', '_blank');
+    window.open('https://adiology.discourse.group/', '_blank');
   }, []);
 
   return { loginToDiscourse, openForum, loading };
