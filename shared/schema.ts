@@ -4,7 +4,7 @@ import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: text("id").primaryKey(),
   email: text("email").unique().notNull(),
   fullName: text("full_name"),
   avatarUrl: text("avatar_url"),
@@ -32,7 +32,7 @@ export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   slug: text("slug").unique().notNull(),
-  ownerId: uuid("owner_id").references(() => users.id),
+  ownerId: text("owner_id"),
   isAdminWorkspace: boolean("is_admin_workspace").default(false),
   settings: jsonb("settings").default({}),
   createdAt: timestamp("created_at").defaultNow(),
@@ -42,7 +42,7 @@ export const workspaces = pgTable("workspaces", {
 export const workspaceMembers = pgTable("workspace_members", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
-  userId: uuid("user_id").references(() => users.id),
+  userId: text("user_id"),
   role: text("role").default("member"),
   status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -53,7 +53,7 @@ export const workspaceMembers = pgTable("workspace_members", {
 
 export const subscriptions = pgTable("subscriptions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id),
+  userId: text("user_id"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id").unique(),
   stripePriceId: text("stripe_price_id"),
@@ -77,7 +77,7 @@ export const subscriptions = pgTable("subscriptions", {
 
 export const payments = pgTable("payments", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id),
+  userId: text("user_id"),
   subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
   stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
   stripeInvoiceId: text("stripe_invoice_id"),
@@ -99,7 +99,7 @@ export const payments = pgTable("payments", {
 
 export const invoices = pgTable("invoices", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   stripeInvoiceId: text("stripe_invoice_id").unique(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("usd"),
@@ -114,7 +114,7 @@ export const invoices = pgTable("invoices", {
 
 export const emails = pgTable("emails", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id),
+  userId: text("user_id"),
   recipientEmail: text("recipient_email").notNull(),
   senderEmail: text("sender_email").default("noreply@adiology.com"),
   subject: text("subject").notNull(),
@@ -142,8 +142,8 @@ export const emails = pgTable("emails", {
 
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id),
-  adminUserId: uuid("admin_user_id").references(() => users.id),
+  userId: text("user_id"),
+  adminUserId: text("admin_user_id"),
   action: text("action").notNull(),
   resourceType: text("resource_type"),
   resourceId: text("resource_id"),
@@ -171,7 +171,7 @@ export const securityRules = pgTable("security_rules", {
   active: boolean("active").default(true),
   priority: integer("priority").default(100),
   expiresAt: timestamp("expires_at"),
-  createdBy: uuid("created_by").references(() => users.id),
+  createdBy: text("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
@@ -184,7 +184,7 @@ export const securityRules = pgTable("security_rules", {
 
 export const campaignHistory = pgTable("campaign_history", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id),
+  userId: text("user_id"),
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
   type: text("type").notNull(),
   name: text("name").notNull(),
@@ -218,7 +218,7 @@ export const templates = pgTable("templates", {
 
 export const savedSites = pgTable("saved_sites", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   templateId: uuid("template_id").references(() => templates.id),
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
   slug: text("slug").notNull(),
@@ -241,7 +241,7 @@ export const savedSites = pgTable("saved_sites", {
 
 export const activityLog = pgTable("activity_log", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   savedSiteId: uuid("saved_site_id").references(() => savedSites.id),
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
   action: text("action").notNull(),
@@ -257,7 +257,7 @@ export const activityLog = pgTable("activity_log", {
 
 export const publishedWebsites = pgTable("published_websites", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   name: text("name").notNull(),
   templateId: text("template_id").notNull(),
   templateData: jsonb("template_data").notNull(),
@@ -274,7 +274,7 @@ export const publishedWebsites = pgTable("published_websites", {
 
 export const feedback = pgTable("feedback", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id),
+  userId: text("user_id"),
   userEmail: text("user_email"),
   type: text("type").notNull(),
   rating: integer("rating"),
@@ -291,7 +291,7 @@ export const feedback = pgTable("feedback", {
 
 export const forms = pgTable("forms", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   fields: jsonb("fields").default([]),
@@ -335,7 +335,7 @@ export const kvStore = pgTable("kv_store_6757d0ca", {
 
 export const userNotifications = pgTable("user_notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   type: text("type").notNull(),
   title: text("title").notNull(),
   message: text("message"),
@@ -352,7 +352,7 @@ export const userNotifications = pgTable("user_notifications", {
 
 export const adSearchRequests = pgTable("ad_search_requests", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   searchQuery: text("search_query").notNull(),
   advertiserDomain: text("advertiser_domain"),
   status: text("status").notNull().default("pending"),
@@ -449,7 +449,7 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
 
 export const emailSequenceProgress = pgTable("email_sequence_progress", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   sequenceId: text("sequence_id").notNull(),
   emailId: text("email_id").notNull(),
   status: text("status").notNull().default("pending"),
