@@ -16,6 +16,12 @@ Preferred communication style: Simple, everyday language.
 - **Saved Campaigns**: Displays campaign history with search and filter options, including Google Ads OAuth integration for direct, paused campaign pushes to Google Ads.
 - **Data Export**: Generates a master 183-column Google Ads Editor CSV format, ensuring full compatibility for various campaign, ad group, keyword, and extension data.
 - **AI Blog Generator**: Generates 2000+ word blog posts with 5+ content sections, case studies, tips, image prompts, optional code snippets and statistics. Configurable content type, tone, and target audience. Includes HTML export, markdown preview, and copy-to-clipboard.
+- **Task Manager**: Full task and project management system with CRUD operations for projects and tasks. Features include:
+  - Projects: Create, edit, delete with 2-step confirmation dialog
+  - Tasks: Create, edit, delete, mark complete, set priority and due dates
+  - Views: Sidebar navigation, All Projects grid view, Kanban board
+  - Visible Edit/Delete buttons on project cards and in sidebar (no hidden menus)
+  - Database: task_projects (user_id varchar, name, color, order) and tasks tables
 
 ## Backend
 - **Primary API**: Hono (Node.js/TypeScript) for all API endpoints, with optional FastAPI (Python) for legacy ad generation.
