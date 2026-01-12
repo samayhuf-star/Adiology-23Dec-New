@@ -431,6 +431,56 @@ async function seedStripeProducts() {
   }
 }
 
+// Health check endpoint for production monitoring
+app.get('/api/health', async (c) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    return c.json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+      version: '1.0.0'
+    });
+  } catch (error) {
+    return c.json({ 
+      status: 'unhealthy', 
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+      error: 'Database connection failed'
+    }, 500);
+  }
+});
+
+// Get Stripe subscription plans
+app.get('/api/stripe/plans', async (c) => {
+  try {
+    const stripe = await getUncachableStripeClient();
+    const prices = await stripe.prices.list({
+      active: true,
+      expand: ['data.product'],
+      limit: 20,
+    });
+    
+    const plans = prices.data
+      .filter((price: any) => price.product && typeof price.product === 'object')
+      .map((price: any) => ({
+        id: price.id,
+        productId: price.product.id,
+        name: price.product.name,
+        description: price.product.description,
+        amount: price.unit_amount,
+        currency: price.currency,
+        interval: price.recurring?.interval || 'one_time',
+        intervalCount: price.recurring?.interval_count || 1,
+      }));
+    
+    return c.json({ plans });
+  } catch (error: any) {
+    console.error('Error fetching plans:', error);
+    return c.json({ plans: [], error: error.message }, 500);
+  }
+});
+
 // Admin endpoint to seed products (one-time use)
 app.post('/api/stripe/seed-products', async (c) => {
   await seedStripeProducts();

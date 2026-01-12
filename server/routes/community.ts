@@ -138,6 +138,15 @@ community.get('/topics', async (c) => {
     const limit = parseInt(c.req.query('limit') || '10');
     const category = c.req.query('category');
 
+    // Return mock data if Discourse is not configured
+    if (!DISCOURSE_API_KEY) {
+      return c.json({
+        topics: getMockTopics().slice(0, limit),
+        users: [],
+        mock: true,
+      });
+    }
+
     let url = `${DISCOURSE_URL}/latest.json?per_page=${limit}`;
     if (category) {
       url = `${DISCOURSE_URL}/c/${category}.json?per_page=${limit}`;
@@ -152,13 +161,6 @@ community.get('/topics', async (c) => {
     });
 
     if (!response.ok) {
-      if (!DISCOURSE_API_KEY) {
-        return c.json({
-          topics: getMockTopics().slice(0, limit),
-          users: [],
-          mock: true,
-        });
-      }
       throw new Error(`Discourse API error: ${response.status}`);
     }
 
@@ -304,6 +306,11 @@ community.post('/posts', async (c) => {
 
 community.get('/categories', async (c) => {
   try {
+    // Return mock data if Discourse is not configured
+    if (!DISCOURSE_API_KEY) {
+      return c.json({ categories: getMockCategories(), mock: true });
+    }
+
     const response = await fetch(`${DISCOURSE_URL}/categories.json`, {
       headers: {
         'Api-Key': DISCOURSE_API_KEY,
