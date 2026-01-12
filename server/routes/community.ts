@@ -3,7 +3,7 @@ import crypto from 'crypto';
 
 const community = new Hono();
 
-const DISCOURSE_URL = process.env.DISCOURSE_URL || 'https://community.adiology.io';
+const DISCOURSE_URL = process.env.DISCOURSE_URL || 'https://adiology.discourse.app';
 const DISCOURSE_API_KEY = process.env.DISCOURSE_API_KEY || '';
 const DISCOURSE_SSO_SECRET = process.env.DISCOURSE_SSO_SECRET || '';
 const DISCOURSE_CATEGORY_ID = process.env.DISCOURSE_CATEGORY_ID || '5';

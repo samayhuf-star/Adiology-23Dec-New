@@ -62,7 +62,7 @@ export function CommunityDashboardWidget({ onViewAll }: CommunityDashboardWidget
                   key={topic.id}
                   topic={topic}
                   compact
-                  onClick={() => window.open(`https://community.adiology.io/t/${topic.slug}/${topic.id}`, '_blank')}
+                  onClick={() => window.open(`https://adiology.discourse.app/t/${topic.slug}/${topic.id}`, '_blank')}
                 />
               ))}
             </div>

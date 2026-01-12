@@ -1715,8 +1715,8 @@ const AppContent = () => {
                         window.history.pushState({}, '', '/admin');
                         setAppView('admin-panel');
                       } else if (item.id === 'community') {
-                        // Open Discourse community in new tab
-                        window.open('https://community.adiology.io', '_blank');
+                        // Open Discourse community with SSO in new tab
+                        window.open('https://adiology.discourse.app', '_blank');
                         setMobileMenuOpen(false);
                       } else {
                         setActiveTabSafe(item.id);

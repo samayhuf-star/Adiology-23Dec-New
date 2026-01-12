@@ -461,7 +461,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
       {/* Community Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 slide-in-up">
         <div className="lg:col-span-2">
-          <CommunityDashboardWidget onViewAll={() => window.open('https://community.adiology.io', '_blank')} />
+          <CommunityDashboardWidget onViewAll={() => window.open('https://adiology.discourse.app', '_blank')} />
         </div>
         <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50">
           <div className="flex items-center gap-3 mb-4">
@@ -477,7 +477,7 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
             Join our community to share strategies, get tips, and connect with other Google Ads professionals.
           </p>
           <button
-            onClick={() => window.open('https://community.adiology.io', '_blank')}
+            onClick={() => window.open('https://adiology.discourse.app', '_blank')}
             className="w-full py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:from-indigo-700 hover:to-purple-700 transition-all"
           >
             Visit Community
