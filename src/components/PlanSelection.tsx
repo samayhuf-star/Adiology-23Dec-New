@@ -53,69 +53,72 @@ interface PlanData {
 }
 
 const planConfig: Record<string, Omit<PlanData, 'price' | 'priceId' | 'amount'>> = {
-  'Basic Monthly': {
-    name: 'Basic Monthly',
-    displayName: 'Basic',
+  'Starter Monthly': {
+    name: 'Starter Monthly',
+    displayName: 'Starter',
     period: 'per month',
     isSubscription: true,
     features: [
-      '10 Active Campaigns',
-      '5 Draft Campaigns',
-      '50 Campaign Exports/Month',
-      '500 Keyword Credits/Month',
-      '10 Landing Page Templates',
-      '2 User Seats',
-      'Email Support'
+      '5 Campaigns/month',
+      '1 Team Member',
+      'Dashboard & 1-Click Builder',
+      'Builder 3.0 & Preset Campaigns',
+      'Limited Draft/Custom Campaigns',
+      'Keyword Planner & Mixer',
+      'Email Support (24-48h)',
+      '7-day free trial'
     ],
     icon: Rocket,
-    color: 'from-blue-400 to-blue-600',
+    color: 'from-blue-500 to-cyan-500',
     borderColor: 'border-blue-200',
-    buttonStyle: 'bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300',
+    buttonStyle: 'bg-gray-900 text-white hover:bg-gray-800',
     popular: false
   },
-  'Pro Monthly': {
-    name: 'Pro Monthly',
-    displayName: 'Pro',
+  'Professional Monthly': {
+    name: 'Professional Monthly',
+    displayName: 'Professional',
     period: 'per month',
     isSubscription: true,
     features: [
-      '50 Active Campaigns',
-      'Unlimited Draft Campaigns',
-      'Unlimited Campaign Exports',
-      '2,500 Keyword Credits/Month',
-      '50+ Landing Page Templates',
-      '5 User Seats',
-      'Email Support'
+      '50 Campaigns/month',
+      '3 Team Members',
+      'All Builder Features',
+      'Full Draft/Custom Campaigns',
+      'All Keyword Tools',
+      'Priority Queue & Slack Channel',
+      'Email Support (12-24h)',
+      '7-day free trial'
     ],
     icon: Zap,
-    color: 'from-purple-500 to-purple-700',
+    color: 'from-purple-500 to-pink-500',
     borderColor: 'border-purple-300',
-    buttonStyle: 'bg-gradient-to-r from-purple-500 to-purple-700 text-white hover:shadow-xl',
+    buttonStyle: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl',
     popular: true
   },
-  'Lifetime': {
-    name: 'Lifetime',
-    displayName: 'Lifetime',
-    period: 'one-time',
-    isSubscription: false,
+  'Agency Monthly': {
+    name: 'Agency Monthly',
+    displayName: 'Agency',
+    period: 'per month',
+    isSubscription: true,
     features: [
-      '5 Active Campaigns',
-      '3 Draft Campaigns',
-      '25 Campaign Exports/Month',
-      '250 Keyword Credits/Month',
-      '5 Landing Page Templates',
-      '1 User Seat',
-      'Email Support'
+      'Unlimited Campaigns',
+      'Unlimited Team Members',
+      'All Professional Features',
+      'Monthly Strategy Call',
+      'Priority Support (1h+)',
+      'CSV Export & Live Ad Preview',
+      'Early Access to New Features',
+      '7-day free trial'
     ],
     icon: Crown,
-    color: 'from-pink-500 to-purple-600',
-    borderColor: 'border-pink-200',
-    buttonStyle: 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:shadow-xl',
+    color: 'from-amber-500 to-orange-500',
+    borderColor: 'border-amber-200',
+    buttonStyle: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-xl',
     popular: false
   }
 };
 
-const planOrder = ['Basic Monthly', 'Pro Monthly', 'Lifetime'];
+const planOrder = ['Starter Monthly', 'Professional Monthly', 'Agency Monthly'];
 
 interface PlanSelectionProps {
   onSelectPlan: (planName: string, priceId: string, amount: number, isSubscription: boolean) => void;
@@ -169,22 +172,22 @@ export const PlanSelection: React.FC<PlanSelectionProps> = ({
         // Fallback to default plans if Stripe products not available
         const fallbackPlans: PlanData[] = [
           {
-            ...planConfig['Basic Monthly'],
-            price: '$69.99',
-            priceId: 'fallback_basic',
-            amount: 6999
+            ...planConfig['Starter Monthly'],
+            price: '$29',
+            priceId: 'price_starter_monthly',
+            amount: 2900
           },
           {
-            ...planConfig['Pro Monthly'],
-            price: '$129.99',
-            priceId: 'fallback_pro',
-            amount: 12999
+            ...planConfig['Professional Monthly'],
+            price: '$59',
+            priceId: 'price_professional_monthly',
+            amount: 5900
           },
           {
-            ...planConfig['Lifetime'],
-            price: '$99.99',
-            priceId: 'fallback_lifetime',
-            amount: 9999
+            ...planConfig['Agency Monthly'],
+            price: '$129',
+            priceId: 'price_agency_monthly',
+            amount: 12900
           }
         ];
         setPlans(fallbackPlans);

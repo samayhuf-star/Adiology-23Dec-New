@@ -34,13 +34,20 @@ export async function getUserPlan(): Promise<string> {
     // Map database plan to display format
     const planMap: Record<string, string> = {
       'free': 'Free',
-      'starter': 'Monthly Limited',
-      'professional': 'Monthly Unlimited',
-      'enterprise': 'Lifetime Unlimited',
-      'lifetime_limited': 'Lifetime Limited',
-      'lifetime_unlimited': 'Lifetime Unlimited',
-      'monthly_limited': 'Monthly Limited',
-      'monthly_unlimited': 'Monthly Unlimited',
+      'starter': 'Starter',
+      'starter_monthly': 'Starter',
+      'starter_yearly': 'Starter (Yearly)',
+      'professional': 'Professional',
+      'professional_monthly': 'Professional',
+      'professional_yearly': 'Professional (Yearly)',
+      'agency': 'Agency',
+      'agency_monthly': 'Agency',
+      'agency_yearly': 'Agency (Yearly)',
+      'enterprise': 'Agency',
+      'lifetime_limited': 'Starter',
+      'lifetime_unlimited': 'Agency',
+      'monthly_limited': 'Starter',
+      'monthly_unlimited': 'Professional',
     };
       
     return planMap[plan] || plan.charAt(0).toUpperCase() + plan.slice(1);

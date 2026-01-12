@@ -1,123 +1,100 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, X, Sparkles, Star, Crown, Clock, Users, Zap, Shield, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
-const pricingPlans = [
+interface PricingPlan {
+  name: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  icon: any;
+  color: string;
+  gradientFrom: string;
+  gradientTo: string;
+  popular: boolean;
+  earlyBirdDiscount: number;
+  tagline: string;
+  limits: {
+    campaigns: string;
+    teamMembers: string;
+  };
+  features: {
+    name: string;
+    starter: boolean | string;
+    professional: boolean | string;
+    agency: boolean | string;
+  }[];
+}
+
+const featureList = [
+  { name: 'Campaigns/month', starter: '5', professional: '50', agency: '∞' },
+  { name: 'Team members', starter: '1', professional: '3', agency: '∞' },
+  { name: 'Dashboard', starter: true, professional: true, agency: true },
+  { name: '1-Click Builder', starter: true, professional: true, agency: true },
+  { name: 'Builder 3.0', starter: true, professional: true, agency: true },
+  { name: 'Preset Campaigns', starter: true, professional: true, agency: true },
+  { name: 'Draft/Custom Campaigns', starter: 'Limited', professional: 'Full', agency: 'Full' },
+  { name: 'Keyword Planner', starter: true, professional: true, agency: true },
+  { name: 'Keyword Mixer', starter: true, professional: true, agency: true },
+  { name: 'Negative Keywords', starter: true, professional: true, agency: true },
+  { name: 'Long-Tail Keywords', starter: true, professional: true, agency: true },
+  { name: 'Email Support', starter: true, professional: true, agency: true },
+  { name: 'Support Response Time', starter: '24-48h', professional: '12-24h', agency: '1h+' },
+  { name: 'Priority Queue', starter: false, professional: true, agency: true },
+  { name: 'Slack Channel', starter: false, professional: true, agency: true },
+  { name: 'Monthly Call', starter: false, professional: false, agency: true },
+];
+
+const comingSoonFeatures = [
+  { name: 'CSV Export', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: true },
+  { name: 'Live Ad Preview', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: true },
+  { name: 'Analytics', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: true },
+  { name: 'Landing Page Builder', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: 'Q1/Q2' },
+  { name: 'Call Tracking', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: 'Q1/Q2' },
+  { name: 'API Access', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: 'Q1/Q2' },
+];
+
+const plans: PricingPlan[] = [
   {
-    name: 'Basic',
-    price: '$69.99',
-    period: 'per month',
-    icon: '🚀',
-    color: 'from-blue-400 to-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    features: [
-      '10 Active Campaigns',
-      '5 Draft Campaigns',
-      '50 Campaign Exports/Month',
-      '500 Keyword Credits/Month',
-      '10 Landing Page Templates',
-      '5 Active/Saved Landing Pages',
-      '10 Campaign Presets',
-      '2 User Seats',
-      'Email Support',
-      'Raise Tickets'
-    ],
-    buttonStyle: 'bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300',
-    popular: false
+    name: 'Starter',
+    monthlyPrice: 29,
+    yearlyPrice: 278, // 29 * 12 * 0.8 = $278.40 rounded
+    icon: Zap,
+    color: 'blue',
+    gradientFrom: 'from-blue-500',
+    gradientTo: 'to-cyan-500',
+    popular: false,
+    earlyBirdDiscount: 25,
+    tagline: 'Perfect for getting started',
+    limits: { campaigns: '5', teamMembers: '1' },
+    features: []
   },
   {
-    name: 'Basic (Yearly)',
-    price: '$671.90',
-    period: 'per year',
-    savings: 'Save 20%',
-    icon: '🚀',
-    color: 'from-blue-400 to-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    features: [
-      '10 Active Campaigns',
-      '5 Draft Campaigns',
-      '50 Campaign Exports/Month',
-      '500 Keyword Credits/Month',
-      '10 Landing Page Templates',
-      '5 Active/Saved Landing Pages',
-      '10 Campaign Presets',
-      '2 User Seats',
-      'Email Support',
-      'Raise Tickets'
-    ],
-    buttonStyle: 'bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300',
-    popular: false
+    name: 'Professional',
+    monthlyPrice: 59,
+    yearlyPrice: 566, // 59 * 12 * 0.8 = $566.40 rounded
+    icon: Star,
+    color: 'purple',
+    gradientFrom: 'from-purple-500',
+    gradientTo: 'to-pink-500',
+    popular: true,
+    earlyBirdDiscount: 45,
+    tagline: 'Most popular for growing teams',
+    limits: { campaigns: '50', teamMembers: '3' },
+    features: []
   },
   {
-    name: 'Pro',
-    price: '$129.99',
-    period: 'per month',
-    icon: '⚡',
-    color: 'from-purple-500 to-purple-700',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-300',
-    features: [
-      '50 Active Campaigns',
-      'Unlimited Draft Campaigns',
-      'Unlimited Campaign Exports',
-      '2,500 Keyword Credits/Month',
-      '50+ Landing Page Templates',
-      '50+ Active/Saved Landing Pages',
-      '50+ Campaign Presets',
-      '5 User Seats',
-      'Email Support',
-      'Raise Tickets'
-    ],
-    buttonStyle: 'bg-gradient-to-r from-purple-500 to-purple-700 text-white hover:shadow-xl',
-    popular: true
-  },
-  {
-    name: 'Pro (Yearly)',
-    price: '$1,247.90',
-    period: 'per year',
-    savings: 'Save 20%',
-    icon: '⚡',
-    color: 'from-purple-500 to-purple-700',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-300',
-    features: [
-      '50 Active Campaigns',
-      'Unlimited Draft Campaigns',
-      'Unlimited Campaign Exports',
-      '2,500 Keyword Credits/Month',
-      '50+ Landing Page Templates',
-      '50+ Active/Saved Landing Pages',
-      '50+ Campaign Presets',
-      '5 User Seats',
-      'Email Support',
-      'Raise Tickets'
-    ],
-    buttonStyle: 'bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300',
-    popular: false
-  },
-  {
-    name: 'Lifetime',
-    price: '$49.99',
-    period: 'one-time payment',
-    icon: '👑',
-    color: 'from-pink-500 to-purple-600',
-    bgColor: 'bg-pink-50',
-    borderColor: 'border-pink-200',
-    features: [
-      '10 campaigns per month',
-      '1 team member',
-      '20+ campaign presets for all verticals',
-      'Geo targeting: Countries',
-      'Keywords mixer & planner',
-      'Live ad preview (RSA, DKI, Call-Only)',
-      '10+ Google Ads assets & extensions',
-      'CSV export to Google Ads',
-      'Email support',
-      'Chat support'
-    ],
-    buttonStyle: 'bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300',
-    popular: false
+    name: 'Agency',
+    monthlyPrice: 129,
+    yearlyPrice: 1238, // 129 * 12 * 0.8 = $1238.40 rounded
+    icon: Crown,
+    color: 'amber',
+    gradientFrom: 'from-amber-500',
+    gradientTo: 'to-orange-500',
+    popular: false,
+    earlyBirdDiscount: 65,
+    tagline: 'For power users & agencies',
+    limits: { campaigns: '∞', teamMembers: '∞' },
+    features: []
   }
 ];
 
@@ -126,140 +103,308 @@ interface PricingProps {
 }
 
 export function Pricing({ onSelectPlan }: PricingProps) {
+  const [isYearly, setIsYearly] = useState(false);
+  const [showRoadmap, setShowRoadmap] = useState(false);
+
+  const getPrice = (plan: PricingPlan) => {
+    return isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+  };
+
+  const getOriginalPrice = (plan: PricingPlan) => {
+    const price = getPrice(plan);
+    return Math.round(price / (1 - plan.earlyBirdDiscount / 100));
+  };
+
+  const getPriceId = (planName: string) => {
+    const priceIds: Record<string, { monthly: string; yearly: string }> = {
+      'Starter': { monthly: 'price_starter_monthly', yearly: 'price_starter_yearly' },
+      'Professional': { monthly: 'price_professional_monthly', yearly: 'price_professional_yearly' },
+      'Agency': { monthly: 'price_agency_monthly', yearly: 'price_agency_yearly' },
+    };
+    return isYearly ? priceIds[planName]?.yearly : priceIds[planName]?.monthly;
+  };
+
+  const handleSelectPlan = (plan: PricingPlan) => {
+    if (onSelectPlan) {
+      const priceId = getPriceId(plan.name);
+      const amount = getPrice(plan) * 100;
+      onSelectPlan(plan.name, priceId || '', amount, true);
+    }
+  };
+
+  const renderFeatureValue = (value: boolean | string) => {
+    if (value === true) {
+      return <Check className="w-5 h-5 text-green-500" />;
+    }
+    if (value === false) {
+      return <X className="w-5 h-5 text-red-400" />;
+    }
+    if (value === 'Q1/Q2') {
+      return <span className="text-xs font-medium text-gray-400">TBA*</span>;
+    }
+    return <span className="text-sm font-medium text-gray-700">{value}</span>;
+  };
+
   return (
-    <section id="pricing" className="py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white via-purple-50/30 to-white w-full">
-      <div className="max-w-7xl mx-auto w-full">
+    <section id="pricing" className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 via-white to-gray-50">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-4"
+          className="text-center mb-12"
         >
-          <h2 className="text-gray-900 mb-4">
-            Choose Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Perfect Plan</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full text-purple-700 text-sm font-medium mb-4">
+            <Sparkles className="w-4 h-4" />
+            Early Adopter Pricing - Limited to First 100 Users
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Simple, Transparent <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Pricing</span>
           </h2>
-          <p className="text-gray-600 text-lg mb-8">
-            No hidden fees • Cancel anytime • 14-day money back guarantee
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-8">
+            Start with a 7-day free trial. All plans include a 14-day money-back guarantee.
           </p>
+
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <span className={`text-sm font-medium ${!isYearly ? 'text-gray-900' : 'text-gray-500'}`}>Monthly</span>
+            <button
+              onClick={() => setIsYearly(!isYearly)}
+              className={`relative w-14 h-7 rounded-full transition-colors ${isYearly ? 'bg-purple-600' : 'bg-gray-300'}`}
+            >
+              <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${isYearly ? 'translate-x-8' : 'translate-x-1'}`} />
+            </button>
+            <span className={`text-sm font-medium ${isYearly ? 'text-gray-900' : 'text-gray-500'}`}>
+              Yearly <span className="text-green-600 font-semibold">(-20%)</span>
+            </span>
+          </div>
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
-          {pricingPlans.map((plan, index) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="relative"
-            >
-              {/* Popular Badge */}
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                  <div className="px-4 py-1 bg-gradient-to-r from-purple-500 to-purple-700 text-white rounded-full text-xs shadow-lg">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 mb-12">
+          {plans.map((plan, index) => {
+            const Icon = plan.icon;
+            return (
+              <motion.div
+                key={plan.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className={`relative bg-white rounded-2xl border-2 ${plan.popular ? 'border-purple-500 shadow-2xl scale-[1.02]' : 'border-gray-200 shadow-lg'} overflow-hidden`}
+              >
+                {/* Popular Badge */}
+                {plan.popular && (
+                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center py-2 text-sm font-semibold">
                     Most Popular
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className={`
-                bg-white rounded-2xl p-6 border-2 ${plan.borderColor}
-                ${plan.popular ? 'shadow-2xl scale-105 ring-4 ring-purple-100' : 'shadow-lg hover:shadow-xl'}
-                transition-all duration-300 h-full flex flex-col
-              `}>
-                {/* Icon Header */}
-                <div className={`w-full h-20 bg-gradient-to-r ${plan.color} rounded-xl flex items-center justify-center mb-6 shadow-md`}>
-                  <span className="text-4xl">{plan.icon}</span>
-                </div>
+                <div className={`p-6 ${plan.popular ? 'pt-12' : ''}`}>
+                  {/* Plan Icon & Name */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${plan.gradientFrom} ${plan.gradientTo} flex items-center justify-center`}>
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                      <p className="text-sm text-gray-500">{plan.tagline}</p>
+                    </div>
+                  </div>
 
-                {/* Plan Name */}
-                <h3 className="text-gray-900 text-center mb-2">
-                  {plan.name}
-                </h3>
-
-                {/* Price */}
-                <div className="text-center mb-2">
-                  <span className="text-gray-900 text-3xl">{plan.price}</span>
-                </div>
-                <div className="text-gray-500 text-sm text-center mb-2">
-                  {plan.period}
-                </div>
-                {(plan as any).savings && (
-                  <div className="text-center mb-4">
-                    <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                      {(plan as any).savings}
+                  {/* Early Bird Discount */}
+                  <div className="mb-4">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                      <Sparkles className="w-3 h-3" />
+                      {plan.earlyBirdDiscount}% off - Early Adopter
                     </span>
                   </div>
-                )}
-                {!(plan as any).savings && <div className="mb-4" />}
 
-                {/* Features */}
-                <div className="space-y-3 mb-6 flex-grow">
-                  {plan.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${plan.color} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                        <Check className="w-4 h-4 text-white" strokeWidth={3} />
-                      </div>
-                      <span className="text-gray-700 text-sm">{feature}</span>
+                  {/* Price */}
+                  <div className="mb-6">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-bold text-gray-900">${getPrice(plan)}</span>
+                      <span className="text-gray-500">/{isYearly ? 'year' : 'month'}</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-gray-400 line-through text-sm">${getOriginalPrice(plan)}/{isYearly ? 'year' : 'month'}</span>
+                    </div>
+                  </div>
 
-                {/* CTA Button */}
-                <button 
-                  onClick={() => {
-                    if (onSelectPlan) {
-                      // Map plan names to price IDs - these should match your Stripe price IDs
-                      const priceIdMap: Record<string, { priceId: string; amount: number; isSubscription: boolean }> = {
-                        'Basic': { priceId: 'price_basic_monthly', amount: 6999, isSubscription: true },
-                        'Basic (Yearly)': { priceId: 'price_basic_yearly', amount: 67190, isSubscription: true },
-                        'Pro': { priceId: 'price_pro_monthly', amount: 12999, isSubscription: true },
-                        'Pro (Yearly)': { priceId: 'price_pro_yearly', amount: 124790, isSubscription: true },
-                        'Lifetime': { priceId: 'price_lifetime', amount: 4999, isSubscription: false }
-                      };
-                      const planData = priceIdMap[plan.name] || { priceId: '', amount: 0, isSubscription: false };
-                      onSelectPlan(plan.name, planData.priceId, planData.amount, planData.isSubscription);
-                    }
-                  }}
-                  className={`w-full py-3 rounded-xl transition-all ${plan.buttonStyle}`}
-                >
-                  Get Started
-                </button>
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-2 gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-900">{plan.limits.campaigns}</div>
+                      <div className="text-xs text-gray-500">Campaigns/mo</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-900">{plan.limits.teamMembers}</div>
+                      <div className="text-xs text-gray-500">Team Members</div>
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => handleSelectPlan(plan)}
+                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all ${
+                      plan.popular
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg hover:scale-[1.02]'
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                    }`}
+                  >
+                    Start 7-Day Free Trial
+                  </button>
+
+                  <p className="text-center text-xs text-gray-500 mt-3">
+                    No credit card required • Cancel anytime
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Feature Comparison Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden mb-12"
+        >
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900">Feature Comparison</h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left py-4 px-6 font-medium text-gray-600">Feature</th>
+                  <th className="text-center py-4 px-6 font-medium text-gray-600">Starter</th>
+                  <th className="text-center py-4 px-6 font-medium text-purple-600 bg-purple-50">Professional</th>
+                  <th className="text-center py-4 px-6 font-medium text-gray-600">Agency</th>
+                </tr>
+              </thead>
+              <tbody>
+                {featureList.map((feature, index) => (
+                  <tr key={feature.name} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="py-3 px-6 text-gray-700">{feature.name}</td>
+                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.starter)}</td>
+                    <td className="py-3 px-6 text-center bg-purple-50/50">{renderFeatureValue(feature.professional)}</td>
+                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.agency)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-gray-100">
+                  <td colSpan={4} className="py-3 px-6 font-medium text-gray-600">Coming Soon</td>
+                </tr>
+                {comingSoonFeatures.map((feature, index) => (
+                  <tr key={feature.name} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="py-3 px-6 text-gray-700">{feature.name}</td>
+                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.starter)}</td>
+                    <td className="py-3 px-6 text-center bg-purple-50/50">{renderFeatureValue(feature.professional)}</td>
+                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.agency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-4 border-t border-gray-200 bg-gray-50">
+            <p className="text-sm text-gray-500 text-center">
+              * TBA = "Coming in Q1/Q2" - Features marked with TBA will be rolled out progressively
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Roadmap Toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-12"
+        >
+          <button
+            onClick={() => setShowRoadmap(!showRoadmap)}
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 hover:border-purple-300 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-purple-600" />
+              <span className="font-medium text-gray-900">View Feature Roadmap (Q1-Q3 2026)</span>
+            </div>
+            {showRoadmap ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+          </button>
+
+          {showRoadmap && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-4 bg-white rounded-xl border border-gray-200 p-6"
+            >
+              <div className="grid md:grid-cols-3 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    Q1 2026 (Jan-Mar)
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> CSV Export Enhancement</li>
+                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> Live Ad Preview</li>
+                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> Basic Analytics Dashboard</li>
+                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-green-500" /> Team Collaboration v2</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                    Q2 2026 (Apr-Jun)
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-blue-500" /> Landing Page Builder</li>
+                    <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-blue-500" /> Advanced Analytics</li>
+                    <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-blue-500" /> A/B Testing Module</li>
+                    <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-blue-500" /> Competitor Analysis</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-purple-500" />
+                    Q3 2026 (Jul-Sep)
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-purple-500" /> Call Tracking Integration</li>
+                    <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-purple-500" /> API Access (Agency)</li>
+                    <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-purple-500" /> White-label Options</li>
+                    <li className="flex items-center gap-2"><Clock className="w-4 h-4 text-purple-500" /> Custom Integrations</li>
+                  </ul>
+                </div>
               </div>
             </motion.div>
-          ))}
-        </div>
+          )}
+        </motion.div>
 
         {/* Trust Badges */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex flex-wrap items-center justify-center gap-8 text-sm text-gray-600"
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
         >
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-              <Check className="w-4 h-4 text-white" strokeWidth={3} />
-            </div>
-            <span>14-day money back</span>
+          <div className="flex items-center justify-center gap-2 p-4 bg-white rounded-xl border border-gray-200">
+            <Clock className="w-5 h-5 text-blue-500" />
+            <span className="text-sm text-gray-700">7-Day Free Trial</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <span>Secure payments</span>
+          <div className="flex items-center justify-center gap-2 p-4 bg-white rounded-xl border border-gray-200">
+            <Shield className="w-5 h-5 text-green-500" />
+            <span className="text-sm text-gray-700">14-Day Money Back</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <span>10k+ happy users</span>
+          <div className="flex items-center justify-center gap-2 p-4 bg-white rounded-xl border border-gray-200">
+            <Users className="w-5 h-5 text-purple-500" />
+            <span className="text-sm text-gray-700">First 100 Discount</span>
+          </div>
+          <div className="flex items-center justify-center gap-2 p-4 bg-white rounded-xl border border-gray-200">
+            <Sparkles className="w-5 h-5 text-amber-500" />
+            <span className="text-sm text-gray-700">25-65% Early Bird</span>
           </div>
         </motion.div>
       </div>
