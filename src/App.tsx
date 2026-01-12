@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { useUser, useAuth, useClerk } from '@clerk/clerk-react';
 import { 
-  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, Code, Download, GitCompare, CreditCard, ArrowRight, Users, BookOpen, Wand2, Eye
+  LayoutDashboard, TrendingUp, Settings, Bell, Search, Menu, X, FileCheck, Lightbulb, Shuffle, MinusCircle, Shield, HelpCircle, Megaphone, User, LogOut, Sparkles, Zap, Package, Clock, ChevronDown, ChevronRight, FolderOpen, Code, Download, GitCompare, CreditCard, ArrowRight, Users, BookOpen, Wand2, Eye, MessageSquare
 } from 'lucide-react';
 
 declare global {
@@ -70,6 +70,7 @@ const RefundPolicy = lazy(() => import('./components/RefundPolicy').then(m => ({
 const PromoLandingPage = lazy(() => import('./components/PromoLandingPage').then(m => ({ default: m.PromoLandingPage })));
 const TaskManager = lazy(() => import('./components/TaskManager').then(m => ({ default: m.TaskManager })));
 const WorkspaceProjects = lazy(() => import('./components/WorkspaceProjects').then(m => ({ default: m.WorkspaceProjects })));
+const CommunityPage = lazy(() => import('./modules/community').then(m => ({ default: m.CommunityPage })));
 
 // Loading component for lazy-loaded modules
 const ComponentLoader = () => (
@@ -857,6 +858,7 @@ const AppContent = () => {
     },
 
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
+    { id: 'community', label: 'Community', icon: MessageSquare, module: null },
     // Blog hidden - disabled
     // { id: 'blog', label: 'Blog', icon: BookOpen, module: null },
     { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' },
@@ -1350,6 +1352,12 @@ const AppContent = () => {
         return (
           <Suspense fallback={<ComponentLoader />}>
             <Teams />
+          </Suspense>
+        );
+      case 'community':
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <CommunityPage />
           </Suspense>
         );
       case 'blog':

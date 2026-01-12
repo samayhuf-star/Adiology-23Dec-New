@@ -15,6 +15,7 @@ import { getDatabaseUrl } from './dbConfig';
 import { adminAuthMiddleware, getAdminClient, getAdminServiceStatus, logAdminAction } from './adminAuthService';
 import { emailTemplates } from './email-templates';
 import { EmailService } from './emailService';
+import { community } from './routes/community';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
@@ -7984,6 +7985,11 @@ app.delete('/api/long-tail-keywords/lists/:listId', async (c) => {
     return c.json({ error: error.message }, 500);
   }
 });
+
+// ============================================
+// COMMUNITY / DISCOURSE API ROUTES
+// ============================================
+app.route('/api/community', community);
 
 // Determine ports - use PORT env var if provided, otherwise use defaults
 const isProduction = process.env.NODE_ENV === 'production';
