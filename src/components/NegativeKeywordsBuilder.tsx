@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { Sparkles, Download, Globe, Type, ShieldAlert, Save, Filter, BarChart3, FileText, RefreshCw, FolderOpen, Trash2, Clock, Zap, Brain, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { ProjectSelect } from './ProjectSelect';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -126,6 +128,9 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
 };
 
 export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) => {
+    const { getToken } = useAuth();
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
     const [url, setUrl] = useState('');
     const [urlError, setUrlError] = useState('');
     const [coreKeywords, setCoreKeywords] = useState('');
@@ -234,16 +239,39 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
     const handleSave = async () => {
         if (generatedKeywords.length === 0) return;
         setIsSaving(true);
+        const itemName = `Negatives: ${coreKeywords.substring(0, 20)}...`;
         try {
             await historyService.save(
                 'negative-keywords',
-                `Negatives: ${coreKeywords.substring(0, 20)}...`,
+                itemName,
                 { url, coreKeywords, userGoal, generatedKeywords }
             );
-            notifications.success('Negative keywords saved successfully!', {
-                title: 'Saved',
-                description: 'Your negative keywords have been saved.'
-            });
+            
+            if (selectedProjectId) {
+                try {
+                    const token = await getToken();
+                    await fetch(`/api/workspace-projects/${selectedProjectId}/items`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            itemType: 'negative-keywords',
+                            itemId: itemName,
+                            itemName: itemName,
+                            itemMetadata: { source: 'negative-keywords', keywordCount: generatedKeywords.length }
+                        })
+                    });
+                } catch (err) {
+                    console.error('Project linking error:', err);
+                }
+            }
+            
+            notifications.success(
+                selectedProjectId ? `Saved and added to ${selectedProjectName}!` : 'Negative keywords saved successfully!',
+                { title: 'Saved', description: 'Your negative keywords have been saved.' }
+            );
             await loadSavedItems();
         } catch (error) {
             console.error("Save failed", error);
@@ -760,6 +788,22 @@ export const NegativeKeywordsBuilder = ({ initialData }: { initialData?: any }) 
                                                     </Select>
                                                 </div>
                                             )}
+
+                                            {/* Assign to Project */}
+                                            <div className="space-y-2 pt-2">
+                                                <label className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                                                    <FolderOpen className="w-4 h-4" />
+                                                    Assign to Project (Optional)
+                                                </label>
+                                                <ProjectSelect
+                                                    value={selectedProjectId}
+                                                    onChange={(projectId, projectName) => {
+                                                        setSelectedProjectId(projectId);
+                                                        setSelectedProjectName(projectName || null);
+                                                    }}
+                                                    placeholder="Select a project..."
+                                                />
+                                            </div>
 
                                             {/* Generate Button */}
                                             <Button 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { Shuffle, Plus, X, Download, Save, Sparkles, FolderOpen, Trash2, Clock } from 'lucide-react';
+import { ProjectSelect } from './ProjectSelect';
 import { Checkbox } from './ui/checkbox';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -30,6 +32,9 @@ const PLUMBING_KEYWORDS = {
 };
 
 export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
+    const { getToken } = useAuth();
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
     // Store each list as a string (newline-separated)
     const [listA, setListA] = useState(DEFAULT_MIXER_KEYWORDS.set1);
     const [listB, setListB] = useState(DEFAULT_MIXER_KEYWORDS.set2);
@@ -95,15 +100,39 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
     const handleSave = async () => {
         if (mixedKeywords.length === 0) return;
         setIsSaving(true);
+        const itemName = `Mixer: ${mixedKeywords.length} Combinations`;
         try {
             await historyService.save(
                 'keyword-mixer',
-                `Mixer: ${mixedKeywords.length} Combinations`,
+                itemName,
                 { listA, listB, listC, mixedKeywords, matchTypes }
             );
-            notifications.success('Mixer result saved!', {
-                title: 'Saved Successfully'
-            });
+            
+            if (selectedProjectId) {
+                try {
+                    const token = await getToken();
+                    await fetch(`/api/workspace-projects/${selectedProjectId}/items`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            itemType: 'keyword-mixer',
+                            itemId: itemName,
+                            itemName: itemName,
+                            itemMetadata: { source: 'keyword-mixer', keywordCount: mixedKeywords.length }
+                        })
+                    });
+                } catch (err) {
+                    console.error('Project linking error:', err);
+                }
+            }
+            
+            notifications.success(
+                selectedProjectId ? `Keywords saved and added to ${selectedProjectName}!` : 'Mixer result saved!',
+                { title: 'Saved Successfully' }
+            );
             // Refresh saved items list
             await loadSavedItems();
         } catch (error) {
@@ -505,6 +534,22 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
                                 </span>
                             </label>
                         </div>
+                    </div>
+
+                    {/* Assign to Project */}
+                    <div className="border-t border-slate-200 pt-4 mt-4">
+                        <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                            <FolderOpen className="w-4 h-4" />
+                            Assign to Project (Optional)
+                        </h3>
+                        <ProjectSelect
+                            value={selectedProjectId}
+                            onChange={(projectId, projectName) => {
+                                setSelectedProjectId(projectId);
+                                setSelectedProjectName(projectName || null);
+                            }}
+                            placeholder="Select a project..."
+                        />
                     </div>
 
                     {/* Generate Button */}

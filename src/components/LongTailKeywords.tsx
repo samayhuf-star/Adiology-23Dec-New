@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
-import { Sparkles, Download, Save, Trash2, Loader2, Plus, X, History, Search, RefreshCw, Copy, Check, ChevronUp, ChevronDown, Wand2 } from 'lucide-react';
+import { Sparkles, Download, Save, Trash2, Loader2, Plus, X, History, Search, RefreshCw, Copy, Check, ChevronUp, ChevronDown, Wand2, FolderOpen } from 'lucide-react';
+import { ProjectSelect } from './ProjectSelect';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -33,6 +34,8 @@ interface SavedList {
 export function LongTailKeywords() {
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectName, setSelectedProjectName] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState('generate');
   const [seedKeywords, setSeedKeywords] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -287,7 +290,31 @@ export function LongTailKeywords() {
         listName.trim(),
         { keywords: keywordsToSave, seedKeywords, url: '' }
       );
-      notifications.success('Keyword list saved successfully');
+      
+      if (selectedProjectId) {
+        try {
+          const token = await getToken();
+          await fetch(`/api/workspace-projects/${selectedProjectId}/items`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              itemType: 'long-tail-keywords',
+              itemId: listName.trim(),
+              itemName: listName.trim(),
+              itemMetadata: { source: 'long-tail-keywords', keywordCount: keywordsToSave.length }
+            })
+          });
+        } catch (err) {
+          console.error('Project linking error:', err);
+        }
+      }
+      
+      notifications.success(
+        selectedProjectId ? `Saved and added to ${selectedProjectName}!` : 'Keyword list saved successfully'
+      );
       setListName('');
       loadSavedLists();
     } catch (error: any) {
@@ -561,6 +588,22 @@ export function LongTailKeywords() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Enter one keyword per line. These will be expanded into long-tail variations.
                 </p>
+              </div>
+
+              {/* Assign to Project */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <FolderOpen className="w-4 h-4" />
+                  Assign to Project (Optional)
+                </label>
+                <ProjectSelect
+                  value={selectedProjectId}
+                  onChange={(projectId, projectName) => {
+                    setSelectedProjectId(projectId);
+                    setSelectedProjectName(projectName || null);
+                  }}
+                  placeholder="Select a project..."
+                />
               </div>
 
               <Button 
