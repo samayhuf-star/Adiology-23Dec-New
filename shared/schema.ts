@@ -403,8 +403,8 @@ export const insertFeedbackSchema = createInsertSchema(feedback).omit({
 });
 
 export const taskProjects = pgTable("task_projects", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
   name: text("name").notNull(),
   color: text("color").default("#6366f1"),
   order: integer("order").default(0),
@@ -415,9 +415,9 @@ export const taskProjects = pgTable("task_projects", {
 }));
 
 export const tasks = pgTable("tasks", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
-  projectId: uuid("project_id").references(() => taskProjects.id),
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  projectId: integer("project_id").references(() => taskProjects.id),
   title: text("title").notNull(),
   description: text("description").default(""),
   isToday: boolean("is_today").default(false),
@@ -470,7 +470,7 @@ export const emailSequenceProgress = pgTable("email_sequence_progress", {
 
 export const workspaceProjects = pgTable("workspace_projects", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").references(() => users.id).notNull(),
+  userId: text("user_id").notNull(),
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   description: text("description"),

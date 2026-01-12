@@ -290,26 +290,31 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
       '--user-spacing-multiplier': preferences.spacing,
       '--user-font-size-multiplier': preferences.fontSize
     } as React.CSSProperties}>
-      {/* Enhanced Header */}
-      <div className="space-y-4 slide-in-up">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-                Welcome back, {user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Admin'}!
-              </h1>
-              <span className="text-xs font-semibold text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full uppercase tracking-wide shadow-sm">Beta</span>
+      {/* Improvised Welcome Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 bg-white/40 backdrop-blur-md p-8 sm:p-10 rounded-[2.5rem] border border-white/40 shadow-2xl shadow-indigo-100/20 slide-in-up">
+        <div className="space-y-3">
+          <div className="flex items-center gap-4">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight">
+              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500">{user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Admin'}!</span>
+            </h1>
+            <div className="relative group">
+              <span className="px-4 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold rounded-full uppercase tracking-widest shadow-lg shadow-indigo-200/50">Beta</span>
+              <div className="absolute -inset-1 bg-indigo-400 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
             </div>
-            <p className="text-lg text-slate-600">Here's what's happening with your campaigns today.</p>
           </div>
-          <button 
-            onClick={() => onNavigate('builder-3')}
-            className="modern-button px-6 py-3 rounded-xl text-white font-medium shadow-lg flex items-center gap-2"
-          >
-            <Sparkles className="w-5 h-5" />
-            New Campaign
-          </button>
+          <p className="text-slate-500 text-xl font-medium max-w-2xl leading-relaxed">
+            Your command center is ready. <span className="text-indigo-400">12 new insights</span> are waiting for your attention.
+          </p>
         </div>
+        <Button 
+          onClick={() => onNavigate('builder-3')}
+          className="h-16 px-10 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-bold text-lg shadow-2xl shadow-indigo-500/30 transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] flex items-center gap-4 border-t border-white/20 group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform">
+            <Zap className="w-5 h-5 fill-white" />
+          </div>
+          New Campaign
+        </Button>
       </div>
 
       {/* Enhanced Terminal-Style System Stats - Shell View */}
