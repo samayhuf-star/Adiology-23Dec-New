@@ -447,6 +447,51 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   updatedAt: true,
 });
 
+export const emailSequenceProgress = pgTable("email_sequence_progress", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  sequenceId: text("sequence_id").notNull(),
+  emailId: text("email_id").notNull(),
+  status: text("status").notNull().default("pending"),
+  scheduledAt: timestamp("scheduled_at"),
+  sentAt: timestamp("sent_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_email_seq_progress_user_id").on(table.userId),
+  sequenceIdx: index("idx_email_seq_progress_sequence").on(table.sequenceId),
+  emailIdx: index("idx_email_seq_progress_email").on(table.emailId),
+  statusIdx: index("idx_email_seq_progress_status").on(table.status),
+  scheduledAtIdx: index("idx_email_seq_progress_scheduled").on(table.scheduledAt),
+}));
+
+export const emailLogs = pgTable("email_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  recipient: text("recipient").notNull(),
+  subject: text("subject").notNull(),
+  templateId: text("template_id"),
+  sequenceId: text("sequence_id"),
+  status: text("status").notNull().default("sent"),
+  messageId: text("message_id"),
+  opens: integer("opens").default(0),
+  clicks: integer("clicks").default(0),
+  sentAt: timestamp("sent_at").defaultNow(),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  bouncedAt: timestamp("bounced_at"),
+  error: text("error"),
+  metadata: jsonb("metadata").default({}),
+}, (table) => ({
+  recipientIdx: index("idx_email_logs_recipient").on(table.recipient),
+  templateIdx: index("idx_email_logs_template").on(table.templateId),
+  sequenceIdx: index("idx_email_logs_sequence").on(table.sequenceId),
+  statusIdx: index("idx_email_logs_status").on(table.status),
+  sentAtIdx: index("idx_email_logs_sent_at").on(table.sentAt),
+}));
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;

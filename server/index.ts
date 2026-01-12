@@ -6790,13 +6790,64 @@ app.get('/api/admin/email/logs', async (c) => {
   }
   
   try {
-    const result = await pool.query(
-      'SELECT * FROM email_logs ORDER BY sent_at DESC LIMIT 100'
+    const page = parseInt(c.req.query('page') || '1');
+    const limit = parseInt(c.req.query('limit') || '20');
+    const search = c.req.query('search') || '';
+    const status = c.req.query('status') || '';
+    const offset = (page - 1) * limit;
+
+    let whereClause = '';
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (search) {
+      whereClause += ` WHERE (recipient ILIKE $${paramIndex} OR subject ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    if (status && status !== 'all') {
+      whereClause += whereClause ? ` AND status = $${paramIndex}` : ` WHERE status = $${paramIndex}`;
+      params.push(status);
+      paramIndex++;
+    }
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as total FROM email_logs${whereClause}`,
+      params
     );
-    return c.json({ logs: result.rows });
+
+    const logsResult = await pool.query(
+      `SELECT * FROM email_logs${whereClause} ORDER BY sent_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    );
+
+    const statsResult = await pool.query(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN status = 'sent' THEN 1 END) as sent,
+        COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed,
+        COUNT(CASE WHEN opens > 0 OR opened_at IS NOT NULL THEN 1 END) as opened,
+        COUNT(CASE WHEN clicks > 0 OR clicked_at IS NOT NULL THEN 1 END) as clicked
+      FROM email_logs
+    `);
+
+    const stats = statsResult.rows[0] || { total: 0, sent: 0, failed: 0, opened: 0, clicked: 0 };
+
+    return c.json({ 
+      logs: logsResult.rows,
+      total: parseInt(countResult.rows[0]?.total || '0'),
+      stats: {
+        total: parseInt(stats.total || '0'),
+        sent: parseInt(stats.sent || '0'),
+        failed: parseInt(stats.failed || '0'),
+        opened: parseInt(stats.opened || '0'),
+        clicked: parseInt(stats.clicked || '0')
+      }
+    });
   } catch (error: any) {
     console.error('Error fetching email logs:', error);
-    return c.json({ logs: [] });
+    return c.json({ logs: [], total: 0, stats: { total: 0, sent: 0, failed: 0, opened: 0, clicked: 0 } });
   }
 });
 

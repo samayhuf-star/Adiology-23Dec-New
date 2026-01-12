@@ -46,7 +46,17 @@ Preferred communication style: Simple, everyday language.
 - **Dashboard**: Real-time statistics including users, subscriptions, revenue, and errors.
 - **Management**: User management (block, edit roles), subscription & billing management (Stripe sync), database management (browse/edit records).
 - **System Logs**: View error, activity, and API logs.
-- **Email Management**: Sendune integration for transactional emails via AWS SES.
+- **Email Management**: Comprehensive email marketing automation with Resend API integration.
+  - **Email Sequences**: 25-email marketing funnel across 5 customer journey stages:
+    - Lead Nurturing (5 emails): Day 0-10 from lead magnet download
+    - Onboarding (8 emails): Day 0-13 of trial period
+    - Conversion (6 emails): Day 1-35 post-trial expiry
+    - Churn Prevention (3 emails): Cancel events + 60 days after
+    - Advocacy (3 emails): 30-365 days for loyal customers
+  - **Email Flows UI**: Visual timeline interface showing all sequences with expandable sections
+  - **Email Logs**: Searchable/filterable table with delivery status, opens, clicks tracking
+  - **Templates**: server/email-sequence-templates.ts contains all 25 email templates with HTML content
+  - **Database Tables**: email_sequence_progress (user progress), email_logs (delivery tracking)
 - **Security & Firewall**: IP blocking and rate limiting configuration.
 - **Documentation Manager**: Create, edit, and publish help documentation with rich text, images, and video.
 - **Template Management**: Manage campaign templates, versions, and status.

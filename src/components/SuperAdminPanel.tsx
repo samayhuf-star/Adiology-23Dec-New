@@ -6,13 +6,15 @@ import {
   Clock, TrendingUp, DollarSign, Server, Zap, Globe, Lock, Key,
   BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Filter, MoreVertical,
   Bell, UserCheck, UserX, History, FileWarning, Send, Inbox, AlertCircle,
-  Menu, X, BookOpen
+  Menu, X, BookOpen, GitBranch, BarChart
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { useAuth } from '@clerk/clerk-react';
 import BlogGenerator from './BlogGenerator';
+import EmailFlows from './admin/EmailFlows';
+import EmailLogs from './admin/EmailLogs';
 
 interface SuperAdminPanelProps {
   user: any;
@@ -856,6 +858,8 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
     </div>
   );
 
+  const [emailTab, setEmailTab] = useState<'overview' | 'flows' | 'logs'>('overview');
+
   const renderEmails = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -866,64 +870,114 @@ export function SuperAdminPanel({ user, onLogout }: SuperAdminPanelProps) {
         </Button>
       </div>
 
-      {/* Email Stats */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Send className="w-5 h-5 text-blue-400" />
-            <span className="text-gray-400 text-sm">Sent Today</span>
-          </div>
-          <div className="text-2xl font-bold text-white">{emailStats.sentToday}</div>
-        </div>
-        
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="w-5 h-5 text-green-400" />
-            <span className="text-gray-400 text-sm">Delivered</span>
-          </div>
-          <div className="text-2xl font-bold text-white">{emailStats.deliveryRate}%</div>
-        </div>
-        
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Inbox className="w-5 h-5 text-amber-400" />
-            <span className="text-gray-400 text-sm">Open Rate</span>
-          </div>
-          <div className="text-2xl font-bold text-white">{emailStats.openRate}%</div>
-        </div>
-        
-        <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <XCircle className="w-5 h-5 text-red-400" />
-            <span className="text-gray-400 text-sm">Bounced</span>
-          </div>
-          <div className="text-2xl font-bold text-white">{emailStats.bounceRate}%</div>
-        </div>
+      <div className="flex gap-2 border-b border-white/10 pb-2">
+        <button
+          onClick={() => setEmailTab('overview')}
+          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            emailTab === 'overview'
+              ? 'bg-indigo-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-slate-700'
+          }`}
+        >
+          <BarChart className="w-4 h-4" />
+          Overview
+        </button>
+        <button
+          onClick={() => setEmailTab('flows')}
+          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            emailTab === 'flows'
+              ? 'bg-indigo-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-slate-700'
+          }`}
+        >
+          <GitBranch className="w-4 h-4" />
+          Email Flows (25)
+        </button>
+        <button
+          onClick={() => setEmailTab('logs')}
+          className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            emailTab === 'logs'
+              ? 'bg-indigo-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-slate-700'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          Email Logs
+        </button>
       </div>
 
-      {/* Email Templates */}
-      <div className="bg-slate-800 border border-white/10 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Email Templates (Sendune)</h3>
-        <div className="space-y-3">
-          {emailStats.templates.length > 0 ? emailStats.templates.map((template: any, i: number) => (
-            <div key={i} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-purple-400" />
-                <span className="text-white">{template.name}</span>
+      {emailTab === 'overview' && (
+        <>
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Send className="w-5 h-5 text-blue-400" />
+                <span className="text-gray-400 text-sm">Sent Today</span>
               </div>
-              <div className="flex items-center gap-6">
-                <span className="text-gray-400 text-sm">{template.sends} sent</span>
-                <span className="text-gray-500 text-xs">{formatTimeAgo(template.lastSent)}</span>
-                <Button variant="ghost" size="sm">
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </div>
+              <div className="text-2xl font-bold text-white">{emailStats.sentToday}</div>
             </div>
-          )) : (
-            <p className="text-gray-500 text-sm text-center py-4">No email templates yet</p>
-          )}
+            
+            <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span className="text-gray-400 text-sm">Delivered</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{emailStats.deliveryRate}%</div>
+            </div>
+            
+            <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Inbox className="w-5 h-5 text-amber-400" />
+                <span className="text-gray-400 text-sm">Open Rate</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{emailStats.openRate}%</div>
+            </div>
+            
+            <div className="bg-slate-800 border border-white/10 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <XCircle className="w-5 h-5 text-red-400" />
+                <span className="text-gray-400 text-sm">Bounced</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{emailStats.bounceRate}%</div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 border border-white/10 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Email Templates (Sendune)</h3>
+            <div className="space-y-3">
+              {emailStats.templates.length > 0 ? emailStats.templates.map((template: any, i: number) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-purple-400" />
+                    <span className="text-white">{template.name}</span>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <span className="text-gray-400 text-sm">{template.sends} sent</span>
+                    <span className="text-gray-500 text-xs">{formatTimeAgo(template.lastSent)}</span>
+                    <Button variant="ghost" size="sm">
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-gray-500 text-sm text-center py-4">No email templates yet</p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {emailTab === 'flows' && (
+        <div className="bg-white rounded-xl p-6">
+          <EmailFlows />
         </div>
-      </div>
+      )}
+
+      {emailTab === 'logs' && (
+        <div className="bg-white rounded-xl p-6">
+          <EmailLogs />
+        </div>
+      )}
     </div>
   );
 
