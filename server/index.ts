@@ -7420,6 +7420,118 @@ app.post('/api/email/send', async (c) => {
   }
 });
 
+// Admin: Send all 25 email sequence templates to a test address
+app.post('/api/admin/email/sequences/test-all', async (c) => {
+  const auth = await verifySuperAdmin(c);
+  if (!auth.authorized) {
+    return c.json({ error: auth.error || 'Unauthorized' }, 401);
+  }
+  
+  try {
+    const { to, name } = await c.req.json();
+    
+    if (!to) {
+      return c.json({ error: 'Recipient email is required' }, 400);
+    }
+    
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      return c.json({ error: 'Email service not configured (RESEND_API_KEY missing)' }, 500);
+    }
+    
+    // Import sequence emails dynamically
+    const { sequenceEmails } = await import('./email-sequence-templates');
+    
+    const results: { id: string; name: string; success: boolean; error?: string }[] = [];
+    
+    const variables: Record<string, string> = {
+      year: new Date().getFullYear().toString(),
+      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      name: name || 'Samay',
+      dashboard_url: 'https://adiology.io/dashboard',
+      help_url: 'https://adiology.io/help',
+      support_url: 'https://adiology.io/support',
+      unsubscribe_url: 'https://adiology.io/settings/notifications',
+      upgrade_url: 'https://adiology.io/billing',
+      resource_url: 'https://adiology.io/resources/google-ads-checklist',
+      trial_days: '7',
+      plan_name: 'Professional',
+      feature_url: 'https://adiology.io/features',
+      onboarding_url: 'https://adiology.io/onboarding',
+      tutorial_url: 'https://adiology.io/tutorials',
+      pricing_url: 'https://adiology.io/pricing',
+      discount_code: 'EARLYBIRD25',
+      discount_amount: '25%',
+      trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    };
+    
+    console.log(`[Email Sequences] Sending all ${sequenceEmails.length} sequences to ${to}`);
+    
+    for (let i = 0; i < sequenceEmails.length; i++) {
+      const email = sequenceEmails[i];
+      
+      // Apply variable substitution
+      let htmlContent = email.html;
+      let subjectLine = email.subject;
+      
+      for (const [key, value] of Object.entries(variables)) {
+        const regex = new RegExp(`{{${key}}}`, 'g');
+        htmlContent = htmlContent.replace(regex, value);
+        subjectLine = subjectLine.replace(regex, value);
+      }
+      
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${resendApiKey}`
+          },
+          body: JSON.stringify({
+            from: 'Adiology <noreply@adiology.io>',
+            to: [to],
+            subject: `[${i + 1}/${sequenceEmails.length}] ${subjectLine}`,
+            html: htmlContent
+          })
+        });
+        
+        const responseData = await response.json();
+        
+        if (response.ok && responseData.id) {
+          results.push({ id: email.id, name: email.name, success: true });
+          console.log(`[Email Sequences] Sent ${i + 1}/${sequenceEmails.length}: ${email.name}`);
+        } else {
+          results.push({ id: email.id, name: email.name, success: false, error: responseData.message });
+          console.error(`[Email Sequences] Failed ${email.name}:`, responseData);
+        }
+        
+        // Delay between sends to avoid Resend rate limits (2 req/sec = 600ms delay for safety)
+        if (i < sequenceEmails.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 600));
+        }
+      } catch (err: any) {
+        results.push({ id: email.id, name: email.name, success: false, error: err.message });
+        console.error(`[Email Sequences] Error ${email.name}:`, err);
+      }
+    }
+    
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    
+    return c.json({
+      success: true,
+      message: `Sent ${successCount}/${sequenceEmails.length} email sequences to ${to}`,
+      total: sequenceEmails.length,
+      sent: successCount,
+      failed: failCount,
+      results
+    });
+  } catch (error: any) {
+    console.error('[Email Sequences] Error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Admin: Send feature announcement to all users
 app.post('/api/admin/email/broadcast/feature', async (c) => {
   const auth = await verifySuperAdmin(c);

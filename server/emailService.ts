@@ -202,6 +202,70 @@ export const EmailService = {
   
   async sendRaw(to: string | string[], templateId: keyof typeof emailTemplates, variables?: Record<string, string>) {
     return sendEmail({ to, templateId, variables });
+  },
+
+  async sendRawHtml(to: string | string[], subject: string, htmlContent: string, variables?: Record<string, string>): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    
+    if (!resendApiKey) {
+      console.log('[EmailService] Resend not configured, skipping email');
+      return { success: false, error: 'Email service not configured' };
+    }
+    
+    let finalHtml = htmlContent;
+    let finalSubject = subject;
+    
+    const defaultVariables: Record<string, string> = {
+      year: new Date().getFullYear().toString(),
+      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      name: 'there',
+      dashboard_url: `${BASE_URL}/dashboard`,
+      help_url: `${BASE_URL}/help`,
+      support_url: `${BASE_URL}/support`,
+      unsubscribe_url: `${BASE_URL}/settings/notifications`,
+      upgrade_url: `${BASE_URL}/billing`,
+      resource_url: `${BASE_URL}/resources/google-ads-checklist`,
+      trial_days: '7',
+      plan_name: 'Professional',
+      ...variables
+    };
+    
+    for (const [key, value] of Object.entries(defaultVariables)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      finalHtml = finalHtml.replace(regex, value);
+      finalSubject = finalSubject.replace(regex, value);
+    }
+    
+    try {
+      const recipients = Array.isArray(to) ? to : [to];
+      
+      const response = await fetch(RESEND_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resendApiKey}`
+        },
+        body: JSON.stringify({
+          from: FROM_EMAIL,
+          to: recipients,
+          subject: finalSubject,
+          html: finalHtml
+        })
+      });
+      
+      const responseData = await response.json();
+      
+      if (response.ok && responseData.id) {
+        console.log(`[EmailService] Sent raw email "${finalSubject}" to ${recipients.join(', ')}`);
+        return { success: true, messageId: responseData.id };
+      } else {
+        console.error('[EmailService] Failed to send raw email:', responseData);
+        return { success: false, error: responseData.message || 'Failed to send email' };
+      }
+    } catch (error: any) {
+      console.error('[EmailService] Error sending raw email:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
 
