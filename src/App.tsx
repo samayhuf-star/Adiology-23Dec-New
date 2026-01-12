@@ -69,6 +69,7 @@ const GDPRCompliance = lazy(() => import('./components/GDPRCompliance').then(m =
 const RefundPolicy = lazy(() => import('./components/RefundPolicy').then(m => ({ default: m.RefundPolicy })));
 const PromoLandingPage = lazy(() => import('./components/PromoLandingPage').then(m => ({ default: m.PromoLandingPage })));
 const TaskManager = lazy(() => import('./components/TaskManager').then(m => ({ default: m.TaskManager })));
+const WorkspaceProjects = lazy(() => import('./components/WorkspaceProjects').then(m => ({ default: m.WorkspaceProjects })));
 
 // Loading component for lazy-loaded modules
 const ComponentLoader = () => (
@@ -1370,6 +1371,12 @@ const AppContent = () => {
           </Suspense>
         );
       case 'projects':
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <WorkspaceProjects />
+          </Suspense>
+        );
+      case 'task-manager':
         return (
           <Suspense fallback={<ComponentLoader />}>
             <TaskManager />

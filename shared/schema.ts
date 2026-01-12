@@ -468,6 +468,50 @@ export const emailSequenceProgress = pgTable("email_sequence_progress", {
   scheduledAtIdx: index("idx_email_seq_progress_scheduled").on(table.scheduledAt),
 }));
 
+export const workspaceProjects = pgTable("workspace_projects", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  color: text("color").default("#6366f1"),
+  icon: text("icon").default("folder"),
+  isArchived: boolean("is_archived").default(false),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIdx: index("idx_workspace_projects_user_id").on(table.userId),
+  workspaceIdIdx: index("idx_workspace_projects_workspace_id").on(table.workspaceId),
+  isArchivedIdx: index("idx_workspace_projects_is_archived").on(table.isArchived),
+}));
+
+export const projectItems = pgTable("project_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: uuid("project_id").references(() => workspaceProjects.id, { onDelete: 'cascade' }).notNull(),
+  itemType: text("item_type").notNull(),
+  itemId: text("item_id").notNull(),
+  itemName: text("item_name"),
+  itemMetadata: jsonb("item_metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  projectIdIdx: index("idx_project_items_project_id").on(table.projectId),
+  itemTypeIdx: index("idx_project_items_item_type").on(table.itemType),
+  itemIdIdx: index("idx_project_items_item_id").on(table.itemId),
+  uniqueProjectItem: unique("unique_project_item").on(table.projectId, table.itemType, table.itemId),
+}));
+
+export const insertWorkspaceProjectSchema = createInsertSchema(workspaceProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProjectItemSchema = createInsertSchema(projectItems).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const emailLogs = pgTable("email_logs", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   recipient: text("recipient").notNull(),
@@ -500,3 +544,7 @@ export type CampaignHistory = typeof campaignHistory.$inferSelect;
 export type InsertCampaignHistory = z.infer<typeof insertCampaignHistorySchema>;
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type WorkspaceProject = typeof workspaceProjects.$inferSelect;
+export type InsertWorkspaceProject = z.infer<typeof insertWorkspaceProjectSchema>;
+export type ProjectItem = typeof projectItems.$inferSelect;
+export type InsertProjectItem = z.infer<typeof insertProjectItemSchema>;

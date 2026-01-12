@@ -22,6 +22,13 @@ Preferred communication style: Simple, everyday language.
   - Views: Sidebar navigation, All Projects grid view, Kanban board
   - Visible Edit/Delete buttons on project cards and in sidebar (no hidden menus)
   - Database: task_projects (user_id varchar, name, color, order) and tasks tables
+- **Workspace Projects (Organization Tags)**: Cross-platform tagging system for organizing campaigns, keywords, and other items.
+  - Create, edit, delete projects with custom colors
+  - Projects sidebar showing all projects with linked item counts
+  - Project detail view with overview stats and connected modules
+  - ProjectSelect dropdown component for assigning items to projects on-the-fly
+  - Database: workspace_projects and project_items tables with polymorphic linking
+  - API: /api/workspace-projects endpoints for CRUD and item linking
 
 ## Backend
 - **Primary API**: Hono (Node.js/TypeScript) for all API endpoints, with optional FastAPI (Python) for legacy ad generation.

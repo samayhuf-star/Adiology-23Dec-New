@@ -5376,6 +5376,328 @@ app.delete('/api/projects/:id', async (c) => {
   }
 });
 
+// ============================================
+// WORKSPACE PROJECTS (Organization Tags System)
+// ============================================
+
+// Get all workspace projects for user
+app.get('/api/workspace-projects', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const result = await pool.query(
+      `SELECT wp.id, wp.user_id as "userId", wp.workspace_id as "workspaceId", 
+              wp.name, wp.description, wp.color, wp.icon, wp.is_archived as "isArchived",
+              wp."order", wp.created_at as "createdAt", wp.updated_at as "updatedAt",
+              COALESCE(counts.campaign_count, 0)::int as "campaignCount",
+              COALESCE(counts.keyword_count, 0)::int as "keywordCount",
+              COALESCE(counts.negative_count, 0)::int as "negativeCount",
+              COALESCE(counts.total_count, 0)::int as "totalCount"
+       FROM workspace_projects wp
+       LEFT JOIN (
+         SELECT project_id,
+                COUNT(*) FILTER (WHERE item_type = 'campaign') as campaign_count,
+                COUNT(*) FILTER (WHERE item_type = 'keyword_list') as keyword_count,
+                COUNT(*) FILTER (WHERE item_type = 'negative_keywords') as negative_count,
+                COUNT(*) as total_count
+         FROM project_items
+         GROUP BY project_id
+       ) counts ON counts.project_id = wp.id
+       WHERE wp.user_id = $1 AND wp.is_archived = false
+       ORDER BY wp."order" ASC, wp.created_at DESC`,
+      [auth.userId]
+    );
+    
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching workspace projects:', error);
+    return c.json({ error: error.message || 'Failed to fetch projects' }, 500);
+  }
+});
+
+// Create workspace project
+app.post('/api/workspace-projects', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    await ensureUserExists(auth.userId!, auth.userEmail);
+    
+    const body = await c.req.json();
+    const { name, description = '', color = '#6366f1', icon = 'folder' } = body;
+    
+    if (!name) {
+      return c.json({ error: 'Project name is required' }, 400);
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO workspace_projects (user_id, name, description, color, icon, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+       RETURNING id, user_id as "userId", workspace_id as "workspaceId", name, description, color, icon,
+                 is_archived as "isArchived", "order", created_at as "createdAt", updated_at as "updatedAt"`,
+      [auth.userId, name, description, color, icon]
+    );
+    
+    return c.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error creating workspace project:', error);
+    return c.json({ error: error.message || 'Failed to create project' }, 500);
+  }
+});
+
+// Update workspace project
+app.put('/api/workspace-projects/:id', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { name, description, color, icon, isArchived } = body;
+    
+    const updates: string[] = ['updated_at = NOW()'];
+    const values: any[] = [];
+    let paramIndex = 1;
+    
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(name);
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(description);
+    }
+    if (color !== undefined) {
+      updates.push(`color = $${paramIndex++}`);
+      values.push(color);
+    }
+    if (icon !== undefined) {
+      updates.push(`icon = $${paramIndex++}`);
+      values.push(icon);
+    }
+    if (isArchived !== undefined) {
+      updates.push(`is_archived = $${paramIndex++}`);
+      values.push(isArchived);
+    }
+    
+    values.push(id, auth.userId);
+    
+    const result = await pool.query(
+      `UPDATE workspace_projects 
+       SET ${updates.join(', ')} 
+       WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
+       RETURNING id, user_id as "userId", workspace_id as "workspaceId", name, description, color, icon,
+                 is_archived as "isArchived", "order", created_at as "createdAt", updated_at as "updatedAt"`,
+      values
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Project not found or access denied' }, 404);
+    }
+    
+    return c.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error updating workspace project:', error);
+    return c.json({ error: error.message || 'Failed to update project' }, 500);
+  }
+});
+
+// Delete workspace project
+app.delete('/api/workspace-projects/:id', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const id = c.req.param('id');
+    
+    const result = await pool.query(
+      `DELETE FROM workspace_projects WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, auth.userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Project not found or access denied' }, 404);
+    }
+    
+    return c.json({ success: true, message: 'Project deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting workspace project:', error);
+    return c.json({ error: error.message || 'Failed to delete project' }, 500);
+  }
+});
+
+// Get single workspace project with all linked items
+app.get('/api/workspace-projects/:id', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const id = c.req.param('id');
+    
+    // Get project details
+    const projectResult = await pool.query(
+      `SELECT id, user_id as "userId", workspace_id as "workspaceId", name, description, color, icon,
+              is_archived as "isArchived", "order", created_at as "createdAt", updated_at as "updatedAt"
+       FROM workspace_projects
+       WHERE id = $1 AND user_id = $2`,
+      [id, auth.userId]
+    );
+    
+    if (projectResult.rows.length === 0) {
+      return c.json({ error: 'Project not found' }, 404);
+    }
+    
+    // Get all linked items
+    const itemsResult = await pool.query(
+      `SELECT id, project_id as "projectId", item_type as "itemType", item_id as "itemId",
+              item_name as "itemName", item_metadata as "itemMetadata", created_at as "createdAt"
+       FROM project_items
+       WHERE project_id = $1
+       ORDER BY item_type, created_at DESC`,
+      [id]
+    );
+    
+    // Group items by type
+    const items: Record<string, any[]> = {};
+    for (const item of itemsResult.rows) {
+      if (!items[item.itemType]) {
+        items[item.itemType] = [];
+      }
+      items[item.itemType].push(item);
+    }
+    
+    return c.json({ 
+      success: true, 
+      data: {
+        ...projectResult.rows[0],
+        items,
+        counts: {
+          campaigns: items['campaign']?.length || 0,
+          keywordLists: items['keyword_list']?.length || 0,
+          negativeKeywords: items['negative_keywords']?.length || 0,
+          total: itemsResult.rows.length
+        }
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching workspace project:', error);
+    return c.json({ error: error.message || 'Failed to fetch project' }, 500);
+  }
+});
+
+// Link item to project
+app.post('/api/workspace-projects/:projectId/items', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const projectId = c.req.param('projectId');
+    const body = await c.req.json();
+    const { itemType, itemId, itemName, itemMetadata = {} } = body;
+    
+    if (!itemType || !itemId) {
+      return c.json({ error: 'Item type and ID are required' }, 400);
+    }
+    
+    // Verify project belongs to user
+    const projectCheck = await pool.query(
+      `SELECT id FROM workspace_projects WHERE id = $1 AND user_id = $2`,
+      [projectId, auth.userId]
+    );
+    
+    if (projectCheck.rows.length === 0) {
+      return c.json({ error: 'Project not found or access denied' }, 404);
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO project_items (project_id, item_type, item_id, item_name, item_metadata, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       ON CONFLICT (project_id, item_type, item_id) 
+       DO UPDATE SET item_name = EXCLUDED.item_name, item_metadata = EXCLUDED.item_metadata
+       RETURNING id, project_id as "projectId", item_type as "itemType", item_id as "itemId",
+                 item_name as "itemName", item_metadata as "itemMetadata", created_at as "createdAt"`,
+      [projectId, itemType, itemId, itemName, JSON.stringify(itemMetadata)]
+    );
+    
+    return c.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error linking item to project:', error);
+    return c.json({ error: error.message || 'Failed to link item' }, 500);
+  }
+});
+
+// Unlink item from project
+app.delete('/api/workspace-projects/:projectId/items/:itemId', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const projectId = c.req.param('projectId');
+    const itemId = c.req.param('itemId');
+    
+    // Verify project belongs to user
+    const projectCheck = await pool.query(
+      `SELECT id FROM workspace_projects WHERE id = $1 AND user_id = $2`,
+      [projectId, auth.userId]
+    );
+    
+    if (projectCheck.rows.length === 0) {
+      return c.json({ error: 'Project not found or access denied' }, 404);
+    }
+    
+    await pool.query(
+      `DELETE FROM project_items WHERE project_id = $1 AND id = $2`,
+      [projectId, itemId]
+    );
+    
+    return c.json({ success: true, message: 'Item unlinked successfully' });
+  } catch (error: any) {
+    console.error('Error unlinking item from project:', error);
+    return c.json({ error: error.message || 'Failed to unlink item' }, 500);
+  }
+});
+
+// Get project for an item (check if item is linked to any project)
+app.get('/api/item-project/:itemType/:itemId', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const itemType = c.req.param('itemType');
+    const itemId = c.req.param('itemId');
+    
+    const result = await pool.query(
+      `SELECT wp.id, wp.name, wp.color, wp.icon
+       FROM project_items pi
+       JOIN workspace_projects wp ON wp.id = pi.project_id
+       WHERE pi.item_type = $1 AND pi.item_id = $2 AND wp.user_id = $3`,
+      [itemType, itemId, auth.userId]
+    );
+    
+    return c.json({ success: true, data: result.rows[0] || null });
+  } catch (error: any) {
+    console.error('Error fetching item project:', error);
+    return c.json({ error: error.message || 'Failed to fetch item project' }, 500);
+  }
+});
+
 // Get all tasks for user
 app.get('/api/tasks', async (c) => {
   try {
