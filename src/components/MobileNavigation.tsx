@@ -97,10 +97,10 @@ export const MobileQuickActions: React.FC<{ onNewCampaign: () => void }> = ({
   onNewCampaign 
 }) => {
   return (
-    <div className="fixed bottom-20 right-4 md:hidden z-30">
+    <div className="fixed bottom-24 right-4 md:hidden z-30">
       <button
         onClick={onNewCampaign}
-        className="w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-all duration-200 hover:scale-105"
+        className="w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-all duration-200 hover:scale-105 border-4 border-white"
       >
         <Zap className="w-6 h-6" />
       </button>

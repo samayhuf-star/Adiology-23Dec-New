@@ -290,7 +290,7 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
 
       <Card className="bg-white border-gray-200 shadow-sm">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
@@ -301,7 +301,7 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 bg-white border-gray-300 text-gray-700">
+              <SelectTrigger className="w-full sm:w-40 bg-white border-gray-300 text-gray-700">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -312,7 +312,7 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
               </SelectContent>
             </Select>
             <Select value={builderFilter} onValueChange={setBuilderFilter}>
-              <SelectTrigger className="w-40 bg-white border-gray-300 text-gray-700">
+              <SelectTrigger className="w-full sm:w-40 bg-white border-gray-300 text-gray-700">
                 <SelectValue placeholder="Builder" />
               </SelectTrigger>
               <SelectContent>

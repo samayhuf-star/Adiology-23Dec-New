@@ -471,7 +471,7 @@ export const FeedbackButton: React.FC<FeedbackButtonProps> = ({
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 text-white shadow-lg hover:shadow-2xl hover:shadow-pink-500/30 transition-all duration-300 hover:scale-110 flex items-center justify-center group animate-pulse hover:animate-none"
+        className="fixed bottom-24 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 text-white shadow-lg hover:shadow-2xl hover:shadow-pink-500/30 transition-all duration-300 hover:scale-110 flex items-center justify-center group animate-pulse hover:animate-none border-4 border-white"
         aria-label="Provide Feedback"
       >
         <MessageCircleHeart className="w-7 h-7 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 drop-shadow-sm" />

@@ -352,7 +352,7 @@ export const AIChatWidget: React.FC = () => {
     return (
       <FloatingActionButton
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 float-animation"
+        className="fixed bottom-24 right-6 z-50 w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 float-animation border-4 border-white"
         aria-label="Open AI Chat"
       >
         <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
@@ -364,7 +364,7 @@ export const AIChatWidget: React.FC = () => {
   }
 
   return (
-    <EnhancedCard className={`fixed bottom-6 right-6 z-50 glass-card shadow-2xl transition-all duration-300 ${
+    <EnhancedCard className={`fixed bottom-24 right-6 z-50 glass-card shadow-2xl transition-all duration-300 ${
       isMinimized ? 'w-80 h-16' : 'w-96 h-[600px]'
     }`}>
       {/* Header */}
