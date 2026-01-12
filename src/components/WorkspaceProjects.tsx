@@ -266,6 +266,21 @@ export function WorkspaceProjects() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 p-6 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-6 text-center max-w-md">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="w-6 h-6 text-red-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">Failed to load projects</h3>
+          <p className="text-slate-600 mb-4">{error}</p>
+          <Button onClick={fetchProjects}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 p-6">
       <div className="max-w-7xl mx-auto">
