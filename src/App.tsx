@@ -264,6 +264,7 @@ const AppContent = () => {
     'support-help',
     'teams',
     'blog',
+    'community',
     // 'call-forwarding', // Hidden - module disabled
   ]);
 
