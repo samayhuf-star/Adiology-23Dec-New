@@ -12,6 +12,7 @@ import { exportKeywordsToCSV } from '../utils/googleAdsEditorCSVExporter';
 import { KeywordFilters, KeywordFiltersState, DEFAULT_FILTERS } from './KeywordFilters';
 import { TerminalProgressConsole, KEYWORD_MIXER_MESSAGES } from './TerminalProgressConsole';
 import { TerminalResultsConsole, ResultStat } from './TerminalResultsConsole';
+import { ProjectTagSelector } from './ProjectTagSelector';
 
 // Plumbing service keywords for sample data
 const PLUMBING_KEYWORDS = {
@@ -629,6 +630,15 @@ export const KeywordMixer = ({ initialData }: { initialData?: any }) => {
                                                             {item.data.mixedKeywords.length} keywords
                                                         </span>
                                                     )}
+                                                </div>
+                                                <div className="mt-2">
+                                                    <ProjectTagSelector
+                                                        itemType="keyword-mixer"
+                                                        itemId={item.id}
+                                                        itemName={item.name}
+                                                        itemMetadata={{ keywordCount: item.data?.mixedKeywords?.length }}
+                                                        size="sm"
+                                                    />
                                                 </div>
                                             </div>
                                             <div className="flex gap-2">
