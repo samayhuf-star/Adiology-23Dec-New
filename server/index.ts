@@ -5712,7 +5712,7 @@ app.delete('/api/workspace-projects/:projectId/items/:itemId', async (c) => {
     }
     
     await pool.query(
-      `DELETE FROM project_items WHERE project_id = $1 AND id = $2`,
+      `DELETE FROM project_items WHERE project_id = $1 AND item_id = $2`,
       [projectId, itemId]
     );
     
@@ -5723,8 +5723,8 @@ app.delete('/api/workspace-projects/:projectId/items/:itemId', async (c) => {
   }
 });
 
-// Get project for an item (check if item is linked to any project)
-app.get('/api/item-project/:itemType/:itemId', async (c) => {
+// Get all projects linked to an item
+app.get('/api/item-projects/:itemType/:itemId', async (c) => {
   try {
     const auth = await verifyUserToken(c);
     if (!auth.authorized) {
@@ -5742,10 +5742,10 @@ app.get('/api/item-project/:itemType/:itemId', async (c) => {
       [itemType, itemId, auth.userId]
     );
     
-    return c.json({ success: true, data: result.rows[0] || null });
+    return c.json({ success: true, data: result.rows });
   } catch (error: any) {
-    console.error('Error fetching item project:', error);
-    return c.json({ error: error.message || 'Failed to fetch item project' }, 500);
+    console.error('Error fetching item projects:', error);
+    return c.json({ error: error.message || 'Failed to fetch item projects' }, 500);
   }
 });
 

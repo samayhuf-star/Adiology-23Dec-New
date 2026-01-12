@@ -39,18 +39,30 @@ export function ProjectTagSelector({
   onProjectsChange,
   size = 'md'
 }: ProjectTagSelectorProps) {
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<Project[]>(linkedProjects);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [linking, setLinking] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasFetched = useRef(false);
+
+  // Fetch linked projects for this item on mount
+  useEffect(() => {
+    if (isSignedIn && !hasFetched.current && itemId) {
+      hasFetched.current = true;
+      fetchLinkedProjects();
+    }
+  }, [isSignedIn, itemId]);
 
   useEffect(() => {
-    setSelectedProjects(linkedProjects);
+    if (linkedProjects.length > 0) {
+      setSelectedProjects(linkedProjects);
+    }
   }, [linkedProjects]);
 
   useEffect(() => {
@@ -60,13 +72,41 @@ export function ProjectTagSelector({
     }
   }, [open]);
 
+  const fetchLinkedProjects = async () => {
+    try {
+      setInitialLoading(true);
+      const token = await getToken();
+      if (!token) return;
+      
+      const response = await fetch(`/api/item-projects/${encodeURIComponent(itemType)}/${encodeURIComponent(itemId)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) return;
+      
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        setSelectedProjects(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching linked projects:', err);
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
   const fetchProjects = async () => {
     try {
       setLoading(true);
       const token = await getToken();
+      if (!token) return;
+      
       const response = await fetch('/api/workspace-projects', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
+      if (!response.ok) return;
+      
       const data = await response.json();
       if (data.success) {
         setProjects(data.data);

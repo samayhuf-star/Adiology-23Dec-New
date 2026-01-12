@@ -7,6 +7,7 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
+import { ProjectTagSelector } from './ProjectTagSelector';
 
 interface HistoryItem {
   id: string;
@@ -302,6 +303,15 @@ export const KeywordSavedLists = () => {
                                 {keywords.length > 5 ? '...' : ''}
                               </p>
                             )}
+                            <div className="mt-2">
+                              <ProjectTagSelector
+                                itemType="keyword-list"
+                                itemId={item.id}
+                                itemName={item.name}
+                                itemMetadata={{ type: item.type, keywordCount: keywords.length }}
+                                size="sm"
+                              />
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
                             <Button
@@ -392,6 +402,15 @@ export const KeywordSavedLists = () => {
                                 {keywords.length > 5 ? '...' : ''}
                               </p>
                             )}
+                            <div className="mt-2">
+                              <ProjectTagSelector
+                                itemType="keyword-list"
+                                itemId={item.id}
+                                itemName={item.name}
+                                itemMetadata={{ type: item.type, keywordCount: keywords.length }}
+                                size="sm"
+                              />
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
                             <Button
@@ -483,6 +502,15 @@ export const KeywordSavedLists = () => {
                                 {keywordList.length > 5 ? '...' : ''}
                               </p>
                             )}
+                            <div className="mt-2">
+                              <ProjectTagSelector
+                                itemType="keyword-list"
+                                itemId={item.id}
+                                itemName={item.name}
+                                itemMetadata={{ type: item.type, keywordCount: keywordList.length }}
+                                size="sm"
+                              />
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 ml-4">
                             <Button
