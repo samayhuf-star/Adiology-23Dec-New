@@ -29,6 +29,15 @@ Preferred communication style: Simple, everyday language.
   - ProjectSelect dropdown component for assigning items to projects on-the-fly
   - Database: workspace_projects and project_items tables with polymorphic linking
   - API: /api/workspace-projects endpoints for CRUD and item linking
+- **Community Integration**: Discourse-powered community forum with native React UI.
+  - Dashboard widget showing latest 3 topics with "Ask Community" button
+  - Full community page with topic cards, search, and category filtering
+  - SSO auto-login via Clerk authentication (HMAC-SHA256 signature verification)
+  - "Ask Community" modal for creating new discussion posts
+  - Mobile-responsive design with modern card-based UI
+  - API: /api/community endpoints for SSO, topics, posts, and categories
+  - Requires: DISCOURSE_URL, DISCOURSE_API_KEY, DISCOURSE_SSO_SECRET environment variables
+  - Setup guide: docs/discourse-setup.md
 
 ## Backend
 - **Primary API**: Hono (Node.js/TypeScript) for all API endpoints, with optional FastAPI (Python) for legacy ad generation.
