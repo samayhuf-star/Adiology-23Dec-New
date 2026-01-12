@@ -78,10 +78,10 @@ class AIChatService {
         id: 'billing-plans',
         title: 'Billing and Subscription Plans',
         content: `Adiology offers flexible pricing plans:
-        - Free Trial: 14 days with full access
-        - Starter: $29/month for small businesses
-        - Professional: $99/month for growing companies
-        - Enterprise: Custom pricing for large organizations
+        - Free Trial: 7 days with full access
+        - Basic: $69.99/month for solo marketers (25 campaigns/month)
+        - Pro: $129.99/month for growing teams (unlimited campaigns)
+        - Lifetime: $49.99 one-time for unlimited access forever
         
         All plans include campaign management, keyword tools, and analytics.
         You can upgrade, downgrade, or cancel anytime from Settings > Billing.`,

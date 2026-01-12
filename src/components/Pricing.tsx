@@ -19,78 +19,78 @@ interface PricingPlan {
   };
   features: {
     name: string;
-    starter: boolean | string;
-    professional: boolean | string;
-    agency: boolean | string;
+    basic: boolean | string;
+    pro: boolean | string;
+    lifetime: boolean | string;
   }[];
 }
 
 const featureList = [
-  { name: 'Campaigns/month', starter: '5', professional: '50', agency: '∞' },
-  { name: 'Team members', starter: '1', professional: '3', agency: '∞' },
-  { name: 'Dashboard', starter: true, professional: true, agency: true },
-  { name: '1-Click Builder', starter: true, professional: true, agency: true },
-  { name: 'Builder 3.0', starter: true, professional: true, agency: true },
-  { name: 'Preset Campaigns', starter: true, professional: true, agency: true },
-  { name: 'Draft/Custom Campaigns', starter: 'Limited', professional: 'Full', agency: 'Full' },
-  { name: 'Keyword Planner', starter: true, professional: true, agency: true },
-  { name: 'Keyword Mixer', starter: true, professional: true, agency: true },
-  { name: 'Negative Keywords', starter: true, professional: true, agency: true },
-  { name: 'Long-Tail Keywords', starter: true, professional: true, agency: true },
-  { name: 'Email Support', starter: true, professional: true, agency: true },
-  { name: 'Support Response Time', starter: '24-48h', professional: '12-24h', agency: '1h+' },
-  { name: 'Priority Queue', starter: false, professional: true, agency: true },
+  { name: 'Campaigns/month', basic: '25', pro: '∞', lifetime: '∞' },
+  { name: 'Team members', basic: '2', pro: '5', lifetime: '∞' },
+  { name: 'Dashboard', basic: true, pro: true, lifetime: true },
+  { name: '1-Click Builder', basic: true, pro: true, lifetime: true },
+  { name: 'Builder 3.0', basic: true, pro: true, lifetime: true },
+  { name: 'Preset Campaigns', basic: true, pro: true, lifetime: true },
+  { name: 'Draft/Custom Campaigns', basic: 'Full', pro: 'Full', lifetime: 'Full' },
+  { name: 'Keyword Planner', basic: true, pro: true, lifetime: true },
+  { name: 'Keyword Mixer', basic: true, pro: true, lifetime: true },
+  { name: 'Negative Keywords', basic: true, pro: true, lifetime: true },
+  { name: 'Long-Tail Keywords', basic: true, pro: true, lifetime: true },
+  { name: 'Email Support', basic: true, pro: true, lifetime: true },
+  { name: 'Support Response Time', basic: '24-48h', pro: '12h', lifetime: '1h Priority' },
+  { name: 'Priority Queue', basic: false, pro: true, lifetime: true },
 ];
 
 const comingSoonFeatures = [
-  { name: 'CSV Export', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: true },
-  { name: 'Live Ad Preview', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: true },
-  { name: 'Analytics', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: true },
-  { name: 'Landing Page Builder', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: 'Q1/Q2' },
-  { name: 'Call Tracking', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: 'Q1/Q2' },
-  { name: 'API Access', starter: 'Q1/Q2', professional: 'Q1/Q2', agency: 'Q1/Q2' },
+  { name: 'CSV Export', basic: true, pro: true, lifetime: true },
+  { name: 'Live Ad Preview', basic: true, pro: true, lifetime: true },
+  { name: 'Analytics', basic: 'Q2', pro: true, lifetime: true },
+  { name: 'Landing Page Builder', basic: 'Q2', pro: 'Q2', lifetime: 'Q2' },
+  { name: 'Call Tracking', basic: 'Q2', pro: 'Q2', lifetime: 'Q2' },
+  { name: 'API Access', basic: false, pro: 'Q2', lifetime: 'Q2' },
 ];
 
 const plans: PricingPlan[] = [
   {
-    name: 'Starter',
-    monthlyPrice: 29,
-    yearlyPrice: 278, // 29 * 12 * 0.8 = $278.40 rounded
+    name: 'Basic',
+    monthlyPrice: 69.99,
+    yearlyPrice: 671.90,
     icon: Zap,
     color: 'blue',
     gradientFrom: 'from-blue-500',
     gradientTo: 'to-cyan-500',
     popular: false,
-    earlyBirdDiscount: 25,
-    tagline: 'Perfect for getting started',
-    limits: { campaigns: '5', teamMembers: '1' },
+    earlyBirdDiscount: 0,
+    tagline: 'Perfect for solo marketers',
+    limits: { campaigns: '25', teamMembers: '2' },
     features: []
   },
   {
-    name: 'Professional',
-    monthlyPrice: 59,
-    yearlyPrice: 566, // 59 * 12 * 0.8 = $566.40 rounded
+    name: 'Pro',
+    monthlyPrice: 129.99,
+    yearlyPrice: 1247.90,
     icon: Star,
     color: 'purple',
     gradientFrom: 'from-purple-500',
     gradientTo: 'to-pink-500',
     popular: true,
-    earlyBirdDiscount: 45,
+    earlyBirdDiscount: 0,
     tagline: 'Most popular for growing teams',
-    limits: { campaigns: '50', teamMembers: '3' },
+    limits: { campaigns: '∞', teamMembers: '5' },
     features: []
   },
   {
-    name: 'Agency',
-    monthlyPrice: 129,
-    yearlyPrice: 1238, // 129 * 12 * 0.8 = $1238.40 rounded
+    name: 'Lifetime',
+    monthlyPrice: 49.99,
+    yearlyPrice: 49.99,
     icon: Crown,
     color: 'amber',
     gradientFrom: 'from-amber-500',
     gradientTo: 'to-orange-500',
     popular: false,
-    earlyBirdDiscount: 65,
-    tagline: 'For power users & agencies',
+    earlyBirdDiscount: 0,
+    tagline: 'One-time payment, forever access',
     limits: { campaigns: '∞', teamMembers: '∞' },
     features: []
   }
@@ -114,11 +114,14 @@ export function Pricing({ onSelectPlan }: PricingProps) {
   };
 
   const getPriceId = (planName: string) => {
-    const priceIds: Record<string, { monthly: string; yearly: string }> = {
-      'Starter': { monthly: 'price_starter_monthly', yearly: 'price_starter_yearly' },
-      'Professional': { monthly: 'price_professional_monthly', yearly: 'price_professional_yearly' },
-      'Agency': { monthly: 'price_agency_monthly', yearly: 'price_agency_yearly' },
+    const priceIds: Record<string, { monthly: string; yearly: string; oneTime?: string }> = {
+      'Basic': { monthly: 'price_1Sf7Z2AYv17Z995VOMSBG7GX', yearly: 'price_1Sf7Z2AYv17Z995VKDFZ119S' },
+      'Pro': { monthly: 'price_1Sf7Z3AYv17Z995Vp8o2xgAN', yearly: 'price_1Sf7Z4AYv17Z995VKY5BkfdB' },
+      'Lifetime': { monthly: 'price_1Sf7Z5AYv17Z995V7ROFNbzI', yearly: 'price_1Sf7Z5AYv17Z995V7ROFNbzI', oneTime: 'price_1Sf7Z5AYv17Z995V7ROFNbzI' },
     };
+    if (planName === 'Lifetime') {
+      return priceIds[planName]?.oneTime;
+    }
     return isYearly ? priceIds[planName]?.yearly : priceIds[planName]?.monthly;
   };
 
@@ -279,18 +282,18 @@ export function Pricing({ onSelectPlan }: PricingProps) {
               <thead>
                 <tr className="bg-gray-50">
                   <th className="text-left py-4 px-6 font-medium text-gray-600">Feature</th>
-                  <th className="text-center py-4 px-6 font-medium text-gray-600">Starter</th>
-                  <th className="text-center py-4 px-6 font-medium text-purple-600 bg-purple-50">Professional</th>
-                  <th className="text-center py-4 px-6 font-medium text-gray-600">Agency</th>
+                  <th className="text-center py-4 px-6 font-medium text-gray-600">Basic</th>
+                  <th className="text-center py-4 px-6 font-medium text-purple-600 bg-purple-50">Pro</th>
+                  <th className="text-center py-4 px-6 font-medium text-gray-600">Lifetime</th>
                 </tr>
               </thead>
               <tbody>
                 {featureList.map((feature, index) => (
                   <tr key={feature.name} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     <td className="py-3 px-6 text-gray-700">{feature.name}</td>
-                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.starter)}</td>
-                    <td className="py-3 px-6 text-center bg-purple-50/50">{renderFeatureValue(feature.professional)}</td>
-                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.agency)}</td>
+                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.basic)}</td>
+                    <td className="py-3 px-6 text-center bg-purple-50/50">{renderFeatureValue(feature.pro)}</td>
+                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.lifetime)}</td>
                   </tr>
                 ))}
                 <tr className="bg-gray-100">
@@ -299,9 +302,9 @@ export function Pricing({ onSelectPlan }: PricingProps) {
                 {comingSoonFeatures.map((feature, index) => (
                   <tr key={feature.name} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     <td className="py-3 px-6 text-gray-700">{feature.name}</td>
-                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.starter)}</td>
-                    <td className="py-3 px-6 text-center bg-purple-50/50">{renderFeatureValue(feature.professional)}</td>
-                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.agency)}</td>
+                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.basic)}</td>
+                    <td className="py-3 px-6 text-center bg-purple-50/50">{renderFeatureValue(feature.pro)}</td>
+                    <td className="py-3 px-6 text-center">{renderFeatureValue(feature.lifetime)}</td>
                   </tr>
                 ))}
               </tbody>

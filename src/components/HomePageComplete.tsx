@@ -774,66 +774,50 @@ interface PricingProps {
 
 const pricingPlans = [
   {
-    name: 'Starter',
-    price: '$99.99',
-    period: 'lifetime',
+    name: 'Basic',
+    price: '$69.99',
+    period: 'per month',
     icon: '🚀',
     color: 'from-blue-400 to-blue-600',
     borderColor: 'border-blue-200',
-    features: ['15/month campaigns', 'AI keyword generation', 'All campaign structures', 'CSV export', '24/7 priority support'],
+    features: ['25 campaigns/month', 'AI keyword generation', 'All campaign structures', 'CSV export', 'Email support'],
     buttonStyle: 'bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300',
-    popular: false
+    popular: false,
+    priceId: 'price_1Sf7Z2AYv17Z995VOMSBG7GX'
   },
   {
     name: 'Pro',
-    price: '$199',
-    period: 'lifetime',
+    price: '$129.99',
+    period: 'per month',
     icon: '⚡',
     color: 'from-purple-500 to-purple-700',
     borderColor: 'border-purple-300',
     features: ['Unlimited campaigns', 'AI keyword generation', 'All campaign structures', 'CSV export', '24/7 priority support'],
     buttonStyle: 'bg-gradient-to-r from-purple-500 to-purple-700 text-white hover:shadow-xl',
-    popular: true
+    popular: true,
+    priceId: 'price_1Sf7Z3AYv17Z995Vp8o2xgAN'
   },
   {
-    name: 'Growth',
+    name: 'Lifetime',
     price: '$49.99',
-    period: 'per month',
-    icon: '📈',
-    color: 'from-green-400 to-green-600',
-    borderColor: 'border-indigo-200',
-    features: ['25/month campaigns', 'AI keyword generation', 'All campaign structures', 'CSV export', '24/7 priority support'],
-    buttonStyle: 'bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300',
-    popular: false
-  },
-  {
-    name: 'Enterprise',
-    price: '$99.99',
-    period: 'per month',
+    period: 'one-time',
     icon: '👑',
-    color: 'from-pink-500 to-purple-600',
-    borderColor: 'border-pink-200',
-    features: ['Unlimited campaigns', 'AI keyword generation', 'All campaign structures', 'CSV export', '24/7 priority support'],
+    color: 'from-amber-400 to-orange-600',
+    borderColor: 'border-amber-200',
+    features: ['Unlimited campaigns forever', 'AI keyword generation', 'All campaign structures', 'CSV export', 'Priority support'],
     buttonStyle: 'bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300',
-    popular: false
+    popular: false,
+    priceId: 'price_1Sf7Z5AYv17Z995V7ROFNbzI'
   }
 ];
 
 function Pricing({ onSelectPlan }: PricingProps) {
   const handlePlanClick = (plan: typeof pricingPlans[0]) => {
     if (onSelectPlan) {
-      // Map plan names to price IDs (you may need to adjust these)
-      const priceIdMap: Record<string, string> = {
-        'Starter': 'price_starter',
-        'Pro': 'price_pro',
-        'Growth': 'price_growth',
-        'Enterprise': 'price_enterprise'
-      };
-      
       const amount = parseFloat(plan.price.replace('$', '').replace(',', ''));
       const isSubscription = plan.period.includes('month');
       
-      onSelectPlan(plan.name, priceIdMap[plan.name] || '', amount, isSubscription);
+      onSelectPlan(plan.name, plan.priceId || '', amount, isSubscription);
     }
   };
 
@@ -847,7 +831,7 @@ function Pricing({ onSelectPlan }: PricingProps) {
           <p className="text-gray-600 text-lg mb-8">No hidden fees • Cancel anytime • 14-day money back guarantee</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8 max-w-4xl mx-auto">
           {pricingPlans.map((plan, index) => (
             <motion.div key={plan.name} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }} className="relative">
               {plan.popular && (

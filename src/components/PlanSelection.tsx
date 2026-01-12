@@ -53,17 +53,17 @@ interface PlanData {
 }
 
 const planConfig: Record<string, Omit<PlanData, 'price' | 'priceId' | 'amount'>> = {
-  'Starter Monthly': {
-    name: 'Starter Monthly',
-    displayName: 'Starter',
+  'Basic Monthly': {
+    name: 'Basic Monthly',
+    displayName: 'Basic',
     period: 'per month',
     isSubscription: true,
     features: [
-      '5 Campaigns/month',
-      '1 Team Member',
+      '25 Campaigns/month',
+      '2 Team Members',
       'Dashboard & 1-Click Builder',
       'Builder 3.0 & Preset Campaigns',
-      'Limited Draft/Custom Campaigns',
+      'Full Draft/Custom Campaigns',
       'Keyword Planner & Mixer',
       'Email Support (24-48h)',
       '7-day free trial'
@@ -74,19 +74,19 @@ const planConfig: Record<string, Omit<PlanData, 'price' | 'priceId' | 'amount'>>
     buttonStyle: 'bg-gray-900 text-white hover:bg-gray-800',
     popular: false
   },
-  'Professional Monthly': {
-    name: 'Professional Monthly',
-    displayName: 'Professional',
+  'Pro Monthly': {
+    name: 'Pro Monthly',
+    displayName: 'Pro',
     period: 'per month',
     isSubscription: true,
     features: [
-      '50 Campaigns/month',
-      '3 Team Members',
+      'Unlimited Campaigns',
+      '5 Team Members',
       'All Builder Features',
       'Full Draft/Custom Campaigns',
       'All Keyword Tools',
       'Priority Support Queue',
-      'Email Support (12-24h)',
+      '24/7 Priority Support',
       '7-day free trial'
     ],
     icon: Zap,
@@ -95,13 +95,13 @@ const planConfig: Record<string, Omit<PlanData, 'price' | 'priceId' | 'amount'>>
     buttonStyle: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl',
     popular: true
   },
-  'Agency Monthly': {
-    name: 'Agency Monthly',
-    displayName: 'Agency',
-    period: 'per month',
-    isSubscription: true,
+  'Lifetime': {
+    name: 'Lifetime',
+    displayName: 'Lifetime',
+    period: 'one-time',
+    isSubscription: false,
     features: [
-      'Unlimited Campaigns',
+      'Unlimited Campaigns Forever',
       'Unlimited Team Members',
       'All Professional Features',
       'Dedicated Account Manager',
@@ -118,7 +118,7 @@ const planConfig: Record<string, Omit<PlanData, 'price' | 'priceId' | 'amount'>>
   }
 };
 
-const planOrder = ['Starter Monthly', 'Professional Monthly', 'Agency Monthly'];
+const planOrder = ['Basic Monthly', 'Pro Monthly', 'Lifetime'];
 
 interface PlanSelectionProps {
   onSelectPlan: (planName: string, priceId: string, amount: number, isSubscription: boolean) => void;
@@ -172,22 +172,22 @@ export const PlanSelection: React.FC<PlanSelectionProps> = ({
         // Fallback to default plans if Stripe products not available
         const fallbackPlans: PlanData[] = [
           {
-            ...planConfig['Starter Monthly'],
-            price: '$29',
-            priceId: 'price_starter_monthly',
-            amount: 2900
+            ...planConfig['Basic Monthly'],
+            price: '$69.99',
+            priceId: 'price_1Sf7Z2AYv17Z995VOMSBG7GX',
+            amount: 6999
           },
           {
-            ...planConfig['Professional Monthly'],
-            price: '$59',
-            priceId: 'price_professional_monthly',
-            amount: 5900
+            ...planConfig['Pro Monthly'],
+            price: '$129.99',
+            priceId: 'price_1Sf7Z3AYv17Z995Vp8o2xgAN',
+            amount: 12999
           },
           {
-            ...planConfig['Agency Monthly'],
-            price: '$129',
-            priceId: 'price_agency_monthly',
-            amount: 12900
+            ...planConfig['Lifetime'],
+            price: '$49.99',
+            priceId: 'price_1Sf7Z5AYv17Z995V7ROFNbzI',
+            amount: 4999
           }
         ];
         setPlans(fallbackPlans);
