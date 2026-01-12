@@ -23,6 +23,7 @@ interface LinkProjectDialogProps {
   itemType: string;
   itemId: string;
   itemName: string;
+  itemMetadata?: Record<string, any>;
   currentProjectId?: string | null;
   currentProjectName?: string | null;
   onLinked?: (projectId: string, projectName: string) => void;
@@ -34,6 +35,7 @@ export function LinkProjectDialog({
   itemType,
   itemId,
   itemName,
+  itemMetadata,
   currentProjectId,
   currentProjectName,
   onLinked,
@@ -82,7 +84,8 @@ export function LinkProjectDialog({
         body: JSON.stringify({
           itemType: itemType,
           itemId: itemId,
-          itemName: itemName
+          itemName: itemName,
+          ...(itemMetadata && { itemMetadata })
         })
       });
       const data = await response.json();
