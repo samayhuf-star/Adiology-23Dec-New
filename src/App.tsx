@@ -1685,7 +1685,7 @@ const AppContent = () => {
             </div>
           </SheetHeader>
           
-          <nav className="p-4 space-y-3 overflow-y-auto max-h-[calc(100vh-180px)]">
+          <nav className="p-4 space-y-3 overflow-y-auto max-h-[calc(100vh-80px)]">
             {menuItems.map((item, index) => {
               const Icon = item.icon;
               const hasSubmenu = item.submenu && item.submenu.length > 0;
@@ -1770,36 +1770,37 @@ const AppContent = () => {
                 </div>
               );
             })}
+            
+            {/* Billing & Logout - now scroll with menu */}
+            <div className="pt-4 border-t border-slate-200/60 space-y-3">
+              <button
+                onClick={() => setActiveTabSafe('billing')}
+                className={`sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 ${
+                  activeTab === 'billing'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl'
+                    : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:shadow-lg'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                  activeTab === 'billing' 
+                    ? 'bg-white/20 shadow-lg' 
+                    : 'group-hover:bg-indigo-100'
+                }`}>
+                  <CreditCard className={`w-5 h-5 ${activeTab === 'billing' ? 'text-white' : 'text-slate-600'}`} />
+                </div>
+                <span className="font-semibold">Billing</span>
+              </button>
+              <button
+                onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                className="sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 text-red-600 hover:bg-red-50 hover:shadow-lg"
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-red-100">
+                  <LogOut className="w-5 h-5 text-red-500" />
+                </div>
+                <span className="font-semibold">Logout</span>
+              </button>
+            </div>
           </nav>
-          
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/30 glass-card space-y-3">
-            <button
-              onClick={() => setActiveTabSafe('billing')}
-              className={`sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 ${
-                activeTab === 'billing'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl'
-                  : 'text-slate-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:shadow-lg'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                activeTab === 'billing' 
-                  ? 'bg-white/20 shadow-lg' 
-                  : 'group-hover:bg-indigo-100'
-              }`}>
-                <CreditCard className={`w-5 h-5 ${activeTab === 'billing' ? 'text-white' : 'text-slate-600'}`} />
-              </div>
-              <span className="font-semibold">Billing</span>
-            </button>
-            <button
-              onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-              className="sidebar-item w-full flex items-center gap-3 py-3 px-4 rounded-2xl transition-all duration-300 text-red-600 hover:bg-red-50 hover:shadow-lg"
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-red-100">
-                <LogOut className="w-5 h-5 text-red-500" />
-              </div>
-              <span className="font-semibold">Logout</span>
-            </button>
-          </div>
         </SheetContent>
       </Sheet>
 
