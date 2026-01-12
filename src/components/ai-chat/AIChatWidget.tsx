@@ -354,8 +354,8 @@ export const AIChatWidget: React.FC = () => {
         onClick={() => setIsOpen(true)}
         className="fixed bottom-24 right-6 z-50 w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 float-animation border-4 border-white"
         aria-label="Open AI Chat"
+        icon={<MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />}
       >
-        <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
         <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shimmer-effect">
           <Bot className="w-3 h-3 text-white" />
         </div>
