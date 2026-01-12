@@ -85,7 +85,7 @@ const planConfig: Record<string, Omit<PlanData, 'price' | 'priceId' | 'amount'>>
       'All Builder Features',
       'Full Draft/Custom Campaigns',
       'All Keyword Tools',
-      'Priority Queue & Slack Channel',
+      'Priority Support Queue',
       'Email Support (12-24h)',
       '7-day free trial'
     ],
@@ -104,7 +104,7 @@ const planConfig: Record<string, Omit<PlanData, 'price' | 'priceId' | 'amount'>>
       'Unlimited Campaigns',
       'Unlimited Team Members',
       'All Professional Features',
-      'Monthly Strategy Call',
+      'Dedicated Account Manager',
       'Priority Support (1h+)',
       'CSV Export & Live Ad Preview',
       'Early Access to New Features',

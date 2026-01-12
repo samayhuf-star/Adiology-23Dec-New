@@ -40,8 +40,6 @@ const featureList = [
   { name: 'Email Support', starter: true, professional: true, agency: true },
   { name: 'Support Response Time', starter: '24-48h', professional: '12-24h', agency: '1h+' },
   { name: 'Priority Queue', starter: false, professional: true, agency: true },
-  { name: 'Slack Channel', starter: false, professional: true, agency: true },
-  { name: 'Monthly Call', starter: false, professional: false, agency: true },
 ];
 
 const comingSoonFeatures = [
