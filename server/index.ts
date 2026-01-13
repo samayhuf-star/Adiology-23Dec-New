@@ -16,6 +16,7 @@ import { adminAuthMiddleware, getAdminClient, getAdminServiceStatus, logAdminAct
 import { emailTemplates } from './email-templates';
 import { EmailService } from './emailService';
 import { community } from './routes/community';
+import { seatManagement, PLAN_SEAT_LIMITS, type PlanType } from './seatManagement';
 // import { startCronScheduler, triggerManualRun } from './cronScheduler';
 
 const { Pool } = pg;
@@ -5746,6 +5747,158 @@ app.get('/api/item-projects/:itemType/:itemId', async (c) => {
   } catch (error: any) {
     console.error('Error fetching item projects:', error);
     return c.json({ error: error.message || 'Failed to fetch item projects' }, 500);
+  }
+});
+
+// ============================================
+// SEAT MANAGEMENT API ENDPOINTS
+// ============================================
+
+// Get organization seat info
+app.get('/api/organization/:orgId/seats', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const metadata = await seatManagement.getOrganizationMetadata(orgId);
+    
+    if (!metadata) {
+      return c.json({ error: 'Organization not found' }, 404);
+    }
+    
+    const seatsUsed = await seatManagement.getPaidSeatsUsed(orgId);
+    
+    return c.json({
+      success: true,
+      data: {
+        plan: metadata.plan,
+        baseSeatLimit: metadata.baseSeatLimit,
+        extraSeats: metadata.extraSeats,
+        totalSeatLimit: metadata.totalSeatLimit,
+        seatsUsed,
+        seatsAvailable: metadata.totalSeatLimit - seatsUsed,
+        stripeCustomerId: metadata.stripeCustomerId,
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching seat info:', error);
+    return c.json({ error: error.message || 'Failed to fetch seat info' }, 500);
+  }
+});
+
+// Check if can add seat (before inviting)
+app.get('/api/organization/:orgId/seats/can-add', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const result = await seatManagement.canAddSeat(orgId);
+    
+    return c.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('Error checking seat availability:', error);
+    return c.json({ error: error.message || 'Failed to check seat availability' }, 500);
+  }
+});
+
+// Create checkout session for extra seat
+app.post('/api/organization/:orgId/seats/add', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const body = await c.req.json();
+    const { quantity = 1, successUrl, cancelUrl } = body;
+    
+    const metadata = await seatManagement.getOrganizationMetadata(orgId);
+    if (!metadata?.stripeCustomerId) {
+      return c.json({ error: 'Organization does not have a Stripe customer' }, 400);
+    }
+    
+    const checkoutUrl = await seatManagement.createExtraSeatCheckoutSession(
+      orgId,
+      metadata.stripeCustomerId,
+      successUrl || `${process.env.DOMAIN || 'http://localhost:5000'}/settings?success=seat`,
+      cancelUrl || `${process.env.DOMAIN || 'http://localhost:5000'}/settings?canceled=seat`,
+      quantity
+    );
+    
+    if (!checkoutUrl) {
+      return c.json({ error: 'Failed to create checkout session' }, 500);
+    }
+    
+    return c.json({ success: true, data: { checkoutUrl } });
+  } catch (error: any) {
+    console.error('Error creating extra seat checkout:', error);
+    return c.json({ error: error.message || 'Failed to create checkout session' }, 500);
+  }
+});
+
+// Create checkout session for plan upgrade
+app.post('/api/organization/:orgId/plan/upgrade', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const body = await c.req.json();
+    const { plan, successUrl, cancelUrl } = body;
+    
+    if (!plan || !['basic', 'pro'].includes(plan)) {
+      return c.json({ error: 'Invalid plan. Must be "basic" or "pro"' }, 400);
+    }
+    
+    const checkoutUrl = await seatManagement.createPlanCheckoutSession(
+      orgId,
+      plan as 'basic' | 'pro',
+      auth.userEmail || '',
+      successUrl || `${process.env.DOMAIN || 'http://localhost:5000'}/settings?success=plan`,
+      cancelUrl || `${process.env.DOMAIN || 'http://localhost:5000'}/settings?canceled=plan`
+    );
+    
+    if (!checkoutUrl) {
+      return c.json({ error: 'Failed to create checkout session' }, 500);
+    }
+    
+    return c.json({ success: true, data: { checkoutUrl } });
+  } catch (error: any) {
+    console.error('Error creating plan checkout:', error);
+    return c.json({ error: error.message || 'Failed to create checkout session' }, 500);
+  }
+});
+
+// Check if can downgrade plan
+app.get('/api/organization/:orgId/plan/can-downgrade/:newPlan', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const newPlan = c.req.param('newPlan') as PlanType;
+    
+    if (!PLAN_SEAT_LIMITS[newPlan]) {
+      return c.json({ error: 'Invalid plan' }, 400);
+    }
+    
+    const result = await seatManagement.canDowngradePlan(orgId, newPlan);
+    
+    return c.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('Error checking downgrade eligibility:', error);
+    return c.json({ error: error.message || 'Failed to check downgrade eligibility' }, 500);
   }
 });
 
