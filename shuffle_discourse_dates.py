@@ -61,19 +61,16 @@ def generate_random_timestamp():
 
 def update_topic_timestamp(topic_id, new_timestamp):
     """Update a topic's timestamp using Discourse API"""
-    url = f"{DISCOURSE_URL}/t/{topic_id}/change-timestamp.json"
+    url = f"{DISCOURSE_URL}/t/{topic_id}/change-timestamp"
     
     # Convert ISO format to Unix timestamp
     dt = datetime.strptime(new_timestamp, "%Y-%m-%dT%H:%M:%SZ")
-    unix_timestamp = int(dt.timestamp())
-    
-    data = {
-        "timestamp": unix_timestamp
-    }
+    unix_timestamp = str(int(dt.timestamp()))
     
     for attempt in range(3):
         try:
-            response = session.put(url, json=data)
+            # Use form data instead of JSON
+            response = session.put(url, data={"timestamp": unix_timestamp})
             if response.status_code == 429:
                 wait_time = 10 * (attempt + 1)
                 print(f"    Rate limited, waiting {wait_time}s...")
