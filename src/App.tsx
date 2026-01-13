@@ -859,7 +859,7 @@ const AppContent = () => {
     },
 
     { id: 'teams', label: 'Teams', icon: Users, module: null }, // Teams doesn't require module access
-    { id: 'community', label: 'Community', icon: MessageSquare, module: null },
+    { id: 'community', label: 'Community', icon: MessageSquare, module: null, externalUrl: 'https://community.adiology.io/' },
     // Blog hidden - disabled
     // { id: 'blog', label: 'Blog', icon: BookOpen, module: null },
     { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' },
@@ -1715,8 +1715,8 @@ const AppContent = () => {
                         window.history.pushState({}, '', '/admin');
                         setAppView('admin-panel');
                       } else if (item.id === 'community') {
-                        // Open Discourse community with SSO in new tab
-                        window.open('https://adiology.discourse.group/', '_blank');
+                        // Open community in new tab
+                        window.open('https://community.adiology.io/', '_blank');
                         setMobileMenuOpen(false);
                       } else {
                         setActiveTabSafe(item.id);

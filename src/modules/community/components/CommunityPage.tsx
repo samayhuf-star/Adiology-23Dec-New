@@ -189,7 +189,7 @@ export function CommunityPage() {
               <CommunityTopicCard
                 key={topic.id}
                 topic={topic}
-                onClick={() => window.open(`${import.meta.env.VITE_DISCOURSE_URL || 'https://adiology.discourse.group'}/t/${topic.slug}/${topic.id}`, '_blank')}
+                onClick={() => window.open(`${import.meta.env.VITE_DISCOURSE_URL || 'https://community.adiology.io'}/t/${topic.slug}/${topic.id}`, '_blank')}
               />
             ))}
           </div>
