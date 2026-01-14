@@ -254,7 +254,13 @@ export function trimHistoryStorage(keepCount: number = 15): number {
   return clearedBytes;
 }
 
+let storageManagerInitialized = false;
+
 export function initStorageManager(): void {
+  // Prevent multiple initializations
+  if (storageManagerInitialized) return;
+  storageManagerInitialized = true;
+  
   try {
     const usage = getStorageUsage();
     console.log(`[StorageManager] Storage: ${(usage.used / 1024).toFixed(1)} KB / ${(usage.total / 1024).toFixed(0)} KB (${(usage.percentage * 100).toFixed(1)}%)`);
@@ -349,7 +355,13 @@ export function emergencyCleanup(): void {
   }
 }
 
+let storageCleanupRan = false;
+
 export function clearStorageNow(): void {
+  // Only run cleanup once per page load
+  if (storageCleanupRan) return;
+  storageCleanupRan = true;
+  
   console.log('[StorageManager] Performing immediate storage cleanup...');
   
   // First trim history (keep recent items)

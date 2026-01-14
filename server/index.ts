@@ -56,12 +56,12 @@ const requestCache: Map<string, { response: any; timestamp: number }> = new Map(
 
 // Rate limit configuration per endpoint category
 const rateLimits: Record<string, { requests: number; windowMs: number }> = {
-  'ai-generation': { requests: 10, windowMs: 60000 },      // 10 AI calls per minute
-  'keyword-planner': { requests: 20, windowMs: 60000 },    // 20 keyword calls per minute
-  'url-analysis': { requests: 15, windowMs: 60000 },       // 15 URL analyses per minute
-  'campaign-save': { requests: 30, windowMs: 60000 },      // 30 saves per minute
-  'admin': { requests: 100, windowMs: 60000 },             // 100 admin calls per minute
-  'general': { requests: 200, windowMs: 60000 },           // 200 general calls per minute
+  'ai-generation': { requests: 20, windowMs: 60000 },      // 20 AI calls per minute
+  'keyword-planner': { requests: 40, windowMs: 60000 },    // 40 keyword calls per minute
+  'url-analysis': { requests: 30, windowMs: 60000 },       // 30 URL analyses per minute
+  'campaign-save': { requests: 60, windowMs: 60000 },      // 60 saves per minute
+  'admin': { requests: 200, windowMs: 60000 },             // 200 admin calls per minute
+  'general': { requests: 500, windowMs: 60000 },           // 500 general calls per minute
 };
 
 // Get client identifier (IP or user ID)

@@ -200,5 +200,14 @@ export default defineConfig({
           changeOrigin: true,
         },
       },
+      watch: {
+        ignored: [
+          '**/node_modules/**',
+          '**/.cache/**',
+          '**/.local/**',
+          '**/replit/**',
+          '**/.git/**',
+        ],
+      },
     },
   });
