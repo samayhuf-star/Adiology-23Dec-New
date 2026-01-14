@@ -60,6 +60,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { generateDKIAdWithAI } from '../utils/dkiAdGeneratorAI';
 import { CampaignFlowDiagram } from './CampaignFlowDiagram';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
+import { ApiStatusIndicator } from './ApiStatusIndicator';
 
 // Campaign Structure Types (14 structures)
 const CAMPAIGN_STRUCTURES = [
@@ -5478,8 +5479,10 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
               ))}
             </div>
             
-            {/* Next/Reset Buttons */}
+            {/* API Status & Next/Reset Buttons */}
             <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+              <ApiStatusIndicator className="hidden sm:flex" showLabel={true} />
+              <ApiStatusIndicator className="flex sm:hidden" showLabel={false} />
               <button
                 onClick={handleResetCampaign}
                 className="text-xs sm:text-sm text-slate-500 hover:text-red-500 transition-colors flex items-center gap-1 p-1"

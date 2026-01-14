@@ -12,6 +12,7 @@ import { NegativeKeywordsBuilder } from './NegativeKeywordsBuilder';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
 import { DEFAULT_NEGATIVE_KEYWORDS as DEFAULT_NEG_KW } from '../utils/defaultExamples';
+import { ApiStatusIndicator } from './ApiStatusIndicator';
 
 // Fill Info Presets for testing
 type FillInfoPreset = {
@@ -181,9 +182,12 @@ export const KeywordGeneratorV3 = ({ initialData }: { initialData?: any }) => {
         <div className="p-4 max-w-7xl mx-auto">
             <div className="mb-4 flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">
-                        Keyword Generator v3.0
-                    </h1>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                            Keyword Generator v3.0
+                        </h1>
+                        <ApiStatusIndicator />
+                    </div>
                     <p className="text-sm text-slate-500">
                         Comprehensive keyword generation with Planner, Negatives, and Mixer all in one place
                     </p>
