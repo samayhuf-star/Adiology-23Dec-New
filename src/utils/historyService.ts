@@ -48,7 +48,12 @@ async function fetchWithRetry(
     try {
       const response = await fetch(url, options);
       
-      // Retry on 5xx server errors
+      // NEVER retry on 429 rate limit - return immediately to prevent loops
+      if (response.status === 429) {
+        return response;
+      }
+      
+      // Retry on 5xx server errors only
       if (response.status >= 500 && attempt < retries) {
         await sleep(RETRY_DELAY * (attempt + 1));
         continue;
@@ -58,7 +63,7 @@ async function fetchWithRetry(
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       
-      // Retry on network errors
+      // Retry on network errors only (not 429)
       if (attempt < retries) {
         await sleep(RETRY_DELAY * (attempt + 1));
         continue;
@@ -217,6 +222,13 @@ export const historyService = {
             'Authorization': `Bearer ${token}`
           }
         });
+
+        // Handle rate limiting - fall back to localStorage without logging as error
+        if (response.status === 429) {
+          console.log('Rate limited, using localStorage');
+          setDataSource('cached');
+          return localStorageHistory.getAll();
+        }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));

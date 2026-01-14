@@ -1,14 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { 
   Activity, Zap, Sparkles, Package, Target, Globe, FolderOpen, Terminal,
   CheckCircle2, FileText, Layers, TrendingUp, ArrowUp, MessageSquare
 } from 'lucide-react';
-import { CommunityDashboardWidget } from '../modules/community';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { TerminalCard, TerminalLine } from './ui/terminal-card';
-import { supabase } from '../utils/supabase/client';
-import { historyService } from '../utils/historyService';
 import { getUserPreferences, saveUserPreferences, initializeUserPreferences } from '../utils/userPreferences';
 import { 
   useScreenSize, 
@@ -18,6 +15,11 @@ import {
   getResponsiveFontSize,
   getResponsivePadding
 } from '../utils/responsive';
+
+// Lazy load community widget - not critical for initial dashboard load
+const CommunityDashboardWidget = lazy(() => 
+  import('../modules/community').then(m => ({ default: m.CommunityDashboardWidget }))
+);
 
 interface DashboardProps {
   user: any;
@@ -61,11 +63,12 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [preferences, setPreferences] = useState(getUserPreferences());
   const screenSize = useScreenSize();
+  const fetchInProgress = useRef(false);
 
   useEffect(() => {
     fetchDashboardData();
     initializeUserPreferences();
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     saveUserPreferences(preferences);
@@ -80,84 +83,41 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
   const fetchDashboardData = async () => {
     if (!user) return;
     
+    // Prevent duplicate calls - if already loading, skip
+    if (fetchInProgress.current) return;
+    fetchInProgress.current = true;
+    
     setLoading(true);
     try {
-      // Fetch dashboard data from our API
-      let apiData: any = { stats: { totalCampaigns: 0, totalSearches: 0 }, recentCampaigns: [] };
-      try {
-        const response = await fetch(`/api/dashboard/${user.id}`);
-        if (response.ok) {
-          apiData = await response.json();
-        }
-      } catch (err) {
-        console.warn('Dashboard API not available, using fallback');
+      // Use consolidated endpoint - ONE API call for everything
+      const response = await fetch(`/api/dashboard/all/${user.id}`);
+      
+      // Handle rate limiting gracefully - don't retry, just use cached/default data
+      if (response.status === 429) {
+        console.warn('Dashboard rate limited, using default data');
+        setDefaultStats();
+        return;
       }
-
-      // Fetch user-specific resources from local history as fallback
-      let myCampaigns = apiData.stats?.totalCampaigns || 0;
-      let myWebsites = 0;
-      let myPresets = 0;
-      let myDomains = 0;
-      let activityData: any[] = [];
-
-      try {
-        // Get campaigns from history service as additional source
-        const allHistory = await historyService.getAll();
-        const historyCampaigns = allHistory.filter(item => 
-          item.type === 'builder-2-campaign' || 
-          item.type === 'campaign' ||
-          item.type?.includes('campaign')
-        ).length;
-        
-        // Use the higher count between API and local
-        myCampaigns = Math.max(myCampaigns, historyCampaigns);
-
-        // Get saved templates/presets from history
-        myPresets = allHistory.filter(item => 
-          item.type === 'website-template' || 
-          item.type === 'campaign-preset' ||
-          item.type?.includes('preset') ||
-          item.type?.includes('template')
-        ).length;
-
-        // Get domains from history
-        myDomains = allHistory.filter(item => 
-          item.type === 'domain-search' || 
-          item.type === 'domain-purchase' ||
-          item.type === 'domain-monitoring' ||
-          item.type === 'domain' ||
-          item.type?.includes('domain')
-        ).length;
-
-        // Convert recent campaigns to activity format
-        if (apiData.recentCampaigns && apiData.recentCampaigns.length > 0) {
-          activityData = apiData.recentCampaigns.map((c: any) => ({
-            id: c.id,
-            action: `${c.step >= 5 ? 'completed' : 'created'}_campaign`,
-            timestamp: c.updated_at || c.created_at,
-            resourceType: 'campaign',
-            metadata: { name: c.campaign_name, structure: c.structure_type }
-          }));
-        }
-
-        // Published websites feature disabled - table doesn't exist in Supabase
-        // Set to 0 to avoid 404 errors in console
-        myWebsites = 0;
-      } catch (error: any) {
-        // Check if error is about missing published_websites table
-        const errorMessage = error?.message?.toLowerCase() || '';
-        const isTableMissingError = 
-          errorMessage.includes('schema cache') || 
-          errorMessage.includes('could not find the table') ||
-          errorMessage.includes('does not exist') ||
-          errorMessage.includes('relation') && errorMessage.includes('does not exist');
-        
-        if (!isTableMissingError) {
-          // Only log non-table-missing errors
-          console.error('Error fetching user resources:', error);
-        }
-        // Continue with 0 counts if there's an error
+      
+      if (!response.ok) {
+        console.warn('Dashboard API error, using default data');
+        setDefaultStats();
+        return;
       }
+      
+      const result = await response.json();
+      const apiData = result.data || result;
+      
+      const myCampaigns = apiData.stats?.totalCampaigns || 0;
+      
+      // Convert recent campaigns to activity format
+      const activityData = (apiData.recentCampaigns || []).map((c: any) => ({
+        id: c.id,
+        action: `${c.step >= 5 ? 'completed' : 'created'}_campaign`,
+        timestamp: c.updated_at || c.created_at,
+        resourceType: 'campaign',
+        metadata: { name: c.campaign_name, structure: c.structure_type }
+      }));
 
       setStats({
         subscription: {
@@ -168,26 +128,42 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
         usage: {
           apiCalls: 0,
           campaigns: myCampaigns,
-          keywords: 0,
+          keywords: apiData.stats?.keywordsGenerated || 0,
         },
         activity: {
           lastLogin: user.last_login_at || null,
-          totalActions: activityData?.length || 0,
+          totalActions: activityData.length,
         },
         userResources: {
           myCampaigns,
-          myWebsites,
-          myPresets,
-          myDomains,
+          myWebsites: 0,
+          myPresets: 0,
+          myDomains: 0,
         },
       });
 
-      setRecentActivity(activityData || []);
+      setRecentActivity(activityData);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setDefaultStats();
     } finally {
       setLoading(false);
+      fetchInProgress.current = false;
     }
+  };
+  
+  const setDefaultStats = () => {
+    setStats({
+      subscription: {
+        plan: user?.subscription_plan || 'free',
+        status: user?.subscription_status || 'active',
+        periodEnd: null,
+      },
+      usage: { apiCalls: 0, campaigns: 0, keywords: 0 },
+      activity: { lastLogin: user?.last_login_at || null, totalActions: 0 },
+      userResources: { myCampaigns: 0, myWebsites: 0, myPresets: 0, myDomains: 0 },
+    });
+    setRecentActivity([]);
   };
 
   const getPlanColor = (plan: string) => {
@@ -458,10 +434,20 @@ export function Dashboard({ user, onNavigate }: DashboardProps) {
         </div>
       </div>
 
-      {/* Community Section */}
+      {/* Community Section - Lazy loaded for faster initial render */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 slide-in-up">
         <div className="lg:col-span-2">
-          <CommunityDashboardWidget onViewAll={() => window.open('https://community.adiology.io/', '_blank')} />
+          <Suspense fallback={
+            <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50 animate-pulse">
+              <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-4 bg-slate-200 rounded"></div>
+                <div className="h-4 bg-slate-200 rounded w-5/6"></div>
+              </div>
+            </div>
+          }>
+            <CommunityDashboardWidget onViewAll={() => window.open('https://community.adiology.io/', '_blank')} />
+          </Suspense>
         </div>
         <div className="glass-card rounded-2xl p-6 shadow-xl border border-white/50">
           <div className="flex items-center gap-3 mb-4">

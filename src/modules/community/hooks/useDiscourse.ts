@@ -50,6 +50,13 @@ export function useDiscourseTopics(limit: number = 10) {
         },
       });
 
+      // Handle rate limiting gracefully - don't retry or show error
+      if (response.status === 429) {
+        console.warn('Community topics rate limited');
+        setTopics([]);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch topics');
       }
@@ -85,6 +92,12 @@ export function useDiscourseCategories() {
             'Content-Type': 'application/json',
           },
         });
+
+        // Handle rate limiting gracefully
+        if (response.status === 429) {
+          console.warn('Community categories rate limited');
+          return;
+        }
 
         if (response.ok) {
           const data = await response.json();

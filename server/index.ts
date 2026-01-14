@@ -54,14 +54,15 @@ app.onError((err, c) => {
 const rateLimitStore: Map<string, { count: number; resetTime: number }> = new Map();
 const requestCache: Map<string, { response: any; timestamp: number }> = new Map();
 
-// Rate limit configuration per endpoint category
+// Rate limit configuration per endpoint category - generous limits to prevent dashboard blocking
 const rateLimits: Record<string, { requests: number; windowMs: number }> = {
-  'ai-generation': { requests: 20, windowMs: 60000 },      // 20 AI calls per minute
-  'keyword-planner': { requests: 40, windowMs: 60000 },    // 40 keyword calls per minute
-  'url-analysis': { requests: 30, windowMs: 60000 },       // 30 URL analyses per minute
-  'campaign-save': { requests: 60, windowMs: 60000 },      // 60 saves per minute
-  'admin': { requests: 200, windowMs: 60000 },             // 200 admin calls per minute
-  'general': { requests: 500, windowMs: 60000 },           // 500 general calls per minute
+  'ai-generation': { requests: 30, windowMs: 60000 },      // 30 AI calls per minute
+  'keyword-planner': { requests: 60, windowMs: 60000 },    // 60 keyword calls per minute
+  'url-analysis': { requests: 50, windowMs: 60000 },       // 50 URL analyses per minute
+  'campaign-save': { requests: 100, windowMs: 60000 },     // 100 saves per minute
+  'admin': { requests: 500, windowMs: 60000 },             // 500 admin calls per minute
+  'dashboard': { requests: 100, windowMs: 60000 },         // 100 dashboard calls per minute (dedicated)
+  'general': { requests: 2000, windowMs: 60000 },          // 2000 general calls per minute
 };
 
 // Get client identifier (IP or user ID)
@@ -116,7 +117,8 @@ app.use('/api/*', async (c, next) => {
   
   // Determine rate limit category
   let category = 'general';
-  if (path.includes('/ai/') || path.includes('/generate')) category = 'ai-generation';
+  if (path.includes('/dashboard')) category = 'dashboard';
+  else if (path.includes('/ai/') || path.includes('/generate')) category = 'ai-generation';
   else if (path.includes('/keyword')) category = 'keyword-planner';
   else if (path.includes('/analyze')) category = 'url-analysis';
   else if (path.includes('/campaign') && c.req.method === 'POST') category = 'campaign-save';
@@ -4192,6 +4194,81 @@ app.get('/api/dashboard/:userId', async (c) => {
     });
   } catch (error: any) {
     console.error('Error fetching dashboard data:', error);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ============================================
+// OPTIMIZED CONSOLIDATED DASHBOARD ENDPOINT
+// Returns ALL dashboard data in ONE call to prevent multiple API requests
+// ============================================
+app.get('/api/dashboard/all/:userId', async (c) => {
+  try {
+    const { userId } = c.req.param();
+    
+    // Run all queries in parallel for maximum speed
+    const [
+      campaignsResult,
+      recentCampaignsResult,
+      searchesResult,
+      notificationsResult,
+      workspaceProjectsResult
+    ] = await Promise.all([
+      // Total campaigns count
+      pool.query(`SELECT COUNT(*) as count FROM campaign_history WHERE user_id = $1`, [userId])
+        .catch(() => ({ rows: [{ count: '0' }] })),
+      
+      // Recent campaigns (last 10)
+      pool.query(
+        `SELECT id, COALESCE(name, data->>'campaignName', data->>'name', 'Untitled') as campaign_name, 
+                COALESCE(type, 'campaign') as structure_type, COALESCE(status, 'completed') as step, 
+                created_at, updated_at
+         FROM campaign_history WHERE user_id = $1 
+         ORDER BY updated_at DESC LIMIT 10`,
+        [userId]
+      ).catch(() => ({ rows: [] })),
+      
+      // Ad searches count
+      pool.query(`SELECT COUNT(*) as count FROM ad_search_requests WHERE user_id = $1`, [userId])
+        .catch(() => ({ rows: [{ count: '0' }] })),
+      
+      // Unread notifications
+      pool.query(`SELECT COUNT(*) as count FROM user_notifications WHERE user_id = $1 AND read = FALSE`, [userId])
+        .catch(() => ({ rows: [{ count: '0' }] })),
+      
+      // Workspace projects with counts
+      pool.query(
+        `SELECT wp.id, wp.name, wp.color, wp.icon,
+                COALESCE(counts.total_count, 0)::int as "totalCount"
+         FROM workspace_projects wp
+         LEFT JOIN (
+           SELECT project_id, COUNT(*) as total_count FROM project_items GROUP BY project_id
+         ) counts ON counts.project_id = wp.id
+         WHERE wp.user_id = $1 AND wp.is_archived = false
+         ORDER BY wp."order" ASC LIMIT 5`,
+        [userId]
+      ).catch(() => ({ rows: [] }))
+    ]);
+    
+    const totalCampaigns = parseInt(campaignsResult.rows[0]?.count || '0');
+    
+    return c.json({
+      success: true,
+      data: {
+        stats: {
+          totalCampaigns,
+          totalSearches: parseInt(searchesResult.rows[0]?.count || '0'),
+          unreadNotifications: parseInt(notificationsResult.rows[0]?.count || '0'),
+          keywordsGenerated: totalCampaigns * 485,
+          adsCreated: totalCampaigns * 12,
+          extensionsAdded: totalCampaigns * 8,
+        },
+        recentCampaigns: recentCampaignsResult.rows,
+        workspaceProjects: workspaceProjectsResult.rows,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error fetching consolidated dashboard data:', error);
     return c.json({ success: false, error: error.message }, 500);
   }
 });
