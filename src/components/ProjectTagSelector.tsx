@@ -263,8 +263,14 @@ export function ProjectTagSelector({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setOpen(true);
+            }}
             className={`${size === 'sm' ? 'h-6 px-1.5' : 'h-7 px-2'} text-slate-500 hover:text-slate-700 hover:bg-slate-100`}
           >
             <Tag className={iconSize} />
