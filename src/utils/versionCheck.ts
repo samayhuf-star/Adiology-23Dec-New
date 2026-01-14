@@ -5,9 +5,10 @@
 
 const APP_VERSION_KEY = 'app_version';
 const VERSION_CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
+const VERSION_CHECK_INITIALIZED_KEY = 'app_version_initialized';
 
-// Generate a unique build ID based on build time
-const BUILD_VERSION = import.meta.env.VITE_BUILD_TIME || Date.now().toString();
+// Generate a unique build ID based on build time - use a stable fallback
+const BUILD_VERSION = import.meta.env.VITE_BUILD_TIME || 'dev-build-v1';
 
 /**
  * Initialize version checking
@@ -15,6 +16,10 @@ const BUILD_VERSION = import.meta.env.VITE_BUILD_TIME || Date.now().toString();
  */
 export function initVersionCheck() {
   if (typeof window === 'undefined') return;
+
+  // Prevent multiple initializations in the same page load
+  if ((window as any).__versionCheckInitialized) return;
+  (window as any).__versionCheckInitialized = true;
 
   const storedVersion = localStorage.getItem(APP_VERSION_KEY);
   
@@ -25,11 +30,19 @@ export function initVersionCheck() {
   }
 
   // Version mismatch detected - app was redeployed
-  if (storedVersion !== BUILD_VERSION) {
+  // Only trigger once per session to prevent repeated cache clearing
+  const sessionKey = `version_cleared_${BUILD_VERSION}`;
+  const alreadyCleared = sessionStorage.getItem(sessionKey);
+  
+  if (storedVersion !== BUILD_VERSION && !alreadyCleared) {
     console.log('[VersionCheck] New version detected, updating...');
     localStorage.setItem(APP_VERSION_KEY, BUILD_VERSION);
-    // Clear any stale caches
+    sessionStorage.setItem(sessionKey, 'true');
+    // Clear any stale caches - only once
     clearStaleCache();
+  } else if (storedVersion !== BUILD_VERSION) {
+    // Update stored version but don't clear cache again
+    localStorage.setItem(APP_VERSION_KEY, BUILD_VERSION);
   }
 
   // Start periodic version checks (for long-running sessions)
