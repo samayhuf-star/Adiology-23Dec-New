@@ -32,6 +32,8 @@ import { notifications as notificationService } from './utils/notifications';
 import { setClerkGetToken } from './utils/historyService';
 import { setCurrentUserId } from './utils/localStorageHistory';
 import { setClerkUser, setClerkAuth } from './utils/auth';
+import { DataSourceIndicator } from './components/DataSourceIndicator';
+import { useDataSource } from './hooks/useDataSource';
 import { initStorageManager, clearStorageNow } from './utils/storageManager';
 import { FeedbackButton } from './components/FeedbackButton';
 import { ClerkAuth } from './components/ClerkAuth';
@@ -89,6 +91,7 @@ const AppContent = () => {
   const { isLoaded: clerkLoaded, isSignedIn, user: clerkUser } = useUser();
   const { signOut: clerkSignOut } = useClerk();
   const { getToken } = useAuth();
+  const dataSource = useDataSource();
   
   // Track auth transition to prevent rendering during unstable states
   const [isAuthTransitioning, setIsAuthTransitioning] = useState(false);
@@ -1827,6 +1830,9 @@ const AppContent = () => {
             <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hidden lg:block">
               {getCurrentPageTitle()}
             </h2>
+            
+            {/* Data Source Indicator - Shows if data is from live API or local cache */}
+            <DataSourceIndicator source={dataSource} />
             
             {/* View Mode Toggle - Only show for owners/admins */}
             {canSwitchViews && (
