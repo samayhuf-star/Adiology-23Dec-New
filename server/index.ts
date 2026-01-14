@@ -5828,6 +5828,134 @@ app.get('/api/item-projects/:itemType/:itemId', async (c) => {
 });
 
 // ============================================
+// CAMPAIGN-SPECIFIC PROJECT ENDPOINTS
+// ============================================
+
+// Get all projects linked to a campaign
+app.get('/api/campaigns/:id/projects', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const campaignId = c.req.param('id');
+    
+    const result = await pool.query(
+      `SELECT wp.id, wp.name, wp.color, wp.icon
+       FROM project_items pi
+       JOIN workspace_projects wp ON wp.id = pi.project_id
+       WHERE pi.item_type = 'campaign' AND pi.item_id = $1 AND wp.user_id = $2`,
+      [campaignId, auth.userId]
+    );
+    
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching campaign projects:', error);
+    return c.json({ error: error.message || 'Failed to fetch campaign projects' }, 500);
+  }
+});
+
+// Link a project to a campaign
+app.post('/api/campaigns/:id/projects/:projectId', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const campaignId = c.req.param('id');
+    const projectId = c.req.param('projectId');
+    
+    // Verify campaign belongs to user
+    const campaignCheck = await pool.query(
+      `SELECT id, name FROM campaign_history WHERE id = $1 AND user_id = $2`,
+      [campaignId, auth.userId]
+    );
+    
+    if (campaignCheck.rows.length === 0) {
+      return c.json({ error: 'Campaign not found or access denied' }, 404);
+    }
+    
+    // Verify project belongs to user
+    const projectCheck = await pool.query(
+      `SELECT id FROM workspace_projects WHERE id = $1 AND user_id = $2`,
+      [projectId, auth.userId]
+    );
+    
+    if (projectCheck.rows.length === 0) {
+      return c.json({ error: 'Project not found or access denied' }, 404);
+    }
+    
+    // Check if already linked
+    const existingLink = await pool.query(
+      `SELECT id FROM project_items WHERE project_id = $1 AND item_id = $2 AND item_type = 'campaign'`,
+      [projectId, campaignId]
+    );
+    
+    if (existingLink.rows.length > 0) {
+      return c.json({ success: true, message: 'Already linked' });
+    }
+    
+    const itemName = campaignCheck.rows[0].name || 'Campaign';
+    
+    await pool.query(
+      `INSERT INTO project_items (project_id, item_type, item_id, item_name, created_at)
+       VALUES ($1, 'campaign', $2, $3, NOW())`,
+      [projectId, campaignId, itemName]
+    );
+    
+    return c.json({ success: true, message: 'Project linked to campaign' });
+  } catch (error: any) {
+    console.error('Error linking project to campaign:', error);
+    return c.json({ error: error.message || 'Failed to link project' }, 500);
+  }
+});
+
+// Unlink a project from a campaign
+app.delete('/api/campaigns/:id/projects/:projectId', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const campaignId = c.req.param('id');
+    const projectId = c.req.param('projectId');
+    
+    // Verify campaign belongs to user
+    const campaignCheck = await pool.query(
+      `SELECT id FROM campaign_history WHERE id = $1 AND user_id = $2`,
+      [campaignId, auth.userId]
+    );
+    
+    if (campaignCheck.rows.length === 0) {
+      return c.json({ error: 'Campaign not found or access denied' }, 404);
+    }
+    
+    // Verify project belongs to user
+    const projectCheck = await pool.query(
+      `SELECT id FROM workspace_projects WHERE id = $1 AND user_id = $2`,
+      [projectId, auth.userId]
+    );
+    
+    if (projectCheck.rows.length === 0) {
+      return c.json({ error: 'Project not found or access denied' }, 404);
+    }
+    
+    await pool.query(
+      `DELETE FROM project_items WHERE project_id = $1 AND item_id = $2 AND item_type = 'campaign'`,
+      [projectId, campaignId]
+    );
+    
+    return c.json({ success: true, message: 'Project unlinked from campaign' });
+  } catch (error: any) {
+    console.error('Error unlinking project from campaign:', error);
+    return c.json({ error: error.message || 'Failed to unlink project' }, 500);
+  }
+});
+
+// ============================================
 // SEAT MANAGEMENT API ENDPOINTS
 // ============================================
 
