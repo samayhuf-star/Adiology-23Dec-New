@@ -73,6 +73,7 @@ const PromoLandingPage = lazy(() => import('./components/PromoLandingPage').then
 const TaskManager = lazy(() => import('./components/TaskManager').then(m => ({ default: m.TaskManager })));
 const WorkspaceProjects = lazy(() => import('./components/WorkspaceProjects').then(m => ({ default: m.WorkspaceProjects })));
 const CommunityPage = lazy(() => import('./modules/community').then(m => ({ default: m.CommunityPage })));
+const AcceptInvite = lazy(() => import('./components/AcceptInvite').then(m => ({ default: m.AcceptInvite })));
 
 // Loading component for lazy-loaded modules
 const ComponentLoader = () => (
@@ -84,7 +85,7 @@ const ComponentLoader = () => (
   </div>
 );
 
-type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel';
+type AppView = 'homepage' | 'auth' | 'user' | 'verify-email' | 'reset-password' | 'payment' | 'payment-success' | 'plan-selection' | 'privacy-policy' | 'terms-of-service' | 'cookie-policy' | 'gdpr-compliance' | 'refund-policy' | 'promo' | 'admin-panel' | 'accept-invite';
 
 const AppContent = () => {
   const { theme } = useTheme();
@@ -631,6 +632,12 @@ const AppContent = () => {
         return;
       }
 
+      // Accept team invite - public access (will prompt sign in if needed)
+      if (path.startsWith('/accept-invite')) {
+        setView('accept-invite');
+        return;
+      }
+
       // Promo landing page - public access
       if (path.startsWith('/promo')) {
         setView('promo');
@@ -729,7 +736,7 @@ const AppContent = () => {
   useEffect(() => {
     if (!loading && !user && (window.location.pathname === '/' || window.location.pathname === '')) {
       // Only set to homepage if we're not already on a specific route
-      if (appView !== 'homepage' && appView !== 'auth' && appView !== 'reset-password' && appView !== 'verify-email' && appView !== 'payment' && appView !== 'payment-success' && appView !== 'plan-selection' && appView !== 'promo') {
+      if (appView !== 'homepage' && appView !== 'auth' && appView !== 'reset-password' && appView !== 'verify-email' && appView !== 'payment' && appView !== 'payment-success' && appView !== 'plan-selection' && appView !== 'promo' && appView !== 'accept-invite') {
         setAppView('homepage');
       }
     }
@@ -1153,6 +1160,24 @@ const AppContent = () => {
           });
         }}
       />
+    );
+  }
+
+  if (appView === 'accept-invite') {
+    return (
+      <Suspense fallback={<ComponentLoader />}>
+        <AcceptInvite
+          onComplete={() => {
+            window.history.pushState({}, '', '/');
+            setAppView('user');
+            setActiveTab('dashboard');
+          }}
+          onSignIn={() => {
+            setAuthMode('sign-in');
+            setAppView('auth');
+          }}
+        />
+      </Suspense>
     );
   }
 

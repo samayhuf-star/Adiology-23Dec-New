@@ -24,7 +24,7 @@ interface TeamMember {
   id: string;
   email: string;
   name: string;
-  role: 'owner' | 'admin' | 'member';
+  role: 'owner' | 'admin' | 'editor' | 'viewer';
   status: 'active' | 'pending';
   joinedAt?: string;
   invitedAt?: string;
@@ -42,7 +42,7 @@ export const Teams: React.FC = () => {
   const { user } = useUser();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
+  const [inviteRole, setInviteRole] = useState<'admin' | 'editor' | 'viewer'>('viewer');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +54,18 @@ export const Teams: React.FC = () => {
     loadTeamData();
   }, []);
 
+  const migrateRoles = (members: TeamMember[]): TeamMember[] => {
+    let needsMigration = false;
+    const migratedMembers = members.map(member => {
+      if ((member.role as string) === 'member') {
+        needsMigration = true;
+        return { ...member, role: 'viewer' as const };
+      }
+      return member;
+    });
+    return needsMigration ? migratedMembers : members;
+  };
+
   const loadTeamData = async () => {
     try {
       const profile = await getCurrentUserProfile();
@@ -62,7 +74,12 @@ export const Teams: React.FC = () => {
         
         const savedTeam = localStorage.getItem(`team_members_${profile.id}`);
         if (savedTeam) {
-          setTeamMembers(JSON.parse(savedTeam));
+          const parsedMembers = JSON.parse(savedTeam);
+          const migratedMembers = migrateRoles(parsedMembers);
+          setTeamMembers(migratedMembers);
+          if (migratedMembers !== parsedMembers) {
+            localStorage.setItem(`team_members_${profile.id}`, JSON.stringify(migratedMembers));
+          }
         } else {
           const ownerMember: TeamMember = {
             id: profile.id,
@@ -169,7 +186,7 @@ export const Teams: React.FC = () => {
 
       const sentEmail = inviteEmail;
       setInviteEmail('');
-      setInviteRole('member');
+      setInviteRole('viewer');
       setIsInviteDialogOpen(false);
       
       // Show success message after dialog closes (use setTimeout to ensure dialog animation completes)
@@ -230,6 +247,20 @@ export const Teams: React.FC = () => {
       setTimeout(() => setError(null), 5000);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleChangeRole = (memberId: string, newRole: 'admin' | 'editor' | 'viewer') => {
+    const updatedMembers = teamMembers.map(m => 
+      m.id === memberId ? { ...m, role: newRole } : m
+    );
+    setTeamMembers(updatedMembers);
+    saveTeamData(updatedMembers);
+    
+    const member = teamMembers.find(m => m.id === memberId);
+    if (member) {
+      setSuccess(`${member.name}'s role updated to ${newRole}`);
+      setTimeout(() => setSuccess(null), 5000);
     }
   };
 
@@ -298,13 +329,36 @@ export const Teams: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <p className="font-medium" style={{ color: '#1e293b' }}>{member.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium" style={{ color: '#1e293b' }}>{member.name}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      member.role === 'owner' ? 'bg-purple-100 text-purple-700' :
+                      member.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                      member.role === 'editor' ? 'bg-green-100 text-green-700' :
+                      'bg-slate-100 text-slate-600'
+                    }`}>
+                      {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                    </span>
+                  </div>
                   <p className="text-sm" style={{ color: '#64748b' }}>{member.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {member.role !== 'owner' && (
                   <>
+                    <Select 
+                      value={member.role} 
+                      onValueChange={(value: 'admin' | 'editor' | 'viewer') => handleChangeRole(member.id, value)}
+                    >
+                      <SelectTrigger className="w-28 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="editor">Editor</SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                      </SelectContent>
+                    </Select>
                     {member.status === 'pending' && (
                       <button
                         onClick={() => handleResendInvite(member.id)}
@@ -378,13 +432,14 @@ export const Teams: React.FC = () => {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Role
               </label>
-              <Select value={inviteRole} onValueChange={(value: 'admin' | 'member') => setInviteRole(value)}>
+              <Select value={inviteRole} onValueChange={(value: 'admin' | 'editor' | 'viewer') => setInviteRole(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="admin">Admin - Full access to manage team and settings</SelectItem>
+                  <SelectItem value="editor">Editor - Can create and edit campaigns</SelectItem>
+                  <SelectItem value="viewer">Viewer - Read-only access to view campaigns</SelectItem>
                 </SelectContent>
               </Select>
             </div>
