@@ -6,6 +6,30 @@ import { localStorageHistory, HistoryItem } from './localStorageHistory';
  * Uses backend API for database storage, falls back to localStorage when unavailable
  */
 
+export type DataSourceType = 'live' | 'cached' | 'loading';
+
+type DataSourceListener = (source: DataSourceType) => void;
+
+let currentDataSource: DataSourceType = 'loading';
+const dataSourceListeners: Set<DataSourceListener> = new Set();
+
+export function getDataSource(): DataSourceType {
+  return currentDataSource;
+}
+
+export function subscribeToDataSource(listener: DataSourceListener): () => void {
+  dataSourceListeners.add(listener);
+  listener(currentDataSource);
+  return () => dataSourceListeners.delete(listener);
+}
+
+function setDataSource(source: DataSourceType) {
+  if (currentDataSource !== source) {
+    currentDataSource = source;
+    dataSourceListeners.forEach(listener => listener(source));
+  }
+}
+
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000; // 1 second
 
@@ -89,12 +113,14 @@ export const historyService = {
 
         const result = await response.json();
         console.log('Saved to database:', result.data?.id);
+        setDataSource('live');
         return result.data?.id || crypto.randomUUID();
       } else {
         throw new Error('No auth token available');
       }
     } catch (error) {
       console.log('Falling back to localStorage storage');
+      setDataSource('cached');
       await localStorageHistory.save(type, name, data, status);
       const items = localStorageHistory.getAll();
       const savedItem = items[items.length - 1];
@@ -181,6 +207,7 @@ export const historyService = {
    * Uses backend API when available, falls back to localStorage
    */
   async getAll(): Promise<HistoryItem[]> {
+    setDataSource('loading');
     try {
       const token = await getAuthToken();
       
@@ -211,12 +238,14 @@ export const historyService = {
         }));
 
         console.log(`Loaded ${items.length} items from database`);
+        setDataSource('live');
         
         // If no items from database, try localStorage for legacy data
         if (items.length === 0) {
           const localItems = localStorageHistory.getAll();
           if (localItems.length > 0) {
             console.log(`Found ${localItems.length} legacy items in localStorage`);
+            setDataSource('cached');
             return localItems;
           }
         }
@@ -227,6 +256,7 @@ export const historyService = {
       }
     } catch (error) {
       console.log('Falling back to localStorage retrieval');
+      setDataSource('cached');
       try {
         const localItems = localStorageHistory.getAll();
         return localItems.map((item: any) => ({
