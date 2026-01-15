@@ -5956,6 +5956,522 @@ app.delete('/api/campaigns/:id/projects/:projectId', async (c) => {
 });
 
 // ============================================
+// ORGANIZATION & TEAM MANAGEMENT API ENDPOINTS
+// ============================================
+
+// Helper function to generate unique invite codes
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// Get user's organization (or create one)
+app.get('/api/organizations/my', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    // Check if user has an organization
+    let result = await pool.query(
+      `SELECT o.*, 
+        (SELECT COUNT(*) FROM organization_members WHERE organization_id = o.id) as member_count
+       FROM organizations o
+       WHERE o.owner_id = $1
+       LIMIT 1`,
+      [auth.userId]
+    );
+    
+    // Also check if user is a member of any organization
+    if (result.rows.length === 0) {
+      result = await pool.query(
+        `SELECT o.*, 
+          (SELECT COUNT(*) FROM organization_members WHERE organization_id = o.id) as member_count
+         FROM organizations o
+         JOIN organization_members om ON om.organization_id = o.id
+         WHERE om.user_id = $1
+         LIMIT 1`,
+        [auth.userId]
+      );
+    }
+    
+    if (result.rows.length === 0) {
+      return c.json({ success: true, data: null });
+    }
+    
+    return c.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error fetching organization:', error);
+    return c.json({ error: error.message || 'Failed to fetch organization' }, 500);
+  }
+});
+
+// Create organization
+app.post('/api/organizations', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const body = await c.req.json();
+    const { name } = body;
+    
+    if (!name || name.trim().length === 0) {
+      return c.json({ error: 'Organization name is required' }, 400);
+    }
+    
+    // Check if user already owns an organization
+    const existingOrg = await pool.query(
+      `SELECT id FROM organizations WHERE owner_id = $1`,
+      [auth.userId]
+    );
+    
+    if (existingOrg.rows.length > 0) {
+      return c.json({ error: 'You already have an organization' }, 400);
+    }
+    
+    // Get user details
+    const userResult = await pool.query(
+      `SELECT email, full_name FROM users WHERE id = $1`,
+      [auth.userId]
+    );
+    
+    const userEmail = userResult.rows[0]?.email || '';
+    const userName = userResult.rows[0]?.full_name || userEmail.split('@')[0];
+    
+    // Create slug from name
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    
+    // Create organization
+    const orgResult = await pool.query(
+      `INSERT INTO organizations (name, slug, owner_id, created_at, updated_at)
+       VALUES ($1, $2, $3, NOW(), NOW())
+       RETURNING *`,
+      [name.trim(), slug, auth.userId]
+    );
+    
+    const org = orgResult.rows[0];
+    
+    // Add owner as member with owner role
+    await pool.query(
+      `INSERT INTO organization_members (organization_id, user_id, email, name, role, status, joined_at)
+       VALUES ($1, $2, $3, $4, 'owner', 'active', NOW())`,
+      [org.id, auth.userId, userEmail, userName]
+    );
+    
+    return c.json({ success: true, data: org });
+  } catch (error: any) {
+    console.error('Error creating organization:', error);
+    return c.json({ error: error.message || 'Failed to create organization' }, 500);
+  }
+});
+
+// Get organization members
+app.get('/api/organizations/:orgId/members', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    
+    // Verify user is a member of this organization
+    const memberCheck = await pool.query(
+      `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2`,
+      [orgId, auth.userId]
+    );
+    
+    if (memberCheck.rows.length === 0) {
+      return c.json({ error: 'Access denied' }, 403);
+    }
+    
+    const result = await pool.query(
+      `SELECT id, user_id, email, name, role, status, joined_at, invited_at
+       FROM organization_members
+       WHERE organization_id = $1
+       ORDER BY 
+         CASE role 
+           WHEN 'owner' THEN 1 
+           WHEN 'admin' THEN 2 
+           WHEN 'editor' THEN 3 
+           WHEN 'viewer' THEN 4 
+         END,
+         joined_at`,
+      [orgId]
+    );
+    
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching organization members:', error);
+    return c.json({ error: error.message || 'Failed to fetch members' }, 500);
+  }
+});
+
+// Update member role
+app.patch('/api/organizations/:orgId/members/:memberId', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const memberId = c.req.param('memberId');
+    const body = await c.req.json();
+    const { role } = body;
+    
+    if (!['admin', 'editor', 'viewer'].includes(role)) {
+      return c.json({ error: 'Invalid role' }, 400);
+    }
+    
+    // Verify user has admin access
+    const adminCheck = await pool.query(
+      `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2`,
+      [orgId, auth.userId]
+    );
+    
+    if (adminCheck.rows.length === 0 || !['owner', 'admin'].includes(adminCheck.rows[0].role)) {
+      return c.json({ error: 'Only owners and admins can change roles' }, 403);
+    }
+    
+    // Cannot change owner role
+    const targetMember = await pool.query(
+      `SELECT role FROM organization_members WHERE id = $1`,
+      [memberId]
+    );
+    
+    if (targetMember.rows[0]?.role === 'owner') {
+      return c.json({ error: 'Cannot change owner role' }, 400);
+    }
+    
+    await pool.query(
+      `UPDATE organization_members SET role = $1, updated_at = NOW() WHERE id = $2`,
+      [role, memberId]
+    );
+    
+    return c.json({ success: true, message: 'Role updated' });
+  } catch (error: any) {
+    console.error('Error updating member role:', error);
+    return c.json({ error: error.message || 'Failed to update role' }, 500);
+  }
+});
+
+// Remove member
+app.delete('/api/organizations/:orgId/members/:memberId', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const memberId = c.req.param('memberId');
+    
+    // Verify user has admin access
+    const adminCheck = await pool.query(
+      `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2`,
+      [orgId, auth.userId]
+    );
+    
+    if (adminCheck.rows.length === 0 || !['owner', 'admin'].includes(adminCheck.rows[0].role)) {
+      return c.json({ error: 'Only owners and admins can remove members' }, 403);
+    }
+    
+    // Cannot remove owner
+    const targetMember = await pool.query(
+      `SELECT role FROM organization_members WHERE id = $1`,
+      [memberId]
+    );
+    
+    if (targetMember.rows[0]?.role === 'owner') {
+      return c.json({ error: 'Cannot remove owner' }, 400);
+    }
+    
+    await pool.query(`DELETE FROM organization_members WHERE id = $1`, [memberId]);
+    
+    return c.json({ success: true, message: 'Member removed' });
+  } catch (error: any) {
+    console.error('Error removing member:', error);
+    return c.json({ error: error.message || 'Failed to remove member' }, 500);
+  }
+});
+
+// Create invite code
+app.post('/api/organizations/:orgId/invites', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const body = await c.req.json();
+    const { email, role = 'viewer', expiresInDays = 7, maxUses = 1 } = body;
+    
+    if (!['admin', 'editor', 'viewer'].includes(role)) {
+      return c.json({ error: 'Invalid role' }, 400);
+    }
+    
+    // Verify user has admin access
+    const adminCheck = await pool.query(
+      `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2`,
+      [orgId, auth.userId]
+    );
+    
+    if (adminCheck.rows.length === 0 || !['owner', 'admin'].includes(adminCheck.rows[0].role)) {
+      return c.json({ error: 'Only owners and admins can create invites' }, 403);
+    }
+    
+    // Generate unique code
+    let code: string;
+    let isUnique = false;
+    let attempts = 0;
+    
+    while (!isUnique && attempts < 10) {
+      code = generateInviteCode();
+      const existing = await pool.query(
+        `SELECT id FROM organization_invites WHERE code = $1`,
+        [code]
+      );
+      isUnique = existing.rows.length === 0;
+      attempts++;
+    }
+    
+    if (!isUnique) {
+      return c.json({ error: 'Failed to generate unique code' }, 500);
+    }
+    
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+    
+    const result = await pool.query(
+      `INSERT INTO organization_invites 
+       (organization_id, code, email, role, invited_by, expires_at, max_uses, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+       RETURNING *`,
+      [orgId, code!, email || null, role, auth.userId, expiresAt, maxUses]
+    );
+    
+    return c.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
+    console.error('Error creating invite:', error);
+    return c.json({ error: error.message || 'Failed to create invite' }, 500);
+  }
+});
+
+// List organization invites
+app.get('/api/organizations/:orgId/invites', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    
+    // Verify user has admin access
+    const adminCheck = await pool.query(
+      `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2`,
+      [orgId, auth.userId]
+    );
+    
+    if (adminCheck.rows.length === 0 || !['owner', 'admin'].includes(adminCheck.rows[0].role)) {
+      return c.json({ error: 'Only owners and admins can view invites' }, 403);
+    }
+    
+    const result = await pool.query(
+      `SELECT * FROM organization_invites 
+       WHERE organization_id = $1 
+       ORDER BY created_at DESC`,
+      [orgId]
+    );
+    
+    return c.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('Error fetching invites:', error);
+    return c.json({ error: error.message || 'Failed to fetch invites' }, 500);
+  }
+});
+
+// Revoke invite
+app.delete('/api/organizations/:orgId/invites/:inviteId', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const orgId = c.req.param('orgId');
+    const inviteId = c.req.param('inviteId');
+    
+    // Verify user has admin access
+    const adminCheck = await pool.query(
+      `SELECT role FROM organization_members WHERE organization_id = $1 AND user_id = $2`,
+      [orgId, auth.userId]
+    );
+    
+    if (adminCheck.rows.length === 0 || !['owner', 'admin'].includes(adminCheck.rows[0].role)) {
+      return c.json({ error: 'Only owners and admins can revoke invites' }, 403);
+    }
+    
+    await pool.query(
+      `UPDATE organization_invites SET status = 'revoked' WHERE id = $1 AND organization_id = $2`,
+      [inviteId, orgId]
+    );
+    
+    return c.json({ success: true, message: 'Invite revoked' });
+  } catch (error: any) {
+    console.error('Error revoking invite:', error);
+    return c.json({ error: error.message || 'Failed to revoke invite' }, 500);
+  }
+});
+
+// Validate invite code (public endpoint for checking before joining)
+app.get('/api/invites/:code', async (c) => {
+  try {
+    const code = c.req.param('code').toUpperCase();
+    
+    const result = await pool.query(
+      `SELECT oi.*, o.name as organization_name
+       FROM organization_invites oi
+       JOIN organizations o ON o.id = oi.organization_id
+       WHERE oi.code = $1 AND oi.status = 'pending'`,
+      [code]
+    );
+    
+    if (result.rows.length === 0) {
+      return c.json({ error: 'Invalid or expired invite code' }, 404);
+    }
+    
+    const invite = result.rows[0];
+    
+    // Check expiry
+    if (new Date(invite.expires_at) < new Date()) {
+      return c.json({ error: 'This invite has expired' }, 400);
+    }
+    
+    // Check max uses
+    if (invite.use_count >= invite.max_uses) {
+      return c.json({ error: 'This invite has reached its usage limit' }, 400);
+    }
+    
+    return c.json({ 
+      success: true, 
+      data: {
+        organizationName: invite.organization_name,
+        role: invite.role,
+        email: invite.email,
+        expiresAt: invite.expires_at
+      }
+    });
+  } catch (error: any) {
+    console.error('Error validating invite:', error);
+    return c.json({ error: error.message || 'Failed to validate invite' }, 500);
+  }
+});
+
+// Join organization with invite code
+app.post('/api/invites/:code/join', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const code = c.req.param('code').toUpperCase();
+    
+    // Get invite
+    const inviteResult = await pool.query(
+      `SELECT * FROM organization_invites WHERE code = $1 AND status = 'pending'`,
+      [code]
+    );
+    
+    if (inviteResult.rows.length === 0) {
+      return c.json({ error: 'Invalid or expired invite code' }, 404);
+    }
+    
+    const invite = inviteResult.rows[0];
+    
+    // Check expiry
+    if (new Date(invite.expires_at) < new Date()) {
+      await pool.query(`UPDATE organization_invites SET status = 'expired' WHERE id = $1`, [invite.id]);
+      return c.json({ error: 'This invite has expired' }, 400);
+    }
+    
+    // Check max uses
+    if (invite.use_count >= invite.max_uses) {
+      return c.json({ error: 'This invite has reached its usage limit' }, 400);
+    }
+    
+    // Check if email-restricted and matches
+    if (invite.email) {
+      const userResult = await pool.query(`SELECT email FROM users WHERE id = $1`, [auth.userId]);
+      const userEmail = userResult.rows[0]?.email;
+      if (userEmail?.toLowerCase() !== invite.email.toLowerCase()) {
+        return c.json({ error: 'This invite is for a different email address' }, 403);
+      }
+    }
+    
+    // Check if already a member
+    const existingMember = await pool.query(
+      `SELECT id FROM organization_members WHERE organization_id = $1 AND user_id = $2`,
+      [invite.organization_id, auth.userId]
+    );
+    
+    if (existingMember.rows.length > 0) {
+      return c.json({ error: 'You are already a member of this organization' }, 400);
+    }
+    
+    // Get user details
+    const userResult = await pool.query(
+      `SELECT email, full_name FROM users WHERE id = $1`,
+      [auth.userId]
+    );
+    
+    const userEmail = userResult.rows[0]?.email || '';
+    const userName = userResult.rows[0]?.full_name || userEmail.split('@')[0];
+    
+    // Add as member
+    await pool.query(
+      `INSERT INTO organization_members (organization_id, user_id, email, name, role, status, invited_at, joined_at)
+       VALUES ($1, $2, $3, $4, $5, 'active', $6, NOW())`,
+      [invite.organization_id, auth.userId, userEmail, userName, invite.role, invite.created_at]
+    );
+    
+    // Update invite usage
+    await pool.query(
+      `UPDATE organization_invites 
+       SET use_count = use_count + 1, used_at = NOW(), used_by = $1,
+           status = CASE WHEN use_count + 1 >= max_uses THEN 'used' ELSE 'pending' END
+       WHERE id = $2`,
+      [auth.userId, invite.id]
+    );
+    
+    // Get org name for response
+    const orgResult = await pool.query(
+      `SELECT name FROM organizations WHERE id = $1`,
+      [invite.organization_id]
+    );
+    
+    return c.json({ 
+      success: true, 
+      message: `You have joined ${orgResult.rows[0]?.name || 'the organization'}`,
+      organizationId: invite.organization_id
+    });
+  } catch (error: any) {
+    console.error('Error joining organization:', error);
+    return c.json({ error: error.message || 'Failed to join organization' }, 500);
+  }
+});
+
+// ============================================
 // SEAT MANAGEMENT API ENDPOINTS
 // ============================================
 

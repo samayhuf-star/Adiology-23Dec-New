@@ -536,6 +536,76 @@ export const emailLogs = pgTable("email_logs", {
   sentAtIdx: index("idx_email_logs_sent_at").on(table.sentAt),
 }));
 
+export const organizations = pgTable("organizations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").unique(),
+  ownerId: text("owner_id").notNull(),
+  settings: jsonb("settings").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  ownerIdx: index("idx_organizations_owner").on(table.ownerId),
+  slugIdx: index("idx_organizations_slug").on(table.slug),
+}));
+
+export const organizationMembers = pgTable("organization_members", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
+  userId: text("user_id").notNull(),
+  email: text("email").notNull(),
+  name: text("name"),
+  role: text("role").notNull().default("viewer"),
+  status: text("status").notNull().default("active"),
+  joinedAt: timestamp("joined_at").defaultNow(),
+  invitedAt: timestamp("invited_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  orgUserUnique: unique("org_user_unique").on(table.organizationId, table.userId),
+  orgIdx: index("idx_org_members_org").on(table.organizationId),
+  userIdx: index("idx_org_members_user").on(table.userId),
+  roleIdx: index("idx_org_members_role").on(table.role),
+}));
+
+export const organizationInvites = pgTable("organization_invites", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
+  code: text("code").unique().notNull(),
+  email: text("email"),
+  role: text("role").notNull().default("viewer"),
+  invitedBy: text("invited_by").notNull(),
+  status: text("status").notNull().default("pending"),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  usedBy: text("used_by"),
+  maxUses: integer("max_uses").default(1),
+  useCount: integer("use_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  codeIdx: index("idx_org_invites_code").on(table.code),
+  orgIdx: index("idx_org_invites_org").on(table.organizationId),
+  statusIdx: index("idx_org_invites_status").on(table.status),
+  expiresIdx: index("idx_org_invites_expires").on(table.expiresAt),
+}));
+
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOrganizationMemberSchema = createInsertSchema(organizationMembers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOrganizationInviteSchema = createInsertSchema(organizationInvites).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
@@ -548,3 +618,9 @@ export type WorkspaceProject = typeof workspaceProjects.$inferSelect;
 export type InsertWorkspaceProject = z.infer<typeof insertWorkspaceProjectSchema>;
 export type ProjectItem = typeof projectItems.$inferSelect;
 export type InsertProjectItem = z.infer<typeof insertProjectItemSchema>;
+export type Organization = typeof organizations.$inferSelect;
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+export type OrganizationMember = typeof organizationMembers.$inferSelect;
+export type InsertOrganizationMember = z.infer<typeof insertOrganizationMemberSchema>;
+export type OrganizationInvite = typeof organizationInvites.$inferSelect;
+export type InsertOrganizationInvite = z.infer<typeof insertOrganizationInviteSchema>;

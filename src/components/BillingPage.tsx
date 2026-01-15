@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Zap, Star, Crown, Loader2 } from 'lucide-react';
-import { supabase } from '../utils/supabase/client';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { notifications } from '../utils/notifications';
 
 interface Price {
@@ -61,17 +61,25 @@ const PLAN_FEATURES: Record<string, string[]> = {
 };
 
 export const BillingPage: React.FC<BillingPageProps> = ({ onBack }) => {
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { getToken } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [currentPlan, setCurrentPlan] = useState<string>('free');
-  const [userEmail, setUserEmail] = useState<string>('');
+  
+  const userEmail = user?.primaryEmailAddress?.emailAddress || '';
 
   useEffect(() => {
     loadProducts();
-    loadCurrentUser();
   }, []);
+
+  useEffect(() => {
+    if (isUserLoaded && userEmail) {
+      loadCurrentSubscription();
+    }
+  }, [isUserLoaded, userEmail]);
 
   const loadProducts = async () => {
     try {
@@ -86,17 +94,17 @@ export const BillingPage: React.FC<BillingPageProps> = ({ onBack }) => {
     }
   };
 
-  const loadCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUserEmail(user.email || '');
-      try {
-        const response = await fetch(`/api/stripe/subscription/${encodeURIComponent(user.email || '')}`);
-        const data = await response.json();
-        setCurrentPlan(data.plan || 'free');
-      } catch (error) {
-        console.error('Error loading subscription:', error);
-      }
+  const loadCurrentSubscription = async () => {
+    if (!userEmail) return;
+    try {
+      const token = await getToken();
+      const response = await fetch(`/api/stripe/subscription/${encodeURIComponent(userEmail)}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const data = await response.json();
+      setCurrentPlan(data.plan || 'free');
+    } catch (error) {
+      console.error('Error loading subscription:', error);
     }
   };
 
@@ -108,12 +116,17 @@ export const BillingPage: React.FC<BillingPageProps> = ({ onBack }) => {
 
     setCheckoutLoading(priceId);
     try {
+      const token = await getToken();
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify({
           priceId,
           email: userEmail,
+          userId: user?.id,
         }),
       });
 
@@ -138,9 +151,13 @@ export const BillingPage: React.FC<BillingPageProps> = ({ onBack }) => {
     }
 
     try {
+      const token = await getToken();
       const response = await fetch('/api/stripe/portal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify({ email: userEmail }),
       });
 
@@ -174,7 +191,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({ onBack }) => {
     return product.metadata?.tier || product.name.toLowerCase().split(' ').pop() || 'starter';
   };
 
-  if (loading) {
+  if (loading || !isUserLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
