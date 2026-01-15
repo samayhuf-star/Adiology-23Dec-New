@@ -10,7 +10,7 @@ import re
 import time
 
 DISCOURSE_API_KEY = os.environ.get("DISCOURSE_API_KEY", "")
-DISCOURSE_URL = os.environ.get("DISCOURSE_URL", "https://adiology.discourse.group")
+DISCOURSE_URL = "https://community.adiology.io"
 DISCOURSE_USERNAME = "system"
 
 PLACEHOLDER_REPLACEMENTS = {
@@ -120,17 +120,22 @@ def get_post_content(post_id):
 def update_post(post_id, new_content):
     """Update a post with new content"""
     headers = {
+        "Content-Type": "application/json",
         "Api-Key": DISCOURSE_API_KEY,
         "Api-Username": DISCOURSE_USERNAME,
-        "Content-Type": "application/json"
     }
     
     url = f"{DISCOURSE_URL}/posts/{post_id}.json"
-    response = requests.put(url, headers=headers, json={
+    payload = {
         "post": {
-            "raw": new_content
+            "raw": new_content,
+            "edit_reason": "Fixing placeholder text"
         }
-    })
+    }
+    response = requests.put(url, headers=headers, json=payload)
+    
+    if response.status_code != 200:
+        print(f"      API Response: {response.status_code} - {response.text[:200]}")
     
     return response.status_code == 200
 
