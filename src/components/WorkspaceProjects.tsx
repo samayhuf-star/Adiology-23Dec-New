@@ -125,10 +125,36 @@ export function WorkspaceProjects() {
   const fetchProjects = async () => {
     try {
       setLoading(true);
+      setError(null);
       const token = await getToken();
+      if (!token) {
+        setError('Authentication required. Please log in again.');
+        return;
+      }
+      
       const response = await fetch('/api/workspace-projects', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
+      // Check if response is OK before parsing JSON
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json().catch(() => ({}));
+          setError(errorData.error || `Failed to load projects (${response.status})`);
+        } else {
+          // Server returned HTML (error page) instead of JSON
+          setError(`Server error (${response.status}). Please try again or contact support.`);
+        }
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        setError('Invalid response format from server. Please try again.');
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
         setProjects(data.data);
@@ -136,10 +162,15 @@ export function WorkspaceProjects() {
           fetchProjectDetail(data.data[0].id);
         }
       } else {
-        setError(data.error);
+        setError(data.error || 'Failed to load projects');
       }
     } catch (err: any) {
-      setError(err.message);
+      console.error('Error fetching projects:', err);
+      if (err.message && err.message.includes('JSON')) {
+        setError('Server returned invalid data. Please try again or contact support.');
+      } else {
+        setError(err.message || 'Network error. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -149,9 +180,29 @@ export function WorkspaceProjects() {
     try {
       setLoadingDetail(true);
       const token = await getToken();
+      if (!token) return;
+      
       const response = await fetch(`/api/workspace-projects/${projectId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error fetching project detail:', errorData.error || response.status);
+        } else {
+          console.error('Error fetching project detail: Server returned non-JSON response');
+        }
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Error fetching project detail: Invalid response format');
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
         setSelectedProject(data.data);

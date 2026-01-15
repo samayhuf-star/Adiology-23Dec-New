@@ -10072,13 +10072,19 @@ if (isProduction) {
   });
 }
 
-console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
+// Export app for Vercel serverless functions
+export { app };
 
-// Start the server
-serve({
-  fetch: app.fetch,
-  port: apiPort,
-});
+// Only start the server if not in Vercel environment
+if (!process.env.VERCEL) {
+  console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
 
-// Initialize Stripe in the background AFTER server is running (non-blocking)
-initStripe().catch(err => console.error('Stripe init error:', err));
+  // Start the server
+  serve({
+    fetch: app.fetch,
+    port: apiPort,
+  });
+
+  // Initialize Stripe in the background AFTER server is running (non-blocking)
+  initStripe().catch(err => console.error('Stripe init error:', err));
+}

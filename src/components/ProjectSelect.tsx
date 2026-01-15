@@ -52,9 +52,27 @@ export function ProjectSelect({
     try {
       setLoading(true);
       const token = await getToken();
+      if (!token) return;
+      
       const response = await fetch('/api/workspace-projects', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          await response.json().catch(() => ({}));
+        }
+        console.error('Failed to fetch projects:', response.status);
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid response format from server');
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
         setProjects(data.data);

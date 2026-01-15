@@ -113,8 +113,19 @@ export function ProjectTagSelector({
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        setFetchError(errorData.error || `Failed to load projects (${response.status})`);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json().catch(() => ({}));
+          setFetchError(errorData.error || `Failed to load projects (${response.status})`);
+        } else {
+          setFetchError(`Server error (${response.status}). Please try again.`);
+        }
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        setFetchError('Invalid response format from server. Please try again.');
         return;
       }
       
