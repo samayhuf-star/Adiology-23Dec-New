@@ -229,12 +229,12 @@ USER_PROFILES = [
 ]
 
 REPLY_TEMPLATES = [
-    "Great question! Based on my experience, {{detail}}. This has helped me improve my {{metric}} by 30%+.",
-    "I completely agree with the answer above. Additionally, watch out for {{pitfall}}. Many people miss this and waste budget.",
-    "This is really valuable information. I've been using this approach for {{timeframe}} and it's transformed how I {{activity}}.",
-    "Perfect explanation! I would add that {{additional_tip}} can make a huge difference. Highly recommended testing this.",
-    "This aligns with what I've found in my campaigns. One more thing - {{extra_insight}} will give you even better results.",
-    "Excellent breakdown. The key insight here is {{key_point}}, which often gets overlooked. Great for improving {{outcome}}.",
+    "Great question! Based on my experience, {detail}. This has helped me improve my {metric} by 30%+.",
+    "I completely agree with the answer above. Additionally, watch out for {pitfall}. Many people miss this and waste budget.",
+    "This is really valuable information. I've been using this approach for {timeframe} and it's transformed how I {activity}.",
+    "Perfect explanation! I would add that {additional_tip} can make a huge difference. Highly recommended testing this.",
+    "This aligns with what I've found in my campaigns. One more thing - {extra_insight} will give you even better results.",
+    "Excellent breakdown. The key insight here is {key_point}, which often gets overlooked. Great for improving {outcome}.",
 ]
 
 # ============================================================================
