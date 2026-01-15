@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { FolderOpen, Plus, Check, Loader2, X, Link } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { notifications } from '../utils/notifications';
 import {
   Dialog,
   DialogContent,
@@ -97,9 +98,13 @@ export function LinkProjectDialog({
           onLinked?.(projectId, project.name);
         }
         setOpen(false);
+      } else {
+        console.error('Error linking to project:', data.error);
+        notifications.error(data.error || 'Failed to add to project');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error linking to project:', err);
+      notifications.error(err.message || 'Failed to add to project');
     } finally {
       setLinking(null);
     }

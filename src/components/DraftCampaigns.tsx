@@ -35,6 +35,7 @@ import {
 } from './ui/alert-dialog';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
+import { LinkProjectDialog } from './LinkProjectDialog';
 
 interface DraftCampaignsProps {
   onLoadCampaign: (data: any, mode: 'resume' | 'edit') => void;
@@ -428,6 +429,25 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
                             >
                               <Download className="w-4 h-4" />
                             </Button>
+                            <LinkProjectDialog
+                              itemType="campaign"
+                              itemId={campaign.id}
+                              itemName={campaign.name}
+                              itemMetadata={{
+                                structure: campaign.data?.selectedStructure || campaign.data?.structure,
+                                keywordCount: campaign.data?.selectedKeywords?.length || campaign.data?.keywords?.length || 0,
+                                adCount: campaign.data?.ads?.length || 0,
+                                targetCountry: campaign.data?.targetCountry,
+                                builderType: getBuilderType(campaign)
+                              }}
+                              variant="icon"
+                              triggerClassName="h-8 w-8"
+                              onLinked={(projectId, projectName) => {
+                                notifications.success(`Campaign "${campaign.name}" added to "${projectName}"`, {
+                                  title: 'Added to Project'
+                                });
+                              }}
+                            />
                             <Button
                               variant="ghost"
                               size="icon"
