@@ -50,7 +50,7 @@ export const PreferencesStep: React.FC = () => {
               <Switch
                 id="email-notifications"
                 checked={preferences.emailNotifications}
-                onCheckedChange={(checked) =>
+                onCheckedChange={(checked: boolean) =>
                   setPreferences(prev => ({ ...prev, emailNotifications: checked }))
                 }
               />
@@ -92,7 +92,7 @@ export const PreferencesStep: React.FC = () => {
               <Switch
                 id="marketing-emails"
                 checked={preferences.marketingEmails}
-                onCheckedChange={(checked) =>
+                onCheckedChange={(checked: boolean) =>
                   setPreferences(prev => ({ ...prev, marketingEmails: checked }))
                 }
               />
@@ -113,7 +113,7 @@ export const PreferencesStep: React.FC = () => {
               <Switch
                 id="weekly-reports"
                 checked={preferences.weeklyReports}
-                onCheckedChange={(checked) =>
+                onCheckedChange={(checked: boolean) =>
                   setPreferences(prev => ({ ...prev, weeklyReports: checked }))
                 }
               />

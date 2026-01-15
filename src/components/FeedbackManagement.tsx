@@ -15,7 +15,8 @@ import {
   User,
   ExternalLink,
   Trash2,
-  BarChart3
+  BarChart3,
+  Send
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -344,7 +345,7 @@ export const FeedbackManagement: React.FC = () => {
                 </Select>
                 <Select
                   value={filters.status}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                  onValueChange={(value: string) => setFilters(prev => ({ ...prev, status: value }))}
                 >
                   <SelectTrigger className="w-48">
                     <SelectValue />

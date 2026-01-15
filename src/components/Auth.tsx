@@ -158,12 +158,23 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess, onSignupSuccess, onB
         }
 
         // Create actual Supabase account
-        const { data, error: signupError } = await signUpWithEmail(trimmedEmail, trimmedPassword, trimmedName);
-        
-        if (signupError) {
-          let errorMessage = signupError.message || 'Signup failed. Please try again.';
+        try {
+          const result = await signUpWithEmail(trimmedEmail, trimmedPassword, trimmedName);
+          if (result.error) {
+            let errorMessage = result.error.message || 'Signup failed. Please try again.';
+            
+            if (errorMessage.includes('User already registered') || errorMessage.includes('already exists')) {
+              errorMessage = 'An account with this email already exists. Please sign in instead.';
+            }
+            
+            setError(errorMessage);
+            setIsLoading(false);
+            return;
+          }
+        } catch (err: any) {
+          let errorMessage = err?.message || 'Signup failed. Please try again.';
           
-          if (errorMessage.includes('User already registered') || errorMessage.includes('already exists')) {
+          if (errorMessage.includes('User already registered') || errorMessage.includes('already exists') || errorMessage.includes('Use Clerk')) {
             errorMessage = 'An account with this email already exists. Please sign in instead.';
           }
           
