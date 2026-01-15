@@ -167,7 +167,8 @@ export function ProjectTagSelector({
       }
       
       if (isSelected) {
-        const response = await fetch(`/api/workspace-projects/${project.id}/items/${itemId}`, {
+        const deleteUrl = `/api/workspace-projects/${project.id}/items/${encodeURIComponent(itemId)}${itemType ? `?itemType=${encodeURIComponent(itemType)}` : ''}`;
+        const response = await fetch(deleteUrl, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -393,8 +394,6 @@ export function ProjectTagSelector({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              e.preventDefault();
-              setOpen(true);
             }}
             className={`${size === 'sm' ? 'h-6 px-1.5' : 'h-7 px-2'} text-slate-500 hover:text-slate-700 hover:bg-slate-100`}
           >

@@ -119,17 +119,28 @@ export default defineConfig({
     target: 'es2015',
     outDir: 'build',
     minify: 'esbuild',
-    sourcemap: false,
-    chunkSizeWarningLimit: 2000,
+    sourcemap: process.env.NODE_ENV === 'production' ? false : true, // Only sourcemaps in dev
+    chunkSizeWarningLimit: 1000, // Lower threshold for better optimization
+    cssCodeSplit: true,
+    cssMinify: true,
     modulePreload: {
       polyfill: true,
     },
+    reportCompressedSize: true, // Report compressed sizes
     rollupOptions: {
+      treeshake: {
+        preset: 'recommended',
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        tryCatchDeoptimization: false,
+      },
       external: [],
       output: {
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: `assets/[name]-[hash].[ext]`,
+        // Optimize chunk splitting
+        compact: true,
         manualChunks: {
           // Force React core into a single chunk that loads first
           'react-vendor': ['react', 'react-dom', 'react/jsx-runtime'],
@@ -186,28 +197,28 @@ export default defineConfig({
       },
     },
   },
-    server: {
-      host: '0.0.0.0',
-      port: 5000,
-      strictPort: true,
-      allowedHosts: true,
-      hmr: {
-        clientPort: 5000,
-      },
-      proxy: {
-        '/api': {
-          target: 'http://localhost:3001',
-          changeOrigin: true,
-        },
-      },
-      watch: {
-        ignored: [
-          '**/node_modules/**',
-          '**/.cache/**',
-          '**/.local/**',
-          '**/replit/**',
-          '**/.git/**',
-        ],
+  server: {
+    host: '0.0.0.0',
+    port: 5000,
+    strictPort: true,
+    allowedHosts: true,
+    hmr: {
+      clientPort: 5000,
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
       },
     },
-  });
+    watch: {
+      ignored: [
+        '**/node_modules/**',
+        '**/.cache/**',
+        '**/.local/**',
+        '**/replit/**',
+        '**/.git/**',
+      ],
+    },
+  },
+});
