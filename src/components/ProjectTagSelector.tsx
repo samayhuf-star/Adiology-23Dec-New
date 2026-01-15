@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { Tag, Plus, Check, X, Search, Loader2 } from 'lucide-react';
+import { Tag, Plus, Check, X, Search, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
@@ -8,6 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from './ui/popover';
+import { toast } from 'sonner';
 
 interface Project {
   id: string;
@@ -48,6 +49,8 @@ export function ProjectTagSelector({
   const [searchQuery, setSearchQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [linking, setLinking] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasFetched = useRef(false);
 
@@ -98,43 +101,88 @@ export function ProjectTagSelector({
   const fetchProjects = async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       const token = await getToken();
-      if (!token) return;
+      if (!token) {
+        setFetchError('Authentication required');
+        return;
+      }
       
       const response = await fetch('/api/workspace-projects', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (!response.ok) return;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setFetchError(errorData.error || `Failed to load projects (${response.status})`);
+        return;
+      }
       
       const data = await response.json();
       if (data.success) {
         setProjects(data.data);
+        setFetchError(null);
+      } else {
+        setFetchError(data.error || 'Failed to load projects');
       }
     } catch (err) {
       console.error('Error fetching projects:', err);
+      setFetchError('Network error. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
+  const retryToggle = (project: Project) => {
+    setLinkError(null);
+    setFetchError(null);
+    toggleProject(project);
+  };
+
   const toggleProject = async (project: Project) => {
+    if (fetchError || linkError) return; // Prevent clicks during error state
+    
     const isSelected = selectedProjects.some(p => p.id === project.id);
     
     try {
       setLinking(project.id);
+      setLinkError(null);
       const token = await getToken();
+      
+      if (!token) {
+        setLinkError('Authentication required');
+        toast.error('Please sign in to manage projects');
+        return;
+      }
       
       if (isSelected) {
         const response = await fetch(`/api/workspace-projects/${project.id}/items/${itemId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMsg = errorData.error || 'Failed to remove project';
+          setLinkError(errorMsg);
+          toast.error(errorMsg, {
+            action: {
+              label: 'Retry',
+              onClick: () => retryToggle(project)
+            }
+          });
+          return;
+        }
+        
         const data = await response.json();
         if (data.success) {
           const updated = selectedProjects.filter(p => p.id !== project.id);
           setSelectedProjects(updated);
           onProjectsChange?.(updated);
+          toast.success(`Removed from ${project.name}`);
+        } else {
+          setLinkError(data.error || 'Failed to remove project');
+          toast.error(data.error || 'Failed to remove project');
         }
       } else {
         const response = await fetch(`/api/workspace-projects/${project.id}/items`, {
@@ -150,15 +198,41 @@ export function ProjectTagSelector({
             ...(itemMetadata && { itemMetadata })
           })
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMsg = errorData.error || 'Failed to add project';
+          setLinkError(errorMsg);
+          toast.error(errorMsg, {
+            action: {
+              label: 'Retry',
+              onClick: () => retryToggle(project)
+            }
+          });
+          return;
+        }
+        
         const data = await response.json();
         if (data.success) {
           const updated = [...selectedProjects, project];
           setSelectedProjects(updated);
           onProjectsChange?.(updated);
+          toast.success(`Added to ${project.name}`);
+        } else {
+          setLinkError(data.error || 'Failed to add project');
+          toast.error(data.error || 'Failed to add project');
         }
       }
     } catch (err) {
       console.error('Error toggling project:', err);
+      const errorMsg = 'Network error. Please try again.';
+      setLinkError(errorMsg);
+      toast.error(errorMsg, {
+        action: {
+          label: 'Retry',
+          onClick: () => retryToggle(project)
+        }
+      });
     } finally {
       setLinking(null);
     }
@@ -166,10 +240,18 @@ export function ProjectTagSelector({
 
   const createAndLink = async () => {
     if (!searchQuery.trim()) return;
+    if (fetchError || linkError) return;
     
     try {
       setCreating(true);
+      setLinkError(null);
       const token = await getToken();
+      
+      if (!token) {
+        toast.error('Please sign in to create projects');
+        return;
+      }
+      
       const randomColor = PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)];
       
       const createResponse = await fetch('/api/workspace-projects', {
@@ -183,6 +265,13 @@ export function ProjectTagSelector({
           color: randomColor
         })
       });
+      
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json().catch(() => ({}));
+        toast.error(errorData.error || 'Failed to create project');
+        return;
+      }
+      
       const createData = await createResponse.json();
       
       if (createData.success) {
@@ -202,18 +291,29 @@ export function ProjectTagSelector({
             ...(itemMetadata && { itemMetadata })
           })
         });
+        
+        if (!linkResponse.ok) {
+          const errorData = await linkResponse.json().catch(() => ({}));
+          toast.error(errorData.error || 'Project created but failed to link');
+          return;
+        }
+        
         const linkData = await linkResponse.json();
         
         if (linkData.success) {
           const updated = [...selectedProjects, newProject];
           setSelectedProjects(updated);
           onProjectsChange?.(updated);
+          toast.success(`Created and added to ${newProject.name}`);
         }
         
         setSearchQuery('');
+      } else {
+        toast.error(createData.error || 'Failed to create project');
       }
     } catch (err) {
       console.error('Error creating project:', err);
+      toast.error('Network error. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -222,6 +322,12 @@ export function ProjectTagSelector({
   const removeProject = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
     await toggleProject(project);
+  };
+
+  const handleRetry = () => {
+    setFetchError(null);
+    setLinkError(null);
+    fetchProjects();
   };
 
   const filteredProjects = projects.filter(p => 
@@ -233,6 +339,9 @@ export function ProjectTagSelector({
 
   const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4';
   const tagSize = size === 'sm' ? 'text-xs px-1.5 py-0.5' : 'text-sm px-2 py-0.5';
+  
+  const hasError = fetchError || linkError;
+  const isDisabled = loading || !!hasError;
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
@@ -253,9 +362,14 @@ export function ProjectTagSelector({
           <span className="font-medium">{project.name}</span>
           <button
             onClick={(e) => removeProject(e, project)}
-            className="ml-0.5 hover:opacity-70 transition-opacity"
+            disabled={linking === project.id}
+            className="ml-0.5 hover:opacity-70 transition-opacity disabled:opacity-50"
           >
-            <X className="w-3 h-3" />
+            {linking === project.id ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <X className="w-3 h-3" />
+            )}
           </button>
         </span>
       ))}
@@ -288,10 +402,11 @@ export function ProjectTagSelector({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && showCreateOption) {
+                if (e.key === 'Enter' && showCreateOption && !isDisabled) {
                   createAndLink();
                 }
               }}
+              disabled={isDisabled}
               className="pl-8 h-9"
             />
           </div>
@@ -301,13 +416,40 @@ export function ProjectTagSelector({
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
               </div>
+            ) : fetchError ? (
+              <div className="flex flex-col items-center justify-center py-4 px-2 text-center">
+                <AlertCircle className="w-6 h-6 text-red-400 mb-2" />
+                <p className="text-sm text-red-600 mb-2">{fetchError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetry}
+                  className="text-xs"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Retry
+                </Button>
+              </div>
             ) : (
               <>
+                {linkError && (
+                  <div className="flex items-center gap-2 px-2 py-1.5 mb-2 bg-red-50 border border-red-200 rounded-md">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    <p className="text-xs text-red-600 flex-1">{linkError}</p>
+                    <button
+                      onClick={() => setLinkError(null)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                
                 {showCreateOption && (
                   <button
                     onClick={createAndLink}
-                    disabled={creating}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-left hover:bg-slate-50 rounded-md transition-colors disabled:opacity-50"
+                    disabled={creating || !!linkError}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-left hover:bg-slate-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {creating ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -328,13 +470,14 @@ export function ProjectTagSelector({
                   filteredProjects.map(project => {
                     const isSelected = selectedProjects.some(p => p.id === project.id);
                     const isLinking = linking === project.id;
+                    const isItemDisabled = isLinking || !!linkError;
                     
                     return (
                       <button
                         key={project.id}
                         onClick={() => toggleProject(project)}
-                        disabled={isLinking}
-                        className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-left hover:bg-slate-50 rounded-md transition-colors disabled:opacity-50"
+                        disabled={isItemDisabled}
+                        className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-left hover:bg-slate-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="flex items-center gap-2">
                           <span 
