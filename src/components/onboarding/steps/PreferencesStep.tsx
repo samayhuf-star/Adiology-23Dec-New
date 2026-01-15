@@ -71,7 +71,7 @@ export const PreferencesStep: React.FC = () => {
               <Switch
                 id="push-notifications"
                 checked={preferences.pushNotifications}
-                onCheckedChange={(checked) =>
+                onCheckedChange={(checked: boolean) =>
                   setPreferences(prev => ({ ...prev, pushNotifications: checked }))
                 }
               />

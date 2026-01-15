@@ -80,7 +80,7 @@ export function useApiCall<T = any>() {
       
       return null;
     }
-  }, [success, error]);
+  }, [success, showError]);
 
   return { ...state, execute };
 }

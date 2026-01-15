@@ -49,6 +49,7 @@ export async function getCurrentUserProfile() {
     phone: undefined as string | undefined,
     website: undefined as string | undefined,
     country: undefined as string | undefined,
+    bio: undefined as string | undefined,
   };
 }
 

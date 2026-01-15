@@ -331,7 +331,7 @@ export const FeedbackManagement: React.FC = () => {
                 </div>
                 <Select
                   value={filters.type}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
+                  onValueChange={(value: string) => setFilters(prev => ({ ...prev, type: value }))}
                 >
                   <SelectTrigger className="w-48">
                     <SelectValue />

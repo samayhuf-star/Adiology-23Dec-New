@@ -57,7 +57,8 @@ class AIChatService {
         The 1-Click Builder can create campaigns automatically based on your business goals.`,
         category: 'campaigns',
         tags: ['campaign', 'create', 'builder', 'setup'],
-        url: '#campaign-builder'
+        url: '#campaign-builder',
+        lastUpdated: new Date().toISOString()
       },
       {
         id: 'keyword-research',
@@ -72,7 +73,8 @@ class AIChatService {
         Access it from the Keywords menu > Planner.`,
         category: 'keywords',
         tags: ['keywords', 'research', 'planner', 'seo'],
-        url: '#keyword-planner'
+        url: '#keyword-planner',
+        lastUpdated: new Date().toISOString()
       },
       {
         id: 'billing-plans',
@@ -87,7 +89,8 @@ class AIChatService {
         You can upgrade, downgrade, or cancel anytime from Settings > Billing.`,
         category: 'billing',
         tags: ['billing', 'pricing', 'plans', 'subscription'],
-        url: '#billing'
+        url: '#billing',
+        lastUpdated: new Date().toISOString()
       },
 
       {
@@ -118,7 +121,8 @@ class AIChatService {
         View analytics from the Dashboard or individual campaign pages.`,
         category: 'analytics',
         tags: ['analytics', 'reporting', 'metrics', 'roi'],
-        url: '#dashboard'
+        url: '#dashboard',
+        lastUpdated: new Date().toISOString()
       },
       {
         id: 'team-collaboration',
@@ -133,7 +137,8 @@ class AIChatService {
         Manage your team from the Teams section.`,
         category: 'teams',
         tags: ['team', 'collaboration', 'permissions', 'sharing'],
-        url: '#teams'
+        url: '#teams',
+        lastUpdated: new Date().toISOString()
       },
       {
         id: 'api-integrations',
@@ -148,7 +153,8 @@ class AIChatService {
         Configure integrations in Settings > Integrations.`,
         category: 'integrations',
         tags: ['api', 'integrations', 'google ads', 'facebook'],
-        url: '#settings'
+        url: '#settings',
+        lastUpdated: new Date().toISOString()
       },
       {
         id: 'troubleshooting',
@@ -163,7 +169,8 @@ class AIChatService {
         For technical issues, contact support@adiology.io`,
         category: 'support',
         tags: ['troubleshooting', 'issues', 'problems', 'help'],
-        url: '#support-help'
+        url: '#support-help',
+        lastUpdated: new Date().toISOString()
       }
     ];
   }
