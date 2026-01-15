@@ -6141,19 +6141,23 @@ app.patch('/api/organizations/:orgId/members/:memberId', async (c) => {
       return c.json({ error: 'Only owners and admins can change roles' }, 403);
     }
     
-    // Cannot change owner role
+    // Get target member and verify they belong to this organization
     const targetMember = await pool.query(
-      `SELECT role FROM organization_members WHERE id = $1`,
-      [memberId]
+      `SELECT role FROM organization_members WHERE id = $1 AND organization_id = $2`,
+      [memberId, orgId]
     );
     
-    if (targetMember.rows[0]?.role === 'owner') {
+    if (targetMember.rows.length === 0) {
+      return c.json({ error: 'Member not found' }, 404);
+    }
+    
+    if (targetMember.rows[0].role === 'owner') {
       return c.json({ error: 'Cannot change owner role' }, 400);
     }
     
     await pool.query(
-      `UPDATE organization_members SET role = $1, updated_at = NOW() WHERE id = $2`,
-      [role, memberId]
+      `UPDATE organization_members SET role = $1, updated_at = NOW() WHERE id = $2 AND organization_id = $3`,
+      [role, memberId, orgId]
     );
     
     return c.json({ success: true, message: 'Role updated' });
@@ -6184,17 +6188,21 @@ app.delete('/api/organizations/:orgId/members/:memberId', async (c) => {
       return c.json({ error: 'Only owners and admins can remove members' }, 403);
     }
     
-    // Cannot remove owner
+    // Get target member and verify they belong to this organization
     const targetMember = await pool.query(
-      `SELECT role FROM organization_members WHERE id = $1`,
-      [memberId]
+      `SELECT role FROM organization_members WHERE id = $1 AND organization_id = $2`,
+      [memberId, orgId]
     );
     
-    if (targetMember.rows[0]?.role === 'owner') {
+    if (targetMember.rows.length === 0) {
+      return c.json({ error: 'Member not found' }, 404);
+    }
+    
+    if (targetMember.rows[0].role === 'owner') {
       return c.json({ error: 'Cannot remove owner' }, 400);
     }
     
-    await pool.query(`DELETE FROM organization_members WHERE id = $1`, [memberId]);
+    await pool.query(`DELETE FROM organization_members WHERE id = $1 AND organization_id = $2`, [memberId, orgId]);
     
     return c.json({ success: true, message: 'Member removed' });
   } catch (error: any) {
