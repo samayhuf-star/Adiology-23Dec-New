@@ -4,7 +4,6 @@ import {
   RefreshCw, Search, Filter, ChevronDown, Sparkles, Zap,
   Globe, Calendar, MoreHorizontal
 } from 'lucide-react';
-import { ProjectTagSelector } from './ProjectTagSelector';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -347,7 +346,6 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
                     <TableHead className="text-gray-600 font-semibold">Date & Time</TableHead>
                     <TableHead className="text-gray-600 font-semibold">Builder</TableHead>
                     <TableHead className="text-gray-600 font-semibold">Status</TableHead>
-                    <TableHead className="text-gray-600 font-semibold">Projects</TableHead>
                     <TableHead className="text-right text-gray-600 font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -398,19 +396,6 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(campaign.status)}
-                        </TableCell>
-                        <TableCell>
-                          <ProjectTagSelector
-                            itemType="campaign"
-                            itemId={campaign.id}
-                            itemName={campaign.name}
-                            itemMetadata={{ 
-                              status: campaign.status, 
-                              builderType: getBuilderType(campaign),
-                              domain: extractDomain(campaign)
-                            }}
-                            size="sm"
-                          />
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
