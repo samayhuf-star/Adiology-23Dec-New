@@ -329,6 +329,18 @@ export const Teams: React.FC = () => {
     return role === 'owner' || role === 'admin';
   };
 
+  if (!isSignedIn) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+          <h2 className="text-xl font-semibold text-gray-700">Please sign in</h2>
+          <p className="text-gray-500 mt-2">Sign in to access your team settings.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="p-6 max-w-3xl mx-auto flex items-center justify-center min-h-[400px]">
@@ -436,7 +448,7 @@ export const Teams: React.FC = () => {
             <div key={member.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-medium">
-                  {(member.name || member.email)[0].toUpperCase()}
+                  {(member.name || member.email || 'U')[0].toUpperCase()}
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">{member.name || member.email}</p>
