@@ -38,7 +38,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ onSuccess, onBackT
     checkSession();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
       if (event === 'PASSWORD_RECOVERY' && session) {
         setIsValidSession(true);
       }

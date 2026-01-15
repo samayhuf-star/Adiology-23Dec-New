@@ -286,11 +286,8 @@ export const MyWebsites: React.FC = () => {
     setRefreshing(website.id);
     try {
       const deployment = await getDeploymentStatus(website.vercel_deployment_id, vercelToken);
-      await updatePublishedWebsiteStatus(
-        website.id,
-        deployment.state === 'READY' ? 'ready' : deployment.state === 'ERROR' ? 'error' : 'deploying',
-        deployment.url
-      );
+      const status = deployment.state === 'READY' ? 'ready' : deployment.state === 'ERROR' ? 'error' : 'deploying';
+      await updatePublishedWebsiteStatus(website.id, status);
       await loadWebsites();
       notifications.success('Status updated!', { title: 'Refreshed' });
     } catch (error: any) {
