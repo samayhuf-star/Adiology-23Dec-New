@@ -226,7 +226,7 @@ export const GoogleAdsCSVExport: React.FC = () => {
       // Convert to CSV using PapaParse
       const csv = Papa.unparse(sampleData, {
         columns: GOOGLE_ADS_CSV_HEADERS.filter(header => 
-          sampleData.some(row => row[header] !== undefined)
+          sampleData.some(row => (row as Record<string, any>)[header] !== undefined)
         ),
       });
       

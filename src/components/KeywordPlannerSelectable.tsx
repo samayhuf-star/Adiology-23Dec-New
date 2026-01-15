@@ -574,9 +574,9 @@ export const KeywordPlannerSelectable = ({
                                 <span className="text-xs text-slate-600">Keywords to Generate:</span>
                                 <span className="text-xs font-semibold text-indigo-600">{negativeKeywordsCount}</span>
                             </div>
-                            <Slider
+                                <Slider
                                 value={[negativeKeywordsCount]}
-                                onValueChange={(value) => setNegativeKeywordsCount(value[0])}
+                                onValueChange={(value: number[]) => setNegativeKeywordsCount(value[0])}
                                 min={100}
                                 max={1000}
                                 step={50}

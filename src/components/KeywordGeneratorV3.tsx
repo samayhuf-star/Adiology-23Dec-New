@@ -203,7 +203,7 @@ export const KeywordGeneratorV3 = ({ initialData }: { initialData?: any }) => {
                 </Button>
             </div>
 
-            <Tabs value={activeMainTab} onValueChange={(value) => setActiveMainTab(value as typeof activeMainTab)} className="mb-4">
+            <Tabs value={activeMainTab} onValueChange={(value: string) => setActiveMainTab(value as typeof activeMainTab)} className="mb-4">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="planner" className="flex items-center gap-2">
                         <Lightbulb className="w-4 h-4" />

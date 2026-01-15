@@ -93,7 +93,7 @@ export function KeywordFilters({ filters, onFiltersChange, compact = false }: Ke
         </Label>
         <Select
           value={filters.country}
-          onValueChange={(value) => onFiltersChange({ ...filters, country: value })}
+          onValueChange={(value: string) => onFiltersChange({ ...filters, country: value })}
         >
           <SelectTrigger className={`${compact ? 'h-9 text-sm min-w-[160px]' : 'h-10 min-w-[200px]'} bg-white/80 backdrop-blur-sm border-slate-200 hover:border-indigo-300 hover:bg-white transition-all shadow-sm rounded-lg`}>
             <SelectValue>
@@ -128,7 +128,7 @@ export function KeywordFilters({ filters, onFiltersChange, compact = false }: Ke
         </Label>
         <Select
           value={filters.device}
-          onValueChange={(value) => onFiltersChange({ ...filters, device: value })}
+          onValueChange={(value: string) => onFiltersChange({ ...filters, device: value })}
         >
           <SelectTrigger className={`${compact ? 'h-9 text-sm min-w-[130px]' : 'h-10 min-w-[160px]'} bg-white/80 backdrop-blur-sm border-slate-200 hover:border-purple-300 hover:bg-white transition-all shadow-sm rounded-lg`}>
             <SelectValue>

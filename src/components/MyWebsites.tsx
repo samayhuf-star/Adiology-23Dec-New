@@ -44,7 +44,7 @@ export const MyWebsites: React.FC = () => {
 
       // Check if sample website already exists
       const existing = await getUserPublishedWebsites(user.id);
-      const hasSample = existing.some(w => w.name === 'Sample Website' || w.vercel_url?.includes('domain.com'));
+      const hasSample = existing.some((w: PublishedWebsite) => w.name === 'Sample Website' || w.vercel_url?.includes('domain.com'));
       
       if (existing.length === 0 && !hasSample) {
         // Add sample domain.com website

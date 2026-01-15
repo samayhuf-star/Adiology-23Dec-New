@@ -601,7 +601,6 @@ export default function DragDropBuilder({ templateData, onUpdate, onSave }: Drag
       canvas: {
         styles: [],
         scripts: [],
-        resizeHandler: false,
       },
       deviceManager: {
         devices: [
