@@ -5,11 +5,10 @@ import { supabase } from '../utils/supabase/client';
 import { 
   User, Mail, Lock, Globe,
   Save, Eye, EyeOff,
-  CheckCircle2, AlertCircle, Palette, Loader,
+  CheckCircle2, AlertCircle, Loader,
   PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { getUserPreferences, saveUserPreferences } from '../utils/userPreferences';
-import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -571,8 +570,6 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
         </CardContent>
       </Card>
 
-      {/* Theme Settings */}
-      <ThemeSelector />
 
       {/* Sidebar Behavior */}
       <Card className="p-8">
@@ -633,101 +630,4 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
   );
 };
 
-// Theme Selector Component
-const ThemeSelector = () => {
-  const { theme, setTheme, availableThemes } = useTheme();
-
-  // Color mapping for theme previews
-  const getColorClass = (colorName: string) => {
-    const colorMap: Record<string, string> = {
-      'indigo-600': 'bg-indigo-600',
-      'indigo-50': 'bg-indigo-50',
-      'purple-600': 'bg-purple-600',
-      'pink-600': 'bg-pink-600',
-      'blue-600': 'bg-blue-600',
-      'blue-50': 'bg-blue-50',
-      'cyan-600': 'bg-cyan-600',
-      'cyan-50': 'bg-cyan-50',
-      'teal-600': 'bg-teal-600',
-      'teal-50': 'bg-indigo-50',
-      'emerald-600': 'bg-emerald-600',
-      'emerald-50': 'bg-indigo-50',
-      'green-600': 'bg-green-600',
-      'green-50': 'bg-indigo-50',
-      'lime-600': 'bg-lime-600',
-      'lime-50': 'bg-lime-50',
-      'orange-600': 'bg-orange-600',
-      'orange-50': 'bg-orange-50',
-      'amber-600': 'bg-amber-600',
-      'amber-50': 'bg-amber-50',
-      'red-600': 'bg-red-600',
-      'red-50': 'bg-red-50',
-    };
-    return colorMap[colorName] || 'bg-slate-400';
-  };
-
-  return (
-    <Card className="p-8">
-      <CardHeader className="pb-6 mb-6 border-b border-slate-200">
-        <CardTitle className="flex items-center gap-3 text-2xl">
-          <Palette className="w-6 h-6 text-blue-600" />
-          Color Theme
-        </CardTitle>
-        <CardDescription className="text-base mt-2">Choose your preferred color scheme for the dashboard</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {availableThemes.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTheme(t.id)}
-              className={`relative p-6 rounded-xl border-2 transition-all hover:scale-105 ${
-                theme.id === t.id
-                  ? 'border-blue-500 bg-blue-50 shadow-lg'
-                  : 'border-slate-200 hover:border-slate-300 bg-white'
-              }`}
-            >
-              {/* Theme Preview */}
-              <div className="mb-4">
-                <div className="flex gap-2 mb-3">
-                  <div className={`w-full h-10 rounded-lg bg-gradient-to-r ${t.colors.primaryGradient}`}></div>
-                </div>
-                <div className="flex gap-2">
-                  <div className={`flex-1 h-5 rounded ${getColorClass(t.colors.primary)}`}></div>
-                  <div className={`flex-1 h-5 rounded ${getColorClass(t.colors.secondary)}`}></div>
-                  <div className={`flex-1 h-5 rounded ${getColorClass(t.colors.accent)}`}></div>
-                </div>
-              </div>
-
-              {/* Theme Info */}
-              <div className="text-left space-y-2">
-                <h3 className="font-semibold text-base text-slate-900">{t.name}</h3>
-                <p className="text-sm text-slate-600">{t.description}</p>
-              </div>
-
-              {/* Selected Badge */}
-              {theme.id === t.id && (
-                <div className="absolute top-3 right-3">
-                  <CheckCircle2 className="w-6 h-6 text-blue-600" />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex gap-3 items-start">
-            <Globe className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
-            <div className="space-y-2">
-              <p className="text-base font-semibold text-blue-900">Theme Applied Globally</p>
-              <p className="text-sm text-blue-700">
-                Your selected theme will be applied across all pages including Dashboard, Builder 2.0, and all tools.
-              </p>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
 
