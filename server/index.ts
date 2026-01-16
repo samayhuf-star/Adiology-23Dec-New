@@ -5529,8 +5529,8 @@ app.get('/api/workspace-projects', async (c) => {
        LEFT JOIN (
          SELECT project_id,
                 COUNT(*) FILTER (WHERE item_type = 'campaign') as campaign_count,
-                COUNT(*) FILTER (WHERE item_type = 'keyword_list') as keyword_count,
-                COUNT(*) FILTER (WHERE item_type = 'negative_keywords') as negative_count,
+                COUNT(*) FILTER (WHERE item_type IN ('keyword-list', 'keyword_list', 'keyword-planner', 'keyword-mixer', 'long-tail-keywords')) as keyword_count,
+                COUNT(*) FILTER (WHERE item_type IN ('negative-keywords', 'negative_keywords')) as negative_count,
                 COUNT(*) as total_count
          FROM project_items
          GROUP BY project_id
@@ -5706,15 +5706,25 @@ app.get('/api/workspace-projects/:id', async (c) => {
       items[item.itemType].push(item);
     }
     
+    // Count all keyword-related and negative-related items (handle both hyphen and underscore variants)
+    const campaignCount = (items['campaign']?.length || 0);
+    const keywordListsCount = (items['keyword-list']?.length || 0) + 
+                              (items['keyword_list']?.length || 0) +
+                              (items['keyword-planner']?.length || 0) +
+                              (items['keyword-mixer']?.length || 0) +
+                              (items['long-tail-keywords']?.length || 0);
+    const negativeKeywordsCount = (items['negative-keywords']?.length || 0) + 
+                                   (items['negative_keywords']?.length || 0);
+    
     return c.json({ 
       success: true, 
       data: {
         ...projectResult.rows[0],
         items,
         counts: {
-          campaigns: items['campaign']?.length || 0,
-          keywordLists: items['keyword_list']?.length || 0,
-          negativeKeywords: items['negative_keywords']?.length || 0,
+          campaigns: campaignCount,
+          keywordLists: keywordListsCount,
+          negativeKeywords: negativeKeywordsCount,
           total: itemsResult.rows.length
         }
       }

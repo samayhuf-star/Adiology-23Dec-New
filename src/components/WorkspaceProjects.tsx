@@ -60,31 +60,35 @@ const MODULE_CONFIG = {
     gradient: 'from-orange-500 to-rose-500',
     bgColor: 'bg-orange-50',
     iconColor: 'text-orange-500',
-    badge: 'Active'
+    badge: 'Active',
+    itemTypes: ['campaign']
   },
-  keyword_list: { 
+  'keyword-list': { 
     label: 'Keyword Lists', 
     icon: Key, 
     gradient: 'from-violet-500 to-purple-600',
     bgColor: 'bg-violet-50',
     iconColor: 'text-violet-500',
-    badge: 'Active'
+    badge: 'Active',
+    itemTypes: ['keyword-list', 'keyword_list', 'keyword-planner', 'keyword-mixer', 'long-tail-keywords']
   },
-  negative_keywords: { 
+  'negative-keywords': { 
     label: 'Negative Keywords', 
     icon: MinusCircle, 
     gradient: 'from-rose-500 to-pink-600',
     bgColor: 'bg-rose-50',
     iconColor: 'text-rose-500',
-    badge: 'Active'
+    badge: 'Active',
+    itemTypes: ['negative-keywords', 'negative_keywords']
   },
-  keyword_mixer: { 
+  'keyword-mixer': { 
     label: 'Keyword Mixer', 
     icon: Shuffle, 
     gradient: 'from-cyan-500 to-blue-600',
     bgColor: 'bg-cyan-50',
     iconColor: 'text-cyan-500',
-    badge: 'New'
+    badge: 'New',
+    itemTypes: ['keyword-mixer']
   },
   analytics: { 
     label: 'Analytics', 
@@ -92,7 +96,8 @@ const MODULE_CONFIG = {
     gradient: 'from-emerald-500 to-teal-600',
     bgColor: 'bg-emerald-50',
     iconColor: 'text-emerald-500',
-    badge: 'Soon'
+    badge: 'Soon',
+    itemTypes: []
   },
   settings: { 
     label: 'Settings', 
@@ -100,9 +105,12 @@ const MODULE_CONFIG = {
     gradient: 'from-slate-500 to-slate-700',
     bgColor: 'bg-slate-50',
     iconColor: 'text-slate-500',
-    badge: 'Active'
+    badge: 'Active',
+    itemTypes: []
   }
 };
+
+type FilterType = 'all' | 'campaign' | 'keyword-list' | 'negative-keywords';
 
 export function WorkspaceProjects() {
   const { getToken } = useAuth();
@@ -111,6 +119,7 @@ export function WorkspaceProjects() {
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -475,38 +484,88 @@ export function WorkspaceProjects() {
                   </div>
                 </div>
                 
-                {/* Stats Row */}
+                {/* Stats Row - Clickable Filters */}
                 <div className="grid grid-cols-4 gap-4 mt-6">
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                  <button
+                    onClick={() => setActiveFilter(activeFilter === 'campaign' ? 'all' : 'campaign')}
+                    className={`bg-white/10 backdrop-blur rounded-xl p-4 text-center cursor-pointer transition-all hover:bg-white/20 ${
+                      activeFilter === 'campaign' ? 'ring-2 ring-white bg-white/25' : ''
+                    }`}
+                  >
                     <div className="text-3xl font-bold">{selectedProject.counts.campaigns}</div>
                     <div className="text-white/70 text-sm">Campaigns</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                  </button>
+                  <button
+                    onClick={() => setActiveFilter(activeFilter === 'keyword-list' ? 'all' : 'keyword-list')}
+                    className={`bg-white/10 backdrop-blur rounded-xl p-4 text-center cursor-pointer transition-all hover:bg-white/20 ${
+                      activeFilter === 'keyword-list' ? 'ring-2 ring-white bg-white/25' : ''
+                    }`}
+                  >
                     <div className="text-3xl font-bold">{selectedProject.counts.keywordLists}</div>
                     <div className="text-white/70 text-sm">Keyword Lists</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                  </button>
+                  <button
+                    onClick={() => setActiveFilter(activeFilter === 'negative-keywords' ? 'all' : 'negative-keywords')}
+                    className={`bg-white/10 backdrop-blur rounded-xl p-4 text-center cursor-pointer transition-all hover:bg-white/20 ${
+                      activeFilter === 'negative-keywords' ? 'ring-2 ring-white bg-white/25' : ''
+                    }`}
+                  >
                     <div className="text-3xl font-bold">{selectedProject.counts.negativeKeywords}</div>
                     <div className="text-white/70 text-sm">Negative Lists</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
+                  </button>
+                  <button
+                    onClick={() => setActiveFilter('all')}
+                    className={`bg-white/10 backdrop-blur rounded-xl p-4 text-center cursor-pointer transition-all hover:bg-white/20 ${
+                      activeFilter === 'all' ? 'ring-2 ring-white bg-white/25' : ''
+                    }`}
+                  >
                     <div className="text-3xl font-bold">{selectedProject.counts.total}</div>
                     <div className="text-white/70 text-sm">Total Items</div>
-                  </div>
+                  </button>
                 </div>
               </div>
 
               {/* Connected Modules Grid */}
               <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Connected Modules</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800">Connected Modules</h3>
+                  {activeFilter !== 'all' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveFilter('all')}
+                      className="text-xs"
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Clear Filter
+                    </Button>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(MODULE_CONFIG).map(([key, config]) => {
+                  {Object.entries(MODULE_CONFIG)
+                    .filter(([key]) => {
+                      if (activeFilter === 'all') return true;
+                      return key === activeFilter;
+                    })
+                    .map(([key, config]) => {
                     const Icon = config.icon;
-                    const count = selectedProject.items[key]?.length || 0;
+                    const count = config.itemTypes.reduce((sum, type) => 
+                      sum + (selectedProject.items[type]?.length || 0), 0
+                    );
                     return (
                       <div
                         key={key}
-                        className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer group"
+                        onClick={() => {
+                          const filterableTypes: FilterType[] = ['campaign', 'keyword-list', 'negative-keywords'];
+                          if (filterableTypes.includes(key as FilterType)) {
+                            setActiveFilter(key as FilterType);
+                          }
+                        }}
+                        className={`bg-white rounded-2xl p-5 shadow-sm border transition-all cursor-pointer group ${
+                          activeFilter === key 
+                            ? 'border-indigo-300 ring-2 ring-indigo-100' 
+                            : 'border-slate-100 hover:shadow-md'
+                        }`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center`}>
@@ -534,13 +593,14 @@ export function WorkspaceProjects() {
               </div>
 
               {/* Campaigns List */}
-              {selectedProject.items.campaign && selectedProject.items.campaign.length > 0 && (
+              {(activeFilter === 'all' || activeFilter === 'campaign') && 
+               selectedProject.items.campaign && selectedProject.items.campaign.length > 0 && (
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                   <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
                       <Zap className="w-4 h-4 text-orange-500" />
                     </div>
-                    Campaigns in This Project
+                    Campaigns in This Project ({selectedProject.items.campaign.length})
                   </h3>
                   <div className="space-y-3">
                     {selectedProject.items.campaign.map((item) => (
@@ -570,6 +630,96 @@ export function WorkspaceProjects() {
                   </div>
                 </div>
               )}
+
+              {/* Keyword Lists - combine all keyword-related item types */}
+              {(() => {
+                const keywordTypes = ['keyword-list', 'keyword_list', 'keyword-planner', 'keyword-mixer', 'long-tail-keywords'];
+                const allKeywordItems = keywordTypes.flatMap(type => selectedProject.items[type] || []);
+                if ((activeFilter === 'all' || activeFilter === 'keyword-list') && allKeywordItems.length > 0) {
+                  return (
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                      <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                          <Key className="w-4 h-4 text-violet-500" />
+                        </div>
+                        Keyword Lists in This Project ({allKeywordItems.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {allKeywordItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                                <Key className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-slate-800">
+                                  {item.itemName || 'Unnamed Keyword List'}
+                                </h4>
+                                <p className="text-xs text-slate-500">
+                                  Created {new Date(item.createdAt).toLocaleDateString()}
+                                  {item.itemMetadata?.keywordCount && ` • ${item.itemMetadata.keywordCount} keywords`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-slate-200">View</Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Negative Keywords - combine all negative-related item types */}
+              {(() => {
+                const negativeTypes = ['negative-keywords', 'negative_keywords'];
+                const allNegativeItems = negativeTypes.flatMap(type => selectedProject.items[type] || []);
+                if ((activeFilter === 'all' || activeFilter === 'negative-keywords') && allNegativeItems.length > 0) {
+                  return (
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                      <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                          <MinusCircle className="w-4 h-4 text-rose-500" />
+                        </div>
+                        Negative Keyword Lists in This Project ({allNegativeItems.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {allNegativeItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center">
+                                <MinusCircle className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-slate-800">
+                                  {item.itemName || 'Unnamed Negative List'}
+                                </h4>
+                                <p className="text-xs text-slate-500">
+                                  Created {new Date(item.createdAt).toLocaleDateString()}
+                                  {item.itemMetadata?.keywordCount && ` • ${item.itemMetadata.keywordCount} negatives`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-slate-200">View</Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {selectedProject.counts.total === 0 && (
                 <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-slate-100">
