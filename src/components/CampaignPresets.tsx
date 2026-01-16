@@ -690,16 +690,9 @@ export const CampaignPresets: React.FC<CampaignPresetsProps> = ({ onLoadPreset }
             className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-indigo-200 transition-all cursor-pointer group relative overflow-hidden p-4 flex flex-col h-full"
             onClick={() => handleSelectPreset(preset)}
           >
-            {/* Structure Type Tag - Top Right */}
-            <div className="absolute top-2 right-2 z-10">
-              <Badge className="text-[9px] px-1.5 py-0.5 bg-indigo-100 text-indigo-700 border-indigo-200 font-semibold uppercase tracking-wide">
-                {preset.structure}
-              </Badge>
-            </div>
-            
             <div className="flex-1 flex flex-col">
               {/* Title Section */}
-              <div className="mb-3 pr-12">
+              <div className="mb-3">
                 <h3 className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight">
                   {preset.title}
                 </h3>
