@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { 
   FileText, Clock, Trash2, Download, Play, Pencil,
   RefreshCw, Search, Filter, ChevronDown, Sparkles, Zap,
@@ -35,9 +36,16 @@ import {
 } from './ui/alert-dialog';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
+import { ProjectMultiSelect, ProjectBadges } from './ProjectMultiSelect';
 
 interface DraftCampaignsProps {
   onLoadCampaign: (data: any, mode: 'resume' | 'edit') => void;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  color: string;
 }
 
 interface CampaignItem {
@@ -48,9 +56,11 @@ interface CampaignItem {
   status: 'draft' | 'completed' | 'in_progress';
   data: any;
   type: string;
+  projects?: Project[];
 }
 
 export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
+  const { getToken } = useAuth();
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,6 +72,29 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
   useEffect(() => {
     loadCampaigns();
   }, []);
+
+  const fetchCampaignProjects = async (campaignId: string): Promise<Project[]> => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`/api/item-projects/campaign/${campaignId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        return data.data || [];
+      }
+      return [];
+    } catch (err) {
+      console.error('Error fetching campaign projects:', err);
+      return [];
+    }
+  };
+
+  const updateCampaignProjects = (campaignId: string, projects: Project[]) => {
+    setCampaigns(prev => prev.map(c => 
+      c.id === campaignId ? { ...c, projects } : c
+    ));
+  };
 
   const loadCampaigns = async () => {
     setLoading(true);
@@ -80,11 +113,20 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
           lastModified: item.lastModified,
           status: (item.status || 'completed') as 'draft' | 'completed' | 'in_progress',
           data: item.data,
-          type: item.type
+          type: item.type,
+          projects: [] as Project[]
         }))
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
       setCampaigns(campaignItems);
+      
+      for (const campaign of campaignItems.slice(0, 20)) {
+        fetchCampaignProjects(campaign.id).then(projects => {
+          if (projects.length > 0) {
+            updateCampaignProjects(campaign.id, projects);
+          }
+        });
+      }
     } catch (error) {
       console.error('Failed to load campaigns:', error);
       notifications.error('Failed to load campaigns');
@@ -346,6 +388,7 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
                     <TableHead className="text-gray-600 font-semibold">Date & Time</TableHead>
                     <TableHead className="text-gray-600 font-semibold">Builder</TableHead>
                     <TableHead className="text-gray-600 font-semibold">Status</TableHead>
+                    <TableHead className="text-gray-600 font-semibold">Projects</TableHead>
                     <TableHead className="text-right text-gray-600 font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -396,6 +439,17 @@ export function DraftCampaigns({ onLoadCampaign }: DraftCampaignsProps) {
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(campaign.status)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <ProjectBadges projects={campaign.projects || []} />
+                            <ProjectMultiSelect
+                              itemType="campaign"
+                              itemId={campaign.id}
+                              assignedProjects={campaign.projects || []}
+                              onSave={(projects) => updateCampaignProjects(campaign.id, projects)}
+                            />
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
