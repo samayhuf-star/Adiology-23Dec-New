@@ -40,7 +40,8 @@ export function ProjectTagSelector({
   onProjectsChange,
   size = 'md'
 }: ProjectTagSelectorProps) {
-  const { getToken, isSignedIn } = useAuth();
+  const auth = useAuth();
+  const { getToken, isSignedIn } = auth || { getToken: async () => null, isSignedIn: false };
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<Project[]>(linkedProjects);
