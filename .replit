@@ -1,7 +1,12 @@
 modules = ["web", "nodejs-20", "python-3.11", "postgresql-16"]
 [agent]
 expertMode = true
-integrations = ["javascript_openai_ai_integrations:2.0.0", "stripe:2.0.0", "javascript_database:1.0.0", "resend:1.0.0"]
+integrations = [
+  "javascript_openai_ai_integrations:2.0.0",
+  "stripe:2.0.0",
+  "javascript_database:1.0.0",
+  "resend:1.0.0",
+]
 
 [nix]
 channel = "stable-25_05"
@@ -61,14 +66,6 @@ args = "bash /home/runner/workspace/run_discourse_fix_hourly.sh"
 
 [workflows.workflow.metadata]
 outputType = "console"
-
-[[ports]]
-localPort = 3001
-externalPort = 3001
-
-[[ports]]
-localPort = 3003
-externalPort = 3003
 
 [[ports]]
 localPort = 5000
