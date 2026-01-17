@@ -36,11 +36,8 @@ import {
 } from './ui/alert-dialog';
 import { historyService } from '../utils/historyService';
 import { notifications } from '../utils/notifications';
-<<<<<<< HEAD
 import { ProjectMultiSelect, ProjectBadges } from './ProjectMultiSelect';
-=======
 import { LinkProjectDialog } from './LinkProjectDialog';
->>>>>>> d8fa491668f9513393e3970c8642c63dde3d3d87
 
 interface DraftCampaignsProps {
   onLoadCampaign: (data: any, mode: 'resume' | 'edit') => void;
