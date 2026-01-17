@@ -175,9 +175,14 @@ export async function getPriceIdForPlan(planName: string, interval: 'month' | 'y
   
   if (!product) return null;
   
-  const price = product.prices.find((p: any) => 
-    p.recurring?.interval === interval && p.active
-  );
+  // For one-time prices (like Lifetime), find price without recurring interval
+  const price = product.prices.find((p: any) => {
+    if (!p.active) return false;
+    // If no recurring, this is a one-time price - match any interval request
+    if (!p.recurring) return true;
+    // Otherwise match the interval
+    return p.recurring.interval === interval;
+  });
   
   return price?.id || null;
 }

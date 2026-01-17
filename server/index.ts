@@ -345,7 +345,12 @@ async function initStripe() {
 
     console.log('Syncing Stripe data...');
     stripeSync.syncBackfill()
-      .then(() => console.log('Stripe data synced'))
+      .then(async () => {
+        console.log('Stripe data synced');
+        // Seed products if none exist
+        console.log('Checking if products need seeding...');
+        await seedStripeProducts();
+      })
       .catch((err: any) => console.error('Error syncing Stripe data:', err));
   } catch (error) {
     console.error('Failed to initialize Stripe:', error);
@@ -365,32 +370,18 @@ async function seedStripeProducts() {
     
     const products = [
       {
-        name: 'Basic Monthly',
+        name: 'Basic',
         description: '25 campaigns per month with email support',
         priceAmount: 6999, // $69.99
         priceType: 'recurring' as const,
         interval: 'month' as const,
       },
       {
-        name: 'Basic Yearly',
-        description: '25 campaigns per month - Save 20% with annual billing',
-        priceAmount: 67190, // $671.90
-        priceType: 'recurring' as const,
-        interval: 'year' as const,
-      },
-      {
-        name: 'Pro Monthly',
+        name: 'Pro',
         description: 'Unlimited campaigns with 24/7 priority support',
         priceAmount: 12999, // $129.99
         priceType: 'recurring' as const,
         interval: 'month' as const,
-      },
-      {
-        name: 'Pro Yearly',
-        description: 'Unlimited campaigns - Save 20% with annual billing',
-        priceAmount: 124790, // $1,247.90
-        priceType: 'recurring' as const,
-        interval: 'year' as const,
       },
       {
         name: 'Lifetime',

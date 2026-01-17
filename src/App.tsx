@@ -116,7 +116,15 @@ const AppContent = () => {
   
   const [appView, setAppView] = useState<AppView>('homepage');
   const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Initialize activeTab from localStorage or default to dashboard
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const savedTab = localStorage.getItem('adiology_active_tab');
+      return savedTab || 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [historyData, setHistoryData] = useState<any>(null);
@@ -276,6 +284,10 @@ const AppContent = () => {
   const setActiveTabSafe = (tabId: string) => {
     if (validTabIds.has(tabId)) {
       setActiveTab(tabId);
+      // Persist to localStorage for page refresh
+      try {
+        localStorage.setItem('adiology_active_tab', tabId);
+      } catch { /* ignore storage errors */ }
       
       // Always close mobile menu when navigating
       setMobileMenuOpen(false);
@@ -295,6 +307,9 @@ const AppContent = () => {
         console.warn(`Invalid tab ID "${tabId}" - redirecting to dashboard`);
       }
       setActiveTab('dashboard');
+      try {
+        localStorage.setItem('adiology_active_tab', 'dashboard');
+      } catch { /* ignore storage errors */ }
     }
   };
   const [notifications, setNotifications] = useState<Array<{
@@ -459,6 +474,8 @@ const AppContent = () => {
       try {
         await clerkSignOut();
         sessionStorage.clear();
+        // Clear persisted tab state
+        try { localStorage.removeItem('adiology_active_tab'); } catch { /* ignore */ }
         window.history.pushState({}, '', '/');
         setAppView('homepage');
         setActiveTab('dashboard');
@@ -466,6 +483,7 @@ const AppContent = () => {
       } catch (error) {
         console.error('Logout error:', error);
         sessionStorage.clear();
+        try { localStorage.removeItem('adiology_active_tab'); } catch { /* ignore */ }
         setAppView('homepage');
       }
     }
