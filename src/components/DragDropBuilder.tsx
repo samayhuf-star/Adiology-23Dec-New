@@ -601,7 +601,6 @@ export default function DragDropBuilder({ templateData, onUpdate, onSave }: Drag
       canvas: {
         styles: [],
         scripts: [],
-        resizeHandler: false,
       },
       deviceManager: {
         devices: [
@@ -613,7 +612,6 @@ export default function DragDropBuilder({ templateData, onUpdate, onSave }: Drag
       panels: { defaults: [] },
       blockManager: { blocks: [] },
       protectedCss: '',
-      allowScripts: 1,
       noticeOnUnload: false,
     });
 

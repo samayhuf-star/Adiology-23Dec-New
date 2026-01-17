@@ -114,8 +114,19 @@ export function ProjectTagSelector({
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        setFetchError(errorData.error || `Failed to load projects (${response.status})`);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json().catch(() => ({}));
+          setFetchError(errorData.error || `Failed to load projects (${response.status})`);
+        } else {
+          setFetchError(`Server error (${response.status}). Please try again.`);
+        }
+        return;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        setFetchError('Invalid response format from server. Please try again.');
         return;
       }
       
@@ -157,7 +168,8 @@ export function ProjectTagSelector({
       }
       
       if (isSelected) {
-        const response = await fetch(`/api/workspace-projects/${project.id}/items/${itemId}`, {
+        const deleteUrl = `/api/workspace-projects/${project.id}/items/${encodeURIComponent(itemId)}${itemType ? `?itemType=${encodeURIComponent(itemType)}` : ''}`;
+        const response = await fetch(deleteUrl, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -383,8 +395,6 @@ export function ProjectTagSelector({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              e.preventDefault();
-              setOpen(true);
             }}
             className={`${size === 'sm' ? 'h-6 px-1.5' : 'h-7 px-2'} text-slate-500 hover:text-slate-700 hover:bg-slate-100`}
           >

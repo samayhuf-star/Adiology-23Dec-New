@@ -5237,14 +5237,13 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                     onLinkItem={async (projectId) => {
                       try {
                         const token = await getToken();
-                        await fetch('/api/workspace-projects/items', {
+                        const response = await fetch(`/api/workspace-projects/${projectId}/items`, {
                           method: 'POST',
                           headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                           },
                           body: JSON.stringify({
-                            projectId,
                             itemType: 'campaign',
                             itemId: campaignData.campaignName,
                             itemName: campaignData.campaignName,
@@ -5256,8 +5255,14 @@ export const CampaignBuilder3: React.FC<CampaignBuilder3Props> = ({ initialData 
                             }
                           })
                         });
+                        const data = await response.json();
+                        if (!data.success) {
+                          console.error('Error linking campaign to project:', data.error);
+                          notifications.error(data.error || 'Failed to add campaign to project');
+                        }
                       } catch (err) {
                         console.error('Error linking campaign to project:', err);
+                        notifications.error('Failed to add campaign to project');
                       }
                     }}
                     itemType="campaign"

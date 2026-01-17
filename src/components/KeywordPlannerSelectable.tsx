@@ -156,7 +156,7 @@ export const KeywordPlannerSelectable = ({
                 
                 // Apply match type formatting
                 const formattedKeywords: string[] = [];
-                shuffled.forEach((keyword: string) => {
+                (shuffled as string[]).forEach((keyword: string) => {
                     if (matchTypes.broad) {
                         formattedKeywords.push(keyword);
                     }
@@ -574,9 +574,9 @@ export const KeywordPlannerSelectable = ({
                                 <span className="text-xs text-slate-600">Keywords to Generate:</span>
                                 <span className="text-xs font-semibold text-indigo-600">{negativeKeywordsCount}</span>
                             </div>
-                            <Slider
+                                <Slider
                                 value={[negativeKeywordsCount]}
-                                onValueChange={(value) => setNegativeKeywordsCount(value[0])}
+                                onValueChange={(value: number[]) => setNegativeKeywordsCount(value[0])}
                                 min={100}
                                 max={1000}
                                 step={50}
@@ -747,18 +747,16 @@ export const KeywordPlannerSelectable = ({
                                     <div className="bg-white/80 rounded-lg p-3 border border-indigo-100">
                                         <div className="text-xs text-slate-500 mb-1">Broad Match</div>
                                         <div className="text-xl font-bold text-blue-600">
-                                            {generatedKeywords.filter(k => {
-                                                const kw = typeof k === 'string' ? k : (k?.text || k?.keyword || String(k || ''));
-                                                return !kw.startsWith('"') && !kw.startsWith('[');
+                                            {generatedKeywords.filter((k: string) => {
+                                                return !k.startsWith('"') && !k.startsWith('[');
                                             }).length}
                                         </div>
                                     </div>
                                     <div className="bg-white/80 rounded-lg p-3 border border-indigo-100">
                                         <div className="text-xs text-slate-500 mb-1">Phrase/Exact</div>
                                         <div className="text-xl font-bold text-indigo-600">
-                                            {generatedKeywords.filter(k => {
-                                                const kw = typeof k === 'string' ? k : (k?.text || k?.keyword || String(k || ''));
-                                                return kw.startsWith('"') || kw.startsWith('[');
+                                            {generatedKeywords.filter((k: string) => {
+                                                return k.startsWith('"') || k.startsWith('[');
                                             }).length}
                                         </div>
                                     </div>
@@ -787,11 +785,10 @@ export const KeywordPlannerSelectable = ({
                                     <div className="mt-3 text-xs text-slate-600">
                                         <div className="font-medium mb-1">Sample Keywords:</div>
                                         <div className="flex flex-wrap gap-1">
-                                            {generatedKeywords.slice(0, 8).map((kw, idx) => {
-                                                const keywordText = typeof kw === 'string' ? kw : (kw?.text || kw?.keyword || String(kw || ''));
+                                            {generatedKeywords.slice(0, 8).map((kw: string, idx: number) => {
                                                 return (
                                                     <span key={idx} className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-mono">
-                                                        {keywordText.length > 25 ? keywordText.substring(0, 25) + '...' : keywordText}
+                                                        {kw.length > 25 ? kw.substring(0, 25) + '...' : kw}
                                                     </span>
                                                 );
                                             })}
@@ -883,7 +880,7 @@ export const KeywordPlannerSelectable = ({
                                                 htmlFor={`keyword-checkbox-${idx}`}
                                                 className={`flex-1 cursor-pointer select-none ${isSelected ? 'text-green-700 font-medium' : 'text-slate-700'}`}
                                             >
-                                                {typeof keyword === 'string' ? keyword : (keyword?.text || keyword?.keyword || String(keyword || ''))}
+                                                {keyword}
                                             </label>
                                         </div>
                                     );

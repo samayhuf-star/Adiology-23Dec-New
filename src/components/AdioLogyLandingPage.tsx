@@ -7,6 +7,11 @@ interface AdioLogyLandingPageProps {
 }
 
 export default function AdioLogyLandingPage({ onGetStarted, onLogin }: AdioLogyLandingPageProps) {
+  const handleNavigateToPolicy = (policy: string) => {
+    // Navigate to policy page or open modal
+    console.log('Navigate to policy:', policy);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation onGetStarted={onGetStarted} onLogin={onLogin} />
@@ -14,7 +19,7 @@ export default function AdioLogyLandingPage({ onGetStarted, onLogin }: AdioLogyL
       <Features />
       <Pricing />
       <CTASection onGetStarted={onGetStarted} />
-      <Footer />
+      <Footer onNavigateToPolicy={handleNavigateToPolicy} />
     </div>
   );
 }

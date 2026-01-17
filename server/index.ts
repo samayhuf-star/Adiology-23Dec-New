@@ -23,7 +23,60 @@ const { Pool } = pg;
 
 const app = new Hono();
 
-app.use('/*', cors());
+// Production security headers middleware
+app.use('/*', async (c, next) => {
+  // Security headers
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('X-Frame-Options', 'DENY');
+  c.header('X-XSS-Protection', '1; mode=block');
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Only add HSTS in production with HTTPS
+  if (process.env.NODE_ENV === 'production' && c.req.url.startsWith('https://')) {
+    c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  
+  // Content Security Policy (adjust based on your needs)
+  if (process.env.NODE_ENV === 'production') {
+    c.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;");
+  }
+  
+  await next();
+});
+
+// CORS configuration - production-ready
+const isProduction = process.env.NODE_ENV === 'production';
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : isProduction 
+    ? [] // Must be explicitly set in production
+    : ['http://localhost:5000', 'http://localhost:3000', 'http://localhost:5173'];
+
+app.use('/*', cors({
+  origin: (origin) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return origin;
+    
+    // In development, allow all localhost origins
+    if (!isProduction) {
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return origin;
+      }
+      return null;
+    }
+    
+    // In production, check against allowed origins
+    if (allowedOrigins.includes(origin)) {
+      return origin;
+    }
+    return null;
+  },
+  credentials: true,
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-Admin-Email', 'X-Admin-Key'],
+  exposeHeaders: ['X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+  maxAge: 86400, // 24 hours
+}));
 
 // ============================================
 // GLOBAL ERROR HANDLER FOR API ROUTES
@@ -50,9 +103,47 @@ app.onError((err, c) => {
 // RATE LIMITING & SECURITY GUARDRAILS
 // ============================================
 
-// In-memory rate limiting store (use Redis for production scaling)
+// Rate limiting store - in-memory for now, Redis-ready for production scaling
+// TODO: Replace with Redis in production for multi-instance deployments
 const rateLimitStore: Map<string, { count: number; resetTime: number }> = new Map();
 const requestCache: Map<string, { response: any; timestamp: number }> = new Map();
+
+// Redis adapter interface (for future Redis implementation)
+interface RateLimitAdapter {
+  get(key: string): Promise<{ count: number; resetTime: number } | null>;
+  set(key: string, value: { count: number; resetTime: number }, ttl: number): Promise<void>;
+  increment(key: string, ttl: number): Promise<{ count: number; resetTime: number }>;
+}
+
+// In-memory adapter (current implementation)
+class MemoryRateLimitAdapter implements RateLimitAdapter {
+  private store = new Map<string, { count: number; resetTime: number }>();
+  
+  async get(key: string): Promise<{ count: number; resetTime: number } | null> {
+    return this.store.get(key) || null;
+  }
+  
+  async set(key: string, value: { count: number; resetTime: number }, ttl: number): Promise<void> {
+    this.store.set(key, value);
+    // Auto-cleanup after TTL
+    setTimeout(() => this.store.delete(key), ttl);
+  }
+  
+  async increment(key: string, ttl: number): Promise<{ count: number; resetTime: number }> {
+    const existing = this.store.get(key);
+    if (!existing) {
+      const newValue = { count: 1, resetTime: Date.now() + ttl };
+      this.store.set(key, newValue);
+      setTimeout(() => this.store.delete(key), ttl);
+      return newValue;
+    }
+    existing.count++;
+    return existing;
+  }
+}
+
+// Use memory adapter for now, can be swapped for Redis adapter
+const rateLimitAdapter: RateLimitAdapter = new MemoryRateLimitAdapter();
 
 // Rate limit configuration per endpoint category - generous limits to prevent dashboard blocking
 const rateLimits: Record<string, { requests: number; windowMs: number }> = {
@@ -73,16 +164,16 @@ function getClientId(c: any): string {
   return userId || ip;
 }
 
-// Rate limit check function
-function checkRateLimit(clientId: string, category: string): { allowed: boolean; remaining: number; resetIn: number } {
+// Rate limit check function - Redis-ready
+async function checkRateLimit(clientId: string, category: string): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
   const key = `${clientId}:${category}`;
   const now = Date.now();
   const limit = rateLimits[category] || rateLimits['general'];
   
-  const record = rateLimitStore.get(key);
+  const record = await rateLimitAdapter.get(key);
   
   if (!record || now >= record.resetTime) {
-    rateLimitStore.set(key, { count: 1, resetTime: now + limit.windowMs });
+    await rateLimitAdapter.set(key, { count: 1, resetTime: now + limit.windowMs }, limit.windowMs);
     return { allowed: true, remaining: limit.requests - 1, resetIn: limit.windowMs };
   }
   
@@ -90,25 +181,25 @@ function checkRateLimit(clientId: string, category: string): { allowed: boolean;
     return { allowed: false, remaining: 0, resetIn: record.resetTime - now };
   }
   
-  record.count++;
-  return { allowed: true, remaining: limit.requests - record.count, resetIn: record.resetTime - now };
+  await rateLimitAdapter.increment(key, limit.windowMs);
+  const updated = await rateLimitAdapter.get(key);
+  return { 
+    allowed: true, 
+    remaining: limit.requests - (updated?.count || record.count + 1), 
+    resetIn: record.resetTime - now 
+  };
 }
 
-// Cleanup old rate limit entries every 5 minutes
+// Cleanup old cache entries every 5 minutes
 setInterval(() => {
   const now = Date.now();
-  for (const [key, value] of rateLimitStore.entries()) {
-    if (now >= value.resetTime) {
-      rateLimitStore.delete(key);
-    }
-  }
-  // Clean old request cache (older than 30 seconds)
+  const maxAge = 10 * 60 * 1000; // 10 minutes
   for (const [key, value] of requestCache.entries()) {
-    if (now - value.timestamp > 30000) {
+    if (now - value.timestamp > maxAge) {
       requestCache.delete(key);
     }
   }
-}, 300000);
+}, 5 * 60 * 1000);
 
 // Rate limiting middleware
 app.use('/api/*', async (c, next) => {
@@ -124,14 +215,19 @@ app.use('/api/*', async (c, next) => {
   else if (path.includes('/campaign') && c.req.method === 'POST') category = 'campaign-save';
   else if (path.includes('/admin/')) category = 'admin';
   
-  const rateCheck = checkRateLimit(clientId, category);
+  const rateCheck = await checkRateLimit(clientId, category);
   
   // Add rate limit headers
   c.header('X-RateLimit-Remaining', String(rateCheck.remaining));
   c.header('X-RateLimit-Reset', String(Math.ceil(rateCheck.resetIn / 1000)));
   
   if (!rateCheck.allowed) {
-    console.warn(`[Rate Limit] Exceeded for ${clientId} on ${category}`);
+    // Use logger instead of console in production
+    if (process.env.NODE_ENV === 'production') {
+      // Log to monitoring service
+    } else {
+      console.warn(`[Rate Limit] Exceeded for ${clientId} on ${category}`);
+    }
     return c.json({ 
       error: 'Rate limit exceeded', 
       message: `Too many requests. Please wait ${Math.ceil(rateCheck.resetIn / 1000)} seconds.`,
@@ -184,8 +280,37 @@ function getDuplicateKey(c: any): string {
   return `${clientId}:${path}:${c.req.method}`;
 }
 
+// Production-ready database connection pool
 const pool = new Pool({
   connectionString: getDatabaseUrl(),
+  // Connection pool settings for production
+  max: parseInt(process.env.DB_POOL_MAX || '20'), // Maximum number of clients in the pool
+  min: parseInt(process.env.DB_POOL_MIN || '5'), // Minimum number of clients in the pool
+  idleTimeoutMillis: parseInt(process.env.DB_POOL_IDLE_TIMEOUT || '30000'), // Close idle clients after 30 seconds
+  connectionTimeoutMillis: parseInt(process.env.DB_POOL_CONNECTION_TIMEOUT || '2000'), // Return an error after 2 seconds if connection could not be established
+  // Statement timeout (optional, in milliseconds)
+  statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT || '30000'), // 30 seconds
+  // Query timeout
+  query_timeout: parseInt(process.env.DB_QUERY_TIMEOUT || '30000'), // 30 seconds
+});
+
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  // In production, send to error monitoring service
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Closing database pool...');
+  await pool.end();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Closing database pool...');
+  await pool.end();
+  process.exit(0);
 });
 
 // Rate limiting store
@@ -5835,6 +5960,7 @@ app.delete('/api/workspace-projects/:projectId/items/:itemId', async (c) => {
     
     const projectId = c.req.param('projectId');
     const itemId = c.req.param('itemId');
+    const itemType = c.req.query('itemType');
     
     // Verify project belongs to user
     const projectCheck = await pool.query(
@@ -5846,10 +5972,18 @@ app.delete('/api/workspace-projects/:projectId/items/:itemId', async (c) => {
       return c.json({ error: 'Project not found or access denied' }, 404);
     }
     
-    await pool.query(
-      `DELETE FROM project_items WHERE project_id = $1 AND item_id = $2`,
-      [projectId, itemId]
-    );
+    // Delete with item_type check if provided for safety, otherwise delete by project_id and item_id
+    if (itemType) {
+      await pool.query(
+        `DELETE FROM project_items WHERE project_id = $1 AND item_id = $2 AND item_type = $3`,
+        [projectId, itemId, itemType]
+      );
+    } else {
+      await pool.query(
+        `DELETE FROM project_items WHERE project_id = $1 AND item_id = $2`,
+        [projectId, itemId]
+      );
+    }
     
     return c.json({ success: true, message: 'Item unlinked successfully' });
   } catch (error: any) {
@@ -9091,7 +9225,6 @@ app.delete('/api/long-tail-keywords/lists/:listId', async (c) => {
 app.route('/api/community', community);
 
 // Determine ports - use PORT env var if provided, otherwise use defaults
-const isProduction = process.env.NODE_ENV === 'production';
 const apiPort = parseInt(process.env.PORT || (isProduction ? '5000' : '3001'), 10);
 
 // ============================================
@@ -10127,13 +10260,19 @@ if (isProduction) {
   });
 }
 
-console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
+// Export app for Vercel serverless functions
+export { app };
 
-// Start the server
-serve({
-  fetch: app.fetch,
-  port: apiPort,
-});
+// Only start the server if not in Vercel environment
+if (!process.env.VERCEL) {
+  console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
 
-// Initialize Stripe in the background AFTER server is running (non-blocking)
-initStripe().catch(err => console.error('Stripe init error:', err));
+  // Start the server
+  serve({
+    fetch: app.fetch,
+    port: apiPort,
+  });
+
+  // Initialize Stripe in the background AFTER server is running (non-blocking)
+  initStripe().catch(err => console.error('Stripe init error:', err));
+}

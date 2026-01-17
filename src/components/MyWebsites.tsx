@@ -44,7 +44,7 @@ export const MyWebsites: React.FC = () => {
 
       // Check if sample website already exists
       const existing = await getUserPublishedWebsites(user.id);
-      const hasSample = existing.some(w => w.name === 'Sample Website' || w.vercel_url?.includes('domain.com'));
+      const hasSample = existing.some((w: PublishedWebsite) => w.name === 'Sample Website' || w.vercel_url?.includes('domain.com'));
       
       if (existing.length === 0 && !hasSample) {
         // Add sample domain.com website
@@ -286,11 +286,8 @@ export const MyWebsites: React.FC = () => {
     setRefreshing(website.id);
     try {
       const deployment = await getDeploymentStatus(website.vercel_deployment_id, vercelToken);
-      await updatePublishedWebsiteStatus(
-        website.id,
-        deployment.state === 'READY' ? 'ready' : deployment.state === 'ERROR' ? 'error' : 'deploying',
-        deployment.url
-      );
+      const status = deployment.state === 'READY' ? 'ready' : deployment.state === 'ERROR' ? 'error' : 'deploying';
+      await updatePublishedWebsiteStatus(website.id, status);
       await loadWebsites();
       notifications.success('Status updated!', { title: 'Refreshed' });
     } catch (error: any) {

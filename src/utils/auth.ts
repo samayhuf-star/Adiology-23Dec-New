@@ -42,6 +42,14 @@ export async function getCurrentUserProfile() {
     subscription_status: 'active',
     avatar_url: cachedClerkUser.imageUrl,
     google_ads_default_account: null as string | null,
+    company_name: undefined as string | undefined,
+    job_title: undefined as string | undefined,
+    industry: undefined as string | undefined,
+    company_size: undefined as string | undefined,
+    phone: undefined as string | undefined,
+    website: undefined as string | undefined,
+    country: undefined as string | undefined,
+    bio: undefined as string | undefined,
   };
 }
 
@@ -108,8 +116,8 @@ export async function createUserProfile(userId: string, email: string, fullName:
   };
 }
 
-export async function signUpWithEmail(_email: string, _password: string, _fullName: string) {
-  throw new Error('Use Clerk SignUp component instead');
+export async function signUpWithEmail(_email: string, _password: string, _fullName: string): Promise<{ data: any; error: { message: string } | null }> {
+  return { data: null, error: { message: 'Use Clerk SignUp component instead' } };
 }
 
 export async function signInWithEmail(_email: string, _password: string) {

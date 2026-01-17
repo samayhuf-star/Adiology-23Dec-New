@@ -8,39 +8,39 @@
  * so this check is mainly for validation purposes.
  */
 
+import { validateEnvironment as validateEnv, getEnvVarSafe } from './envValidation';
+
 export function checkRequiredEnvVars(): { valid: boolean; missing: string[] } {
-  // Optional: Check for critical env vars if needed
-  // Since the app has hardcoded fallbacks, we're lenient here
-  const optional: string[] = [
-    'VITE_SUPABASE_PROJECT_ID',
-    'VITE_SUPABASE_ANON_KEY',
-  ];
-
-  const missing = optional.filter(key => {
-    const value = import.meta.env[key];
-    return !value || value === 'undefined' || value === '';
-  });
-
-  // Only log, don't warn - app has hardcoded fallbacks
-  // Suppress warning for optional variables since they have fallbacks
-  if (missing.length > 0) {
-    // Silently use fallbacks - no need to warn for optional variables
-    // console.log('ℹ️ Using hardcoded fallback values for optional env vars');
+  const validation = validateEnv();
+  
+  if (validation.missing.length > 0) {
+    console.error('❌ Missing required environment variables:', validation.missing);
+  } else if (validation.warnings.length > 0) {
+    console.warn('⚠️ Missing optional environment variables:', validation.warnings);
   } else {
-    console.log('✅ Environment variables loaded');
+    if (import.meta.env.DEV) {
+      console.log('✅ Environment variables loaded');
+    }
   }
   
-  // Always return valid since we have fallbacks
-  return { valid: true, missing };
+  return { valid: validation.valid, missing: validation.missing };
 }
 
 /**
  * Check if we're in a valid environment
  */
 export function validateEnvironment(): boolean {
-  // Always return true since the app has hardcoded fallbacks
-  // This function can be extended to check for truly critical vars if needed
-  checkRequiredEnvVars();
+  const validation = validateEnv();
+  
+  if (!validation.valid) {
+    console.error('❌ Environment validation failed. Missing:', validation.missing);
+    return false;
+  }
+  
+  if (validation.warnings.length > 0 && import.meta.env.PROD) {
+    console.warn('⚠️ Production environment warnings:', validation.warnings);
+  }
+  
   return true;
 }
 
