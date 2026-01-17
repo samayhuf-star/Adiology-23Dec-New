@@ -730,7 +730,10 @@ export function WorkspaceProjects() {
                   <p className="text-slate-500 mb-6 max-w-md mx-auto">
                     Start by creating a campaign or keyword list and assign it to this project for better organization.
                   </p>
-                  <Button className="bg-indigo-600 hover:bg-indigo-700">
+                  <Button 
+                    className="bg-indigo-600 hover:bg-indigo-700"
+                    onClick={() => window.location.href = '/campaign-builder'}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Campaign
                   </Button>

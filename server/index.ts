@@ -5065,6 +5065,42 @@ app.post('/api/user/sync', async (c) => {
   }
 });
 
+// Update user profile
+app.put('/api/user/profile', async (c) => {
+  try {
+    const auth = await verifyUserToken(c);
+    if (!auth.authorized) {
+      return c.json({ error: auth.error }, 401);
+    }
+    
+    const body = await c.req.json();
+    const fullName = body.full_name || body.fullName;
+    
+    if (!fullName || typeof fullName !== 'string' || fullName.trim().length === 0) {
+      return c.json({ error: 'Full name is required' }, 400);
+    }
+    
+    // Update the user's name in the database
+    const result = await pool.query(
+      `UPDATE users SET full_name = $1, updated_at = NOW() WHERE clerk_user_id = $2 RETURNING id, full_name, email`,
+      [fullName.trim(), auth.userId]
+    );
+    
+    if (result.rowCount === 0) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    return c.json({ 
+      success: true, 
+      user: result.rows[0],
+      message: 'Profile updated successfully'
+    });
+  } catch (error: any) {
+    console.error('[/api/user/profile] Error:', error);
+    return c.json({ error: 'Failed to update profile' }, 500);
+  }
+});
+
 // Get all campaign history for user
 app.get('/api/campaign-history', async (c) => {
   try {

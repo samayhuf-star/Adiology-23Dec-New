@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { getCurrentUserProfile } from '../utils/auth';
 import { supabase } from '../utils/supabase/client';
 import { 
@@ -32,6 +32,7 @@ interface SettingsPanelProps {
 
 export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) => {
   const { user: clerkUser } = useUser();
+  const { getToken } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -166,35 +167,31 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
         return;
       }
       
-      if (!trimmedEmail) {
-        setSaveMessage({ type: 'error', text: 'Email cannot be blank. Please enter your email address.' });
-        setIsSaving(false);
-        return;
-      }
-
-      // Bug_09: Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(trimmedEmail)) {
-        setSaveMessage({ type: 'error', text: 'Please enter a valid email address (e.g., name@example.com).' });
-        setIsSaving(false);
-        return;
-      }
-
       // Get current user
       const currentUser = await getCurrentUserProfile();
       if (!currentUser) {
         throw new Error('User not found');
       }
 
-      // Update user profile in Supabase
-      const { error } = await supabase
-        .from('users')
-        .update({
+      // Update user profile in database via API
+      const token = await getToken();
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           full_name: trimmedName,
-          email: trimmedEmail.toLowerCase(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', currentUser.id);
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+
+      const { error } = { error: null }; // Placeholder for compatibility
 
       if (error) throw error;
 
@@ -395,11 +392,13 @@ export const SettingsPanel = ({ defaultTab = 'settings' }: SettingsPanelProps) =
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-12 pr-4 h-12 text-base"
+                  readOnly
+                  disabled
+                  className="pl-12 pr-4 h-12 text-base bg-slate-50 cursor-not-allowed"
                   placeholder="Enter your email"
                 />
               </div>
+              <p className="text-xs text-slate-500">Email cannot be changed. Contact support if you need to update your email.</p>
             </div>
           </div>
           <div className="flex justify-start pt-4">
