@@ -116,15 +116,7 @@ const AppContent = () => {
   
   const [appView, setAppView] = useState<AppView>('homepage');
   const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in');
-  // Initialize activeTab from localStorage or default to dashboard
-  const [activeTab, setActiveTab] = useState(() => {
-    try {
-      const savedTab = localStorage.getItem('adiology_active_tab');
-      return savedTab || 'dashboard';
-    } catch {
-      return 'dashboard';
-    }
-  });
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [historyData, setHistoryData] = useState<any>(null);
@@ -280,14 +272,31 @@ const AppContent = () => {
     // 'call-forwarding', // Hidden - module disabled
   ]);
 
+  // Helper to get user-scoped storage key
+  const getTabStorageKey = () => user?.id ? `adiology_active_tab_${user.id}` : null;
+  
+  // Restore persisted tab when user logs in
+  useEffect(() => {
+    if (user?.id && typeof window !== 'undefined') {
+      try {
+        const key = `adiology_active_tab_${user.id}`;
+        const savedTab = localStorage.getItem(key);
+        if (savedTab && validTabIds.has(savedTab)) {
+          setActiveTab(savedTab);
+        }
+      } catch { /* ignore storage errors */ }
+    }
+  }, [user?.id]);
+  
   // Safe setActiveTab wrapper that validates and redirects to dashboard if invalid
   const setActiveTabSafe = (tabId: string) => {
     if (validTabIds.has(tabId)) {
       setActiveTab(tabId);
-      // Persist to localStorage for page refresh
-      try {
-        localStorage.setItem('adiology_active_tab', tabId);
-      } catch { /* ignore storage errors */ }
+      // Persist to localStorage (user-scoped) for page refresh
+      const key = getTabStorageKey();
+      if (key) {
+        try { localStorage.setItem(key, tabId); } catch { /* ignore */ }
+      }
       
       // Always close mobile menu when navigating
       setMobileMenuOpen(false);
@@ -307,9 +316,6 @@ const AppContent = () => {
         console.warn(`Invalid tab ID "${tabId}" - redirecting to dashboard`);
       }
       setActiveTab('dashboard');
-      try {
-        localStorage.setItem('adiology_active_tab', 'dashboard');
-      } catch { /* ignore storage errors */ }
     }
   };
   const [notifications, setNotifications] = useState<Array<{
@@ -472,10 +478,13 @@ const AppContent = () => {
   const handleLogout = async () => {
     if (confirm('Are you sure you want to logout?')) {
       try {
+        // Clear persisted tab state before signing out (while we still have user.id)
+        const tabKey = getTabStorageKey();
+        if (tabKey) {
+          try { localStorage.removeItem(tabKey); } catch { /* ignore */ }
+        }
         await clerkSignOut();
         sessionStorage.clear();
-        // Clear persisted tab state
-        try { localStorage.removeItem('adiology_active_tab'); } catch { /* ignore */ }
         window.history.pushState({}, '', '/');
         setAppView('homepage');
         setActiveTab('dashboard');
@@ -483,7 +492,6 @@ const AppContent = () => {
       } catch (error) {
         console.error('Logout error:', error);
         sessionStorage.clear();
-        try { localStorage.removeItem('adiology_active_tab'); } catch { /* ignore */ }
         setAppView('homepage');
       }
     }

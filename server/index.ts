@@ -7975,17 +7975,6 @@ app.post('/api/email/team-invite', async (c) => {
       return c.json({ error: 'Invalid email format' }, 400);
     }
     
-    const resendApiKey = process.env.RESEND_API_KEY;
-    
-    if (!resendApiKey) {
-      console.log('Team invite email (Resend not configured):', { to, inviterName, teamName, inviteLink });
-      return c.json({ 
-        success: true, 
-        message: 'Invitation recorded (email service not configured)',
-        simulated: true
-      });
-    }
-    
     const subject = `You're invited to join ${teamName || 'a team'} on Adiology`;
     const displayInviterName = inviterName || 'A team member';
     const displayTeamName = teamName || 'Adiology Team';
@@ -8033,40 +8022,49 @@ app.post('/api/email/team-invite', async (c) => {
     
     console.log('Sending team invite email via Resend:', { to, inviterName });
     
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${resendApiKey}`
-      },
-      body: JSON.stringify({
-        from: 'Adiology <noreply@adiology.io>',
-        to: [to],
+    try {
+      const { sendEmail } = await import('./resendClient');
+      const result = await sendEmail({
+        to: to,
         subject: subject,
         html: htmlContent
-      })
-    });
-    
-    const responseData = await response.json().catch(() => ({ message: 'Unknown response' }));
-    
-    if (response.ok && responseData.id) {
+      });
+      
+      if (!result.success) {
+        console.error('Resend error:', result.error);
+        await pool.query(
+          'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
+          [to, subject, 'failed']
+        ).catch(err => console.error('Failed to log email:', err));
+        return c.json({ error: result.error?.message || 'Failed to send email' }, 500);
+      }
+      
+      // Simulated success when Resend is not configured
+      if (result.simulated) {
+        console.log('Team invite email simulated (Resend not configured):', { to, inviterName, teamName });
+        return c.json({ 
+          success: true, 
+          message: 'Invitation recorded (email service not configured)',
+          simulated: true
+        });
+      }
+      
       await pool.query(
         'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
         [to, subject, 'sent']
       ).catch(err => console.error('Failed to log email:', err));
       
-      console.log('Team invite email sent successfully to:', to, 'Message ID:', responseData.id);
-      return c.json({ success: true, message: 'Invitation sent successfully', messageId: responseData.id });
-    } else {
-      const errorMsg = responseData.message || responseData.error || 'Failed to send email';
-      console.error('Resend error:', errorMsg, responseData);
+      console.log('Team invite email sent successfully to:', to, 'Message ID:', result.data?.id);
+      return c.json({ success: true, message: 'Invitation sent successfully', messageId: result.data?.id });
+    } catch (emailError: any) {
+      console.error('Resend error:', emailError);
       
       await pool.query(
         'INSERT INTO email_logs (recipient, subject, status, sent_at) VALUES ($1, $2, $3, NOW())',
         [to, subject, 'failed']
       ).catch(err => console.error('Failed to log email:', err));
       
-      return c.json({ error: errorMsg }, 500);
+      return c.json({ error: emailError.message || 'Failed to send email' }, 500);
     }
   } catch (error: any) {
     console.error('Error sending team invite email:', error);
