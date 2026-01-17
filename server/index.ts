@@ -10267,10 +10267,11 @@ export { app };
 if (!process.env.VERCEL) {
   console.log(`Server running on port ${apiPort} (${isProduction ? 'production' : 'development'} mode)`);
 
-  // Start the server
+  // Start the server - must bind to 0.0.0.0 for Replit autoscale deployment
   serve({
     fetch: app.fetch,
     port: apiPort,
+    hostname: '0.0.0.0',
   });
 
   // Initialize Stripe in the background AFTER server is running (non-blocking)
