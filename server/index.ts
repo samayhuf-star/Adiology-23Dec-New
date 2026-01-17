@@ -500,6 +500,26 @@ app.post('/api/stripe/webhook/:uuid', async (c) => {
   }
 });
 
+// Stripe webhook endpoint (without UUID - for standard webhook configuration)
+app.post('/api/stripe/webhook', async (c) => {
+  const signature = c.req.header('stripe-signature');
+  if (!signature) {
+    return c.json({ error: 'Missing stripe-signature' }, 400);
+  }
+
+  try {
+    const body = await c.req.arrayBuffer();
+    const payload = Buffer.from(body);
+
+    // Use 'default' as the webhook ID when no UUID is provided
+    await WebhookHandlers.processWebhook(payload, signature, 'default');
+    return c.json({ received: true });
+  } catch (error: any) {
+    console.error('Webhook error:', error.message);
+    return c.json({ error: 'Webhook processing error' }, 400);
+  }
+});
+
 // ============================================
 // CLERK WEBHOOK - New User Signup Email
 // ============================================
