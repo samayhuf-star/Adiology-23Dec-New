@@ -10,7 +10,7 @@ integrations = [
 
 [nix]
 channel = "stable-25_05"
-packages = ["imagemagick_light", "mailutils", "nano", "psmisc", "speech-tools"]
+packages = ["imagemagick_light", "mailutils", "nano", "psmisc", "speech-tools", "lsof"]
 
 [workflows]
 runButton = "Project"
@@ -66,6 +66,10 @@ args = "bash /home/runner/workspace/run_discourse_fix_hourly.sh"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
 
 [[ports]]
 localPort = 5000
